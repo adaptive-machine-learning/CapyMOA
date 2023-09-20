@@ -1,0 +1,36 @@
+,run,dataset,classifier,accuracy,wallclock(s),cpu_time(s)
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.bayes.NaiveBayes,51.139,3.363631248,3.734511
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.trees.HoeffdingTree,53.819,4.708353043,6.055893
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.trees.EFDT,54.254,4.903990746,5.11434
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.lazy.kNN -w 1000 -k 3,60.803,27.23430562,27.476316
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.meta.AdaptiveRandomForest-s 5 -o (Percentage (M * (m / 100))) -m 60,82.537,23.39235616,25.049668
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.meta.AdaptiveRandomForest-s 10 -o (Percentage (M * (m / 100))) -m 60,83.527,44.59485602,45.597566
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.meta.AdaptiveRandomForest-s 30 -o (Percentage (M * (m / 100))) -m 60,83.666,131.1556952,135.52801
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.meta.AdaptiveRandomForest-s 100 -o (Percentage (M * (m / 100))) -m 60,83.616,430.4460778,455.288466
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.meta.AdaptiveRandomForest-s 100 -j 4 -o (Percentage (M * (m / 100))) -m 60,83.616,182.7559922,479.363561
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.meta.StreamingRandomPatches-s 5 -o (Percentage (M * (m / 100))) -m 60,77.77,43.20379019,44.026689
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.meta.StreamingRandomPatches-s 10 -o (Percentage (M * (m / 100))) -m 60,73.559,92.21778369,95.664852
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.meta.StreamingRandomPatches-s 30 -o (Percentage (M * (m / 100))) -m 60,79.869,253.2540581,268.322701
+MOA,1,./data/RTG_2abrupt.arff,moa.classifiers.meta.StreamingRandomPatches-s 100 -o (Percentage (M * (m / 100))) -m 60,79.383,845.792577,936.854447
+River,1,./data/RTG_2abrupt.csv,GaussianNB,0.51138,13.48207521,13.479383
+River,1,./data/RTG_2abrupt.csv,HoeffdingTreeClassifier,0.53687,26.60836816,26.603663
+River,1,./data/RTG_2abrupt.csv,"KNNClassifierengine=LazySearch(window_size=1000), n_neighbors=3",0.60159,1437.030073,604.000725
+River,1,./data/RTG_2abrupt.csv,"ARFClassifiern_models=5,max_features=0.60",0.78585,166.636811,166.637308
+River,1,./data/RTG_2abrupt.csv,"ARFClassifiern_models=10,max_features=0.60",0.79093,4860.852145,368.664245
+River,1,./data/RTG_2abrupt.csv,"ARFClassifiern_models=30,max_features=0.60",0.79785,1093.956636,1092.985935
+River,1,./data/RTG_2abrupt.csv,"ARFClassifiern_models=100,max_features=0.60",0.8008,32790.39175,4121.367358
+River,1,./data/RTG_2abrupt.csv,"SRPClassifiern_models=5,subspace_size=0.60",0.7541,467.6464481,466.737587
+River,1,./data/RTG_2abrupt.csv,"SRPClassifiern_models=10,subspace_size=0.60",0.76591,985.7005198,981.391106
+River,1,./data/RTG_2abrupt.csv,"SRPClassifiern_models=30,subspace_size=0.60",0.76024,3570.390376,3145.303672
+River,1,./data/RTG_2abrupt.csv,"SRPClassifiern_models=100,subspace_size=0.60",0.76929,14216.34777,11654.60466
+River,2,./data/RTG_2abrupt.csv,GaussianNB,0.51138,13.57416511,13.61899
+River,2,./data/RTG_2abrupt.csv,HoeffdingTreeClassifier,0.53687,1021.644838,26.842888
+River,2,./data/RTG_2abrupt.csv,"KNNClassifierengine=LazySearch(window_size=1000), n_neighbors=3",0.60159,3583.057058,585.706448
+River,2,./data/RTG_2abrupt.csv,"ARFClassifiern_models=5,max_features=0.60",0.78372,168.7556231,168.747756
+River,2,./data/RTG_2abrupt.csv,"ARFClassifiern_models=10,max_features=0.60",0.79903,349.1759732,348.84204
+River,2,./data/RTG_2abrupt.csv,"ARFClassifiern_models=30,max_features=0.60",0.8022,1083.272428,1082.960833
+River,2,./data/RTG_2abrupt.csv,"ARFClassifiern_models=100,max_features=0.60",0.80248,4048.260563,4048.333466
+River,2,./data/RTG_2abrupt.csv,"SRPClassifiern_models=5,subspace_size=0.60",0.75472,473.903358,473.588804
+River,2,./data/RTG_2abrupt.csv,"SRPClassifiern_models=10,subspace_size=0.60",0.76928,986.161653,985.950104
+River,2,./data/RTG_2abrupt.csv,"SRPClassifiern_models=30,subspace_size=0.60",0.77672,3200.228173,3200.285562
+River,2,./data/RTG_2abrupt.csv,"SRPClassifiern_models=100,subspace_size=0.60",0.78168,17383.53337,11365.88751

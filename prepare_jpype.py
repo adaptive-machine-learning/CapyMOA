@@ -28,5 +28,8 @@ def start_jpype():
     else:
         print("JVM already started")
 
+# The JVM automatically shutdown with python, no need to explicitly call the shutdown method
+# https://jpype.readthedocs.io/en/latest/userguide.html#shutdownjvm
+
 if __name__ == "__main__":
     start_jpype()

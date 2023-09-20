@@ -2,13 +2,11 @@ from prepare_jpype import start_jpype
 import pandas as pd
 start_jpype()
 
-# Prepare examples and a __main__
-# Should add Wrapper at the end or find a way to use the same name as in MOA? 
+from moa.classifiers.meta import AdaptiveRandomForest as MOA_AdaptiveRandomForest
+from moa.core import Utils
 
-from moa.classifiers.meta import AdaptiveRandomForest
-
-class AdaptiveRandomForestWrapper:
-    def __init__(self, stream_context, tree_learner=None, ensemble_size=100, 
+class AdaptiveRandomForest:
+    def __init__(self, schema, tree_learner=None, ensemble_size=100, 
                  m_features_mode=None, m_features_per_tree_size=60, lambda_param=6.0,
                 number_of_jobs=1, drift_detection_method=None, warning_detection_method=None,
                 disable_weighted_vote=False, disable_drift_detection=False, disable_background_learner=False):
@@ -25,14 +23,14 @@ class AdaptiveRandomForestWrapper:
         self.disable_drift_detection = disable_drift_detection
         self.disable_background_learner = disable_background_learner
 
-        self.moa_learner = AdaptiveRandomForest()
+        self.moa_learner = MOA_AdaptiveRandomForest()
         # self.moa_learner.getOptions().setViaCLIString(f"-l {self.tree_learner} -s {self.ensemble_size}" -o {self.m_features_mode} -m {self.m_features_per_tree_size} -a {self.lambda} -j {self.number_of_jobs} -x {self.drift_detection_method} -p {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  {'-q' if self.disable_background_learner else ''}")
         self.moa_learner.getOptions().setViaCLIString(f"-l {self.tree_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m {self.m_features_per_tree_size} -a {self.lambda_param} -j {self.number_of_jobs} -x {self.drift_detection_method} -p {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  {'-q' if self.disable_background_learner else ''}")
         # self.moa_learner.setRandomSeed(1)
         self.moa_learner.prepareForUse()
         self.moa_learner.resetLearningImpl()
 
-        self.moa_learner.setModelContext(stream_context)
+        self.moa_learner.setModelContext(schema.getMoaHeader())
 
     def train(self, instance):
         self.moa_learner.trainOnInstance(instance)
