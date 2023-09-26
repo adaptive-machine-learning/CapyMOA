@@ -15,18 +15,20 @@ def start_jpype():
     # Add the moa jar to the class path
     jpype.addClassPath(moa_jar_path)
 
-    print(f"MOA jar path location (config.ini): {moa_jar_path}")
-    print("JVM Location (system): ")
-    subprocess.call("ECHO $JAVA_HOME", shell=True)
+
     # If JAVA_HOME is not set, then jpype will fail. 
 
     if not jpype.isJVMStarted():
+        print(f"MOA jar path location (config.ini): {moa_jar_path}")
+        print("JVM Location (system): ")
+        subprocess.call("ECHO $JAVA_HOME", shell=True)
+
         jpype.startJVM()
         # Add the moa jar to the class path
         jpype.addClassPath(moa_jar_path)
         print("Sucessfully started the JVM and added MOA jar to the class path")
-    else:
-        print("JVM already started")
+    # else:
+    #     print("JVM already started")
 
 # The JVM automatically shutdown with python, no need to explicitly call the shutdown method
 # https://jpype.readthedocs.io/en/latest/userguide.html#shutdownjvm
