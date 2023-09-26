@@ -422,7 +422,7 @@ def prequential_evaluation(stream, learner, max_instances=None, window_size=1000
     
     evaluator_cumulative = None
     evaluator_windowed = None
-    if stream.get_schema().is_classification:
+    if stream.get_schema().is_classification():
         evaluator_cumulative = ClassificationEvaluator(schema=stream.get_schema(), window_size=window_size)
         evaluator_windowed = ClassificationWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
     else:
