@@ -147,6 +147,9 @@ class ClassificationEvaluator:
     def __str__(self):
         return str({header: value for header, value in zip(self.metrics_header(), self.metrics())})
     
+    def get_instances_seen(self):
+        return self.instances_seen
+
     def update(self, y, y_pred):
         
         # Check if the schema is valid. 
@@ -185,7 +188,7 @@ class ClassificationEvaluator:
 
         # If the window_size is set, then check if it should record the intermediary results. 
         if self.window_size is not None and self.instances_seen % self.window_size == 0:
-            performance_values = [measurement.getValue() for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()]
+            performance_values = self.metrics() # [measurement.getValue() for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()]
             self.result_windows.append(performance_values)
 
     def metrics_header(self):
@@ -217,6 +220,10 @@ class ClassificationEvaluator:
 
 
 class ClassificationWindowedEvaluator(ClassificationEvaluator):
+    '''
+    The results for the last window are always through ```metrics()```, if the window_size does not perfectly divides the stream, i.e. 
+    there are remaining instances are the last window, then we can obtain the results for this last window by invoking ```metrics()```
+    '''
     def __init__(self, schema=None, window_size=1000, recall_per_class=False, precision_per_class=False, 
                  f1_precision_recall=False, f1_per_class=False):
         self.moa_evaluator = WindowClassificationPerformanceEvaluator()
@@ -271,6 +278,12 @@ class RegressionEvaluator:
         self._instance = DenseInstance(self.schema.get_num_attributes()+1)
         self._instance.setDataset(self._header)
     
+    def __str__(self):
+        return str({header: value for header, value in zip(self.metrics_header(), self.metrics())})
+
+    def get_instances_seen(self):
+        return self.instances_seen
+
     def update(self, y, y_pred):
 
         if y is None:
@@ -332,6 +345,10 @@ class RegressionEvaluator:
 
 
 class RegressionWindowedEvaluator(RegressionEvaluator):
+    '''
+    The results for the last window are always through ```metrics()```, if the window_size does not perfectly divides the stream, i.e. 
+    there are remaining instances are the last window, then we can obtain the results for this last window by invoking ```metrics()```
+    '''
     def __init__(self, schema=None, window_size=1000):
         self.moa_evaluator = WindowRegressionPerformanceEvaluator()
         self.moa_evaluator.widthOption.setValue(window_size)
@@ -367,6 +384,9 @@ def test_then_train_evaluation(stream, learner, max_instances=None, sample_frequ
     # Start measuring time
     start_wallclock_time, start_cpu_time = start_time_measuring()
     instancesProcessed = 1
+
+    if stream.has_more_instances() == False:
+        stream.restart()
 
     if evaluator is None:
         schema = stream.get_schema()
@@ -405,6 +425,11 @@ def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
     results = test_then_train_evaluation(stream, learner, max_instances=max_instances, sample_frequency=window_size, evaluator=evaluator)
 
     results['windowed'] = results['cumulative']
+    # Add the results corresponding to the remainder of the stream in case the number of processed instances is not perfectly divisible by 
+    # the window_size (if it was, then it is already be in the result_windows variable). 
+    if evaluator.get_instances_seen() % window_size != 0:
+        results['windowed'].result_windows.append(results['windowed'].metrics())
+
     results.pop('cumulative', None) # Remove previous entry with the cumulative results. 
 
     # Ignore the last prediction values, because it doesn't matter as we are using a windowed evaluation.
@@ -420,6 +445,9 @@ def prequential_evaluation(stream, learner, max_instances=None, window_size=1000
     start_wallclock_time, start_cpu_time = start_time_measuring()
     instancesProcessed = 1
     
+    if stream.has_more_instances() == False:
+        stream.restart()
+
     evaluator_cumulative = None
     evaluator_windowed = None
     if stream.get_schema().is_classification():
@@ -443,10 +471,15 @@ def prequential_evaluation(stream, learner, max_instances=None, window_size=1000
     # # Stop measuring time
     elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(start_wallclock_time, start_cpu_time)
 
+    # Add the results corresponding to the remainder of the stream in case the number of processed instances is not perfectly divisible by 
+    # the window_size (if it was, then it is already be in the result_windows variable). 
+    if evaluator_windowed.get_instances_seen() % window_size != 0:
+        evaluator_windowed.result_windows.append(evaluator_windowed.metrics())
+
     results = {'learner':str(learner), 'cumulative':evaluator_cumulative, 'windowed': evaluator_windowed, 
                'wallclock':elapsed_wallclock_time, 'cpu_time':elapsed_cpu_time}
-    
-    return results 
+
+    return results
     # return evaluator_cumulative, evaluator_windowed, elapsed_wallclock_time, elapsed_cpu_time
 
 def prequential_evaluation_multiple_learners(stream, learners, max_instances=None, window_size=1000):
@@ -455,6 +488,10 @@ def prequential_evaluation_multiple_learners(stream, learners, max_instances=Non
     Returns the results in a dictionary format. Infers whether it is a Classification or Regression problem based on the stream schema. 
     '''
     results = {}
+
+    if stream.has_more_instances() == False:
+        stream.restart()
+
     for learner_name, learner in learners.items():
         results[learner_name] = {'learner':str(learner)}
     
@@ -466,6 +503,7 @@ def prequential_evaluation_multiple_learners(stream, learners, max_instances=Non
             results[learner_name]['cumulative'] = RegressionEvaluator(schema=stream.get_schema(), window_size=window_size)
             results[learner_name]['windowed'] = RegressionWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
     instancesProcessed = 1
+
     while stream.has_more_instances() and (max_instances is None or instancesProcessed <= max_instances):
         instance = stream.next_instance()
         
@@ -479,7 +517,12 @@ def prequential_evaluation_multiple_learners(stream, learners, max_instances=Non
             learner.train(instance)
             
         instancesProcessed += 1
-        
+    
+    # Iterate through the results of each learner and add (if needed) the last window of results to it. 
+    for learner_name, result in results.items():
+        if result['windowed'].get_instances_seen() % window_size != 0:
+            result['windowed'].result_windows.append(result['windowed'].metrics())
+
     return results
 
 
