@@ -1,9 +1,13 @@
+# Create the JVM and add the MOA jar to the classpath
 from prepare_jpype import start_jpype
-import pandas as pd
 start_jpype()
 
+# import pandas as pd
+
+# Library imports
 from MOALearners import MOAClassifier, MOARegressor
 
+# MOA/Java imports
 from moa.classifiers.meta import AdaptiveRandomForest as MOA_AdaptiveRandomForest
 from moa.classifiers.meta import OzaBag as MOA_OzaBag
 from moa.classifiers.meta import AdaptiveRandomForestRegressor as MOA_AdaptiveRandomForestRegressor

@@ -1,7 +1,10 @@
+# Create the JVM and add the MOA jar to the classpath
 from prepare_jpype import start_jpype
-import pandas as pd
 start_jpype()
 
+# import pandas as pd
+
+# MOA/Java imports
 from moa.core import Utils
 
 class MOAClassifier:
@@ -31,7 +34,7 @@ class MOAClassifier:
     #     return str(self.moa_learner)
 
     def CLI_help(self):
-        return self.moa_learner.getOptions().getHelpString()
+        return str(self.moa_learner.getOptions().getHelpString())
 
     def train(self, instance):
         self.moa_learner.trainOnInstance(instance.get_MOA_InstanceExample())
@@ -42,6 +45,10 @@ class MOAClassifier:
     def predict_proba(self, instance):
         return self.moa_learner.getVotesForInstance(instance.get_MOA_InstanceExample())
 
+
+class MOAClassifierSSL(MOAClassifier):
+    def train_on_unlabeled(self, instance):
+        self.moa_learner.trainOnUnlabeledInstance(instance.get_MOA_InstanceExample().getData())
 
 
 class MOARegressor:

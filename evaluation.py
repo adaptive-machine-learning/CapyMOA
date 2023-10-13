@@ -1,99 +1,26 @@
+# Create the JVM and add the MOA jar to the classpath
+from prepare_jpype import start_jpype
+start_jpype()
+
+# Python imports
 import pandas as pd
+import numpy as np
 import time
 import datetime as dt
 import resource
 import os
 import random
 
-# Create the JVM and add the MOA jar to the classpath
-from prepare_jpype import start_jpype
-start_jpype()
+# Library imports
+from stream import NumpyStream
+from MOALearners import MOAClassifierSSL
 
 # MOA/Java imports
 from com.yahoo.labs.samoa.instances import Instances, Instance, Attribute, DenseInstance
 from moa.core import Example, InstanceExample, Utils
 from moa.evaluation import BasicClassificationPerformanceEvaluator, WindowClassificationPerformanceEvaluator, BasicRegressionPerformanceEvaluator, WindowRegressionPerformanceEvaluator
 from java.util import ArrayList
-
-# IDEA: STATIC METHOD TO CREATE A SCHEMA USING A MOA_HEADER. (e.g. withMOAHeader...)
-
-
-# TODO: Move Schema to stream.py
-class Schema:
-    """
-    This class is a wrapper for the MOA header, but it can be set up in Python directly by specifying the labels attribute.
-    If moa_header is specified, then it overrides everything else. 
-    In the future, we might want to have a way to specify the values for nominal attributes as well, so far just the labels. 
-    The number of attributes is instrumental for Evaluators that need it, such as adjusted coefficient of determination. 
-    """
-    def __init__(self, moa_header=None, labels=None, num_attributes=1): 
-        self.moa_header = moa_header
-        self.label_values = labels
-        self.label_indexes = None
-        # Internally, we store the number of attributes + the class/target. This is because MOA methods expect the numAttributes 
-        # to also account for the class/target.
-        self.num_attributes_including_output = num_attributes+1
-        
-        self.regression = False;
-        if self.moa_header is not None:
-            # TODO: might want to iterate over the other attributes and create a dictionary representation for the nominal attributes.
-            # There should be a way to configure that manually like setting the self.labels instead of using a MOA header.
-            if self.moa_header.outputAttribute(1).isNominal():
-                # Important: a Java.String is different from a Python str, so it is important to str(*) before storing the values.
-                self.label_values = [str(g) for g in self.moa_header.outputAttribute(1).getAttributeValues()]
-            else:
-                # This is a regression task, there are no label values. 
-                self.regression = True;
-            # The numAttributes in MOA also account for the class label. 
-            self.num_attributes_including_output = self.moa_header.numAttributes()
-        # else logic: the label_values must be set, so that the first time the get_label_indexes is invoked, they are correctly created. 
-
-    def get_label_values(self):
-        if self.label_values is None:
-            return None
-        else:
-            return self.label_values
-
-    def get_label_indexes(self):
-        if self.label_values is None:
-            return None
-        else:
-            if self.label_indexes is None:
-                self.label_indexes = list(range(len(self.label_values)))
-            return self.label_indexes
-
-    def get_moa_header(self):
-        return self.moa_header
-
-    def get_num_attributes(self):
-        # ignoring the class/target value. 
-        return self.num_attributes_including_output-1
-
-    def get_valid_index_for_label(self, y):
-        if self.label_indexes is None:
-            raise ValueError("Schema was not properly initialised, please define a proper Schema.")
-
-        # print(f"get_valid_index_for_label( y = {y} )")
-        
-        # Check of y is a string and if the labelValues contains strings. 
-        # print(f"isinstance {type(y)}, {type(self.label_values[0])}")
-        if isinstance(y, type(self.label_values[0])):
-            if y in self.label_values:
-                return self.label_values.index(y)
-
-        # If it is not a valid value, then maybe it is an index
-        if y in self.label_indexes:
-            return y
-
-        # This is neither a valid label value nor a valid index. 
-        return None
-
-    def is_regression(self):
-        return self.regression
-
-    def is_classification(self):
-        return not self.regression
-
+from moa.evaluation import EfficientEvaluationLoops
 
 class ClassificationEvaluator: 
     """
@@ -147,6 +74,9 @@ class ClassificationEvaluator:
     def __str__(self):
         return str({header: value for header, value in zip(self.metrics_header(), self.metrics())})
     
+    # # def metrics_with_header(self):
+    #     return {header: value for header, value in zip(self.metrics_header(), self.metrics())}
+
     def get_instances_seen(self):
         return self.instances_seen
 
@@ -218,7 +148,6 @@ class ClassificationEvaluator:
         index = self.metrics_header().index('Kappa M Statistic (percent)')
         return self.metrics()[index]
 
-
 class ClassificationWindowedEvaluator(ClassificationEvaluator):
     '''
     The results for the last window are always through ```metrics()```, if the window_size does not perfectly divides the stream, i.e. 
@@ -232,8 +161,6 @@ class ClassificationWindowedEvaluator(ClassificationEvaluator):
         super().__init__(schema=schema, window_size=window_size, recall_per_class=recall_per_class, 
                          precision_per_class=precision_per_class, f1_precision_recall=f1_precision_recall, 
                          f1_per_class=f1_per_class, moa_evaluator=self.moa_evaluator)
-
-
 
 class RegressionEvaluator: 
     """
@@ -343,7 +270,6 @@ class RegressionEvaluator:
         index = self.metrics_header().index('adjusted coefficient of determination')
         return self.metrics()[index]
 
-
 class RegressionWindowedEvaluator(RegressionEvaluator):
     '''
     The results for the last window are always through ```metrics()```, if the window_size does not perfectly divides the stream, i.e. 
@@ -355,15 +281,12 @@ class RegressionWindowedEvaluator(RegressionEvaluator):
         
         super().__init__(schema=schema, window_size=window_size, moa_evaluator=self.moa_evaluator)
 
-
 ## Functions to measure runtime
 def start_time_measuring(): 
     start_wallclock_time = time.time()
     start_cpu_time = resource.getrusage(resource.RUSAGE_SELF).ru_utime + resource.getrusage(resource.RUSAGE_SELF).ru_stime
 
     return start_wallclock_time, start_cpu_time
-
-
 
 def stop_time_measuring(start_wallclock_time, start_cpu_time):
     # Stop measuring time
@@ -376,13 +299,17 @@ def stop_time_measuring(start_wallclock_time, start_cpu_time):
 
     return elapsed_wallclock_time, elapsed_cpu_time
 
+def test_then_train_evaluation(stream, learner, max_instances=None, sample_frequency=None, evaluator=None, optimise=True):
+    '''
+    Test-then-train evaluation. Returns a dictionary with the results. 
+    '''
 
-def test_then_train_evaluation(stream, learner, max_instances=None, sample_frequency=100, evaluator=None):
-    '''
-    Test-then-train evaluation using a MOA learner. 
-    '''
+    if isinstance(stream, NumpyStream) == False and optimise:
+        return test_then_train_evaluation_fast(stream, learner, max_instances, sample_frequency, evaluator)
+
     # Start measuring time
     start_wallclock_time, start_cpu_time = start_time_measuring()
+
     instancesProcessed = 1
 
     if stream.has_more_instances() == False:
@@ -414,7 +341,7 @@ def test_then_train_evaluation(stream, learner, max_instances=None, sample_frequ
 
 def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
     '''
-    Prequential evaluation (window) using a MOA learner. 
+    Prequential evaluation (window). Returns a dictionary with the results. 
     '''
     # Run test-then-train evaluation, but change the underlying evaluator
     evaluator = None
@@ -435,12 +362,14 @@ def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
     # Ignore the last prediction values, because it doesn't matter as we are using a windowed evaluation.
     return results
 
-
-def prequential_evaluation(stream, learner, max_instances=None, window_size=1000):
+def prequential_evaluation(stream, learner, max_instances=None, window_size=1000, optimise=True):
     '''
     Calculates the metrics cumulatively (i.e. test-then-train) and in a window-fashion (i.e. windowed prequential evaluation). 
     Returns both evaluators so that the caller has access to metric from both evaluators. 
     '''
+    if isinstance(stream, NumpyStream) == False and optimise:
+        return prequential_evaluation_fast(stream, learner, max_instances, window_size)
+
     # Start measuring time
     start_wallclock_time, start_cpu_time = start_time_measuring()
     instancesProcessed = 1
@@ -452,10 +381,12 @@ def prequential_evaluation(stream, learner, max_instances=None, window_size=1000
     evaluator_windowed = None
     if stream.get_schema().is_classification():
         evaluator_cumulative = ClassificationEvaluator(schema=stream.get_schema(), window_size=window_size)
-        evaluator_windowed = ClassificationWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
+        if window_size is not None:
+            evaluator_windowed = ClassificationWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
     else:
         evaluator_cumulative = RegressionEvaluator(schema=stream.get_schema(), window_size=window_size)
-        evaluator_windowed = RegressionWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
+        if window_size is not None:
+            evaluator_windowed = RegressionWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
 
     while stream.has_more_instances() and (max_instances is None or instancesProcessed <= max_instances):
         instance = stream.next_instance()
@@ -463,8 +394,94 @@ def prequential_evaluation(stream, learner, max_instances=None, window_size=1000
         prediction = learner.predict(instance)
 
         evaluator_cumulative.update(instance.y(), prediction)
-        evaluator_windowed.update(instance.y(), prediction)
+        if window_size is not None:
+            evaluator_windowed.update(instance.y(), prediction)
         learner.train(instance)
+
+        instancesProcessed += 1
+
+    # Stop measuring time
+    elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(start_wallclock_time, start_cpu_time)
+
+    # Add the results corresponding to the remainder of the stream in case the number of processed instances is not perfectly divisible by 
+    # the window_size (if it was, then it is already be in the result_windows variable). 
+    # The evaluator_windowed will be None if the window_size is None (it will not be created)
+    if evaluator_windowed is not None and evaluator_windowed.get_instances_seen() % window_size != 0:
+        evaluator_windowed.result_windows.append(evaluator_windowed.metrics())
+
+    results = {'learner':str(learner), 'cumulative':evaluator_cumulative, 'windowed': evaluator_windowed, 
+               'wallclock':elapsed_wallclock_time, 'cpu_time':elapsed_cpu_time}
+
+    return results
+
+def test_then_train_SSL_evaluation(stream, learner, max_instances=None, sample_frequency=None, initial_window_size=0, delay_length=0, label_probability=0.01, random_seed=1, evaluator=None, optimise=True):
+    '''
+    Test-then-train SSL evaluation. Returns a dictionary with the results. 
+    '''
+    if isinstance(stream, NumpyStream) == False and optimise:
+        return test_then_train_SSL_evaluation_fast(stream, learner, max_instances, sample_frequency, initial_window_size, delay_length, label_probability, random_seed, evaluator)
+
+    raise ValueError("test_then_train_SSL_evaluation(...) not fully implemented yet!")
+
+def prequential_SSL_evaluation(stream, learner, max_instances=None, window_size=1000, initial_window_size=0, delay_length=0, label_probability=0.01, random_seed=1, optimise=True):
+    '''
+    If the learner is not a SSL learner, then it will just train on labeled instances. 
+    '''
+    if isinstance(stream, NumpyStream) == False and optimise:
+        return prequential_SSL_evaluation_fast(stream, learner, max_instances, window_size, 
+                                               initial_window_size, delay_length, label_probability, random_seed)
+
+    # IMPORTANT: delay_length and initial_window_size have not been implemented in python yet 
+    # In MOA it is implemented so prequential_SSL_evaluation_fast works just fine. 
+    if initial_window_size != 0:
+        raise ValueError("Initial window size must be 0 for this function as the feature is not implemented yet.")
+    
+    if delay_length != 0:
+        raise ValueError("Delay length must be 0 for this function as the feature is not implemented yet.")
+
+    # Reset the random state
+    mt19937 = np.random.MT19937()
+    mt19937._legacy_seeding(random_seed)
+    rand = np.random.Generator(mt19937)
+    
+    # Start measuring time
+    start_wallclock_time, start_cpu_time = start_time_measuring()
+    instancesProcessed = 1
+
+    if stream.has_more_instances() == False:
+        stream.restart()
+
+    evaluator_cumulative = None
+    evaluator_windowed = None
+    if stream.get_schema().is_classification():
+        evaluator_cumulative = ClassificationEvaluator(schema=stream.get_schema(), window_size=window_size)
+        # If the window_size is None, then should not initialise or produce prequential (window) results. 
+        if window_size is not None:
+            evaluator_windowed = ClassificationWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
+    else:
+        raise ValueError("The learning task is not classification")
+
+    unlabeled_counter = 0
+    
+    while stream.has_more_instances() and (max_instances is None or instancesProcessed <= max_instances):
+        instance = stream.next_instance()
+        
+        prediction = learner.predict(instance)
+
+        evaluator_cumulative.update(instance.y(), prediction)
+        if evaluator_windowed is not None:
+            evaluator_windowed.update(instance.y(), prediction)
+
+        if rand.random(dtype=np.float64) >= label_probability:
+        # if 0.00 >= label_probability:
+            # Do not label the instance
+            if isinstance(learner, MOAClassifierSSL):
+                learner.train_on_unlabeled(instance)
+                # Otherwise, just ignore the unlabeled instance
+            unlabeled_counter += 1
+        else:
+            # Labeled instance
+            learner.train(instance)
 
         instancesProcessed += 1
 
@@ -472,16 +489,201 @@ def prequential_evaluation(stream, learner, max_instances=None, window_size=1000
     elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(start_wallclock_time, start_cpu_time)
 
     # Add the results corresponding to the remainder of the stream in case the number of processed instances is not perfectly divisible by 
-    # the window_size (if it was, then it is already be in the result_windows variable). 
-    if evaluator_windowed.get_instances_seen() % window_size != 0:
+    # the window_size (if it was, then it is already in the result_windows variable). 
+    if evaluator_windowed is not None and evaluator_windowed.get_instances_seen() % window_size != 0:
         evaluator_windowed.result_windows.append(evaluator_windowed.metrics())
 
+    # TODO: create a standard for the otherMeasurements like the PrequentialSSLEvaluation from MOA
     results = {'learner':str(learner), 'cumulative':evaluator_cumulative, 'windowed': evaluator_windowed, 
-               'wallclock':elapsed_wallclock_time, 'cpu_time':elapsed_cpu_time}
+               'wallclock':elapsed_wallclock_time, 'cpu_time':elapsed_cpu_time, 'unlabeled': unlabeled_counter, 
+               'unlabeled_ratio': unlabeled_counter / instancesProcessed}
 
     return results
-    # return evaluator_cumulative, evaluator_windowed, elapsed_wallclock_time, elapsed_cpu_time
 
+##############################################################
+###### OPTIMISED VERSIONS (use experimental MOA method) ######
+##############################################################
+
+def test_then_train_evaluation_fast(stream, learner, max_instances=None, sample_frequency=None, evaluator=None):
+    '''
+    Test-then-train evaluation using a MOA learner. 
+    '''
+    # If NumpyStream was used, the data already sits in Python memory. 
+    if isinstance(stream, NumpyStream):
+        return test_then_train_evaluation(stream, learner, max_instances, sample_frequency)
+
+
+    if max_instances is None:
+        max_instances = -1
+    
+    # Start measuring time
+    start_wallclock_time, start_cpu_time = start_time_measuring()
+
+    if evaluator is None:
+        evaluator = ClassificationEvaluator(schema=stream.get_schema(), window_size=sample_frequency)
+
+    if sample_frequency is not None:
+        moa_results = EfficientEvaluationLoops.PrequentialEvaluation(stream.moa_stream, learner.moa_learner, 
+                                                                 None, evaluator.moa_basic_evaluator, max_instances, sample_frequency)
+        # Reset the windowed_evaluator result_windows
+        if moa_results != None:
+            evaluator.result_windows = []
+            if moa_results.windowedResults != None:
+                for entry_idx in range(len(moa_results.windowedResults)):
+                    evaluator.result_windows.append(moa_results.windowedResults[entry_idx])
+    else:
+        # Ignore the moa_results because there is no sample frequency (so no need to obtain the windowed results)
+        # Set sample_frequency to -1 in the function call
+        EfficientEvaluationLoops.PrequentialEvaluation(stream.moa_stream, learner.moa_learner, 
+                                                       evaluator.moa_basic_evaluator, None, max_instances, -1)
+    
+    # Stop measuring time
+    elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(start_wallclock_time, start_cpu_time)
+
+    results = {'learner':str(learner), 'cumulative':evaluator, 
+               'wallclock':elapsed_wallclock_time, 'cpu_time':elapsed_cpu_time}
+    
+    return results
+
+def prequential_evaluation_fast(stream, learner, max_instances=None, window_size=1000):
+    '''
+    Prequential evaluation fast. 
+    '''
+
+    if isinstance(stream, NumpyStream):
+        return prequential_evaluation(stream, learner, max_instances, window_size)
+
+    if max_instances is None:
+        max_instances = -1
+    
+    # Start measuring time
+    start_wallclock_time, start_cpu_time = start_time_measuring()
+
+    basic_evaluator = None
+    windowed_evaluator = None
+    if stream.get_schema().is_classification():
+        basic_evaluator = ClassificationEvaluator(schema=stream.get_schema())
+        # Always create the windowed_evaluator, even if window_size is None. TODO: may want to avoid creating it if window_size is None. 
+        windowed_evaluator = ClassificationWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
+    else:
+        # If it is not classification, must be regression
+        basic_evaluator = RegressionEvaluator(schema=stream.get_schema())
+        windowed_evaluator = RegressionWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
+    
+    moa_results = EfficientEvaluationLoops.PrequentialEvaluation(stream.moa_stream, learner.moa_learner, 
+                                                                 basic_evaluator.moa_basic_evaluator, 
+                                                                 windowed_evaluator.moa_evaluator, max_instances, 
+                                                                 window_size)
+
+    # Reset the windowed_evaluator result_windows
+    if moa_results != None:
+        windowed_evaluator.result_windows = []
+        if moa_results.windowedResults != None:
+            for entry_idx in range(len(moa_results.windowedResults)):
+                windowed_evaluator.result_windows.append(moa_results.windowedResults[entry_idx])
+    
+    # Stop measuring time
+    elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(start_wallclock_time, start_cpu_time)
+
+    results = {'learner':str(learner), 'cumulative': basic_evaluator, 'windowed':windowed_evaluator,
+               'wallclock':elapsed_wallclock_time, 'cpu_time':elapsed_cpu_time}
+    
+    return results
+
+def test_then_train_SSL_evaluation_fast(stream, learner, max_instances=None, sample_frequency=None, initial_window_size=0, delay_length=0, label_probability=0.01, random_seed=1, evaluator=None):
+    '''
+    Test-then-train SSL evaluation. 
+    '''
+    # If NumpyStream was used, the data already sits in Python memory. 
+    if isinstance(stream, NumpyStream):
+        raise ValueError("test_then_train_SSL_evaluation(...) to be implemented")
+        # return test_then_train_SSL_evaluation(stream, learner, max_instances, sample_frequency, 
+        #                                 initial_window_size, delay_length, label_probability, random_seed, evaluator)
+
+    if max_instances is None:
+        max_instances = -1
+    
+    # Start measuring time
+    start_wallclock_time, start_cpu_time = start_time_measuring()
+
+    if evaluator is None:
+        evaluator = ClassificationEvaluator(schema=stream.get_schema(), window_size=sample_frequency)
+
+    moa_results = None
+    if sample_frequency is not None:
+        moa_results = EfficientEvaluationLoops.PrequentialSSLEvaluation(stream.moa_stream, learner.moa_learner, 
+                                                                        None, evaluator.moa_basic_evaluator, max_instances, 
+                                                                        sample_frequency, initial_window_size, delay_length, 
+                                                                        label_probability, random_seed, True)
+        # Reset the windowed_evaluator result_windows
+        if moa_results != None:
+            evaluator.result_windows = []
+            if moa_results.windowedResults != None:
+                for entry_idx in range(len(moa_results.windowedResults)):
+                    evaluator.result_windows.append(moa_results.windowedResults[entry_idx])
+    else:
+        # Set sample_frequency to -1 in the function call
+        moa_results = EfficientEvaluationLoops.PrequentialSSLEvaluation(stream.moa_stream, learner.moa_learner, 
+                                                                        evaluator.moa_basic_evaluator, None, max_instances, 
+                                                                        -1, initial_window_size, delay_length, 
+                                                                        label_probability, random_seed, True)
+    
+    # Stop measuring time
+    elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(start_wallclock_time, start_cpu_time)
+
+    results = {'learner':str(learner), 'cumulative':evaluator, 
+               'wallclock':elapsed_wallclock_time, 'cpu_time':elapsed_cpu_time}
+    
+    for measure in moa_results.otherMeasurements.keySet():
+        measure_str = str(measure)  # Convert Java key to a Python string
+        results[measure_str] = float(moa_results.otherMeasurements.get(measure))  # Get the Java Double value
+    
+    return results
+
+def prequential_SSL_evaluation_fast(stream, learner, max_instances=None, window_size=1000, initial_window_size=0, delay_length=0, label_probability=0.01, random_seed=1):
+    '''
+    Prequential SSL evaluation fast. 
+    '''
+    if isinstance(stream, NumpyStream):
+        return prequential_SSL_evaluation(stream, learner, max_instances, window_size)
+
+    if max_instances is None:
+        max_instances = -1
+    
+    # Start measuring time
+    start_wallclock_time, start_cpu_time = start_time_measuring()
+
+    basic_evaluator = ClassificationEvaluator(schema=stream.get_schema())
+    # Always create the windowed_evaluator, even if window_size is None. TODO: may want to avoid creating it if window_size is None. 
+    windowed_evaluator = ClassificationWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
+    
+    moa_results = EfficientEvaluationLoops.PrequentialSSLEvaluation(stream.moa_stream, learner.moa_learner, 
+                                                                 basic_evaluator.moa_basic_evaluator, 
+                                                                 windowed_evaluator.moa_evaluator,
+                                                                 max_instances, window_size, initial_window_size, 
+                                                                 delay_length, label_probability, random_seed, True)
+
+    # Reset the windowed_evaluator result_windows
+    if moa_results != None:
+        windowed_evaluator.result_windows = []
+        if moa_results.windowedResults != None:
+            for entry_idx in range(len(moa_results.windowedResults)):
+                windowed_evaluator.result_windows.append(moa_results.windowedResults[entry_idx])
+    
+    # Stop measuring time
+    elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(start_wallclock_time, start_cpu_time)
+
+    results = {'learner':str(learner), 'cumulative': basic_evaluator, 'windowed':windowed_evaluator,
+               'wallclock':elapsed_wallclock_time, 'cpu_time':elapsed_cpu_time, 'other_measurements': dict(moa_results.otherMeasurements)}
+    
+    return results
+
+
+########################################################################################
+###### EXPERIMENTAL (optimisation to go over the data once for several learners)  ######
+########################################################################################
+
+# TODO: review if we want to keep this method. 
 def prequential_evaluation_multiple_learners(stream, learners, max_instances=None, window_size=1000):
     '''
     Calculates the metrics cumulatively (i.e., test-then-train) and in a window-fashion (i.e., windowed prequential evaluation) for multiple streams and learners. 
@@ -498,10 +700,12 @@ def prequential_evaluation_multiple_learners(stream, learners, max_instances=Non
     for learner_name, learner in learners.items():
         if stream.get_schema().is_classification():
             results[learner_name]['cumulative'] = ClassificationEvaluator(schema=stream.get_schema(), window_size=window_size)
-            results[learner_name]['windowed'] = ClassificationWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
+            if window_size is not None:
+                results[learner_name]['windowed'] = ClassificationWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
         else:
             results[learner_name]['cumulative'] = RegressionEvaluator(schema=stream.get_schema(), window_size=window_size)
-            results[learner_name]['windowed'] = RegressionWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
+            if window_size is not None:
+                results[learner_name]['windowed'] = RegressionWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
     instancesProcessed = 1
 
     while stream.has_more_instances() and (max_instances is None or instancesProcessed <= max_instances):
@@ -512,16 +716,18 @@ def prequential_evaluation_multiple_learners(stream, learners, max_instances=Non
             prediction = learner.predict(instance)
 
             results[learner_name]['cumulative'].update(instance.y(), prediction)
-            results[learner_name]['windowed'].update(instance.y(), prediction)
+            if window_size is not None:
+                results[learner_name]['windowed'].update(instance.y(), prediction)
             
             learner.train(instance)
             
         instancesProcessed += 1
-    
+
     # Iterate through the results of each learner and add (if needed) the last window of results to it. 
-    for learner_name, result in results.items():
-        if result['windowed'].get_instances_seen() % window_size != 0:
-            result['windowed'].result_windows.append(result['windowed'].metrics())
+    if window_size is not None:
+        for learner_name, result in results.items():
+            if result['windowed'].get_instances_seen() % window_size != 0:
+                result['windowed'].result_windows.append(result['windowed'].metrics())
 
     return results
 

@@ -2,16 +2,92 @@
 from prepare_jpype import start_jpype
 start_jpype()
 
+# Python imports
 import numpy as np
 
-from evaluation import Schema
+# MOA/Java imports
 from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
 from moa.streams import ArffFileStream
-
-# From numpy to ARFF
 from moa.core import FastVector, InstanceExample, Example
 from com.yahoo.labs.samoa.instances import Instances, InstancesHeader, Attribute, DenseInstance
 
+
+
+# IDEA: STATIC METHOD TO CREATE A SCHEMA USING A MOA_HEADER. (e.g. withMOAHeader...)
+class Schema:
+    """
+    This class is a wrapper for the MOA header, but it can be set up in Python directly by specifying the labels attribute.
+    If moa_header is specified, then it overrides everything else. 
+    In the future, we might want to have a way to specify the values for nominal attributes as well, so far just the labels. 
+    The number of attributes is instrumental for Evaluators that need it, such as adjusted coefficient of determination. 
+    """
+    def __init__(self, moa_header=None, labels=None, num_attributes=1): 
+        self.moa_header = moa_header
+        self.label_values = labels
+        self.label_indexes = None
+        # Internally, we store the number of attributes + the class/target. This is because MOA methods expect the numAttributes 
+        # to also account for the class/target.
+        self.num_attributes_including_output = num_attributes+1
+        
+        self.regression = False;
+        if self.moa_header is not None:
+            # TODO: might want to iterate over the other attributes and create a dictionary representation for the nominal attributes.
+            # There should be a way to configure that manually like setting the self.labels instead of using a MOA header.
+            if self.moa_header.outputAttribute(1).isNominal():
+                # Important: a Java.String is different from a Python str, so it is important to str(*) before storing the values.
+                self.label_values = [str(g) for g in self.moa_header.outputAttribute(1).getAttributeValues()]
+            else:
+                # This is a regression task, there are no label values. 
+                self.regression = True;
+            # The numAttributes in MOA also account for the class label. 
+            self.num_attributes_including_output = self.moa_header.numAttributes()
+        # else logic: the label_values must be set, so that the first time the get_label_indexes is invoked, they are correctly created. 
+
+    def get_label_values(self):
+        if self.label_values is None:
+            return None
+        else:
+            return self.label_values
+
+    def get_label_indexes(self):
+        if self.label_values is None:
+            return None
+        else:
+            if self.label_indexes is None:
+                self.label_indexes = list(range(len(self.label_values)))
+            return self.label_indexes
+
+    def get_moa_header(self):
+        return self.moa_header
+
+    def get_num_attributes(self):
+        # ignoring the class/target value. 
+        return self.num_attributes_including_output-1
+
+    def get_valid_index_for_label(self, y):
+        if self.label_indexes is None:
+            raise ValueError("Schema was not properly initialised, please define a proper Schema.")
+
+        # print(f"get_valid_index_for_label( y = {y} )")
+        
+        # Check of y is a string and if the labelValues contains strings. 
+        # print(f"isinstance {type(y)}, {type(self.label_values[0])}")
+        if isinstance(y, type(self.label_values[0])):
+            if y in self.label_values:
+                return self.label_values.index(y)
+
+        # If it is not a valid value, then maybe it is an index
+        if y in self.label_indexes:
+            return y
+
+        # This is neither a valid label value nor a valid index. 
+        return None
+
+    def is_regression(self):
+        return self.regression
+
+    def is_classification(self):
+        return not self.regression
 
 class Instance:
 	'''
@@ -50,6 +126,9 @@ class Stream:
 			self.schema = Schema(moa_header = self.moa_stream.getHeader())
 
 		self.moa_stream.prepareForUse()
+
+	def __str__(self):
+		return str(self.moa_stream.getHeader().getRelationName()).replace(' ', '')
 
 	def has_more_instances(self):
 		return self.moa_stream.hasMoreInstances()
@@ -158,6 +237,9 @@ def stream_from_file(schema=None, path_to_csv_or_arff="", class_index=-1, datase
 		# Extract the header from the CSV file (first row)
 		with open(path_to_csv_or_arff, 'r') as file:
 			header = file.readline().strip().split(',')
+
+		# stop converting to int in here
+
 		return NumpyStream(X=X, y=y.astype(int), dataset_name="Elec", feature_names=header[:-1], target_name=header[-1], enforce_regression=enforce_regression)
 
 	
@@ -196,6 +278,8 @@ def numpy_to_ARFF(X, y, dataset_name="No_Name", feature_names=None, target_name=
 		else:
 			raise ValueError("y is neither a float or an int, can't infer whether it is regression or classification")
 
+	# if it is a string, then do the unique thing and map then (create the schema manually?)
+
 	capacity = X.shape[0]
 	arff_dataset = Instances(dataset_name, attributes, capacity)
 
@@ -215,7 +299,6 @@ def numpy_to_ARFF(X, y, dataset_name="No_Name", feature_names=None, target_name=
 		arff_dataset.add(instance)
 			
 	return arff_dataset, streamHeader
-
 
 
 # Example loading an ARFF file in python without using MOA

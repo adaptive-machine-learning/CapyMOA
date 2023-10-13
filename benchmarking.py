@@ -1,13 +1,8 @@
-import csv
 from prepare_jpype import start_jpype
 start_jpype()
 
-from moa.streams import ArffFileStream
-from moa.classifiers.meta import AdaptiveRandomForest, StreamingRandomPatches
-from moa.classifiers.trees import HoeffdingTree, EFDT	
-from moa.classifiers.lazy import kNN
-from moa.classifiers.bayes import NaiveBayes
-
+# Python imports
+import csv
 import pandas as pd
 from river.forest import ARFClassifier
 from river.ensemble import SRPClassifier
@@ -17,7 +12,15 @@ from river.neighbors import KNNClassifier, LazySearch
 from river import metrics
 from river import stream
 
+# Library imports
 from evaluation import *
+
+# MOA/Java imports
+from moa.streams import ArffFileStream
+from moa.classifiers.meta import AdaptiveRandomForest, StreamingRandomPatches
+from moa.classifiers.trees import HoeffdingTree, EFDT	
+from moa.classifiers.lazy import kNN
+from moa.classifiers.bayes import NaiveBayes
 
 MAX_INSTANCES = 100
 OUTPUT_FILE_PATH = 'experiments/experiments_MOA_ARF_2.csv'
@@ -73,7 +76,7 @@ def run_MOA_experiment(arff_path, model=AdaptiveRandomForest(), CLI="", output_f
 		data_arff = ArffFileStream(arff_path, -1)
 		data_arff.prepareForUse()
 
-		acc, wallclock, cpu_time, df = test_then_train(stream=data_arff, learner=model, max_instances=MAX_INSTANCES, sample_frequency=MAX_INSTANCES)
+		acc, wallclock, cpu_time, df = test_then_train_evaluation(stream=data_arff, learner=model, max_instances=MAX_INSTANCES, sample_frequency=MAX_INSTANCES)
 		print(f"{arff_path}, {model.getClass().getName()} {CLI}, {acc:.4f}, {wallclock:.4f}, {cpu_time:.4f}")
 		writer.writerow([arff_path, model.getClass().getName() + CLI, acc, wallclock, cpu_time])
 

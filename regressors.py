@@ -1,9 +1,13 @@
+# Create the JVM and add the MOA jar to the classpath
 from prepare_jpype import start_jpype
-import pandas as pd
 start_jpype()
 
+# import pandas as pd
+
+# Library imports
 from MOALearners import MOARegressor
 
+# MOA/Java imports
 from moa.classifiers.lazy import kNN as MOA_kNN
 
 class KNNRegressor(MOARegressor):
