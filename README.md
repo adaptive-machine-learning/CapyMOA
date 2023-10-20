@@ -8,6 +8,7 @@ To use the project
 	* Optional: Use pip install on the requirements. 
 	* If you are using a custom installation, make sure to install jpype through ```pip install jpype1``` (yes, there is a 1 there)
 4. Activate the conda environment ```conda activate MOABridge```
+5. downlaod datasets and jar ```python download_datasets_and_moa.py``` to downlaod datasets and MOA jar.
 5. Try the DEMO notebook ```jupyter notebook DEMO.ipynb```
 
 
