@@ -14,9 +14,6 @@ def start_jpype():
     moa_jar_path = config['Paths']['moa_jar_path']
     jvm_args = config['JVM']['args'].split(' ')
 
-    if (not moa_jar_path.__eq__('')) and os.path.dirname(moa_jar_path).__eq__(''):  # moa jar is available in source root
-        moa_jar_path = os.path.join(os.getcwd(), moa_jar_path)
-
     # Add the moa jar to the class path
     jpype.addClassPath(moa_jar_path)
 
