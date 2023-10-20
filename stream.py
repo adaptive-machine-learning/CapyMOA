@@ -13,7 +13,7 @@ from com.yahoo.labs.samoa.instances import Instances, InstancesHeader, Attribute
 
 
 
-# IDEA: STATIC METHOD TO CREATE A SCHEMA USING A MOA_HEADER. (e.g. withMOAHeader...)
+# TODO: STATIC METHOD TO CREATE A SCHEMA USING A MOA_HEADER. (e.g. withMOAHeader...)
 class Schema:
     """
     This class is a wrapper for the MOA header, but it can be set up in Python directly by specifying the labels attribute.
@@ -130,6 +130,9 @@ class Stream:
 	def __str__(self):
 		return str(self.moa_stream.getHeader().getRelationName()).replace(' ', '')
 
+	def CLI_help(self):
+		return str(self.moa_stream.getOptions().getHelpString())
+
 	def has_more_instances(self):
 		return self.moa_stream.hasMoreInstances()
 
@@ -217,7 +220,7 @@ class RandomTreeGenerator(Stream):
 
 		super().__init__(schema=schema, CLI=self.CLI, moa_stream=self.moa_stream)
 
-
+## TODO (20/10/2023): Add logic to interpret nominal values (strings) in the class label. 
 ## TODO: add extra fluffiness like allowing to not have a header for the csv (then we need to create names for each column). 
 ## TODO: if no name is given for the dataset_name, we can use the file name from the csv. 
 ## TODO: implement class_index logic when reading from a CSV. 
@@ -242,7 +245,6 @@ def stream_from_file(schema=None, path_to_csv_or_arff="", class_index=-1, datase
 
 		return NumpyStream(X=X, y=y.astype(int), dataset_name="Elec", feature_names=header[:-1], target_name=header[-1], enforce_regression=enforce_regression)
 
-	
 def numpy_to_ARFF(X, y, dataset_name="No_Name", feature_names=None, target_name=None, enforce_regression=False):
 	'''
 	Converts a numpy X and y into a ARFF format. The code infers whether it is a classification or regression problem
