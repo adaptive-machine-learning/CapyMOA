@@ -139,4 +139,3 @@ dependencies:
       - websocket-client==1.6.1
       - widgetsnbextension==4.0.8
       - zipp==3.16.2
-prefix: ~/Desktop/MOABridge

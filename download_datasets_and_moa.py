@@ -1,6 +1,7 @@
 import os.path
 import gdown
 import zipfile
+import shutil
 
 z_files = {
     'covtFD': ['https://drive.google.com/file/d/13MiPqDzuKzv1RvhAqKFCTmCKav3C6s5P/view?usp=share_link', 'zip'],
@@ -29,4 +30,4 @@ for name, file_info in z_files.items():
     elif file_info[1].__eq__('jar'):
         os.rename(out_file_name, 'jar/' + out_file_name)
 
-os.rmdir('./data/__MACOSX')
+shutil.rmtree("./data/__MACOSX")
