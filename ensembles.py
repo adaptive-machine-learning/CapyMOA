@@ -64,11 +64,9 @@ class OnlineBagging(MOAClassifier):
         # Overrides the default class name from MOA (OzaBag)
         return 'OnlineBagging'
 
-
 ########################
 ###### REGRESSORS ######
 ########################
-
 
 # TODO: replace the m_features_mode logic such that we can infer from m_features_per_tree_size, e.g. if value is double between 0.0 and 1.0 = percentage
 class AdaptiveRandomForestRegressor(MOARegressor):

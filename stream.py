@@ -97,13 +97,21 @@ class Instance:
 	def __init__(self, MOAInstanceExample=None):
 		self.MOAInstanceExample = MOAInstanceExample
 
-
-	def y(self):
-		return self.MOAInstanceExample.getData().classValue()
-
-
 	def get_MOA_InstanceExample(self):
 		return self.MOAInstanceExample
+
+	def y(self):
+		# return np.array(self.MOAInstanceExample.getData().classValue(), ndmin=0)
+		return float(self.MOAInstanceExample.getData().classValue())
+
+	# Assume data is numeric. 
+	def x(self):
+		moa_instance = self.get_MOA_InstanceExample().getData()
+		x_array = np.empty(moa_instance.numInputAttributes())
+		for i in range(0, moa_instance.numInputAttributes()):
+			x_array[i] = moa_instance.value(i)
+
+		return x_array
 
 class Stream:
 	def __init__(self, schema=None, CLI=None, moa_stream=None):
@@ -243,7 +251,7 @@ def stream_from_file(schema=None, path_to_csv_or_arff="", class_index=-1, datase
 
 		# stop converting to int in here
 
-		return NumpyStream(X=X, y=y.astype(int), dataset_name="Elec", feature_names=header[:-1], target_name=header[-1], enforce_regression=enforce_regression)
+		return NumpyStream(X=X, y=y.astype(int), dataset_name=dataset_name, feature_names=header[:-1], target_name=header[-1], enforce_regression=enforce_regression)
 
 def numpy_to_ARFF(X, y, dataset_name="No_Name", feature_names=None, target_name=None, enforce_regression=False):
 	'''
