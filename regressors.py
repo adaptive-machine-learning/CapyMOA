@@ -5,7 +5,7 @@ start_jpype()
 # import pandas as pd
 
 # Library imports
-from MOALearners import MOARegressor
+from learners import MOARegressor
 
 # MOA/Java imports
 from moa.classifiers.lazy import kNN as MOA_kNN

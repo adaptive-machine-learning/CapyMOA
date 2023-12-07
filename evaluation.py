@@ -13,7 +13,7 @@ import random
 
 # Library imports
 from stream import NumpyStream
-from MOALearners import MOAClassifierSSL
+from learners import ClassifierSSL
 
 # MOA/Java imports
 from com.yahoo.labs.samoa.instances import Instances, Instance, Attribute, DenseInstance
@@ -475,7 +475,7 @@ def prequential_SSL_evaluation(stream, learner, max_instances=None, window_size=
         if rand.random(dtype=np.float64) >= label_probability:
         # if 0.00 >= label_probability:
             # Do not label the instance
-            if isinstance(learner, MOAClassifierSSL):
+            if isinstance(learner, ClassifierSSL):
                 learner.train_on_unlabeled(instance)
                 # Otherwise, just ignore the unlabeled instance
             unlabeled_counter += 1

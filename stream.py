@@ -64,6 +64,9 @@ class Schema:
         # ignoring the class/target value. 
         return self.num_attributes_including_output-1
 
+    def get_num_classes(self):
+    	return len(self.get_label_indexes())
+
     def get_valid_index_for_label(self, y):
         if self.label_indexes is None:
             raise ValueError("Schema was not properly initialised, please define a proper Schema.")
@@ -94,8 +97,13 @@ class Instance:
 	Wraps a MOA InstanceExample to make it easier to manipulate these objects through python. 
 	TODO: Add Schema and capabilities to create an instance from a non-MOA source. 
 	'''
-	def __init__(self, MOAInstanceExample=None):
-		self.MOAInstanceExample = MOAInstanceExample
+	# def __init__(self, MOAInstanceExample=None, schema=None, x=None, y=None):
+	# 	if MOAInstanceExample is None:
+	# 	self.MOAInstanceExample = MOAInstanceExample
+
+	def __init__(self, MOAInstanceExample=None, schema=None, x=None, y=None):
+		if MOAInstanceExample is not None:
+			self.MOAInstanceExample = MOAInstanceExample
 
 	def get_MOA_InstanceExample(self):
 		return self.MOAInstanceExample

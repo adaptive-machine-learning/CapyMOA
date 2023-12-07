@@ -1,9 +1,6 @@
 import matplotlib.pyplot as plt
 import os
 
-import matplotlib.pyplot as plt
-import os
-
 def plot_windowed_results(*results, metric="classifications correct (percent)", 
                             plot_title=None, xlabel=None, ylabel=None,
                             figure_path="./", figure_name=None, save_only=True,

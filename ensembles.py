@@ -2,10 +2,9 @@
 from prepare_jpype import start_jpype
 start_jpype()
 
-# import pandas as pd
 
 # Library imports
-from MOALearners import MOAClassifier, MOARegressor
+from learners import MOAClassifier, MOARegressor
 
 # MOA/Java imports
 from moa.classifiers.meta import AdaptiveRandomForest as MOA_AdaptiveRandomForest
