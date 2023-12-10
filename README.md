@@ -3,25 +3,26 @@ Python wrapper for MOA to allow efficient use of existing algorithms with a more
 
 To use the project
 1. In ```config.ini``` set the path to the ```moa.jar``` that you are using (download it from the project, see ```/jar/accessing_jar.txt```). It should work with any MOA jar released after 2023. 
-2. Make sure JAVA_HOME is set. 
-3. Use ```conda env create -f environment.yml``` to create a conda environment with all the requirements. 
+3. Make sure JAVA_HOME is set. 
+4. Use ```conda env create -f environment.yml``` to create a conda environment with all the requirements. 
 	* Optional: Use pip install on the requirements. 
 	* If you are using a custom installation, make sure to install jpype through ```pip install jpype1``` (yes, there is a 1 there)
-4. Activate the conda environment ```conda activate MOABridge```
-5. downlaod datasets and jar ```python download_datasets_and_moa.py``` to downlaod datasets and MOA jar.
+5. Activate the conda environment ```conda activate MOABridge```
+6. downlaod datasets and jar ```python download_datasets_and_moa.py``` to downlaod datasets and MOA jar.
 5. Try the DEMO notebook ```jupyter notebook DEMO.ipynb```
 
 
 # Functionality
-* Full support for classification and regression. 
-* Read CSV or ARFF files, or use synthetic generators from MOA. 
+* Full support for classification, regression and semi-supervised classification. 
+* Read CSV or ARFF files, or use synthetic generators from MOA.
 
 # Tutorial notebooks
 These notebooks show how to do things. Data is available in the ```/data/``` directory (some of which will need to be downloaded, see instrucitons there). 
 
 * **DEMO.ipynb**: Contains simple examples on how to execute classification and regression, using MOA objets to configure synthetic generators or classifiers/regressors. 
 * **Evaluation_and_Data_Reading.ipynb**: Many examples showing how to perform different evaluations for classification and regression using different methods (i.e. a loop or buildin functions). 
-* **Learners_API_Examples.ipynb**: Similar to the DEMO, but shows more capabilities of the evaluator and learner objects. 
+* **Learners_API_Examples.ipynb**: Similar to the DEMO, but shows more capabilities of the evaluator and learner objects.
+* **Using_sklearn_pytorch.ipynb**: Shows how one can use the API to run sklearn algorithms (those that implement ```partial_fit```) and PyTorch models. 
 
 # Test notebooks
 These show how some parts of the library were developed and provide comparisons of different options on how to do things. 
