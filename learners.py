@@ -35,6 +35,7 @@ def _get_moa_creation_CLI(moa_learner):
 
     if len(CLI) > 1 and len(CLI[1]) > 1:
         moa_learner_str = f"({moa_learner_str} {CLI[1]})"
+
     return moa_learner_str
 
 def _extract_moa_learner_CLI(learner):
@@ -44,7 +45,7 @@ def _extract_moa_learner_CLI(learner):
     MOAClassifier object (which has a moa_learner internally). 
 
     Parameters:
-    - moa_learner: The object or class reprsenting the MOA learner
+    - moa_learner: The object or class representing the MOA learner
 
     Returns:
     A string representing the CLI command for creating the MOA learner.
