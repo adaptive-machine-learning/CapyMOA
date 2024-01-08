@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import time
 import datetime as dt
-import resource
+# import resource
 import os
 import random
 
@@ -284,14 +284,14 @@ class RegressionWindowedEvaluator(RegressionEvaluator):
 ## Functions to measure runtime
 def start_time_measuring(): 
     start_wallclock_time = time.time()
-    start_cpu_time = resource.getrusage(resource.RUSAGE_SELF).ru_utime + resource.getrusage(resource.RUSAGE_SELF).ru_stime
+    start_cpu_time = time.process_time()  # resource.getrusage(resource.RUSAGE_SELF).ru_utime + resource.getrusage(resource.RUSAGE_SELF).ru_stime
 
     return start_wallclock_time, start_cpu_time
 
 def stop_time_measuring(start_wallclock_time, start_cpu_time):
     # Stop measuring time
     end_wallclock_time = time.time()
-    end_cpu_time = resource.getrusage(resource.RUSAGE_SELF).ru_utime + resource.getrusage(resource.RUSAGE_SELF).ru_stime
+    end_cpu_time = time.process_time()  # resource.getrusage(resource.RUSAGE_SELF).ru_utime + resource.getrusage(resource.RUSAGE_SELF).ru_stime
     
     # Calculate and print the elapsed time and CPU times
     elapsed_wallclock_time = end_wallclock_time - start_wallclock_time
