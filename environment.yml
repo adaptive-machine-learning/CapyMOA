@@ -2,6 +2,7 @@ name: MOABridge
 channels:
   - defaults
 dependencies:
+  - python=3.9
   - ca-certificates
   - libcxx
   - libffi
