@@ -6,13 +6,14 @@ import jpype.imports
 from jpype.types import *
 import os
 
+
 def start_jpype():
     # Create a configuration parser
     config = configparser.ConfigParser()
-    config.read('config.ini')
+    config.read("config.ini")
     # Obtain the MOA JAR path and JVM args from the configuration file
-    moa_jar_path = config['Paths']['moa_jar_path']
-    jvm_args = config['JVM']['args'].split(' ')
+    moa_jar_path = config["Paths"]["moa_jar_path"]
+    jvm_args = config["JVM"]["args"].split(" ")
 
     # Add the moa jar to the class path
     jpype.addClassPath(moa_jar_path)
@@ -30,6 +31,7 @@ def start_jpype():
         print("Sucessfully started the JVM and added MOA jar to the class path")
     # else:
     #     print("JVM already started")
+
 
 # The JVM automatically shutdown with python, no need to explicitly call the shutdown method
 # https://jpype.readthedocs.io/en/latest/userguide.html#shutdownjvm
