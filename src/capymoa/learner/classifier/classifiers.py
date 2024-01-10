@@ -1,11 +1,5 @@
-# Create the JVM and add the MOA jar to the classpath
-from prepare_jpype import start_jpype
-
-start_jpype()
-
-
 # Library imports
-from learners import (
+from capymoa.learner.learners import (
     MOAClassifier,
     MOARegressor,
     _get_moa_creation_CLI,

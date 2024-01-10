@@ -1,6 +1,6 @@
-from batch import BatchClassifierSSL
-from stream import Schema, NumpyStream
-from evaluation import prequential_SSL_evaluation
+from capymoa.learner.classifier.batch import BatchClassifierSSL
+from capymoa.stream.stream import Schema, NumpyStream
+from capymoa.evaluation.evaluation import prequential_SSL_evaluation
 import numpy as np
 
 

@@ -1,8 +1,3 @@
-# Create the JVM and add the MOA jar to the classpath
-from prepare_jpype import start_jpype
-
-start_jpype()
-
 # Python imports
 import pandas as pd
 import numpy as np
@@ -12,8 +7,8 @@ import os
 import random
 
 # Library imports
-from stream import NumpyStream
-from learners import ClassifierSSL
+from capymoa.stream.stream import NumpyStream
+from capymoa.learner.learners import ClassifierSSL
 
 # MOA/Java imports
 from com.yahoo.labs.samoa.instances import Instances, Instance, Attribute, DenseInstance

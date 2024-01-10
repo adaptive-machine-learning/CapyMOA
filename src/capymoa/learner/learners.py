@@ -1,8 +1,3 @@
-# Create the JVM and add the MOA jar to the classpath
-from prepare_jpype import start_jpype
-
-start_jpype()
-
 from jpype import _jpype
 from abc import ABC, abstractmethod, ABCMeta
 

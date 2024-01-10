@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod, ABCMeta
 import numpy as np
-from learners import ClassifierSSL
-from stream import Schema, Instance
+from capymoa.learner import ClassifierSSL
+from capymoa.stream.stream import Schema, Instance
 
 
 class BatchClassifierSSL(ClassifierSSL, ABC):

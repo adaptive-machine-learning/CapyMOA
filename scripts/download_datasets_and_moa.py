@@ -3,6 +3,8 @@ import gdown
 import zipfile
 import shutil
 
+from pathlib import Path
+
 z_files = {
     "covtFD": [
         "https://drive.google.com/file/d/13MiPqDzuKzv1RvhAqKFCTmCKav3C6s5P/view?usp=share_link",
@@ -51,6 +53,7 @@ for name, file_info in z_files.items():
         print(f"remove downloaded zip file: {out_file_name}")
         os.remove(out_file_name)
     elif file_info[1].__eq__("jar"):
-        os.rename(out_file_name, "jar/" + out_file_name)
+        save_filename = Path("src/capymoa/jar") / out_file_name
+        os.rename(out_file_name, save_filename.resolve())
 
 shutil.rmtree("./data/__MACOSX")

@@ -1,7 +1,3 @@
-from prepare_jpype import start_jpype
-
-start_jpype()
-
 # Python imports
 import csv
 import pandas as pd
@@ -14,7 +10,7 @@ from river import metrics
 from river import stream
 
 # Library imports
-from evaluation import *
+from capymoa.evaluation.evaluation import *
 
 # MOA/Java imports
 from moa.streams import ArffFileStream
