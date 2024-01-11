@@ -1,11 +1,10 @@
 # Create the JVM and add the MOA jar to the classpath
-from river.base import Transformer
-
 from prepare_jpype import start_jpype
 start_jpype()
 
 # Python imports
 import numpy as np
+from river.base import Transformer
 
 # MOA/Java imports
 from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
