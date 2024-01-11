@@ -64,7 +64,7 @@ class Schema:
 		mh = self.moa_header
 		return [
 			mh.attributes(i).name()
-			for i in range(mh.numAttributes())
+			for i in range(self.get_num_attributes())  #TODO: check if mh.attributes() includes the target
 			if mh.attributes(i).isNominal()
 		]
 
@@ -72,7 +72,7 @@ class Schema:
 		mh = self.moa_header
 		return [
 			mh.attributes(i).name()
-			for i in range(mh.numAttributes())
+			for i in range(self.get_num_attributes())  #TODO: check if mh.attributes() includes the target
 			if not mh.attributes(i).isNominal()
 		]
 
