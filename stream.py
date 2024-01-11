@@ -60,6 +60,22 @@ class Schema:
     def get_moa_header(self):
         return self.moa_header
 
+	def get_nominal_attribute_names(self) -> list[str]:
+		mh = self.moa_header
+		return [
+			mh.attributes(i).name()
+			for i in range(mh.numAttributes())
+			if mh.attributes(i).isNominal()
+		]
+
+	def get_numeric_attribute_names(self) -> list[str]:
+		mh = self.moa_header
+		return [
+			mh.attributes(i).name()
+			for i in range(mh.numAttributes())
+			if not mh.attributes(i).isNominal()
+		]
+
     def get_num_attributes(self):
         # ignoring the class/target value. 
         return self.num_attributes_including_output-1
