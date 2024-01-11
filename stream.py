@@ -1,4 +1,6 @@
 # Create the JVM and add the MOA jar to the classpath
+from river.base import Transformer
+
 from prepare_jpype import start_jpype
 start_jpype()
 
@@ -10,7 +12,6 @@ from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerato
 from moa.streams import ArffFileStream
 from moa.core import FastVector, InstanceExample, Example
 from com.yahoo.labs.samoa.instances import Instances, InstancesHeader, Attribute, DenseInstance
-
 
 
 # TODO: STATIC METHOD TO CREATE A SCHEMA USING A MOA_HEADER. (e.g. withMOAHeader...)
@@ -333,6 +334,19 @@ def numpy_to_ARFF(X, y, dataset_name="No_Name", feature_names=None, target_name=
 		arff_dataset.add(instance)
 			
 	return arff_dataset, streamHeader
+
+
+class Array2RiverDictTransformer(Transformer):
+	"""
+	Transforms an input instance (numpy array) to a dictionary given the attributes specified in `schema`
+	"""
+	def __init__(self, schema: Schema):
+		self.schema = schema
+		self._att_names = [schema.moa_header.attributes(i).name() for i in range(schema.get_num_attributes())]
+
+	def transform_one(self, x: np.ndarray) -> dict:
+		assert len(self._att_names) == len(x), "Number of attributes in schema must equal length of input array"
+		return {att_name: value for att_name, value in zip(self._att_names, x)}
 
 
 # Example loading an ARFF file in python without using MOA
