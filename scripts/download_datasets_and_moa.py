@@ -1,5 +1,5 @@
 import os.path
-import gdown
+import wget
 import zipfile
 import shutil
 
@@ -7,31 +7,31 @@ from pathlib import Path
 
 z_files = {
     "covtFD": [
-        "https://drive.google.com/file/d/13MiPqDzuKzv1RvhAqKFCTmCKav3C6s5P/view?usp=share_link",
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/covtFD.zip",
         "zip",
     ],
     "covtype": [
-        "https://drive.google.com/file/d/15kfa2rdnQgwoFVr5MG5hyjqLDNY_v94L/view?usp=share_link",
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/covtype.zip",
         "zip",
     ],
     "Hyper100k": [
-        "https://drive.google.com/file/d/1tjcKD8kzNfv5RBi7cTymCjoIBFD0ItZV/view?usp=share_link",
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/Hyper100k.zip",
         "zip",
     ],
     "RBFm_100k": [
-        "https://drive.google.com/file/d/1sd53lVQg5txMwURR4u2YBGYEg4EbKM8a/view?usp=share_link",
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/RBFm_100k.zip",
         "zip",
     ],
     "RTG_2abrupt": [
-        "https://drive.google.com/file/d/1YJRwEI04lLF7LQqeEx52o1Q3lE6p85xr/view?usp=share_link",
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/RTG_2abrupt.zip",
         "zip",
     ],
     "sensor": [
-        "https://drive.google.com/file/d/11AZ92fWT8vDRoX6TOaAQgzcisHKbR9FW/view?usp=share_link",
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/sensor.zip",
         "zip",
     ],
     "moa": [
-        "https://drive.google.com/file/d/1W4CR_QmrdGb8qFqmhP9UXSTh3k5azIv9/view?usp=share_link",
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/moa.jar",
         "jar",
     ],
 }
@@ -40,7 +40,7 @@ for name, file_info in z_files.items():
     out_file_name = name + "." + file_info[1]
     url = file_info[0]
     print(f"Downloading {out_file_name} from : {url}")
-    gdown.download(url, out_file_name, quiet=False, fuzzy=True)
+    wget.download(url, out_file_name)
     print(f"downloaded file name: {out_file_name}")
     if file_info[1].__eq__("zip"):
         with zipfile.ZipFile(out_file_name, "r") as archive:
