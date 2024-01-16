@@ -1,4 +1,4 @@
-name: MOABridge
+name: CapyMOA
 channels:
   - defaults
 dependencies:
