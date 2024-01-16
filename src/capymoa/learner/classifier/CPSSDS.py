@@ -8,8 +8,8 @@ from river.base import Classifier
 
 import typing as t
 
-from batch import BatchClassifierSSL
-from stream import Instance, Schema
+from capymoa.learner.classifier.batch import BatchClassifierSSL
+from capymoa.stream import Instance, Schema
 
 
 def shuffle_split(
