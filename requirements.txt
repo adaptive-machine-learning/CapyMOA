@@ -106,4 +106,5 @@ webcolors==1.13
 webencodings==0.5.1
 websocket-client==1.6.1
 widgetsnbextension==4.0.8
+Wget==3.2
 zipp==3.16.2
