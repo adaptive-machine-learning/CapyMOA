@@ -1,15 +1,22 @@
-# MOABridge
+# CapyMOA
 Python wrapper for MOA to allow efficient use of existing algorithms with a more modern API
 
 To use the project
-1. In ```config.ini``` set the path to the ```moa.jar``` that you are using (download it from the project, see ```/jar/accessing_jar.txt```). It should work with any MOA jar released after 2023. 
-3. Make sure JAVA_HOME is set. 
-4. Use ```conda env create -f environment.yml``` to create a conda environment with all the requirements. 
+1. In ```config.ini``` set the path to the ```moa.jar``` that you are using (download it from the project, see [```src/capymoa/jar/accessing_jar.txt```](src/capymoa/jar/accessing_jar.txt)). It should work with any MOA jar released after 2023. Alternatively, run ```make download``` to download the jar and datasets.
+2. Make sure `JAVA_HOME` is set. 
+3. Use ```conda env create -f environment.yml``` to create a conda environment with all the requirements. 
 	* Optional: Use pip install on the requirements. 
 	* If you are using a custom installation, make sure to install jpype through ```pip install jpype1``` (yes, there is a 1 there)
-5. Activate the conda environment ```conda activate MOABridge```
-6. downlaod datasets and jar ```python download_datasets_and_moa.py``` to downlaod datasets and MOA jar.
-5. Try the DEMO notebook ```jupyter notebook DEMO.ipynb```
+4. Activate the conda environment ```conda activate MOABridge```
+5. Add the project to your python path in your ```.bashrc```, 
+   ```.bash_profile```, ```.zshrc``` or ```.profile``` with the following command (replace ```<MY PATH HERE>``` with the path to the project):
+```sh
+export PYTHONPATH=$PYTHONPATH:<MY PATH HERE>/CapyMOA/src
+```
+6. Try the DEMO notebook ```jupyter notebook DEMO.ipynb```. The notebook must be
+   started with the correct ```PYTHONPATH``` and ```JAVA_HOME``` variables set.
+   To double check run ```echo $PYTHONPATH``` and ```echo $JAVA_HOME``` in the
+   terminal before starting the notebook.
 
 
 # Functionality
@@ -51,7 +58,7 @@ These show how some parts of the library were developed and provide comparisons 
 15. [New] Clustering API: encapsulate the clusterer and clustering algorithms from MOA
 16. [New] Visualization of feature importances (encapsulate the ClassifierWithFeatureImportance class from MOA)
 17. [New] Port SO-KNL to ensembles module like AdaptiveRandomForest (SO-KNL not yet in MOA, still a PR)
-18. [New] Add logic to interpret nominal values (strings) in the class label for ```stream_from_file``` when using a CSV. 
+18. [New] Add logic to interpret nominal values (strings) in the class label for ```stream_from_file``` when using a CSV.
 
 
 **Updated all the notebooks on 20/10/2023, removed some that were outdated**

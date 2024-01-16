@@ -21,7 +21,7 @@ exceptiongroup==1.1.2
 executing==1.2.0
 fastjsonschema==2.18.0
 fqdn==1.5.1
-gdown
+wget
 idna==3.4
 importlib-metadata==6.8.0
 importlib-resources==6.0.0
