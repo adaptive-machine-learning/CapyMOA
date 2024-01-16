@@ -1,4 +1,4 @@
-# MOABridge
+# CapyMOA
 Python wrapper for MOA to allow efficient use of existing algorithms with a more modern API
 
 To use the project
@@ -11,7 +11,7 @@ To use the project
 5. Add the project to your python path in your ```.bashrc```, 
    ```.bash_profile```, ```.zshrc``` or ```.profile``` with the following command (replace ```<MY PATH HERE>``` with the path to the project):
 ```sh
-export PYTHONPATH=$PYTHONPATH:<MY PATH HERE>/MOABridge/src
+export PYTHONPATH=$PYTHONPATH:<MY PATH HERE>/CapyMOA/src
 ```
 6. Try the DEMO notebook ```jupyter notebook DEMO.ipynb```. The notebook must be
    started with the correct ```PYTHONPATH``` and ```JAVA_HOME``` variables set.
