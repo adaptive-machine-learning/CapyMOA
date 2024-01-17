@@ -416,6 +416,8 @@ def test_then_train_evaluation(
         "cumulative": evaluator,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
+        "max_instances":max_instances, 
+        "stream":stream,
     }
 
     return results
@@ -527,6 +529,8 @@ def prequential_evaluation(
         "windowed": evaluator_windowed,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
+        "max_instances":max_instances, 
+        "stream":stream,
     }
 
     return results
@@ -673,6 +677,8 @@ def prequential_SSL_evaluation(
         "windowed": evaluator_windowed,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
+        "max_instances":max_instances, 
+        "stream":stream,
         "unlabeled": unlabeled_counter,
         "unlabeled_ratio": unlabeled_counter / instancesProcessed,
     }
@@ -747,6 +753,8 @@ def test_then_train_evaluation_fast(
         "cumulative": evaluator,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
+        "max_instances":max_instances, 
+        "stream":stream,
     }
 
     return results
@@ -810,6 +818,8 @@ def prequential_evaluation_fast(stream, learner, max_instances=None, window_size
         "windowed": windowed_evaluator,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
+        "max_instances":max_instances, 
+        "stream":stream,
     }
 
     return results
@@ -895,6 +905,8 @@ def test_then_train_SSL_evaluation_fast(
         "cumulative": evaluator,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
+        "max_instances":max_instances, 
+        "stream":stream,
     }
 
     for measure in moa_results.otherMeasurements.keySet():
@@ -968,6 +980,8 @@ def prequential_SSL_evaluation_fast(
         "windowed": windowed_evaluator,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
+        "max_instances":max_instances, 
+        "stream":stream,
         "other_measurements": dict(moa_results.otherMeasurements),
     }
 

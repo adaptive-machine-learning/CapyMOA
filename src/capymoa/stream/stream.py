@@ -1,9 +1,10 @@
 # Python imports
 import numpy as np
+import re
 
 # MOA/Java imports
-from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
-from moa.streams import ArffFileStream
+from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator, SEAGenerator as MOA_SEAGenerator
+from moa.streams import ArffFileStream, ConceptDriftStream as MOA_ConceptDriftStream
 from moa.core import FastVector, InstanceExample, Example
 from com.yahoo.labs.samoa.instances import (
     Instances,
@@ -238,21 +239,25 @@ class NumpyStream(Stream):
         self.current_instance_index = 0
 
 
+# TODO: put this function on a 'utils' module
+def _get_moa_creation_CLI(moa_object):
+    moa_class_id = str(moa_object.getClass().getName())
+    moa_class_id_parts = moa_class_id.split('.')
+    moa_stream_str = f"{moa_class_id_parts[-2]}.{moa_class_id_parts[-1]}"
+
+    moa_cli_creation = str(moa_object.getCLICreationString(moa_object.__class__))
+    CLI = moa_cli_creation.split(' ', 1)
+
+    if len(CLI) > 1 and len(CLI[1]) > 1:
+        moa_stream_str = f"({moa_stream_str} {CLI[1]})"
+
+    return moa_stream_str
+
 class RandomTreeGenerator(Stream):
-    def __init__(
-        self,
-        schema=None,
-        CLI=None,
-        instance_random_seed=1,
-        tree_random_seed=1,
-        num_classes=2,
-        num_nominals=5,
-        num_numerics=5,
-        num_vals_per_nominal=5,
-        max_tree_depth=5,
-        first_leaf_level=3,
-        leaf_fraction=0.15,
-    ):
+    def __init__(self, schema=None, CLI=None, instance_random_seed=1, tree_random_seed=1, 
+    num_classes=2, num_nominals=5, num_numerics=5, num_vals_per_nominal=5, max_tree_depth=5, 
+    first_leaf_level=3, leaf_fraction=0.15):
+        
         self.moa_stream = MOA_RandomTreeGenerator()
 
         self.CLI = CLI
@@ -268,10 +273,226 @@ class RandomTreeGenerator(Stream):
             self.leaf_fraction = leaf_fraction
 
             self.CLI = f"-i {instance_random_seed} -r {self.tree_random_seed} \
-			   -c {self.num_classes} -o {self.num_nominals} -u {self.num_numerics} -v {self.num_vals_per_nominal} \
-			   -d {max_tree_depth} -l {first_leaf_level} -f {leaf_fraction}"
+               -c {self.num_classes} -o {self.num_nominals} -u {self.num_numerics} -v {self.num_vals_per_nominal} \
+               -d {max_tree_depth} -l {first_leaf_level} -f {leaf_fraction}"
 
         super().__init__(schema=schema, CLI=self.CLI, moa_stream=self.moa_stream)
+
+    def __str__(self):
+        attributes = [
+            f"instance_random_seed={self.instance_random_seed}" if self.instance_random_seed != 1 else None,
+            f"tree_random_seed={self.tree_random_seed}" if self.tree_random_seed != 1 else None,
+            f"num_classes={self.num_classes}" if self.num_classes != 2 else None,
+            f"num_nominals={self.num_nominals}" if self.num_nominals != 5 else None,
+            f"num_numerics={self.num_numerics}" if self.num_numerics != 5 else None,
+            f"num_vals_per_nominal={self.num_vals_per_nominal}" if self.num_vals_per_nominal != 5 else None,
+            f"max_tree_depth={self.max_tree_depth}" if self.max_tree_depth != 5 else None,
+            f"first_leaf_level={self.first_leaf_level}" if self.first_leaf_level != 3 else None,
+            f"leaf_fraction={self.leaf_fraction}" if self.leaf_fraction != 0.15 else None,
+        ]
+
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"RTG({', '.join(non_default_attributes)})"
+
+
+class SEA(Stream):
+    def __init__(self, schema=None, CLI=None, instance_random_seed=1, function=1, 
+    balance_classes=False, noise_percentage=10):
+        
+        self.moa_stream = MOA_SEAGenerator()
+
+        self.CLI = CLI
+        if self.CLI is None:
+            self.instance_random_seed = instance_random_seed
+            self.function = function
+            self.balance_classes = balance_classes
+            self.noise_percentage = noise_percentage
+
+
+            self.CLI = f"-i {instance_random_seed} -f {self.function} \
+               {'-b' if self.balance_classes else ''} -p {self.noise_percentage}"
+
+        super().__init__(schema=schema, CLI=self.CLI, moa_stream=self.moa_stream)
+
+    def __str__(self):
+        attributes = [
+            f"instance_random_seed={self.instance_random_seed}" if self.instance_random_seed != 1 else None,
+            f"function={self.function}",
+            f"balance_classes={self.balance_classes}" if self.balance_classes else None,
+            f"noise_percentage={self.noise_percentage}" if self.noise_percentage != 10 else None
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"SEA({', '.join(non_default_attributes)})"
+
+
+############################################################################################################
+############################################### DRIFT STREAM ###############################################
+############################################################################################################
+
+
+class DriftStream(Stream):
+    def __init__(self, schema=None, CLI=None, moa_stream=None, stream=None):
+        # If moa_stream is specified, just instantiate it directly. We can check whether it is a ConceptDriftStream object or not. 
+        # if composite_stream is set, then the ConceptDriftStream object is build according to the list of Concepts and Drifts specified in composite_stream
+        # ```moa_stream``` and ```CLI``` allow the user to specify the stream using a ConceptDriftStream from MOA alongside its CLI. However, in the future we might remove that functionality to make the code simpler. 
+        
+        self.stream = stream
+        self.drifts = []
+        moa_concept_drift_stream = MOA_ConceptDriftStream()
+
+        if CLI is None:
+            stream1 = None
+            stream2 = None
+            drift = None
+            
+            CLI = ""
+            for component in self.stream:
+                if isinstance(component, Stream):
+                    if stream1 is None:
+                        stream1 = component
+                    else:
+                        stream2 = component
+                        if drift is None:
+                            raise ValueError("A Drift object must be specified between two Stream objects.")
+
+                        CLI += f' -d {_get_moa_creation_CLI(stream2.moa_stream)} -w {drift.width} -p {drift.position} -r {drift.random_seed} -a {drift.alpha}'
+                        CLI = CLI.replace("streams.", "") # got to remove package name from streams.ConceptDriftStream
+
+                        stream1 = Stream(moa_stream=moa_concept_drift_stream, CLI=CLI)
+                        stream2 = None
+
+                elif isinstance(component, Drift):
+                    # print(component)
+                    drift = component
+                    self.drifts.append(drift)
+                    CLI = f' -s {_get_moa_creation_CLI(stream1.moa_stream)} ' 
+
+            # print(CLI)
+            # CLI = command_line
+            moa_stream = moa_concept_drift_stream
+        else:
+            # [EXPERIMENTAL]
+            # If the user is attempting to create a DriftStream using a MOA CLI, we need to derive the Drift meta-data through the CLI. 
+            # The number of ConceptDriftStream occurrences corresponds to the number of Drifts. 
+            # +1 because we expect at least one drift from an implit ConceptDriftStream (i.e. not shown in the CLI because it is the moa_stream object)
+            num_drifts = CLI.count('ConceptDriftStream')+1 
+
+            # This is a best effort in obtaining the meta-data from a MOA CLI. 
+            # Notice that if the width (-w) or position (-p) are not explicitly shown in the CLI it is difficult to infer them. 
+            pattern_position = r'-p (\d+)'
+            pattern_width = r'-w (\d+)'
+            matches_position = re.findall(pattern_position, CLI)
+            matches_width = re.findall(pattern_width, CLI)
+
+            for i in range(0, num_drifts):
+                if len(matches_width) == len(matches_position):
+                    self.drifts.append(Drift(position=int(matches_position[i]), width=int(matches_width[i])))
+                else:
+                    # Assuming the width of the drifts (or at least one) are not show, implies that the default value (1000) was used. 
+                    self.drifts.append(Drift(position=int(matches_position[i]), width=1000))
+
+
+        super().__init__(schema=schema, CLI=CLI, moa_stream=moa_stream)
+
+    def get_num_drifts(self):
+        return len(self.drifts)
+
+    def get_drifts(self):
+        return self.drifts
+
+    def __str__(self):
+        if self.stream is not None:
+            return ','.join(str(component) for component in self.stream)
+        # If the stream was defined using the backward compatility (MOA object + CLI) then there are no Stream objects in stream.
+        # Best we can do is return the CLI directly. 
+        return f'ConceptDriftStream {self.CLI}'
+
+# TODO: remove width from the base Drift class and keep it only on the GradualDrift
+
+class Drift:
+    """
+    Represents a concept drift in a DriftStream. 
+
+    Parameters:
+    - position (int): The location of the drift in terms of the number of instances processed prior to it occurring.
+    - width (int, optional): The size of the window of change. A width of 0 or 1 corresponds to an abrupt drift.
+        Default is 0.
+    - alpha (float, optional): The grade of change (See 2.7.1 Concept Drift Framework in [1]). Default is 0.0.
+    - random_seed (int, optional): Seed for random number generation (See 2.7.1 Concept Drift Framework [1]). Default is 1.
+
+    References:
+    [1] Bifet, Albert, et al. "Data stream mining: a practical approach." COSI (2011).
+    """
+    def __init__(self, position, width=0, alpha=0.0, random_seed=1):
+        self.width = width
+        self.position = position
+        self.alpha = alpha
+        self.random_seed = random_seed
+
+    def __str__(self):
+        drift_kind = "GradualDrift"
+        if self.width == 0 or self.width == 1:
+            drift_kind = "AbruptDrift"
+        attributes = [
+            f"position={self.position}",
+            f"width={self.width}" if self.width not in [0, 1] else None,
+            f"alpha={self.alpha}" if self.alpha != 0.0 else None,
+            f"random_seed={self.random_seed}" if self.random_seed != 1 else None
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"{drift_kind}({', '.join(non_default_attributes)})"
+
+
+class GradualDrift(Drift):
+    def __init__(self, position=None, width=None, start=None, end=None, alpha=0.0, random_seed=1):
+        
+        # since python doesn't allow overloading functions we need to check if the user hasn't defined position + width and start+end.
+        if position is not None and width is not None and start is not None and end is not None:
+            raise ValueError("Either use start and end OR position and width to determine the location of the gradual drift.")
+
+        if start is None and end is None:
+            self.width = width
+            self.position = position
+            self.start = int(position - width/2)
+            self.end = int(position + width/2)
+        elif position is None and width is None:
+            self.start = start
+            self.end = end
+            self.width = end - start
+            print(width)
+            self.position = int((start+end)/2)
+
+        self.alpha = alpha
+        self.random_seed = random_seed
+
+        super().__init__(position=self.position, random_seed=self.random_seed, width=self.width)
+
+    def __str__(self):
+        attributes = [
+            f"position={self.position}",
+            f"start={self.start}",
+            f"end={self.end}",
+            f"width={self.width}",
+            f"alpha={self.alpha}" if self.alpha != 0.0 else None,
+            f"random_seed={self.random_seed}" if self.random_seed != 1 else None
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"GradualDrift({', '.join(non_default_attributes)})"
+
+class AbruptDrift(Drift):
+    def __init__(self, position, random_seed=1):
+        self.position = position
+        self.random_seed = random_seed
+
+        super().__init__(position=position, random_seed=random_seed)
+
+    def __str__(self):
+        attributes = [
+            f"position={self.position}",
+            f"random_seed={self.random_seed}" if self.random_seed != 1 else None
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"AbruptDrift({', '.join(non_default_attributes)})"
 
 
 ## TODO (20/10/2023): Add logic to interpret nominal values (strings) in the class label.
