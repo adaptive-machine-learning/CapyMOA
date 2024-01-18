@@ -4,7 +4,6 @@ start_jpype()
 
 # Python imports
 import numpy as np
-from river.base import Transformer
 
 # MOA/Java imports
 from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
@@ -60,21 +59,24 @@ class Schema:
     def get_moa_header(self):
         return self.moa_header
 
-	def get_nominal_attribute_names(self) -> list[str]:
+	def get_nominal_input_attribute_names(self) -> list[str]:
 		mh = self.moa_header
 		return [
-			mh.attributes(i).name()
+			mh.inputAttributes(i).name()
 			for i in range(self.get_num_attributes())  #TODO: check if mh.attributes() includes the target
-			if mh.attributes(i).isNominal()
+			if mh.inputAttributes(i).isNominal()
 		]
 
-	def get_numeric_attribute_names(self) -> list[str]:
+	def get_numeric_input_attribute_names(self) -> list[str]:
 		mh = self.moa_header
 		return [
-			mh.attributes(i).name()
+			mh.inputAttributes(i).name()
 			for i in range(self.get_num_attributes())  #TODO: check if mh.attributes() includes the target
-			if not mh.attributes(i).isNominal()
+			if not mh.inputAttributes(i).isNominal()
 		]
+
+	def get_output_attribute_name(self) -> str:
+		return self.moa_header.outputAttribute(0).name()
 
     def get_num_attributes(self):
         # ignoring the class/target value. 
@@ -335,7 +337,7 @@ def numpy_to_ARFF(X, y, dataset_name="No_Name", feature_names=None, target_name=
 	return arff_dataset, streamHeader
 
 
-class Array2RiverDictTransformer(Transformer):
+class Array2DictTransformer:
 	"""
 	Transforms an input instance (numpy array) to a dictionary given the attributes specified in `schema`
 	"""
