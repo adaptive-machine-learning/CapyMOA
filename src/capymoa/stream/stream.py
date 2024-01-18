@@ -65,6 +65,25 @@ class Schema:
     def get_moa_header(self):
         return self.moa_header
 
+    def get_nominal_input_attribute_names(self) -> list[str]:
+        mh = self.moa_header
+        return [
+            mh.inputAttributes(i).name()
+            for i in range(self.get_num_attributes())  # TODO: check if mh.attributes() includes the target
+            if mh.inputAttributes(i).isNominal()
+        ]
+
+    def get_numeric_input_attribute_names(self) -> list[str]:
+        mh = self.moa_header
+        return [
+            mh.inputAttributes(i).name()
+            for i in range(self.get_num_attributes())  # TODO: check if mh.attributes() includes the target
+            if not mh.inputAttributes(i).isNominal()
+        ]
+
+    def get_output_attribute_name(self) -> str:
+        return self.moa_header.outputAttribute(0).name()
+
     def get_num_attributes(self):
         # ignoring the class/target value.
         return self.num_attributes_including_output - 1
@@ -254,10 +273,10 @@ def _get_moa_creation_CLI(moa_object):
     return moa_stream_str
 
 class RandomTreeGenerator(Stream):
-    def __init__(self, schema=None, CLI=None, instance_random_seed=1, tree_random_seed=1, 
-    num_classes=2, num_nominals=5, num_numerics=5, num_vals_per_nominal=5, max_tree_depth=5, 
+    def __init__(self, schema=None, CLI=None, instance_random_seed=1, tree_random_seed=1,
+    num_classes=2, num_nominals=5, num_numerics=5, num_vals_per_nominal=5, max_tree_depth=5,
     first_leaf_level=3, leaf_fraction=0.15):
-        
+
         self.moa_stream = MOA_RandomTreeGenerator()
 
         self.CLI = CLI
@@ -296,9 +315,9 @@ class RandomTreeGenerator(Stream):
 
 
 class SEA(Stream):
-    def __init__(self, schema=None, CLI=None, instance_random_seed=1, function=1, 
+    def __init__(self, schema=None, CLI=None, instance_random_seed=1, function=1,
     balance_classes=False, noise_percentage=10):
-        
+
         self.moa_stream = MOA_SEAGenerator()
 
         self.CLI = CLI
@@ -332,10 +351,10 @@ class SEA(Stream):
 
 class DriftStream(Stream):
     def __init__(self, schema=None, CLI=None, moa_stream=None, stream=None):
-        # If moa_stream is specified, just instantiate it directly. We can check whether it is a ConceptDriftStream object or not. 
+        # If moa_stream is specified, just instantiate it directly. We can check whether it is a ConceptDriftStream object or not.
         # if composite_stream is set, then the ConceptDriftStream object is build according to the list of Concepts and Drifts specified in composite_stream
-        # ```moa_stream``` and ```CLI``` allow the user to specify the stream using a ConceptDriftStream from MOA alongside its CLI. However, in the future we might remove that functionality to make the code simpler. 
-        
+        # ```moa_stream``` and ```CLI``` allow the user to specify the stream using a ConceptDriftStream from MOA alongside its CLI. However, in the future we might remove that functionality to make the code simpler.
+
         self.stream = stream
         self.drifts = []
         moa_concept_drift_stream = MOA_ConceptDriftStream()
@@ -344,7 +363,7 @@ class DriftStream(Stream):
             stream1 = None
             stream2 = None
             drift = None
-            
+
             CLI = ""
             for component in self.stream:
                 if isinstance(component, Stream):
@@ -365,20 +384,20 @@ class DriftStream(Stream):
                     # print(component)
                     drift = component
                     self.drifts.append(drift)
-                    CLI = f' -s {_get_moa_creation_CLI(stream1.moa_stream)} ' 
+                    CLI = f' -s {_get_moa_creation_CLI(stream1.moa_stream)} '
 
             # print(CLI)
             # CLI = command_line
             moa_stream = moa_concept_drift_stream
         else:
             # [EXPERIMENTAL]
-            # If the user is attempting to create a DriftStream using a MOA CLI, we need to derive the Drift meta-data through the CLI. 
-            # The number of ConceptDriftStream occurrences corresponds to the number of Drifts. 
+            # If the user is attempting to create a DriftStream using a MOA CLI, we need to derive the Drift meta-data through the CLI.
+            # The number of ConceptDriftStream occurrences corresponds to the number of Drifts.
             # +1 because we expect at least one drift from an implit ConceptDriftStream (i.e. not shown in the CLI because it is the moa_stream object)
-            num_drifts = CLI.count('ConceptDriftStream')+1 
+            num_drifts = CLI.count('ConceptDriftStream')+1
 
-            # This is a best effort in obtaining the meta-data from a MOA CLI. 
-            # Notice that if the width (-w) or position (-p) are not explicitly shown in the CLI it is difficult to infer them. 
+            # This is a best effort in obtaining the meta-data from a MOA CLI.
+            # Notice that if the width (-w) or position (-p) are not explicitly shown in the CLI it is difficult to infer them.
             pattern_position = r'-p (\d+)'
             pattern_width = r'-w (\d+)'
             matches_position = re.findall(pattern_position, CLI)
@@ -388,7 +407,7 @@ class DriftStream(Stream):
                 if len(matches_width) == len(matches_position):
                     self.drifts.append(Drift(position=int(matches_position[i]), width=int(matches_width[i])))
                 else:
-                    # Assuming the width of the drifts (or at least one) are not show, implies that the default value (1000) was used. 
+                    # Assuming the width of the drifts (or at least one) are not show, implies that the default value (1000) was used.
                     self.drifts.append(Drift(position=int(matches_position[i]), width=1000))
 
 
@@ -404,14 +423,14 @@ class DriftStream(Stream):
         if self.stream is not None:
             return ','.join(str(component) for component in self.stream)
         # If the stream was defined using the backward compatility (MOA object + CLI) then there are no Stream objects in stream.
-        # Best we can do is return the CLI directly. 
+        # Best we can do is return the CLI directly.
         return f'ConceptDriftStream {self.CLI}'
 
 # TODO: remove width from the base Drift class and keep it only on the GradualDrift
 
 class Drift:
     """
-    Represents a concept drift in a DriftStream. 
+    Represents a concept drift in a DriftStream.
 
     Parameters:
     - position (int): The location of the drift in terms of the number of instances processed prior to it occurring.
@@ -445,7 +464,7 @@ class Drift:
 
 class GradualDrift(Drift):
     def __init__(self, position=None, width=None, start=None, end=None, alpha=0.0, random_seed=1):
-        
+
         # since python doesn't allow overloading functions we need to check if the user hasn't defined position + width and start+end.
         if position is not None and width is not None and start is not None and end is not None:
             raise ValueError("Either use start and end OR position and width to determine the location of the gradual drift.")
@@ -601,6 +620,19 @@ def numpy_to_ARFF(
         arff_dataset.add(instance)
 
     return arff_dataset, streamHeader
+
+
+class Array2DictTransformer:
+	"""
+	Transforms an input instance (numpy array) to a dictionary given the attributes specified in `schema`
+	"""
+	def __init__(self, schema: Schema):
+		self.schema = schema
+		self._att_names = [schema.moa_header.attributes(i).name() for i in range(schema.get_num_attributes())]
+
+	def transform_one(self, x: np.ndarray) -> dict:
+		assert len(self._att_names) == len(x), "Number of attributes in schema must equal length of input array"
+		return {att_name: value for att_name, value in zip(self._att_names, x)}
 
 
 # Example loading an ARFF file in python without using MOA
