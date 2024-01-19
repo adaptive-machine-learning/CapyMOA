@@ -3,17 +3,21 @@ Python wrapper for MOA to allow efficient use of existing algorithms with a more
 
 To use the project
 1. Use ```conda env create -f environment.yml``` to create a conda environment with all the requirements. 
-	* Optional: Use pip install on the requirements. 
-	* If you are using a custom installation, make sure to install jpype through ```pip install jpype1``` (yes, there is a 1 there)
- 	* If you are using windows, use ```environment_wds.yml``` instead of ```environment.yml```
+    * Optional: Use pip install on the requirements. 
+    * If you are using a custom installation, make sure to install jpype through ```pip install jpype1``` (yes, there is a 1 there)
+     * If you are using windows, use ```environment_wds.yml``` instead of ```environment.yml```
 2. Run ```make download``` to get the MOA jar.
-   	* Optional: In ```config.ini``` set the path to the ```moa.jar``` that you are using if you are using a custom ```moa.jar```, otherwise the jar specified in [```src/capymoa/jar/accessing_jar.txt```](src/capymoa/jar/accessing_jar.txt)) will be used. It should work with any MOA jar released after 2023, but some functions may not work (as they haven't been merged into moa yet, such as the SSL supporting functions). 
+       * Optional: In ```config.ini``` set the path to the ```moa.jar``` that you are using if you are using a custom ```moa.jar```, otherwise the jar specified in [```src/capymoa/jar/accessing_jar.txt```](src/capymoa/jar/accessing_jar.txt)) will be used. It should work with any MOA jar released after 2023, but some functions may not work (as they haven't been merged into moa yet, such as the SSL supporting functions). 
 3. Make sure `JAVA_HOME` is set. 
 4. Activate the conda environment ```conda activate CapyMOA```
 5. Add the project to your python path in your ```.bashrc```, 
    ```.bash_profile```, ```.zshrc``` or ```.profile``` with the following command (replace ```<MY PATH HERE>``` with the path to the project):
 ```sh
 export PYTHONPATH=$PYTHONPATH:<MY PATH HERE>/CapyMOA/src
+```
+* If you are on Windows, type *edit environment variables for your account* in your windows search. There, you  can set the system variables and specify the PYTHONPATH like so: 
+```sh 
+%PY_HOME%\Lib;%PY_HOME%\DLLs;%PY_HOME%\Lib\lib-tk;<MY PATH HERE>\CapyMOA\src`
 ```
 6. Try the DEMO notebook ```jupyter notebook DEMO.ipynb```. The notebook must be
    started with the correct ```PYTHONPATH``` and ```JAVA_HOME``` variables set.
