@@ -66,15 +66,16 @@ class Schema:
         return self.moa_header
 
     def get_input_attribute_names(self) -> list[str]:
-        names = [self.moa_header.getInstanceInformation().inputAttribute(i).name()
-                 for i in range(self.get_num_attributes())]
-        return names
+        return [
+            self.moa_header.getInstanceInformation().inputAttribute(i).name()
+            for i in range(self.get_num_attributes())
+        ]
 
     def get_nominal_input_attribute_names(self) -> list[str]:
         mh = self.moa_header
         return [
             mh.inputAttribute(i).name()
-            for i in range(self.get_num_attributes())  # TODO: check if mh.attributes() includes the target
+            for i in range(self.get_num_attributes())
             if mh.inputAttribute(i).isNominal()
         ]
 
@@ -82,7 +83,7 @@ class Schema:
         mh = self.moa_header
         return [
             mh.inputAttribute(i).name()
-            for i in range(self.get_num_attributes())  # TODO: check if mh.attributes() includes the target
+            for i in range(self.get_num_attributes())
             if not mh.inputAttribute(i).isNominal()
         ]
 
