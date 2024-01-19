@@ -65,20 +65,25 @@ class Schema:
     def get_moa_header(self):
         return self.moa_header
 
+    def get_input_attribute_names(self) -> list[str]:
+        names = [self.moa_header.getInstanceInformation().inputAttribute(i).name()
+                 for i in range(self.get_num_attributes())]
+        return names
+
     def get_nominal_input_attribute_names(self) -> list[str]:
         mh = self.moa_header
         return [
-            mh.inputAttributes(i).name()
+            mh.inputAttribute(i).name()
             for i in range(self.get_num_attributes())  # TODO: check if mh.attributes() includes the target
-            if mh.inputAttributes(i).isNominal()
+            if mh.inputAttribute(i).isNominal()
         ]
 
     def get_numeric_input_attribute_names(self) -> list[str]:
         mh = self.moa_header
         return [
-            mh.inputAttributes(i).name()
+            mh.inputAttribute(i).name()
             for i in range(self.get_num_attributes())  # TODO: check if mh.attributes() includes the target
-            if not mh.inputAttributes(i).isNominal()
+            if not mh.inputAttribute(i).isNominal()
         ]
 
     def get_output_attribute_name(self) -> str:
@@ -620,19 +625,6 @@ def numpy_to_ARFF(
         arff_dataset.add(instance)
 
     return arff_dataset, streamHeader
-
-
-class Array2DictTransformer:
-	"""
-	Transforms an input instance (numpy array) to a dictionary given the attributes specified in `schema`
-	"""
-	def __init__(self, schema: Schema):
-		self.schema = schema
-		self._att_names = [schema.moa_header.attributes(i).name() for i in range(schema.get_num_attributes())]
-
-	def transform_one(self, x: np.ndarray) -> dict:
-		assert len(self._att_names) == len(x), "Number of attributes in schema must equal length of input array"
-		return {att_name: value for att_name, value in zip(self._att_names, x)}
 
 
 # Example loading an ARFF file in python without using MOA
