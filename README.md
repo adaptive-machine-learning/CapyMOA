@@ -1,23 +1,36 @@
 # CapyMOA
 Python wrapper for MOA to allow efficient use of existing algorithms with a more modern API
 
-To use the project
-1. Use ```conda env create -f environment.yml``` to create a conda environment with all the requirements. 
-	* Optional: Use pip install on the requirements. 
-	* If you are using a custom installation, make sure to install jpype through ```pip install jpype1``` (yes, there is a 1 there)
- 	* If you are using windows, use ```environment_wds.yml``` instead of ```environment.yml```
-2. Run ```make download``` to get the MOA jar.
-   	* Optional: In ```config.ini``` set the path to the ```moa.jar``` that you are using if you are using a custom ```moa.jar```, otherwise the jar specified in [```src/capymoa/jar/accessing_jar.txt```](src/capymoa/jar/accessing_jar.txt)) will be used. It should work with any MOA jar released after 2023, but some functions may not work (as they haven't been merged into moa yet, such as the SSL supporting functions). 
-3. Make sure `JAVA_HOME` is set. 
-4. Activate the conda environment ```conda activate CapyMOA```
-5. Add the project to your python path in your ```.bashrc```, 
-   ```.bash_profile```, ```.zshrc``` or ```.profile``` with the following command (replace ```<MY PATH HERE>``` with the path to the project):
-```sh
-export PYTHONPATH=$PYTHONPATH:<MY PATH HERE>/CapyMOA/src
-```
-6. Try the DEMO notebook ```jupyter notebook DEMO.ipynb```. The notebook must be
-   started with the correct ```PYTHONPATH``` and ```JAVA_HOME``` variables set.
-   To double check run ```echo $PYTHONPATH``` and ```echo $JAVA_HOME``` in the
+
+# Developer Installation
+
+1. **(Optional)** It is recommended to use a conda environment since using a
+   conda environment isolates project dependencies and avoids conflicts.
+   > Follow the instructions [at this link](https://docs.conda.io/projects/miniconda/en/latest/) to install miniconda.
+
+   Setup the conda environment by running one of the following commands:
+   ```sh
+   conda env create -f environment.yml # For linux
+   conda env create -f environment_wds.yml # For windows
+   ```
+   Ensure the environment is activated:
+   ```sh
+   conda activate CapyMOA
+   ```
+2. Use pip to install the project in editable mode with the development dependencies:
+   ```bash
+   pip install --editable '.[dev]'
+   ```
+3. Make sure the environment variable `JAVA_HOME` is set.
+4. Run the tests to make sure everything is working:
+   ```bash
+   python -m pytest
+   ```
+5. **(Optional)** Try the example notebooks
+   1. Download extra datasets with `make download`.
+   2. Run the DEMO notebook ```python -m jupyter notebook notebooks/DEMO.ipynb```. The notebook must be
+   started with the correct ```JAVA_HOME``` variable set.
+   To double check run ```echo $JAVA_HOME``` in the
    terminal before starting the notebook.
 
 
