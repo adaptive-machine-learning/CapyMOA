@@ -6,30 +6,30 @@ import shutil
 from pathlib import Path
 
 z_files = {
-#    "covtFD": [
-#        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/covtFD.zip",
-#        "zip",
-#    ],
-#    "covtype": [
-#        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/covtype.zip",
-#        "zip",
-#    ],
-#    "Hyper100k": [
-#        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/Hyper100k.zip",
-#        "zip",
-#    ],
-#    "RBFm_100k": [
-#        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/RBFm_100k.zip",
-#        "zip",
-#    ],
-#    "RTG_2abrupt": [
-#        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/RTG_2abrupt.zip",
-#        "zip",
-#    ],
-#    "sensor": [
-#        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/sensor.zip",
-#        "zip",
-#    ],
+    "covtFD": [
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/covtFD.zip",
+        "zip",
+    ],
+    "covtype": [
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/covtype.zip",
+        "zip",
+    ],
+    "Hyper100k": [
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/Hyper100k.zip",
+        "zip",
+    ],
+    "RBFm_100k": [
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/RBFm_100k.zip",
+        "zip",
+    ],
+    "RTG_2abrupt": [
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/RTG_2abrupt.zip",
+        "zip",
+    ],
+    "sensor": [
+        "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/sensor.zip",
+        "zip",
+    ],
     "moa": [
         "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/moa.jar",
         "jar",
