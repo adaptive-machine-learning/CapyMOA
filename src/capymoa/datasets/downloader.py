@@ -5,6 +5,7 @@ from os import environ
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Optional
+import shutil
 
 import wget
 from moa.streams import ArffFileStream
@@ -45,7 +46,9 @@ class DownloadableDataset(ABC, Stream):
                     working_directory = Path(working_directory)
                     stream_archive = self.download(working_directory)
                     tmp_stream = self.extract(stream_archive)
-                    stream = tmp_stream.rename(stream)
+                    # Note shutil.move is needed to move the file across 
+                    # physical devices and filesystems
+                    stream = shutil.move(tmp_stream, stream)
             else:
                 raise FileNotFoundError(
                     f"Dataset {self.filename} not found in {directory}"
