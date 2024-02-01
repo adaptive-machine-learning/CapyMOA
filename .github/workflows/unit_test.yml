@@ -3,14 +3,17 @@
 
 # TODO: In the future we ought to perform linting and code coverage checks
 
-name: Python package tests
+name: Unit Tests
 
 on:
   push:
-    # TODO: Remove package
-    branches: [ "main", "package" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+    paths:
+      - '**.py'
+      - '.github/workflows/unit_test.yml'
+      - 'pyproject.toml'
 
 jobs:
   build:
