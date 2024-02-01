@@ -1,34 +1,27 @@
-from capymoa.stream import stream_from_file
-from capymoa.evaluation import prequential_SSL_evaluation
+from capymoa.datasets.datasets import ElectricityTiny, CovtypeTiny
 from capymoa.learner.classifier.CPSSDS import CPSSDS
+from test_utility.ssl_helpers import assert_ssl_evaluation
 import pytest
 
-
-@pytest.fixture
-def stream():
-    rbf_arff_file_path = "./data/electricity.arff"
-    stream = stream_from_file(path_to_csv_or_arff=rbf_arff_file_path, class_index=-1)
-    return stream
-
-
-def eval(stream, cpssds):
-    return prequential_SSL_evaluation(
-        stream=stream,
-        learner=cpssds,
-        label_probability=0.5,
-        window_size=10,
-        optimise=False,
-        max_instances=1000,
+@pytest.mark.parametrize(
+    "learner, stream, expectation", 
+    [
+        ("NaiveBayes", ElectricityTiny(), 70.0),
+        ("HoeffdingTree", ElectricityTiny(), 59.60),
+        ("NaiveBayes", CovtypeTiny(), 54.6),
+        ("HoeffdingTree", CovtypeTiny(), 52.2),
+    ],
+    ids=[
+        "ElectricityTiny-NaiveBayes", 
+        "ElectricityTiny-HoeffdingTree", 
+        "CovtypeTiny-NaiveBayes", 
+        "CovtypeTiny-HoeffdingTree"
+    ]
+)
+def test_CPSSDS(learner, stream, expectation):
+    assert_ssl_evaluation(
+        CPSSDS(learner, 100, schema=stream.schema),
+        stream,
+        expectation,
+        label_probability=0.5
     )
-
-
-def test_CPSSDS_NaiveBayes(stream):
-    cpssds = CPSSDS("NaiveBayes", 100, schema=stream.schema)
-    results_cl_100 = eval(stream, cpssds)
-    assert results_cl_100["cumulative"].accuracy() == pytest.approx(70.0)
-
-
-def test_CPSSDS_HoeffdingTree(stream):
-    cpssds = CPSSDS("HoeffdingTree", 100, schema=stream.schema)
-    results_cl_100 = eval(stream, cpssds)
-    assert results_cl_100["cumulative"].accuracy() == pytest.approx(59.60)
