@@ -1,6 +1,6 @@
 from jpype import _jpype
 from abc import ABC, abstractmethod, ABCMeta
-
+from capymoa.stream.stream import Instance
 # MOA/Java imports
 from moa.core import Utils
 from moa.classifiers import Classifier as MOA_Classifier_Interface
@@ -88,15 +88,15 @@ class Classifier(ABC):
         pass
 
     @abstractmethod
-    def train(self, instance):
+    def train(self, instance: Instance):
         pass
 
     @abstractmethod
-    def predict(self, instance):
+    def predict(self, instance: Instance):
         pass
 
     @abstractmethod
-    def predict_proba(self, instance):
+    def predict_proba(self, instance: Instance):
         pass
 
 
@@ -143,15 +143,15 @@ class MOAClassifier(Classifier):
     def CLI_help(self):
         return str(self.moa_learner.getOptions().getHelpString())
 
-    def train(self, instance):
+    def train(self, instance: Instance):
         self.moa_learner.trainOnInstance(instance.get_MOA_InstanceExample())
 
-    def predict(self, instance):
+    def predict(self, instance: Instance):
         return Utils.maxIndex(
             self.moa_learner.getVotesForInstance(instance.get_MOA_InstanceExample())
         )
 
-    def predict_proba(self, instance):
+    def predict_proba(self, instance: Instance):
         return self.moa_learner.getVotesForInstance(instance.get_MOA_InstanceExample())
 
 
