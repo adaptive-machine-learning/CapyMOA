@@ -98,7 +98,6 @@ def NCM(num, classifier, X, Y, t, class_count):
             alpha = np.zeros([X.shape[0], 1])
             for g in range(X.shape[0]):
                 dic_vote = classifier.predict_proba_one(np_to_dict(X[g, :]))
-                print(dic_vote)
                 vote = np.fromiter(dic_vote.values(), dtype=float)
                 vote_keys = np.fromiter(dic_vote.keys(), dtype=int)
                 Sum = np.sum(vote)
@@ -132,7 +131,14 @@ def NCM(num, classifier, X, Y, t, class_count):
             alpha = 1 - P
         elif t == 2:
             prediction = predict_many(classifier, X)
-            P = prediction[0, int(Y)]
+            # TODO: This is a hacky patch because river tries to be smart and
+            # infer the number of classes from the data. This is silly because
+            # CPSSDS assumes that the number of classes is known. Future work
+            # will replace river with MOA.
+            if prediction.shape[1] <= Y:
+                P = 0
+            else:
+                P = prediction[0, int(Y)]
             alpha = 1 - P
     return alpha
 
@@ -282,7 +288,7 @@ class CPSSDS(BatchClassifierSSL):
         return self.classifier.predict_one(self.instance_to_dict(instance))
 
     def predict_proba(self, instance):
-        return self.classifier.predict_proba_one(self.instance_to_dict(instance))
+        raise NotImplementedError()
 
     def __str__(self):
         return f"CPSSDS(significance_level={self.significance_level})"

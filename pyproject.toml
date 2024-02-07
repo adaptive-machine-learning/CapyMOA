@@ -26,11 +26,17 @@ dependencies = [
 [project.optional-dependencies]
 dev=[
     "pytest",
-    "jupyter"
+    "jupyter",
+    "torch",
+    "torchvision",
 ]
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
+pythonpath = [
+    "src",
+    "." # Used to import the test_utility module
+]
 
 [tool.hatch]
 [tool.hatch.build.targets.wheel]
