@@ -82,6 +82,8 @@ class Classifier(ABC):
     def __init__(self, schema=None, random_seed=1):
         self.random_seed = random_seed
         self.schema = schema
+        if self.schema is None:
+            raise ValueError('Schema must be initialised')
 
     @abstractmethod
     def __str__(self):
@@ -147,9 +149,11 @@ class MOAClassifier(Classifier):
         self.moa_learner.trainOnInstance(instance.get_MOA_InstanceExample())
 
     def predict(self, instance: Instance):
-        return Utils.maxIndex(
-            self.moa_learner.getVotesForInstance(instance.get_MOA_InstanceExample())
-        )
+        return self.schema.get_value_for_index(
+            Utils.maxIndex(
+                self.moa_learner.getVotesForInstance(instance.get_MOA_InstanceExample())
+                )
+            )
 
     def predict_proba(self, instance: Instance):
         return self.moa_learner.getVotesForInstance(instance.get_MOA_InstanceExample())

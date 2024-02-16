@@ -48,6 +48,9 @@ class Schema:
             self.num_attributes_including_output = self.moa_header.numAttributes()
         # else logic: the label_values must be set, so that the first time the get_label_indexes is invoked, they are correctly created.
 
+    def __str__(self):
+        return str(self.moa_header.toString())
+
     def get_label_values(self):
         if self.label_values is None:
             return None
@@ -72,26 +75,31 @@ class Schema:
     def get_num_classes(self):
         return len(self.get_label_indexes())
 
+    def get_value_for_index(self, y_index):
+        if self.label_values is None:
+            return None
+        else:
+            return self.label_values[y_index]
+
     def get_valid_index_for_label(self, y):
+        # If it is a regression problem, there is no notion of index, just return the value
+        # if self.is_regression():
+        #     return y if y is not None else 0.0
+
         if self.label_indexes is None:
             raise ValueError(
                 "Schema was not properly initialised, please define a proper Schema."
             )
 
-        # print(f"get_valid_index_for_label( y = {y} )")
-
-        # Check of y is a string and if the labelValues contains strings.
-        # print(f"isinstance {type(y)}, {type(self.label_values[0])}")
+        # Check if y is of the same type (e.g. str) as the elements in self.label_values.
+        # If y is of the same type and it exists in self.label_values, return its index.
         if isinstance(y, type(self.label_values[0])):
             if y in self.label_values:
                 return self.label_values.index(y)
-
-        # If it is not a valid value, then maybe it is an index
-        if y in self.label_indexes:
-            return y
-
-        # This is neither a valid label value nor a valid index.
-        return None
+            else:
+                raise ValueError(f"y ({y}) is not present in label_values ({self.label_values})")
+        else:
+            raise TypeError(f"y ({type(y)}) must be of the same type as the elements in self.label_values ({type(self.label_values[0])})")
 
     def is_regression(self):
         return self.regression
@@ -110,7 +118,11 @@ class Instance:
     # 	if MOAInstanceExample is None:
     # 	self.MOAInstanceExample = MOAInstanceExample
 
-    def __init__(self, MOAInstanceExample=None, schema=None, x=None, y=None):
+    def __init__(self, schema, MOAInstanceExample=None):
+        self.schema = schema
+        if self.schema is None:
+            raise ValueError('Schema must be initialised')
+
         if MOAInstanceExample is not None:
             self.MOAInstanceExample = MOAInstanceExample
 
@@ -119,7 +131,9 @@ class Instance:
 
     def y(self):
         # return np.array(self.MOAInstanceExample.getData().classValue(), ndmin=0)
-        return float(self.MOAInstanceExample.getData().classValue())
+        if self.schema.is_regression():
+            return self.MOAInstanceExample.getData().classValue()
+        return self.schema.get_value_for_index(int(self.MOAInstanceExample.getData().classValue()))
 
     # Assume data is numeric.
     def x(self):
@@ -163,7 +177,7 @@ class Stream:
         return self.moa_stream.hasMoreInstances()
 
     def next_instance(self):
-        return Instance(self.moa_stream.nextInstance())
+        return Instance(self.schema, self.moa_stream.nextInstance())
 
     def get_schema(self):
         return self.schema
@@ -227,7 +241,7 @@ class NumpyStream(Stream):
         if self.has_more_instances():
             instance = self.arff_instances_data.instance(self.current_instance_index)
             self.current_instance_index += 1
-        return Instance(InstanceExample(instance))
+        return Instance(self.schema, InstanceExample(instance))
 
     def get_schema(self):
         return self.schema

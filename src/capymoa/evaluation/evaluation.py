@@ -32,6 +32,7 @@ class ClassificationEvaluator:
         self,
         schema=None,
         window_size=None,
+        allow_abstaining=True,
         recall_per_class=False,
         precision_per_class=False,
         f1_precision_recall=False,
@@ -42,18 +43,16 @@ class ClassificationEvaluator:
         self.result_windows = []
         self.window_size = window_size
 
+        self.allow_abstaining = allow_abstaining
+
         self.moa_basic_evaluator = moa_evaluator
         if self.moa_basic_evaluator is None:
             self.moa_basic_evaluator = BasicClassificationPerformanceEvaluator()
 
-        if recall_per_class:
-            self.moa_basic_evaluator.recallPerClassOption.set()
-        if precision_per_class:
-            self.moa_basic_evaluator.precisionPerClassOption.set()
-        if f1_precision_recall:
-            self.moa_basic_evaluator.precisionRecallOutputOption.set()
-        if f1_per_class:
-            self.moa_basic_evaluator.f1PerClassOption.set()
+        self.moa_basic_evaluator.recallPerClassOption.set()
+        self.moa_basic_evaluator.precisionPerClassOption.set()
+        self.moa_basic_evaluator.precisionRecallOutputOption.set()
+        self.moa_basic_evaluator.f1PerClassOption.set()
         self.moa_basic_evaluator.prepareForUse()
 
         _attributeValues = ArrayList()
@@ -98,17 +97,35 @@ class ClassificationEvaluator:
         return self.instances_seen
 
     def update(self, y, y_pred):
-        # Check if the schema is valid.
-        y_index = self.schema.get_valid_index_for_label(y)
-        y_pred_index = self.schema.get_valid_index_for_label(y_pred)
+        """
+        Updates the metrics based on the true label (y) and predicted label (y_label).
 
-        # print(f"y_index = {y_index} y_pred_index = {y_pred_index}")
+        Parameters:
+        - y (class value (int, string, ...)): The true label.
+        - y_pred (class value (int, string, ...)): The predicted label.
+
+        Returns:
+        None
+
+        Notes:
+        - This method assumes the predictions passed are class values instead of any internal representation, such as class indexes. 
+        """
+
+        # The class label should be valid, if an exception is thrown here, the code should stop. 
+        y_index = self.schema.get_valid_index_for_label(y)
+        # If the prediction is invalid, it could mean the classifier is abstaining from making a prediction; 
+        #   thus, it is allowed to continue (unless parameterized differently).
+        y_pred_index = 0
+        try:
+            y_pred_index = self.schema.get_valid_index_for_label(y_pred)
+        except Exception as e:
+            if self.allow_abstaining == False:
+                raise
 
         if y_index is None:
             raise ValueError(f"Invalid ground-truth (y) value {y}")
 
-        # Notice, in MOA the class value is a index, not the actual value (e.g. not "one" but 0 assuming labels=["one", "two"])
-
+        # Notice, in MOA the class value is an index, not the actual value (e.g. not "one" but 0 assuming labels=["one", "two"])
         self._instance.setClassValue(y_index)
         example = InstanceExample(self._instance)
 
@@ -138,7 +155,7 @@ class ClassificationEvaluator:
         if self.window_size is not None and self.instances_seen % self.window_size == 0:
             performance_values = (
                 self.metrics()
-            )  # [measurement.getValue() for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()]
+            )
             self.result_windows.append(performance_values)
 
     def metrics_header(self):
