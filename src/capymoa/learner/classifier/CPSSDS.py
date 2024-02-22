@@ -240,8 +240,12 @@ class CPSSDS(BatchClassifierSSL):
         # Set seed for reproducibility
         np.random.seed(random_seed)
 
-    def train_on_batch(self, x: np.ndarray, y: np.ndarray) -> None:
-        (x_label, y_label), x_unlabeled = split_by_label_presence(x, y)
+    def train_on_batch(
+        self, features: np.ndarray, class_values: np.ndarray, class_indices: np.ndarray
+    ):
+        (x_label, y_label), x_unlabeled = split_by_label_presence(
+            features, class_indices
+        )
         (x_cal, y_cal), (x_train, y_train) = shuffle_split(
             self.calibration_split, x_label, y_label
         )
@@ -285,7 +289,10 @@ class CPSSDS(BatchClassifierSSL):
         return dict(enumerate(x))
 
     def predict(self, instance: Instance):
-        return self.classifier.predict_one(self.instance_to_dict(instance))
+        class_index = self.classifier.predict_one(self.instance_to_dict(instance))
+        if class_index is None:
+            return None
+        return self.schema.get_value_for_index(class_index)
 
     def predict_proba(self, instance):
         raise NotImplementedError()

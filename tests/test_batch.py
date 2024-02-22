@@ -1,3 +1,4 @@
+from capymoa.datasets.datasets import ElectricityTiny
 from capymoa.learner.classifier.batch import BatchClassifierSSL
 from capymoa.stream.stream import Schema, NumpyStream
 from capymoa.evaluation.evaluation import prequential_SSL_evaluation
@@ -5,18 +6,48 @@ import numpy as np
 
 
 class _DummyBatchClassifierSSL(BatchClassifierSSL):
-    def __init__(self, batch_size: int, schema: Schema = None, random_seed=1):
+    def __init__(
+        self,
+        batch_size: int,
+        schema: Schema = None,
+        random_seed=1,
+        class_value_type=int,
+    ):
         super().__init__(batch_size, schema, random_seed)
         self.instance_counter = 0
         self.batch_counter = 0
+        self.class_value_type = class_value_type
 
-    def train_on_batch(self, x, y):
+    def train_on_batch(
+        self,
+        features,
+        class_values,
+        class_indices,
+    ):
+        # Check type
+        assert isinstance(features, np.ndarray)
+        assert isinstance(class_values, np.ndarray)
+        assert isinstance(class_indices, np.ndarray)
+
+        # Check shape
+        assert features.shape == (self.batch_size, self.schema.get_num_attributes())
+        assert class_indices.shape == (self.batch_size,)
+        assert class_values.shape == (self.batch_size,)
+
+        # Features must be a numpy array of floats
+        assert features.dtype == np.float_
+        assert class_indices.dtype == np.int_
+
+        # Ensure the mapping between class values and class indices is respected
+        for class_value, class_index in zip(class_values, class_indices):
+            if class_index == -1:
+                assert class_value is None
+            else:
+                assert isinstance(class_value, self.class_value_type)
+                assert class_value == self.schema.get_value_for_index(class_index)
+                assert class_index == self.schema.get_valid_index_for_label(class_value)
+
         self.batch_counter += 1
-        assert x.shape == (self.batch_size, self.schema.get_num_attributes())
-        assert y.shape == (self.batch_size,)
-
-        assert (self.instance_counter + 1) % self.batch_size == 0
-        assert x[-1, 0] == self.instance_counter
 
     def __str__(self):
         return "EmptyBatchClassifierSSL"
@@ -49,10 +80,27 @@ def test_batch_basic():
     assert x.shape == (n, feature_count)
 
     stream = NumpyStream(x, y)
-    learner = _DummyBatchClassifierSSL(batch_size, stream.schema)
+    learner = _DummyBatchClassifierSSL(batch_size, stream.schema, class_value_type=str)
     prequential_SSL_evaluation(
         stream=stream, learner=learner, label_probability=0.01, window_size=100
     )
 
     assert learner.instance_counter == n
     assert learner.batch_counter == n // batch_size
+
+
+def test_batch_real():
+    stream = ElectricityTiny()
+    assert stream.schema.get_label_values() == ["0", "1"]
+    assert stream.schema.get_num_attributes() == 6
+
+    learner = _DummyBatchClassifierSSL(128, stream.schema, class_value_type=str)
+    prequential_SSL_evaluation(
+        stream=stream,
+        learner=learner,
+        label_probability=0.01,
+        window_size=100,
+        optimise=False,
+    )
+
+    assert learner.instance_counter == 2000
