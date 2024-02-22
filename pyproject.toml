@@ -33,6 +33,12 @@ dev=[
     "pytest-xdist"
 ]
 
+doc=[
+    "sphinx",
+    "sphinx-rtd-theme",
+    "nbsphinx"
+]
+
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
 pythonpath = [

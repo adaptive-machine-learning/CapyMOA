@@ -1,0 +1,34 @@
+name: "Build Documentation"
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - '**.py'
+      - '.github/workflows/unit_test.yml'
+      - 'pyproject.toml'
+jobs:
+  documentation:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
+        cache: 'pip' # caching pip dependencies
+    - name: Install Dependencies
+      run: |
+        sudo apt-get install -y pandoc
+        python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        python -m pip install ".[dev,doc]"
+    - name: Build Documentation
+      run: |
+        cd docs
+        make html
+    - name: Upload Documentation
+      uses: actions/upload-artifact@v4
+      with:
+        name: docs
+        path: docs/_build/html

@@ -76,10 +76,12 @@ Python wrapper for MOA to allow efficient use of existing algorithms with a more
 # Tutorial notebooks
 These notebooks show how to do things. Data is available in the ```/data/``` directory (some of which will need to be downloaded, see instrucitons there). 
 
-* **DEMO.ipynb**: Contains simple examples on how to execute classification and regression, using MOA objets to configure synthetic generators or classifiers/regressors. 
-* **Evaluation_and_Data_Reading.ipynb**: Many examples showing how to perform different evaluations for classification and regression using different methods (i.e. a loop or buildin functions). 
-* **Learners_API_Examples.ipynb**: Similar to the DEMO, but shows more capabilities of the evaluator and learner objects.
-* **Using_sklearn_pytorch.ipynb**: Shows how one can use the API to run sklearn algorithms (those that implement ```partial_fit```) and PyTorch models. 
+* [`00_getting_started.ipynb`](notebooks/00_getting_started.ipynb): Contains simple examples on how to execute classification and regression, using MOA objets to configure synthetic generators or classifiers/regressors. 
+* [`01_evaluation_and_data_reading.ipynb`](notebooks/01_evaluation_and_data_reading.ipynb): Many examples showing how to perform different evaluations for classification and regression using different methods (i.e. a loop or buildin functions). 
+* [`02_learners_api_examples.ipynb`](notebooks/02_learners_api_examples.ipynb): Shows more capabilities of the evaluator and learner objects.
+* [`03_using_sklearn_pytorch.ipynb`](notebooks/03_using_sklearn_pytorch.ipynb): Shows how one can use the API to run sklearn algorithms (those that implement ```partial_fit```) and PyTorch models.
+* [`04_drift_streams.ipynb`](notebooks/04_drift_streams.ipynb): Shows how to setup
+   simulated concept drifts in data streams.
 
 # Test notebooks
 These show how some parts of the library were developed and provide comparisons of different options on how to do things. 
