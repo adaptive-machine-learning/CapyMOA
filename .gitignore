@@ -172,5 +172,5 @@ src/capymoa/jar/moa.jar
 condaenv.*.requirements.txt
 data
 notebooks/*.png
-
+docs/notebooks
 *tfevents*
