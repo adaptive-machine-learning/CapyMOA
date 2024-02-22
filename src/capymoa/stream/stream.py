@@ -118,7 +118,7 @@ class Instance:
     # 	if MOAInstanceExample is None:
     # 	self.MOAInstanceExample = MOAInstanceExample
 
-    def __init__(self, schema, MOAInstanceExample=None):
+    def __init__(self, schema: Schema, MOAInstanceExample=None):
         self.schema = schema
         if self.schema is None:
             raise ValueError('Schema must be initialised')
@@ -133,7 +133,10 @@ class Instance:
         # return np.array(self.MOAInstanceExample.getData().classValue(), ndmin=0)
         if self.schema.is_regression():
             return self.MOAInstanceExample.getData().classValue()
-        return self.schema.get_value_for_index(int(self.MOAInstanceExample.getData().classValue()))
+        return self.schema.get_value_for_index(self.y_index())
+
+    def y_index(self) -> int:
+        return int(self.MOAInstanceExample.getData().classValue())
 
     # Assume data is numeric.
     def x(self):

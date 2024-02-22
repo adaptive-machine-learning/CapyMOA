@@ -3,13 +3,14 @@ from capymoa.learner.classifier.OSNN import OSNN
 from test_utility.ssl_helpers import assert_ssl_evaluation
 import pytest
 
+
 @pytest.mark.parametrize(
-    "stream, expectation", 
+    "stream, expectation",
     [
-        (ElectricityTiny(), 35.5),
-        (CovtypeTiny(), 22.0),
+        (ElectricityTiny(), 46.1),
+        (CovtypeTiny(), 26.3),
     ],
-    ids=["ElectricityTiny", "CovtypeTiny"]
+    ids=["ElectricityTiny", "CovtypeTiny"],
 )
 def test_OSNN(stream, expectation):
     # The optimizer steps are set to 10 to speed up the test

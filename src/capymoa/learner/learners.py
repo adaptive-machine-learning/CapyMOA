@@ -1,6 +1,7 @@
 from jpype import _jpype
 from abc import ABC, abstractmethod, ABCMeta
-from capymoa.stream.stream import Instance
+from capymoa.stream.stream import Instance, Schema
+
 # MOA/Java imports
 from moa.core import Utils
 from moa.classifiers import Classifier as MOA_Classifier_Interface
@@ -79,11 +80,11 @@ class Classifier(ABC):
     - random_seed: The random seed for reproducibility. Defaults to 1.
     """
 
-    def __init__(self, schema=None, random_seed=1):
+    def __init__(self, schema: Schema, random_seed=1):
         self.random_seed = random_seed
         self.schema = schema
         if self.schema is None:
-            raise ValueError('Schema must be initialised')
+            raise ValueError("Schema must be initialised")
 
     @abstractmethod
     def __str__(self):
@@ -152,8 +153,8 @@ class MOAClassifier(Classifier):
         return self.schema.get_value_for_index(
             Utils.maxIndex(
                 self.moa_learner.getVotesForInstance(instance.get_MOA_InstanceExample())
-                )
             )
+        )
 
     def predict_proba(self, instance: Instance):
         return self.moa_learner.getVotesForInstance(instance.get_MOA_InstanceExample())
