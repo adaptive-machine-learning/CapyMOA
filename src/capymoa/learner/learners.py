@@ -190,7 +190,7 @@ class SKClassifier(Classifier):
 
     def train(self, instance):
         self.sklearner.partial_fit(
-            [instance.x()], [instance.y()], classes=self.schema.get_label_indexes()
+            [instance.x()], [instance.y_index()], classes=self.schema.get_label_indexes()
         )
         self.trained_at_least_once = True  # deve (e tem que) ter um jeito melhor
 
@@ -198,7 +198,7 @@ class SKClassifier(Classifier):
         if (
             self.trained_at_least_once
         ):  # scikit-learn does not allows invoking predict in a model that was not fit before
-            return self.sklearner.predict([instance.x()])
+            return self.sklearner.predict([instance.x()])[0]
         else:
             return None
 

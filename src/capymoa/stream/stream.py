@@ -1,4 +1,5 @@
 # Python imports
+from typing import Optional
 import numpy as np
 import re
 
@@ -75,11 +76,15 @@ class Schema:
     def get_num_classes(self):
         return len(self.get_label_indexes())
 
-    def get_value_for_index(self, y_index):
-        if self.label_values is None:
+    def get_value_for_index(self, y_index: Optional[int]):
+        if y_index == -1 or y_index is None:
             return None
-        else:
-            return self.label_values[y_index]
+        if self.label_values is None:
+            raise RuntimeError(
+                "Schema was not properly initialised, please define a proper Schema."
+            )
+
+        return self.label_values[y_index]
 
     def get_valid_index_for_label(self, y):
         # If it is a regression problem, there is no notion of index, just return the value

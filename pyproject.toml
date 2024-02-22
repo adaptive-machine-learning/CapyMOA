@@ -21,14 +21,18 @@ dependencies = [
     "pandas",
     "pyarrow",
     "river",
+    "matplotlib",
 ]
 
 [project.optional-dependencies]
+# Development dependencies
 dev=[
     "pytest",
     "jupyter",
     "torch",
     "torchvision",
+    "nbmake",
+    "pytest-xdist"
 ]
 
 [tool.pytest.ini_options]

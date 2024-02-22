@@ -30,14 +30,15 @@ class DownloadableDataset(ABC, Stream):
         schema: Optional[str] = None,
     ):
         assert self.filename is not None, "Filename must be set in subclass"
-        stream = self._resolve_dataset(
+        self._path = self._resolve_dataset(
             auto_download,
             Path(directory).resolve(),
         )
-        moa_stream = self.to_stream(stream)
+        moa_stream = self.to_stream(self._path)
         super().__init__(schema=schema, CLI=CLI, moa_stream=moa_stream)
 
     def _resolve_dataset(self, auto_download: bool, directory: Path):
+        directory.mkdir(parents=True, exist_ok=True)
         stream = directory / self.filename
 
         if not stream.exists():
@@ -46,8 +47,6 @@ class DownloadableDataset(ABC, Stream):
                     working_directory = Path(working_directory)
                     stream_archive = self.download(working_directory)
                     tmp_stream = self.extract(stream_archive)
-                    # Note shutil.move is needed to move the file across 
-                    # physical devices and filesystems
                     stream = shutil.move(tmp_stream, stream)
             else:
                 raise FileNotFoundError(
@@ -55,6 +54,9 @@ class DownloadableDataset(ABC, Stream):
                 )
 
         return stream
+    
+    def get_path(self):
+        return self._path
 
     @abstractmethod
     def download(self, working_directory: Path) -> Path:
