@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 name = "capymoa"
 version = "0.0.1"
 description = "Python wrapper for MOA to allow efficient use of existing algorithms with a more modern API."
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 # Defines the pip packages that are required by this package. These should be
 # as permissive as possible, since capymoa should collaborate with other
 # packages.
@@ -29,8 +29,6 @@ dependencies = [
 dev=[
     "pytest",
     "jupyter",
-    "torch",
-    "torchvision",
     "nbmake",
     "pytest-xdist"
 ]
