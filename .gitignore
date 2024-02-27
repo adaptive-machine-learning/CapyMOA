@@ -174,3 +174,6 @@ data
 notebooks/*.png
 docs/notebooks
 *tfevents*
+
+src/moa-stubs
+src/com-stubs
