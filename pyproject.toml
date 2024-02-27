@@ -1,6 +1,7 @@
 [build-system]
 # wget is used to download the MOA jar file
-requires = ["hatchling", "hatch-build-scripts", "wget"]
+# stubgenj is used to generate the Python stub files for the MOA classes
+requires = ["hatchling", "hatch-build-scripts", "wget", "stubgenj"]
 # Build system: https://hatch.pypa.io
 # The main reason I chose hatch is its support for plugins allowing us to
 # download the MOA jar file before the build starts.
@@ -22,6 +23,7 @@ dependencies = [
     "pyarrow",
     "river",
     "matplotlib",
+    "scikit-learn"
 ]
 
 [project.optional-dependencies]
@@ -49,18 +51,26 @@ pythonpath = [
 [tool.hatch]
 [tool.hatch.build.targets.wheel]
 # Defines the directories included in the wheel package
-packages = ["src/capymoa"]
+packages = ["src/capymoa", "src/moa-stubs", "src/com-stubs"]
 artifacts = ["src/capymoa/jar/moa.jar"]
+
+# src/moa-stubs and src/com-stubs are included in the git ignore file
+# that hatch inherits. To include them anyway we need to set ignore-vcs to true.
+ignore-vcs = true
 
 [tool.hatch.build.targets.sdist]
 # Defines the directories included in the source distribution package (sdist).
-packages = ["src/capymoa"]
+packages = ["src/capymoa", "src/moa-stubs", "src/com-stubs"]
 artifacts = ["src/capymoa/jar/moa.jar"]
+
+# src/moa-stubs and src/com-stubs are included in the git ignore file
+# that hatch inherits. To include them anyway we need to set ignore-vcs to true.
+ignore-vcs = true
 
 [[tool.hatch.build.hooks.build-scripts.scripts]]
 # Ensures that the MOA jar file is downloaded before the build starts.
 commands = [
     "python scripts/download_moa.py",
+    "python scripts/stubgen.py"
 ]
 artifacts = []
-
