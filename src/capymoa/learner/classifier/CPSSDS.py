@@ -1,15 +1,14 @@
+import typing as t
 from typing import Dict, Literal
 
 import numpy as np
-
-from river.tree import HoeffdingTreeClassifier
-from river.naive_bayes import GaussianNB
 from river.base import Classifier
-
-import typing as t
+from river.naive_bayes import GaussianNB
+from river.tree import HoeffdingTreeClassifier
 
 from capymoa.learner.classifier.batch import BatchClassifierSSL
-from capymoa.stream import Instance, Schema
+from capymoa.stream import Schema
+from capymoa.stream.instance import Instance
 
 
 def shuffle_split(
@@ -241,10 +240,10 @@ class CPSSDS(BatchClassifierSSL):
         np.random.seed(random_seed)
 
     def train_on_batch(
-        self, features: np.ndarray, class_values: np.ndarray, class_indices: np.ndarray
+        self, x_batch, y_indices
     ):
         (x_label, y_label), x_unlabeled = split_by_label_presence(
-            features, class_indices
+            x_batch, y_indices
         )
         (x_cal, y_cal), (x_train, y_train) = shuffle_split(
             self.calibration_split, x_label, y_label
@@ -283,7 +282,7 @@ class CPSSDS(BatchClassifierSSL):
 
     def instance_to_dict(self, instance: Instance) -> Dict[str, float]:
         """Convert an instance to a dictionary with the feature names as keys."""
-        return dict(enumerate(instance.x()))
+        return dict(enumerate(instance.x))
 
     def skmf_to_river(self, x):
         return dict(enumerate(x))

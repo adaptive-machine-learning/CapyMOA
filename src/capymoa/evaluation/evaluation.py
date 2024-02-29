@@ -416,9 +416,15 @@ def test_then_train_evaluation(
         max_instances is None or instancesProcessed <= max_instances
     ):
         instance = stream.next_instance()
-
         prediction = learner.predict(instance)
-        evaluator.update(instance.y(), prediction)
+
+        # TODO: The multiple if statements based on the type of stream is ugly.
+        if stream.get_schema().is_classification():
+            y = instance.y_label
+        else:
+            y = instance.y_value
+
+        evaluator.update(y, prediction)
         learner.train(instance)
 
         instancesProcessed += 1
@@ -519,9 +525,16 @@ def prequential_evaluation(
 
         prediction = learner.predict(instance)
 
-        evaluator_cumulative.update(instance.y(), prediction)
+        # TODO: The multiple if statements based on the type of stream is not
+        #  ideal.
+        if stream.get_schema().is_classification():
+            y = instance.y_label
+        else:
+            y = instance.y_value
+
+        evaluator_cumulative.update(y, prediction)
         if window_size is not None:
-            evaluator_windowed.update(instance.y(), prediction)
+            evaluator_windowed.update(y, prediction)
         learner.train(instance)
 
         instancesProcessed += 1
@@ -657,9 +670,9 @@ def prequential_SSL_evaluation(
 
         prediction = learner.predict(instance)
 
-        evaluator_cumulative.update(instance.y(), prediction)
+        evaluator_cumulative.update(instance.y_label, prediction)
         if evaluator_windowed is not None:
-            evaluator_windowed.update(instance.y(), prediction)
+            evaluator_windowed.update(instance.y_label, prediction)
 
         if rand.random(dtype=np.float64) >= label_probability:
             # if 0.00 >= label_probability:
@@ -1054,9 +1067,16 @@ def prequential_evaluation_multiple_learners(
             # Predict for the current learner
             prediction = learner.predict(instance)
 
-            results[learner_name]["cumulative"].update(instance.y(), prediction)
+            # TODO: The multiple if statements based on the type of stream is ugly.
+            if stream.get_schema().is_classification():
+                y = instance.y_label
+            else:
+                y = instance.y_value
+
+
+            results[learner_name]["cumulative"].update(y, prediction)
             if window_size is not None:
-                results[learner_name]["windowed"].update(instance.y(), prediction)
+                results[learner_name]["windowed"].update(y, prediction)
 
             learner.train(instance)
 

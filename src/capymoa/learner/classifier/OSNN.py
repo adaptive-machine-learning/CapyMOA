@@ -244,10 +244,10 @@ class OSNN(ClassifierSSL):
         self.i = -1
 
     def train(self, instance):
-        self._train(instance.x(), instance.y_index())
+        self._train(instance.x, instance.y_index)
 
     def train_on_unlabeled(self, instance):
-        self._train(instance.x(), -1)
+        self._train(instance.x, -1)
 
     def _train(self, x, y):
         data = torch.tensor(np.array([x]), dtype=torch.float32)
@@ -275,7 +275,7 @@ class OSNN(ClassifierSSL):
     def predict_proba(self, instance):
         if self.i == -1:
             return None
-        X = torch.tensor(instance.x(), dtype=torch.float32).reshape(1, -1)
+        X = torch.tensor(instance.x, dtype=torch.float32).reshape(1, -1)
         proba = self.Network.forward(X)
         proba = torch.cat((1 - proba, proba), dim=1).detach().numpy()
         return proba

@@ -1,8 +1,16 @@
-from capymoa.datasets import *
+from capymoa.datasets import (
+    Hyper100k,
+    CovtFD,
+    Covtype,
+    RBFm_100k,
+    RTG_2abrupt,
+    ElectricityTiny,
+)
 from tempfile import TemporaryDirectory
 import pytest
 import numpy as np
 import platform
+
 
 def test_electricity_tiny():
     # If windows and python3.9 skip
@@ -17,7 +25,7 @@ def test_electricity_tiny():
             stream = ElectricityTiny(directory=tmp_dir, auto_download=False)
 
         stream = ElectricityTiny(directory=tmp_dir)
-        first_instance: np.ndarray = stream.next_instance().x()
+        first_instance: np.ndarray = stream.next_instance().x
 
         assert first_instance == pytest.approx(
             np.array([0, 0.056443, 0.439155, 0.003467, 0.422915, 0.414912])
@@ -31,4 +39,4 @@ def test_electricity_tiny():
 def test_all_datasets():
     for dataset in [Hyper100k, CovtFD, Covtype, RBFm_100k, RTG_2abrupt]:
         with TemporaryDirectory() as tmp_dir:
-            stream = dataset(directory=tmp_dir)
+            dataset(directory=tmp_dir)

@@ -21,31 +21,19 @@ class _DummyBatchClassifierSSL(BatchClassifierSSL):
     def train_on_batch(
         self,
         features,
-        class_values,
         class_indices,
     ):
         # Check type
         assert isinstance(features, np.ndarray)
-        assert isinstance(class_values, np.ndarray)
         assert isinstance(class_indices, np.ndarray)
 
         # Check shape
         assert features.shape == (self.batch_size, self.schema.get_num_attributes())
         assert class_indices.shape == (self.batch_size,)
-        assert class_values.shape == (self.batch_size,)
 
         # Features must be a numpy array of floats
         assert features.dtype == np.float_
         assert class_indices.dtype == np.int_
-
-        # Ensure the mapping between class values and class indices is respected
-        for class_value, class_index in zip(class_values, class_indices):
-            if class_index == -1:
-                assert class_value is None
-            else:
-                assert isinstance(class_value, self.class_value_type)
-                assert class_value == self.schema.get_value_for_index(class_index)
-                assert class_index == self.schema.get_valid_index_for_label(class_value)
 
         self.batch_counter += 1
 

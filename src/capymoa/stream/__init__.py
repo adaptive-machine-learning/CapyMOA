@@ -1,5 +1,4 @@
 from .stream import (
-    Instance,
     Stream,
     Schema,
     ARFFStream,
@@ -8,7 +7,6 @@ from .stream import (
 )
 
 __all__ = [
-    "Instance",
     "Stream",
     "Schema",
     "stream_from_file",
