@@ -1,17 +1,27 @@
-# Python imports
-from typing import Optional
-import numpy as np
 import re
+import typing
+from typing import Optional
 
-# MOA/Java imports
-from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator, SEAGenerator as MOA_SEAGenerator
-from moa.streams import ArffFileStream, ConceptDriftStream as MOA_ConceptDriftStream
-from moa.core import FastVector, InstanceExample, Example
+import numpy as np
 from com.yahoo.labs.samoa.instances import (
-    Instances,
-    InstancesHeader,
     Attribute,
     DenseInstance,
+    Instances,
+    InstancesHeader,
+)
+from moa.core import FastVector, InstanceExample
+from moa.streams import ArffFileStream
+from moa.streams import ConceptDriftStream as MOA_ConceptDriftStream
+
+# MOA/Java imports
+from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
+from moa.streams.generators import SEAGenerator as MOA_SEAGenerator
+
+from capymoa.stream.instance import (
+    LabeledInstance,
+    RegressionInstance,
+    _JavaLabeledInstance,
+    _JavaRegressionInstance,
 )
 
 
@@ -102,7 +112,9 @@ class Schema:
             if y in self.label_values:
                 return self.label_values.index(y)
             else:
-                raise ValueError(f"y ({y}) is not present in label_values ({self.label_values})")
+                raise ValueError(
+                    f"y ({y}) is not present in label_values ({self.label_values})"
+                )
         else:
             raise TypeError(f"y ({type(y)}) must be of the same type as the elements in self.label_values ({type(self.label_values[0])})")
 
@@ -111,46 +123,6 @@ class Schema:
 
     def is_classification(self):
         return not self.regression
-
-
-class Instance:
-    """
-    Wraps a MOA InstanceExample to make it easier to manipulate these objects through python.
-    TODO: Add Schema and capabilities to create an instance from a non-MOA source.
-    """
-
-    # def __init__(self, MOAInstanceExample=None, schema=None, x=None, y=None):
-    # 	if MOAInstanceExample is None:
-    # 	self.MOAInstanceExample = MOAInstanceExample
-
-    def __init__(self, schema: Schema, MOAInstanceExample=None):
-        self.schema = schema
-        if self.schema is None:
-            raise ValueError('Schema must be initialised')
-
-        if MOAInstanceExample is not None:
-            self.MOAInstanceExample = MOAInstanceExample
-
-    def get_MOA_InstanceExample(self):
-        return self.MOAInstanceExample
-
-    def y(self):
-        # return np.array(self.MOAInstanceExample.getData().classValue(), ndmin=0)
-        if self.schema.is_regression():
-            return self.MOAInstanceExample.getData().classValue()
-        return self.schema.get_value_for_index(self.y_index())
-
-    def y_index(self) -> int:
-        return int(self.MOAInstanceExample.getData().classValue())
-
-    # Assume data is numeric.
-    def x(self):
-        moa_instance = self.get_MOA_InstanceExample().getData()
-        x_array = np.empty(moa_instance.numInputAttributes())
-        for i in range(0, moa_instance.numInputAttributes()):
-            x_array[i] = moa_instance.value(i)
-
-        return x_array
 
 
 class Stream:
@@ -184,8 +156,17 @@ class Stream:
     def has_more_instances(self):
         return self.moa_stream.hasMoreInstances()
 
-    def next_instance(self):
-        return Instance(self.schema, self.moa_stream.nextInstance())
+    def next_instance(self) -> typing.Union[LabeledInstance, RegressionInstance]:
+        java_instance = self.moa_stream.nextInstance()
+        if self.schema.regression:
+            return _JavaRegressionInstance(self.schema, java_instance)
+        elif self.schema.is_classification():
+            return _JavaLabeledInstance(self.schema, java_instance)
+        else:
+            raise ValueError(
+                "Unknown machine learning task must be a regression "
+                "or classification task"
+            )
 
     def get_schema(self):
         return self.schema
@@ -249,7 +230,17 @@ class NumpyStream(Stream):
         if self.has_more_instances():
             instance = self.arff_instances_data.instance(self.current_instance_index)
             self.current_instance_index += 1
-        return Instance(self.schema, InstanceExample(instance))
+        # TODO: We should natively support Numpy as a type of instance, rather
+        # than converting it to a Java instance.
+        if self.schema.is_classification():
+            return _JavaLabeledInstance(self.schema, InstanceExample(instance))
+        elif self.schema.regression:
+            return _JavaRegressionInstance(self.schema, InstanceExample(instance))
+        else:
+            raise ValueError(
+                "Unknown machine learning task must be a regression or "
+                "classification task"
+            )
 
     def get_schema(self):
         return self.schema
@@ -329,7 +320,6 @@ class SEA(Stream):
             self.function = function
             self.balance_classes = balance_classes
             self.noise_percentage = noise_percentage
-
 
             self.CLI = f"-i {instance_random_seed} -f {self.function} \
                {'-b' if self.balance_classes else ''} -p {self.noise_percentage}"
@@ -511,7 +501,7 @@ class AbruptDrift(Drift):
     def __str__(self):
         attributes = [
             f"position={self.position}",
-            f"random_seed={self.random_seed}" if self.random_seed != 1 else None
+            f"random_seed={self.random_seed}" if self.random_seed != 1 else None,
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"AbruptDrift({', '.join(non_default_attributes)})"
