@@ -16,7 +16,7 @@ class Instance(ABC):
     @property
     @abstractmethod
     def schema(self) -> "Schema":
-        """Returns the schema of the instance and the stream it belongs to."""   
+        """Returns the schema of the instance and the stream it belongs to."""
         ...
 
     @property
@@ -36,6 +36,26 @@ class Instance(ABC):
 
 
 class LabeledInstance(Instance, ABC):
+    """An :class:`Instance` with a class label.
+
+    .. doctest:: python
+
+       >>> from capymoa.datasets import ElectricityTiny
+       ...
+       >>> from capymoa.stream.instance import LabeledInstance
+       >>> stream = ElectricityTiny()
+       >>> instance: LabeledInstance = stream.next_instance()
+       >>> instance.y_label
+       '1'
+
+       The label and index are NOT the same. One is a human-readable string
+       and the other is a integer representation of the class label.
+       >>> instance.y_index
+       1
+       >>> instance.x
+       array([0.      , 0.056443, 0.439155, 0.003467, 0.422915, 0.414912])
+    """
+
     @property
     @abstractmethod
     def y_label(self) -> Label:
@@ -53,6 +73,22 @@ class LabeledInstance(Instance, ABC):
 
 
 class RegressionInstance(Instance, ABC):
+    """An :class:`Instance` with a continuous target value.
+
+    ..  doctest:: python
+
+        >>> from capymoa.datasets import Fried
+        ...
+        >>> from capymoa.stream.instance import RegressionInstance
+        >>> stream = Fried()
+        >>> instance: RegressionInstance = stream.next_instance()
+        >>> instance.y_value
+        17.949
+        >>> instance.x
+        array([0.487, 0.072, 0.004, 0.833, 0.765, 0.6  , 0.132, 0.886, 0.073,
+               0.342])
+    """ 
+
     @property
     @abstractmethod
     def y_value(self) -> TargetValue:

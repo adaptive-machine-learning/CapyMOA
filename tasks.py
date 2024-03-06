@@ -12,6 +12,7 @@ from invoke.context import Context
 from pathlib import Path
 from typing import List
 import wget
+from os import cpu_count
 
 
 def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
@@ -32,16 +33,23 @@ def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
 @task()
 def docs_build(ctx: Context):
     """Build the documentation using Sphinx."""
-    doc_dir = Path("docs/_build/html")
+    doc_dir = Path("docs/_build")
     doc_dir.mkdir(exist_ok=True, parents=True)
+    cpu = cpu_count() // 2
     print("Building documentation...")
-    ctx.run(f"python -m sphinx build -b html docs {doc_dir}")
+    ctx.run(f"python -m sphinx build -j {cpu} -E -b html docs {doc_dir}")
 
     print("-" * 80)
     print("Documentation is built and available at:")
     print(f"  file://{doc_dir.resolve()}/index.html")
     print("You can copy and paste this URL into your browser.")
     print("-" * 80)
+
+
+@task
+def doc_test(ctx: Context):
+    """Run the doctests."""
+    ctx.run("python -m sphinx -b doctest docs docs/_build")
 
 
 @task
@@ -53,7 +61,7 @@ def docs_clean(ctx: Context):
 @task
 def docs_dev(ctx: Context):
     """Automatically rebuild the documentation when changes are detected."""
-    ctx.run("python -m sphinx_autobuild -b html docs docs/_build/html --open-browser")
+    ctx.run("python -m sphinx_autobuild -b html docs docs/_build --open-browser")
 
 
 @task
@@ -143,7 +151,12 @@ def test_notebooks(ctx: Context, parallel: bool = True, overwrite: bool = False)
 @task
 def unittest(ctx: Context, parallel: bool = True):
     """Run the tests using pytest."""
-    cmd = ["python -m pytest", "--durations=0"]  # Show the duration of each test
+    cmd = [
+        "python -m pytest",
+        "--doctest-modules", # Run tests defined in docstrings
+        "--durations=0", # Show the duration of each test
+        "-x", # Stop after the first failure
+    ]  
     cmd += ["-n=auto"] if parallel else []
     ctx.run(" ".join(cmd))
 
@@ -159,6 +172,7 @@ docs = Collection("docs")
 docs.add_task(docs_build, "build")
 docs.add_task(docs_clean, "clean")
 docs.add_task(docs_dev, "dev")
+docs.add_task(doc_test, "test")
 
 build = Collection("build")
 build.add_task(download_moa)
