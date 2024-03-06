@@ -6,24 +6,43 @@
 Welcome to CapyMOA's documentation!
 ===================================
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Tutorials:
-
-   notebooks/00_getting_started.ipynb
-   notebooks/01_evaluation_and_data_reading.ipynb
-   notebooks/02_learners_api_examples.ipynb
-   notebooks/03_using_sklearn_pytorch.ipynb
-   notebooks/04_drift_streams.ipynb
+Installation
+------------
+Installation instructions for CapyMOA.
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Modules:
+   :maxdepth: 2
 
-   source/capymoa.datasets
-   source/capymoa.evaluation
-   source/capymoa.learner
-   source/capymoa.stream
+   installation
+
+
+Tutorials
+---------
+Tutorials to help you get started with CapyMOA.
+
+.. toctree::
+   :maxdepth: 2
+
+   notebooks/index
+
+Reference Manual
+----------------
+Reference documentation describing the interfaces fo specific classes, functions,
+and modules.
+
+.. toctree::
+   :maxdepth: 2
+
+   api
+
+Contributor Notes
+-----------------
+This part of the documentation is for developers and contributors.
+
+.. toctree::
+   :maxdepth: 2
+
+   contributing
 
 Indices and tables
 ==================

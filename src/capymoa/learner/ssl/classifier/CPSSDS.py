@@ -6,7 +6,7 @@ from river.base import Classifier
 from river.naive_bayes import GaussianNB
 from river.tree import HoeffdingTreeClassifier
 
-from capymoa.learner.classifier.batch import BatchClassifierSSL
+from capymoa.learner.ssl.classifier.batch import BatchClassifierSSL
 from capymoa.stream import Schema
 from capymoa.stream.instance import Instance
 
@@ -239,12 +239,8 @@ class CPSSDS(BatchClassifierSSL):
         # Set seed for reproducibility
         np.random.seed(random_seed)
 
-    def train_on_batch(
-        self, x_batch, y_indices
-    ):
-        (x_label, y_label), x_unlabeled = split_by_label_presence(
-            x_batch, y_indices
-        )
+    def train_on_batch(self, x_batch, y_indices):
+        (x_label, y_label), x_unlabeled = split_by_label_presence(x_batch, y_indices)
         (x_cal, y_cal), (x_train, y_train) = shuffle_split(
             self.calibration_split, x_label, y_label
         )

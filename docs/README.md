@@ -24,13 +24,12 @@ pip install --editable ".[doc,dev]"
 ```
 
 ## Building the Documentation
-To build the documentation, run the following command in `/docs`:
-
+To build the documentation, run the following command in the project root:
 ```sh
-make html
+invoke docs.build
 ```
-
-Or on Windows:
-```cmd
-make.bat html
+To build the documentation, serve it locally, and watch for changes, run the
+following command in the project root:
+```sh
+invoke docs.dev
 ```
