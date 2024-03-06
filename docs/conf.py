@@ -16,10 +16,15 @@ release = '0.0.1'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.autodoc', 'nbsphinx', 'sphinx.ext.mathjax']
+extensions = ['sphinx.ext.autodoc', 'nbsphinx', 'sphinx.ext.mathjax', 'sphinx.ext.extlinks']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+
+extlinks = {
+    'wiki': ('https://en.wikipedia.org/wiki/%s', ''),
+    'moa-api': ('https://javadoc.io/doc/nz.ac.waikato.cms.moa/moa/latest/%s', ''),
+}
 
 
 

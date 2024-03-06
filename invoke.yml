@@ -1,0 +1,4 @@
+# This file contains the configuration for the invoke command
+
+moa_path: "src/capymoa/jar/moa.jar" 
+moa_url: "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/moa.jar"

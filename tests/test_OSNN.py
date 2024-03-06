@@ -13,7 +13,7 @@ import importlib
 )
 def test_OSNN(stream, expectation):
     pytest.importorskip("torch.nn", reason="PyTorch not installed. Skipping test.")
-    OSNN = importlib.import_module("capymoa.learner.classifier.OSNN").OSNN
+    OSNN = importlib.import_module("capymoa.learner.ssl.classifier.OSNN").OSNN
     # The optimizer steps are set to 10 to speed up the test
     learner = OSNN(optim_steps=10)
     assert_ssl_evaluation(
