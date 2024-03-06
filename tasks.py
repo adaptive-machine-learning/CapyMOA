@@ -1,5 +1,5 @@
 """
-tasks.py is a Python file commonly used in the task automation framework Invoke.
+tasks.py is a Python file used in the task automation framework Invoke.
 It contains a collection of tasks, which are functions that can be executed from the command line.
 
 To execute a task, you can run the `invoke` command followed by the task name.
@@ -32,13 +32,14 @@ def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
 @task()
 def docs_build(ctx: Context):
     """Build the documentation using Sphinx."""
-    doc_dir = Path("docs/_build")
+    doc_dir = Path("docs/_build/html")
+    doc_dir.mkdir(exist_ok=True, parents=True)
     print("Building documentation...")
-    ctx.run(f"python -m sphinx build docs {doc_dir} html")
+    ctx.run(f"python -m sphinx build -b html docs {doc_dir}")
 
     print("-" * 80)
     print("Documentation is built and available at:")
-    print(f"  file://{doc_dir.resolve()}/html/index.html")
+    print(f"  file://{doc_dir.resolve()}/index.html")
     print("You can copy and paste this URL into your browser.")
     print("-" * 80)
 
@@ -113,6 +114,47 @@ def clean(ctx: Context):
     clean_moa(ctx)
 
 
+@task
+def test_notebooks(ctx: Context, parallel: bool = True, overwrite: bool = False):
+    """Run the notebooks and check for errors.
+
+    Uses nbmake https://github.com/treebeardtech/nbmake to execute the notebooks and
+    check for errors. The `--overwrite` flag can be used to overwrite the notebooks
+    with the executed output.
+    """
+
+    skip_notebooks = ctx["test_skip_notebooks"]
+    print(f"Skipping notebooks: {skip_notebooks}")
+    cmd = [
+        "python -m pytest --nbmake",
+        "-x",  # Stop after the first failure
+        "--nbmake-timeout=500",
+        "notebooks",
+        "--durations=0",  # Show the duration of each notebook
+    ]
+    cmd += ["-n=auto"] if parallel else []  # Should we run in parallel?
+    cmd += (
+        ["--overwrite"] if overwrite else []
+    )  # Overwrite the notebooks with the executed output
+    cmd += ["--deselect " + nb for nb in skip_notebooks]  # Skip some notebooks
+    ctx.run(" ".join(cmd))
+
+
+@task
+def unittest(ctx: Context, parallel: bool = True):
+    """Run the tests using pytest."""
+    cmd = ["python -m pytest", "--durations=0"]  # Show the duration of each test
+    cmd += ["-n=auto"] if parallel else []
+    ctx.run(" ".join(cmd))
+
+
+@task
+def all_tests(ctx: Context, parallel: bool = True):
+    """Run all the tests."""
+    test_notebooks(ctx, parallel)
+    unittest(ctx, parallel)
+
+
 docs = Collection("docs")
 docs.add_task(docs_build, "build")
 docs.add_task(docs_clean, "clean")
@@ -125,6 +167,12 @@ build.add_task(clean_stubs, "clean-stubs")
 build.add_task(clean_moa, "clean-moa")
 build.add_task(clean)
 
+test = Collection("test")
+test.add_task(all_tests, "all", default=True)
+test.add_task(test_notebooks, "nb")
+test.add_task(unittest, "unit")
+
 ns = Collection()
 ns.add_collection(docs)
 ns.add_collection(build)
+ns.add_collection(test)
