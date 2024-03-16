@@ -149,7 +149,7 @@ class Schema:
 
         :param feature_names: a list containing names of features. if none sets a default name
         :param values_for_nominal_features: possible values of each nominal feature.
-        e.g {i: [1,2,3], k: [Aa, BB]}. Key is integer. Values are turned into strings
+            e.g {i: [1,2,3], k: [Aa, BB]}. Key is integer. Values are turned into strings
         :param values_for_class_label: possible values for class label. Values are turned into strings
         :param dataset_name: name of the dataset. Defaults to "No_Name"
         :param target_attribute_name: name for the target/class attribute
