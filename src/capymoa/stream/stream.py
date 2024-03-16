@@ -156,15 +156,11 @@ class Schema:
         :param enforce_regression: If True assumes the problem as a regression problem
 
         :return CayMOA Schema: initialized CapyMOA Schema which contain all necessary attribute information for all features and the class label
-
         Sample code to get relevant information from two Numpy arrays: X[rows][features] and y[rows]
-
+        .. code-block:: python
         feature_names = [f"attrib_{i}" for i in range(X.shape[1])]
-
         values_for_class_label = [str(value) for value in np.unique(y)]
-
         enforce_regression = np.issubdtype(type(y[0]), np.double)
-
         """
         _, moa_header = init_moa_stream_and_create_moa_header(
             feature_names=feature_names,
