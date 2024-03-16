@@ -156,6 +156,7 @@ class Schema:
         :param enforce_regression: If True assumes the problem as a regression problem
 
         :return CayMOA Schema: initialized CapyMOA Schema which contain all necessary attribute information for all features and the class label
+
         Sample code to get relevant information from two Numpy arrays: X[rows][features] and y[rows]
         .. code-block:: python
         feature_names = [f"attrib_{i}" for i in range(X.shape[1])]
