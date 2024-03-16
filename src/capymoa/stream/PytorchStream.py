@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from capymoa.stream import Stream, Schema
-from capymoa.stream import init_moa_stream_and_create_moa_header,add_instances_to_moa_stream
+from .stream import init_moa_stream_and_create_moa_header,add_instances_to_moa_stream
 from capymoa.stream.instance import (
     LabeledInstance,
     RegressionInstance,

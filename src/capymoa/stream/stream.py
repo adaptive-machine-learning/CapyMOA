@@ -134,6 +134,49 @@ class Schema:
     def is_classification(self):
         return not self.regression
 
+    @staticmethod
+    def get_schema(
+            feature_names: list,
+            values_for_nominal_features={},
+            values_for_class_label: list = None,
+            dataset_name="No_Name",
+            target_attribute_name=None,
+            enforce_regression=False
+    ):
+        """
+        Create a CapyMOA Schema which contains all the necessary
+         attribute information.
+
+        :param feature_names: a list containing names of features. if none sets a default name
+        :param values_for_nominal_features: possible values of each nominal feature.
+        e.g {i: [1,2,3], k: [Aa, BB]}. Key is integer. Values are turned into strings
+        :param values_for_class_label: possible values for class label. Values are turned into strings
+        :param dataset_name: name of the dataset. Defaults to "No_Name"
+        :param target_attribute_name: name for the target/class attribute
+        :param enforce_regression: If True assumes the problem as a regression problem
+
+        :return CayMOA Schema: initialized CapyMOA Schema which contain all necessary attribute information for all features and the class label
+
+        Sample code to get relevant information from two Numpy arrays: X[rows][features] and y[rows]
+
+        feature_names = [f"attrib_{i}" for i in range(X.shape[1])]
+
+        values_for_class_label = [str(value) for value in np.unique(y)]
+
+        enforce_regression = np.issubdtype(type(y[0]), np.double)
+
+        """
+        _, moa_header = init_moa_stream_and_create_moa_header(
+            feature_names=feature_names,
+            values_for_nominal_features=values_for_nominal_features,
+            values_for_class_label=values_for_class_label,
+            dataset_name=dataset_name,
+            target_attribute_name=target_attribute_name,
+            enforce_regression=enforce_regression
+        )
+        return Schema(moa_header=moa_header, labels=values_for_class_label)
+
+
 
 class Stream:
     def __init__(self, schema=None, CLI=None, moa_stream=None):
@@ -556,7 +599,6 @@ def stream_from_file(
         with open(path_to_csv_or_arff, "r") as file:
             header = file.readline().strip().split(",")
 
-        # stop converting to int in here
 
         return NumpyStream(
             X=X,
