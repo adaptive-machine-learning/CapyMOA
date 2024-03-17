@@ -135,7 +135,7 @@ class Schema:
         return not self.regression
 
     @staticmethod
-    def get_schema(
+    def create_schema_from_values(
             feature_names: list,
             values_for_nominal_features={},
             values_for_class_label: list = None,
@@ -163,7 +163,7 @@ class Schema:
         values_for_class_label = [str(value) for value in np.unique(y)]
         enforce_regression = np.issubdtype(type(y[0]), np.double)
         """
-        _, moa_header = init_moa_stream_and_create_moa_header(
+        _, moa_header = _init_moa_stream_and_create_moa_header(
             feature_names=feature_names,
             values_for_nominal_features=values_for_nominal_features,
             values_for_class_label=values_for_class_label,
@@ -268,7 +268,7 @@ class NumpyStream(Stream):
     ):
         self.current_instance_index = 0
 
-        self.arff_instances_data, self.arff_instances_header, class_labels = numpy_to_ARFF(
+        self.arff_instances_data, self.arff_instances_header, class_labels = _numpy_to_ARFF(
             X,
             y,
             dataset_name,
@@ -607,7 +607,7 @@ def stream_from_file(
         )
 
 
-def numpy_to_ARFF(
+def _numpy_to_ARFF(
     X,
     y,
     dataset_name="No_Name",
@@ -625,7 +625,7 @@ def numpy_to_ARFF(
     enforce_regression = True if enforce_regression else np.issubdtype(type(y[0]), np.double)
     class_labels = None if enforce_regression else [str(value) for value in np.unique(y)]
     feature_names = [f"attrib_{i}" for i in range(X.shape[1])] if feature_names is None else feature_names
-    moa_stream, moa_header = init_moa_stream_and_create_moa_header(
+    moa_stream, moa_header = _init_moa_stream_and_create_moa_header(
         number_of_instances=number_of_instances,
         feature_names=feature_names,
         values_for_class_label=class_labels,
@@ -633,7 +633,7 @@ def numpy_to_ARFF(
         target_attribute_name=target_name,
         enforce_regression=enforce_regression
     )
-    add_instances_to_moa_stream(moa_stream, moa_header, X, y)
+    _add_instances_to_moa_stream(moa_stream, moa_header, X, y)
     return moa_stream, moa_header, class_labels
 
 
@@ -647,7 +647,7 @@ def create_nominal_attribute(attribute_name=None, possible_values: list=None):
 """
 
 """
-def init_moa_stream_and_create_moa_header(
+def _init_moa_stream_and_create_moa_header(
         number_of_instances: int=100,
         feature_names: list=None,
         values_for_nominal_features = {},
@@ -723,7 +723,7 @@ def init_moa_stream_and_create_moa_header(
     return moa_stream, moa_header
 
 
-def add_instances_to_moa_stream(moa_stream, moa_header, X, y):
+def _add_instances_to_moa_stream(moa_stream, moa_header, X, y):
     for instance_index in range(X.shape[0]):
         instance = DenseInstance(moa_header.numAttributes())
 

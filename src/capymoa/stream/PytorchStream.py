@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from capymoa.stream import Stream, Schema
-from .stream import init_moa_stream_and_create_moa_header,add_instances_to_moa_stream
+from .stream import _init_moa_stream_and_create_moa_header,_add_instances_to_moa_stream
 from capymoa.stream.instance import (
     LabeledInstance,
     RegressionInstance,
@@ -27,7 +27,7 @@ class PytorchStream(Stream):
 
         # enforce_regression = np.issubdtype(type(y[0]), np.double)
 
-        self.__moa_stream_with_only_header, self.moa_header = init_moa_stream_and_create_moa_header(
+        self.__moa_stream_with_only_header, self.moa_header = _init_moa_stream_and_create_moa_header(
             number_of_instances=X_numpy.shape[0],
             feature_names=[f"attrib_{i}" for i in range(X_numpy.shape[1])],
             values_for_nominal_features= {},
@@ -48,7 +48,7 @@ class PytorchStream(Stream):
         if self.has_more_instances():
             X, y = self.training_data[self.current_instance_index]
             tmp_moa_stream_with_only_header = JObject(SerializeUtils.copyObject(self.__moa_stream_with_only_header), Instances)
-            add_instances_to_moa_stream(tmp_moa_stream_with_only_header, self.moa_header, torch.flatten(X).view(1, -1).detach().numpy(), np.int32([y]))
+            _add_instances_to_moa_stream(tmp_moa_stream_with_only_header, self.moa_header, torch.flatten(X).view(1, -1).detach().numpy(), np.int32([y]))
             instance = tmp_moa_stream_with_only_header.instance(0)
             self.current_instance_index += 1 # increment counter for next call
 
