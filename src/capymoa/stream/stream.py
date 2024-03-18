@@ -35,6 +35,13 @@ class Schema:
     """
 
     def __init__(self, moa_header=None, labels=None, num_attributes=1):
+        """
+        :param moa_header: moa header
+        :param labels: possible values for label.
+        For moa streams this is inferred from the moa_header and values are strings.
+        For PytorchStream and NumpyStream this needs to be set, and it can be of any type.
+        :param num_attributes: number of attributes excluding the target attribute.
+        """
         self.moa_header = moa_header
         self.label_values = labels
         self.label_indexes = None
@@ -46,18 +53,21 @@ class Schema:
         if self.moa_header is not None:
             # TODO: might want to iterate over the other attributes and create a dictionary representation for the nominal attributes.
             # There should be a way to configure that manually like setting the self.labels instead of using a MOA header.
-            if self.moa_header.outputAttribute(1).isNominal():
-                # Important: a Java.String is different from a Python str, so it is important to str(*) before storing the values.
-                self.label_values = [
-                    str(g)
-                    for g in self.moa_header.outputAttribute(1).getAttributeValues()
-                ]
+            if self.moa_header.outputAttribute(1).isNominal(): # no matter what output index you pass always return the class attribute for Non Multi-Label situations
+                if self.label_values is None:
+                    # Important: a Java.String is different from a Python str, so it is important to str(*) before storing the values.
+                    self.label_values = [
+                        str(g)
+                        for g in self.moa_header.outputAttribute(1).getAttributeValues()
+                    ]
             else:
                 # This is a regression task, there are no label values.
                 self.regression = True
             # The numAttributes in MOA also account for the class label.
             self.num_attributes_including_output = self.moa_header.numAttributes()
-        # else logic: the label_values must be set, so that the first time the get_label_indexes is invoked, they are correctly created.
+        else:
+            # logic: the label_values must be set, so that the first time the get_label_indexes is invoked, they are correctly created.
+            raise RuntimeError("Need a MOA header to initialize Schema.")
 
     def __str__(self):
         return str(self.moa_header.toString())
@@ -124,6 +134,46 @@ class Schema:
     def is_classification(self):
         return not self.regression
 
+    @staticmethod
+    def create_schema_from_values(
+            feature_names: list,
+            values_for_nominal_features={},
+            values_for_class_label: list = None,
+            dataset_name="No_Name",
+            target_attribute_name=None,
+            enforce_regression=False
+    ):
+        """
+        Create a CapyMOA Schema which contains all the necessary
+         attribute information.
+
+        :param feature_names: a list containing names of features. if none sets a default name
+        :param values_for_nominal_features: possible values of each nominal feature.
+            e.g {i: [1,2,3], k: [Aa, BB]}. Key is integer. Values are turned into strings
+        :param values_for_class_label: possible values for class label. Values are turned into strings
+        :param dataset_name: name of the dataset. Defaults to "No_Name"
+        :param target_attribute_name: name for the target/class attribute
+        :param enforce_regression: If True assumes the problem as a regression problem
+
+        :return CayMOA Schema: initialized CapyMOA Schema which contain all necessary attribute information for all features and the class label
+
+        Sample code to get relevant information from two Numpy arrays: X[rows][features] and y[rows]
+        .. code-block:: python
+        feature_names = [f"attrib_{i}" for i in range(X.shape[1])]
+        values_for_class_label = [str(value) for value in np.unique(y)]
+        enforce_regression = np.issubdtype(type(y[0]), np.double)
+        """
+        _, moa_header = _init_moa_stream_and_create_moa_header(
+            feature_names=feature_names,
+            values_for_nominal_features=values_for_nominal_features,
+            values_for_class_label=values_for_class_label,
+            dataset_name=dataset_name,
+            target_attribute_name=target_attribute_name,
+            enforce_regression=enforce_regression
+        )
+        return Schema(moa_header=moa_header, labels=values_for_class_label)
+
+
 
 class Stream:
     def __init__(self, schema=None, CLI=None, moa_stream=None):
@@ -133,25 +183,35 @@ class Stream:
         self.moa_stream = moa_stream
 
         if self.moa_stream is None:
-            self.moa_stream = MOA_RandomTreeGenerator()
+            pass
+            # self.moa_stream = MOA_RandomTreeGenerator()
 
         if self.CLI is not None:
-            self.moa_stream.getOptions().setViaCLIString(CLI)
+            if self.moa_stream is not None:
+                self.moa_stream.getOptions().setViaCLIString(CLI)
+            else:
+                raise RuntimeError("Must provide a moa_stream to set via CLI.")
 
-        # Must call this method exactly here, because prepareForUse invoke the method to initialize the
-        # header file of the stream (synthetic ones)
-        self.moa_stream.prepareForUse()
+        if self.moa_stream is not None:
+            # Must call this method exactly here, because prepareForUse invoke the method to initialize the
+            # header file of the stream (synthetic ones)
+            self.moa_stream.prepareForUse()
+        else:
+            # NumpyStream or PytorchStream: does not have a CLI string on moa_stream
+            pass
 
         if self.schema is None:
-            self.schema = Schema(moa_header=self.moa_stream.getHeader())
+            if self.moa_stream is not None:
+                self.schema = Schema(moa_header=self.moa_stream.getHeader())
+            else:
+                raise RuntimeError("Must provide a moa_stream to initialize the Schema.")
 
-        self.moa_stream.prepareForUse()
 
     def __str__(self):
-        return str(self.moa_stream.getHeader().getRelationName()).replace(" ", "")
+        return str(self.schema.moa_header.getRelationName()).replace(" ", "")
 
     def CLI_help(self):
-        return str(self.moa_stream.getOptions().getHelpString())
+        return str(self.moa_stream.getOptions().getHelpString() if self.moa_stream is not None else "")
 
     def has_more_instances(self):
         return self.moa_stream.hasMoreInstances()
@@ -208,7 +268,7 @@ class NumpyStream(Stream):
     ):
         self.current_instance_index = 0
 
-        self.arff_instances_data, self.arff_instances_header = numpy_to_ARFF(
+        self.arff_instances_data, self.arff_instances_header, class_labels = _numpy_to_ARFF(
             X,
             y,
             dataset_name,
@@ -217,7 +277,7 @@ class NumpyStream(Stream):
             enforce_regression=enforce_regression,
         )
 
-        self.schema = Schema(moa_header=self.arff_instances_header)
+        self.schema = Schema(moa_header=self.arff_instances_header, labels=class_labels)
 
         super().__init__(schema=self.schema, CLI=None, moa_stream=None)
 
@@ -536,7 +596,6 @@ def stream_from_file(
         with open(path_to_csv_or_arff, "r") as file:
             header = file.readline().strip().split(",")
 
-        # stop converting to int in here
 
         return NumpyStream(
             X=X,
@@ -548,7 +607,7 @@ def stream_from_file(
         )
 
 
-def numpy_to_ARFF(
+def _numpy_to_ARFF(
     X,
     y,
     dataset_name="No_Name",
@@ -561,59 +620,121 @@ def numpy_to_ARFF(
     based on the y type. If y[0] is a double, then assumes regression (thus output will be numeric) otherwise assume
     it as a classifiation problem. If the user desires to "force" regression, then set enforce_regression=True
     """
+
+    number_of_instances = X.shape[0]
+    enforce_regression = True if enforce_regression else np.issubdtype(type(y[0]), np.double)
+    class_labels = None if enforce_regression else [str(value) for value in np.unique(y)]
+    feature_names = [f"attrib_{i}" for i in range(X.shape[1])] if feature_names is None else feature_names
+    moa_stream, moa_header = _init_moa_stream_and_create_moa_header(
+        number_of_instances=number_of_instances,
+        feature_names=feature_names,
+        values_for_class_label=class_labels,
+        dataset_name=dataset_name,
+        target_attribute_name=target_name,
+        enforce_regression=enforce_regression
+    )
+    _add_instances_to_moa_stream(moa_stream, moa_header, X, y)
+    return moa_stream, moa_header, class_labels
+
+
+def create_nominal_attribute(attribute_name=None, possible_values: list=None):
+    value_list = FastVector()
+    for value in possible_values:
+        value_list.addElement(str(value))
+    return Attribute(attribute_name, value_list)
+
+
+"""
+
+"""
+def _init_moa_stream_and_create_moa_header(
+        number_of_instances: int=100,
+        feature_names: list=None,
+        values_for_nominal_features = {},
+        values_for_class_label: list=None,
+        dataset_name="No_Name",
+        target_attribute_name=None,
+        enforce_regression=False):
+    """
+    Initialize a moa stream with number_of_instances capacity and create a mao header which contains all the necessary
+     attribute information.
+
+     Note: Each instance is not added to the moa_stream.
+
+    :param number_of_instances: number of instances in the stream
+    :param feature_names: a list containing names of features. if none sets a default name
+    :param values_for_nominal_features: possible values of each nominal feature.
+    e.g {i: [1,2,3], k: [Aa, BB]}. Key is integer. Values are turned into strings
+    :param values_for_class_label: possible values for class label. Values are turned into strings
+    :param dataset_name: name of the dataset. Defaults to "No_Name"
+    :param target_attribute_name: name for the target/class attribute
+    :param enforce_regression: If True assumes the problem as a regression problem
+
+    :return moa_stream: initialized moa stream with capacity number_of_instances.
+    :return moa_header: initialized moa header which contain all necessary attribute information for all features and the class label
+
+    Sample code to get relevant information from two Numpy arrays: X[rows][features] and y[rows]
+
+    feature_names = [f"attrib_{i}" for i in range(X.shape[1])]
+
+    number_of_instances = X.shape[0]
+
+    values_for_class_label = [str(value) for value in np.unique(y)]
+
+    enforce_regression = np.issubdtype(type(y[0]), np.double)
+
+    """
     attributes = FastVector()
     # Attribute("name") will create a numeric attribute; Attribute("name", array_of_values) will create a nominal attribute
-    for attribute_index in range(X.shape[1]):
-        if feature_names is None:
-            attributes.addElement(Attribute(f"attrib_{attribute_index}"))
-        else:
-            attributes.addElement(Attribute(feature_names[attribute_index]))
+    if feature_names is None:
+        raise ValueError("feature_names are None")
 
-    # Infer whether we have a classification (int values) or regression task.
-    # Check only if the first value is a double.
-    # enforce_regression overrides the inference.
-    if np.issubdtype(type(y[0]), np.double) or enforce_regression:
-        if target_name is None:
+    for attribute_index in range(len(feature_names)):
+        if attribute_index in values_for_nominal_features:
+            attribute = create_nominal_attribute(
+                attribute_name=feature_names[attribute_index],
+                possible_values=values_for_nominal_features.get(attribute_index)
+            )
+        else:
+            attribute = Attribute(feature_names[attribute_index])
+        attributes.addElement(attribute)
+
+    if enforce_regression:
+        if target_attribute_name is None:
             attributes.addElement(Attribute("target"))
         else:
-            attributes.addElement(Attribute(target_name))
+            attributes.addElement(Attribute(target_attribute_name))
     else:
-        if np.issubdtype(type(y[0]), np.integer):
-            classLabels = FastVector()
-            unique_class_labels = np.unique(y)  # Extract unique integer values from 'y'
-            for value in unique_class_labels:
-                classLabels.addElement(str(value))
-            if target_name is None:
-                attributes.addElement(Attribute("class", classLabels))
-            else:
-                attributes.addElement(Attribute(target_name, classLabels))
+        if values_for_class_label is None:
+            raise ValueError("values_for_class_label are None and enforce_regression is False. Looks like a regression problem?")
         else:
-            raise ValueError(
-                "y is neither a float or an int, can't infer whether it is regression or classification"
+            class_attribute = create_nominal_attribute(
+                attribute_name="class" if target_attribute_name is None else target_attribute_name,
+                possible_values=values_for_class_label
             )
+            attributes.addElement(class_attribute)
 
-    # if it is a string, then do the unique thing and map then (create the schema manually?)
+    moa_stream = Instances(dataset_name, attributes, number_of_instances)
+    # set last index for class index
+    moa_stream.setClassIndex(attributes.size() - 1)
+    # create stream header
+    moa_header = InstancesHeader(moa_stream)
+    # moa_header.setClassIndex(moa_header.classIndex())
+    return moa_stream, moa_header
 
-    capacity = X.shape[0]
-    arff_dataset = Instances(dataset_name, attributes, capacity)
 
-    streamHeader = InstancesHeader(arff_dataset)
-    streamHeader.setClassIndex(streamHeader.numAttributes() - 1)
-
+def _add_instances_to_moa_stream(moa_stream, moa_header, X, y):
     for instance_index in range(X.shape[0]):
-        instance = DenseInstance(streamHeader.numAttributes())
+        instance = DenseInstance(moa_header.numAttributes())
 
         for attribute_index in range(X.shape[1]):
-            instance.setValue(attribute_index, X[instance_index, attribute_index])
+            instance.setValue(attribute_index, X[instance_index, attribute_index]) # set value for each attribute
 
-        instance.setDataset(streamHeader)
+        instance.setDataset(moa_header)
         instance.setWeight(1.0)  # a default weight of 1.0
-        instance.setClassValue(y[instance_index])
+        instance.setClassValue(y[instance_index]) # set class value
 
-        arff_dataset.add(instance)
-
-    return arff_dataset, streamHeader
-
+        moa_stream.add(instance)
 
 # Example loading an ARFF file in python without using MOA
 # from scipy.io import arff
