@@ -45,7 +45,7 @@ get the correct version for your hardware.
 
 Install CapyMOA
 ---------------
-Within the activated environment, you can install CapyMOA with pip:
+To install CapyMOA, you can use pip:
 
 .. code-block:: sh
 
