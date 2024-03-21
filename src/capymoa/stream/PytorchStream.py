@@ -30,6 +30,7 @@ class PytorchStream(Stream):
         ...     download=True,
         ...     transform=ToTensor()
         ... )
+        ...
         >>> pytorch_stream = PytorchStream(dataset=pytorchDataset)
         >>> pytorch_stream.get_schema()
         @relation PytorchDataset
