@@ -153,9 +153,7 @@ class MOAClassifier(Classifier):
         self.moa_learner.trainOnInstance(instance.java_instance)
 
     def predict(self, instance):
-        return self.schema.get_value_for_index(
-            Utils.maxIndex(self.moa_learner.getVotesForInstance(instance.java_instance))
-        )
+        return Utils.maxIndex(self.moa_learner.getVotesForInstance(instance.java_instance))
 
     def predict_proba(self, instance):
         return self.moa_learner.getVotesForInstance(instance.java_instance)

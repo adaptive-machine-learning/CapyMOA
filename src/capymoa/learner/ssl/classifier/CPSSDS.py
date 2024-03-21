@@ -287,7 +287,7 @@ class CPSSDS(BatchClassifierSSL):
         class_index = self.classifier.predict_one(self.instance_to_dict(instance))
         if class_index is None:
             return None
-        return self.schema.get_value_for_index(class_index)
+        return class_index
 
     def predict_proba(self, instance):
         raise NotImplementedError()

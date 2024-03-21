@@ -12,11 +12,11 @@ from moa.streams import ArffFileStream
 
 from capymoa.stream.stream import Stream
 
-CAPYMOA_DATASETS_DIR = environ.get("CAPYMOA_DATASETS_DIR", "data")
-"""A default directory to store datasets in. Defaults to `./data` when the
-environment variable `CAPYMOA_DATASETS_DIR` is not set.
-"""
-
+def get_download_dir():
+    """A default directory to store datasets in. Defaults to `./data` when the
+    environment variable `CAPYMOA_DATASETS_DIR` is not set.
+    """
+    return environ.get("CAPYMOA_DATASETS_DIR", "data")
 
 class DownloadableDataset(ABC, Stream):
     filename: str = None
@@ -24,7 +24,7 @@ class DownloadableDataset(ABC, Stream):
 
     def __init__(
         self,
-        directory: str = CAPYMOA_DATASETS_DIR,
+        directory: str = get_download_dir(),
         auto_download: bool = True,
         CLI: Optional[str] = None,
         schema: Optional[str] = None,

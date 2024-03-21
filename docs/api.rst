@@ -1,4 +1,5 @@
 .. _api:
+
 API
 ===
 
@@ -27,16 +28,37 @@ Instances are the basic unit of data in CapyMOA.
     :inherited-members:
     :show-inheritance:
 
+.. autoclass:: capymoa.stream.instance.NpInstance
+    :members:
+    :inherited-members:
+    :show-inheritance:
+
+.. autoclass:: capymoa.stream.instance.NpLabeledInstance
+    :members:
+    :inherited-members:
+    :show-inheritance:
+
+.. autoclass:: capymoa.stream.instance.NpRegressionInstance
+    :members:
+    :inherited-members:
+    :show-inheritance:
+
 Stream
 ------
 A datastream is a sequence of instances arriving one at a time.
 
 
-.. automodule:: capymoa.stream
+.. automodule:: capymoa.stream.stream
     :members:
     :undoc-members:
+    :show-inheritance:
     :inherited-members:
 
+.. autoclass:: capymoa.stream.PytorchStream.PytorchStream
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :inherited-members:
 
 
 Learners

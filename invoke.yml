@@ -5,4 +5,4 @@ moa_url: "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/moa.jar"
 
 # What notebooks to skip when running them as tests.
 test_skip_notebooks:
-  - notebooks/Using_jpype_MOA_example.ipynb
+

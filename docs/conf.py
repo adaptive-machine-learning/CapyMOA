@@ -24,6 +24,8 @@ extensions = [
     "sphinx.ext.doctest",
 ]
 
+autoclass_content = 'both'
+
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 

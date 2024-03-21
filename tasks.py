@@ -132,6 +132,8 @@ def test_notebooks(ctx: Context, parallel: bool = True, overwrite: bool = False)
     """
 
     skip_notebooks = ctx["test_skip_notebooks"]
+    if skip_notebooks is None:
+        skip_notebooks = []
     print(f"Skipping notebooks: {skip_notebooks}")
     cmd = [
         "python -m pytest --nbmake",
