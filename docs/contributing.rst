@@ -37,15 +37,12 @@ are written in the form of examples in a python interactive shell.
 
 Use this type of test for simple examples and as a way to document the code.
 
-CapyMOA uses the `sphinx.ext.doctest <https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html#module-sphinx.ext.doctest>`_
-to add these tests in the documentation. Here is an example of a doctest::
-
-    """
-    ..  doctest:: python
-
-        >>> print("Hello, World!")
+    def hello_world():
+        """
+        >>> hello_world()
         Hello, World!
-    """
+        """
+        print("Hello, World!")
 
 They can be run with the following command::
 

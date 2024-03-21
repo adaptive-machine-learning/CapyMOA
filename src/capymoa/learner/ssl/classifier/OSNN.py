@@ -283,9 +283,7 @@ class OSNN(ClassifierSSL):
     def predict(self, instance):
         if self.i == -1:
             return None
-        return instance.schema.get_value_for_index(
-            np.argmax(self.predict_proba(instance))
-        )
+        return np.argmax(self.predict_proba(instance))
 
     def __str__(self):
         return f"OSNN(num_center={self.Network.num_centers}, window_size={self.window_size}, beta={self.Network.beta}, gamma={self.Network.gamma})"
