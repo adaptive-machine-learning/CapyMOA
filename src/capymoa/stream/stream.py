@@ -143,39 +143,37 @@ class Schema:
         Create a CapyMOA Schema which contains all the necessary attribute information.
 
         The following example shows how to use this method to create a classification schema:
-         .. doctest:: python
 
-            >>> from capymoa.stream import Schema
-            ...
-            >>> Schema.from_custom(
-            ...     feature_names=["attrib_1", "attrib_2"],
-            ...     dataset_name="MyClassification",
-            ...     target_attribute_name="class",
-            ...     values_for_class_label=["yes", "no"])
-            @relation MyClassification
-            <BLANKLINE>
-            @attribute attrib_1 numeric
-            @attribute attrib_2 numeric
-            @attribute class {yes,no}
-            <BLANKLINE>
-            @data
+        >>> from capymoa.stream import Schema
+        ...
+        >>> Schema.from_custom(
+        ...     feature_names=["attrib_1", "attrib_2"],
+        ...     dataset_name="MyClassification",
+        ...     target_attribute_name="class",
+        ...     values_for_class_label=["yes", "no"])
+        @relation MyClassification
+        <BLANKLINE>
+        @attribute attrib_1 numeric
+        @attribute attrib_2 numeric
+        @attribute class {yes,no}
+        <BLANKLINE>
+        @data
 
         The following example shows how to use this method to create a regression schema:
-         .. doctest:: python
 
-            >>> Schema.from_custom(
-            ...     feature_names=["attrib_1", "attrib_2"],
-            ...     values_for_nominal_features={"attrib_1": ["a", "b"]},
-            ...     dataset_name="MyRegression",
-            ...     target_attribute_name="target",
-            ...     enforce_regression=True)
-            @relation MyRegression
-            <BLANKLINE>
-            @attribute attrib_1 {a,b}
-            @attribute attrib_2 numeric
-            @attribute target numeric
-            <BLANKLINE>
-            @data
+        >>> Schema.from_custom(
+        ...     feature_names=["attrib_1", "attrib_2"],
+        ...     values_for_nominal_features={"attrib_1": ["a", "b"]},
+        ...     dataset_name="MyRegression",
+        ...     target_attribute_name="target",
+        ...     enforce_regression=True)
+        @relation MyRegression
+        <BLANKLINE>
+        @attribute attrib_1 {a,b}
+        @attribute attrib_2 numeric
+        @attribute target numeric
+        <BLANKLINE>
+        @data
 
         Sample code to get relevant information from two Numpy arrays: X[rows][features] and y[rows]
 

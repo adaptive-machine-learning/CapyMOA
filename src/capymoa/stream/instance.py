@@ -39,22 +39,20 @@ class Instance(ABC):
 class LabeledInstance(Instance, ABC):
     """An :class:`Instance` with a class label.
 
-    .. doctest:: python
+    >>> from capymoa.datasets import ElectricityTiny
+    ...
+    >>> from capymoa.stream.instance import LabeledInstance
+    >>> stream = ElectricityTiny()
+    >>> instance: LabeledInstance = stream.next_instance()
+    >>> instance.y_label
+    '1'
 
-       >>> from capymoa.datasets import ElectricityTiny
-       ...
-       >>> from capymoa.stream.instance import LabeledInstance
-       >>> stream = ElectricityTiny()
-       >>> instance: LabeledInstance = stream.next_instance()
-       >>> instance.y_label
-       '1'
-
-       The label and index are NOT the same. One is a human-readable string
-       and the other is a integer representation of the class label.
-       >>> instance.y_index
-       1
-       >>> instance.x
-       array([0.      , 0.056443, 0.439155, 0.003467, 0.422915, 0.414912])
+    The label and index are NOT the same. One is a human-readable string
+    and the other is a integer representation of the class label.
+    >>> instance.y_index
+    1
+    >>> instance.x
+    array([0.      , 0.056443, 0.439155, 0.003467, 0.422915, 0.414912])
     """
 
     @property
@@ -76,18 +74,16 @@ class LabeledInstance(Instance, ABC):
 class RegressionInstance(Instance, ABC):
     """An :class:`Instance` with a continuous target value.
 
-    ..  doctest:: python
-
-        >>> from capymoa.datasets import Fried
-        ...
-        >>> from capymoa.stream.instance import RegressionInstance
-        >>> stream = Fried()
-        >>> instance: RegressionInstance = stream.next_instance()
-        >>> instance.y_value
-        17.949
-        >>> instance.x
-        array([0.487, 0.072, 0.004, 0.833, 0.765, 0.6  , 0.132, 0.886, 0.073,
-               0.342])
+    >>> from capymoa.datasets import Fried
+    ...
+    >>> from capymoa.stream.instance import RegressionInstance
+    >>> stream = Fried()
+    >>> instance: RegressionInstance = stream.next_instance()
+    >>> instance.y_value
+    17.949
+    >>> instance.x
+    array([0.487, 0.072, 0.004, 0.833, 0.765, 0.6  , 0.132, 0.886, 0.073,
+           0.342])
     """
 
     @property
@@ -141,26 +137,24 @@ class _JavaRegressionInstance(_JavaInstance, RegressionInstance):
 class NpInstance(Instance):
     """An instance containing a numpy feature vector.
 
-    .. doctest:: python
-    
-        >>> from capymoa.stream import Schema
-        ...
-        >>> from capymoa.stream.instance import NpInstance
-        >>> import numpy as np
-        >>> schema = Schema.from_custom(
-        ...     ["f1", "f2"], 
-        ...     dataset_name="CustomDataset",
-        ...     values_for_class_label=["yes", "no"]
-        ... )
-        >>> x = np.array([0.1, 0.2])
-        >>> instance = NpInstance(schema, x)
-        >>> instance
-        NpInstance(
-            Schema(CustomDataset),
-            x=ndarray(..., 2)
-        )
-        >>> instance.java_instance.toString()
-        '0.1,0.2,?,'
+    >>> from capymoa.stream import Schema
+    ...
+    >>> from capymoa.stream.instance import NpInstance
+    >>> import numpy as np
+    >>> schema = Schema.from_custom(
+    ...     ["f1", "f2"], 
+    ...     dataset_name="CustomDataset",
+    ...     values_for_class_label=["yes", "no"]
+    ... )
+    >>> x = np.array([0.1, 0.2])
+    >>> instance = NpInstance(schema, x)
+    >>> instance
+    NpInstance(
+        Schema(CustomDataset),
+        x=ndarray(..., 2)
+    )
+    >>> instance.java_instance.toString()
+    '0.1,0.2,?,'
     """
 
     def __init__(self, schema: "Schema", x: FeatureVector):
@@ -200,30 +194,28 @@ class NpInstance(Instance):
 class NpLabeledInstance(NpInstance, LabeledInstance):
     """An instance containing a numpy/pytorch feature vector and a class label.
 
-    .. doctest:: python
-    
-        >>> from capymoa.stream import Schema
-        ...
-        >>> from capymoa.stream.instance import NpLabeledInstance
-        >>> import numpy as np
-        >>> schema = Schema.from_custom(
-        ...     ["f1", "f2"], 
-        ...     dataset_name="CustomDataset",
-        ...     values_for_class_label=["yes", "no"]
-        ... )
-        >>> x = np.array([0.1, 0.2])
-        >>> instance = NpLabeledInstance(schema, x, 0)
-        >>> instance
-        NpLabeledInstance(
-            Schema(CustomDataset),
-            x=ndarray(..., 2),
-            y_index=0,
-            y_label='yes'
-        )
-        >>> instance.y_label
-        'yes'
-        >>> instance.java_instance.toString()
-        '0.1,0.2,yes,'
+    >>> from capymoa.stream import Schema
+    ...
+    >>> from capymoa.stream.instance import NpLabeledInstance
+    >>> import numpy as np
+    >>> schema = Schema.from_custom(
+    ...     ["f1", "f2"], 
+    ...     dataset_name="CustomDataset",
+    ...     values_for_class_label=["yes", "no"]
+    ... )
+    >>> x = np.array([0.1, 0.2])
+    >>> instance = NpLabeledInstance(schema, x, 0)
+    >>> instance
+    NpLabeledInstance(
+        Schema(CustomDataset),
+        x=ndarray(..., 2),
+        y_index=0,
+        y_label='yes'
+    )
+    >>> instance.y_label
+    'yes'
+    >>> instance.java_instance.toString()
+    '0.1,0.2,yes,'
     """
 
     def __init__(self, schema: "Schema", x: FeatureVector, y_index: LabelIndex):
@@ -256,29 +248,28 @@ class NpLabeledInstance(NpInstance, LabeledInstance):
 class NpRegressionInstance(NpInstance, RegressionInstance):
     """An instance containing a numpy/pytorch feature vector and a continuous target value.
 
-    .. doctest:: python
-    
-        >>> from capymoa.stream import Schema
-        ...
-        >>> from capymoa.stream.instance import NpLabeledInstance
-        >>> import numpy as np
-        >>> schema = Schema.from_custom(
-        ...     ["f1", "f2"], 
-        ...     dataset_name="CustomDataset",
-        ...     enforce_regression=True
-        ... )
-        >>> x = np.array([0.1, 0.2])
-        >>> instance = NpRegressionInstance(schema, x, 0.5)
-        >>> instance
-        NpRegressionInstance(
-            Schema(CustomDataset),
-            x=ndarray(..., 2),
-            y_value=0.5
-        )
-        >>> instance.y_value
-        0.5
-        >>> instance.java_instance.toString()
-        '0.1,0.2,0.5,'
+   
+    >>> from capymoa.stream import Schema
+    ...
+    >>> from capymoa.stream.instance import NpLabeledInstance
+    >>> import numpy as np
+    >>> schema = Schema.from_custom(
+    ...     ["f1", "f2"], 
+    ...     dataset_name="CustomDataset",
+    ...     enforce_regression=True
+    ... )
+    >>> x = np.array([0.1, 0.2])
+    >>> instance = NpRegressionInstance(schema, x, 0.5)
+    >>> instance
+    NpRegressionInstance(
+        Schema(CustomDataset),
+        x=ndarray(..., 2),
+        y_value=0.5
+    )
+    >>> instance.y_value
+    0.5
+    >>> instance.java_instance.toString()
+    '0.1,0.2,0.5,'
     """
     def __init__(self, schema: "Schema", x: FeatureVector, y_value: TargetValue):
         super().__init__(schema, x)

@@ -16,39 +16,37 @@ class PytorchStream(Stream):
     PytorchStream is a Stream that reads instances from a PyTorch dataset and
     provides them as instances for CapyMOA.
 
-    ..  doctest:: python
-
-        >>> from capymoa.evaluation import ClassificationEvaluator
-        ...
-        >>> from capymoa.datasets import get_download_dir
-        >>> from capymoa.stream import PytorchStream
-        >>> from torchvision import datasets
-        >>> from torchvision.transforms import ToTensor
-        >>> pytorchDataset = datasets.FashionMNIST(
-        ...     root=get_download_dir(),
-        ...     train=True,
-        ...     download=True,
-        ...     transform=ToTensor()
-        ... )
-        ...
-        >>> pytorch_stream = PytorchStream(dataset=pytorchDataset)
-        >>> pytorch_stream.get_schema()
-        @relation PytorchDataset
-        <BLANKLINE>
-        @attribute attrib_0 numeric
-        @attribute attrib_1 numeric
-        ...
-        @attribute attrib_783 numeric
-        @attribute class {T-shirt/top,Trouser,Pullover,Dress,Coat,Sandal,Shirt,Sneaker,Bag,'Ankle boot'}
-        <BLANKLINE>
-        @data
-        >>> pytorch_stream.next_instance()
-        NpLabeledInstance(
-            Schema(PytorchDataset),
-            x=Tensor(..., 784),
-            y_index=9,
-            y_label='Ankle boot'
-        )
+    >>> from capymoa.evaluation import ClassificationEvaluator
+    ...
+    >>> from capymoa.datasets import get_download_dir
+    >>> from capymoa.stream import PytorchStream
+    >>> from torchvision import datasets
+    >>> from torchvision.transforms import ToTensor
+    >>> print("Using PyTorch Dataset"); pytorchDataset = datasets.FashionMNIST( #doctest:+ELLIPSIS
+    ...     root=get_download_dir(),
+    ...     train=True,
+    ...     download=True,
+    ...     transform=ToTensor()
+    ... )
+    Using PyTorch Dataset...
+    >>> pytorch_stream = PytorchStream(dataset=pytorchDataset)
+    >>> pytorch_stream.get_schema()
+    @relation PytorchDataset
+    <BLANKLINE>
+    @attribute attrib_0 numeric
+    @attribute attrib_1 numeric
+    ...
+    @attribute attrib_783 numeric
+    @attribute class {T-shirt/top,Trouser,Pullover,Dress,Coat,Sandal,Shirt,Sneaker,Bag,'Ankle boot'}
+    <BLANKLINE>
+    @data
+    >>> pytorch_stream.next_instance()
+    NpLabeledInstance(
+        Schema(PytorchDataset),
+        x=Tensor(..., 784),
+        y_index=9,
+        y_label='Ankle boot'
+    )
 
     """
 

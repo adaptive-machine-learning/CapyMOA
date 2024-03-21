@@ -47,12 +47,6 @@ def docs_build(ctx: Context):
 
 
 @task
-def doc_test(ctx: Context):
-    """Run the doctests."""
-    ctx.run("python -m sphinx -b doctest docs docs/_build")
-
-
-@task
 def docs_clean(ctx: Context):
     """Remove the built documentation."""
     ctx.run("rm -r docs/_build")
@@ -174,7 +168,6 @@ docs = Collection("docs")
 docs.add_task(docs_build, "build")
 docs.add_task(docs_clean, "clean")
 docs.add_task(docs_dev, "dev")
-docs.add_task(doc_test, "test")
 
 build = Collection("build")
 build.add_task(download_moa)
