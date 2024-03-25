@@ -34,11 +34,7 @@ class HoeffdingTree(MOAClassifier):
         Number of instances a leaf should observe before allowing Naive Bayes.
     numeric_attribute_observer
         The Splitter or Attribute Observer (AO) used to monitor the class statistics of numeric
-        features and perform splits. Splitters are available in the `tree.splitter` module.
-        Different splitters are available for classification and regression tasks. Classification
-        and regression splitters can be distinguished by their property `is_target_class`.
-        This is an advanced option. Special care must be taken when choosing different splitters.
-        By default, `tree.splitter.GaussianSplitter` is used if `splitter` is `None`.
+        features and perform splits.
     binary_split
         If True, only allow binary splits.
     max_byte_size
