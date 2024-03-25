@@ -2,4 +2,4 @@ from .classifiers import AdaptiveRandomForest, OnlineBagging, AdaptiveRandomFore
 from .efdt import EFDT
 from .hoeffding_tree import HoeffdingTree
 
-__all__ = ["AdaptiveRandomForest", "OnlineBagging", "AdaptiveRandomForest", "CapyEFDT", "HoeffdingTree"]
+__all__ = ["AdaptiveRandomForest", "OnlineBagging", "AdaptiveRandomForest", "EFDT", "HoeffdingTree"]
