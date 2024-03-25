@@ -6,6 +6,10 @@ from .datasets import (
     Hyper100k,
     Sensor,
     ElectricityTiny,
+    Fried
+)
+from .downloader import (
+    get_download_dir
 )
 
 __all__ = [
@@ -16,4 +20,6 @@ __all__ = [
     "RTG_2abrupt",
     "Sensor",
     "ElectricityTiny",
+    "Fried",
+    "get_download_dir"
 ]

@@ -56,3 +56,10 @@ class CovtypeTiny(DownloadARFFGzip):
 
     filename = "covtype_n1000.arff"
     remote_url = ROOT_URL
+
+
+class Fried(DownloadARFFGzip):
+    # TODO: Add docstring describing the dataset and link to the original source
+
+    filename = "fried.arff"
+    remote_url = ROOT_URL

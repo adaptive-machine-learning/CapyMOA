@@ -1,148 +1,211 @@
-# Python imports
-import numpy as np
 import re
+import typing
+from typing import Dict, Optional, Sequence
 
-# MOA/Java imports
-from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator, SEAGenerator as MOA_SEAGenerator
-from moa.streams import ArffFileStream, ConceptDriftStream as MOA_ConceptDriftStream
-from moa.core import FastVector, InstanceExample, Example
+import numpy as np
 from com.yahoo.labs.samoa.instances import (
-    Instances,
-    InstancesHeader,
     Attribute,
     DenseInstance,
+    Instances,
+    InstancesHeader,
+)
+from moa.core import FastVector, InstanceExample
+from moa.streams import ArffFileStream
+from moa.streams import ConceptDriftStream as MOA_ConceptDriftStream
+
+# MOA/Java imports
+from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
+from moa.streams.generators import SEAGenerator as MOA_SEAGenerator
+
+from capymoa.stream.instance import (
+    LabeledInstance,
+    RegressionInstance,
+    _JavaLabeledInstance,
+    _JavaRegressionInstance,
 )
 
 
-# TODO: STATIC METHOD TO CREATE A SCHEMA USING A MOA_HEADER. (e.g. withMOAHeader...)
 class Schema:
     """
-    This class is a wrapper for the MOA header, but it can be set up in Python directly by specifying the labels attribute.
-    If moa_header is specified, then it overrides everything else.
-    In the future, we might want to have a way to specify the values for nominal attributes as well, so far just the labels.
-    The number of attributes is instrumental for Evaluators that need it, such as adjusted coefficient of determination.
+    The schema of a stream, defines what instances look like. It contains the
+    attribute names and the possible values nominal attributes. The schema is
+    crucial for a learner to know how to interpret instances correctly.
+
+    When working with datasets built into CapyMOA (see :mod:`capymoa.datasets`)
+    and ARFF files, the schema is automatically created. However, in some cases
+    you might want to create a schema manually. This can be done using the
+    :meth:`from_custom` method.
     """
 
-    def __init__(self, moa_header=None, labels=None, num_attributes=1):
-        self.moa_header = moa_header
-        self.label_values = labels
-        self.label_indexes = None
+    def __init__(self, moa_header: InstancesHeader):
+        """Construct a schema by wrapping a Java MOA `InstancesHeader`. To
+        create a schema without one use the :meth:`from_custom` method.
+
+        :param moa_header: A Java MOA header object.
+        """
+        assert (
+            moa_header.numOutputAttributes() == 1
+        ), "Only one output attribute is supported."
+
+        self._moa_header = moa_header
         # Internally, we store the number of attributes + the class/target. This is because MOA methods expect the numAttributes
         # to also account for the class/target.
-        self.num_attributes_including_output = num_attributes + 1
+        self._regression = not self._moa_header.outputAttribute(1).isNominal()
+        self._label_values: Optional[Sequence[str]] = None
+        self._label_index_map: Optional[Dict[str, int]] = None
 
-        self.regression = False
-        if self.moa_header is not None:
-            # TODO: might want to iterate over the other attributes and create a dictionary representation for the nominal attributes.
-            # There should be a way to configure that manually like setting the self.labels instead of using a MOA header.
-            if self.moa_header.outputAttribute(1).isNominal():
-                # Important: a Java.String is different from a Python str, so it is important to str(*) before storing the values.
-                self.label_values = [
-                    str(g)
-                    for g in self.moa_header.outputAttribute(1).getAttributeValues()
-                ]
-            else:
-                # This is a regression task, there are no label values.
-                self.regression = True
-            # The numAttributes in MOA also account for the class label.
-            self.num_attributes_including_output = self.moa_header.numAttributes()
-        # else logic: the label_values must be set, so that the first time the get_label_indexes is invoked, they are correctly created.
+        if not self._regression:
+            values = self._moa_header.outputAttribute(1).getAttributeValues()
+            self._label_values = list(map(str, values))
+            self._label_index_map = {
+                label: i for i, label in enumerate(self._label_values)
+            }
 
-    def __str__(self):
-        return str(self.moa_header.toString())
+        # TODO: might want to iterate over the other attributes and create a dictionary representation for the nominal attributes.
+        # There should be a way to configure that manually like setting the self.labels instead of using a MOA header.
 
-    def get_label_values(self):
-        if self.label_values is None:
+    def _assert_classification(self):
+        assert (
+            self.is_classification()
+        ), "Should only be called for classification problems."
+
+    def get_label_values(self) -> Sequence[str]:
+        """Return the possible values for the class label. Raises an error if
+        the problem is a regression problem."""
+        self._assert_classification()
+        return self._label_values
+
+    def get_label_indexes(self) -> Sequence[int]:
+        """Return the possible indexes for the class label. Raises an error if
+        the problem is a regression problem."""
+        self._assert_classification()
+        return list(range(self.get_num_classes()))
+
+    def get_value_for_index(self, y_index: Optional[int]) -> Optional[str]:
+        """Return the value for the class label index y_index. Raises an error if
+        the problem is a regression problem.
+        """
+        self._assert_classification()
+        if y_index is None:
             return None
-        else:
-            return self.label_values
+        return self._label_values[y_index]
 
-    def get_label_indexes(self):
-        if self.label_values is None:
-            return None
-        else:
-            if self.label_indexes is None:
-                self.label_indexes = list(range(len(self.label_values)))
-            return self.label_indexes
+    def get_index_for_label(self, y: str):
+        """Return the index for the class label y. Raises an error if
+        the problem is a regression problem or if y is not a valid label.
+        """
+        self._assert_classification()
+        return self._label_index_map[y]
 
-    def get_moa_header(self):
-        return self.moa_header
+    def get_moa_header(self) -> InstancesHeader:
+        """An advanced method to get the JAVA MOA header. This is needed for
+        advanced operations that are not supported by the Python wrappers (yet).
+        """
+        return self._moa_header
 
     def get_num_attributes(self):
-        # ignoring the class/target value.
-        return self.num_attributes_including_output - 1
+        """Returns the number of attributes excluding the target attribute."""
+        return self._moa_header.numAttributes() - self._moa_header.numOutputAttributes()
 
-    def get_num_classes(self):
-        return len(self.get_label_indexes())
-
-    def get_value_for_index(self, y_index):
-        if self.label_values is None:
-            return None
-        else:
-            return self.label_values[y_index]
-
-    def get_valid_index_for_label(self, y):
-        # If it is a regression problem, there is no notion of index, just return the value
-        # if self.is_regression():
-        #     return y if y is not None else 0.0
-
-        if self.label_indexes is None:
-            raise ValueError(
-                "Schema was not properly initialised, please define a proper Schema."
-            )
-
-        # Check if y is of the same type (e.g. str) as the elements in self.label_values.
-        # If y is of the same type and it exists in self.label_values, return its index.
-        if isinstance(y, type(self.label_values[0])):
-            if y in self.label_values:
-                return self.label_values.index(y)
-            else:
-                raise ValueError(f"y ({y}) is not present in label_values ({self.label_values})")
-        else:
-            raise TypeError(f"y ({type(y)}) must be of the same type as the elements in self.label_values ({type(self.label_values[0])})")
+    def get_num_classes(self) -> int:
+        """Return the number of possible classes. If regression, returns 1."""
+        if self._regression:
+            return 1
+        return len(self._label_values)
 
     def is_regression(self):
-        return self.regression
+        """Returns True if the problem is a regression problem."""
+        return self._regression
 
     def is_classification(self):
-        return not self.regression
+        """Returns True if the problem is a classification problem."""
+        return not self._regression
+    
+    def is_y_index_in_range(self, y_index: int):
+        """Returns True if the y_index is in the range of the class label indexes."""
+        return 0 <= y_index < self.get_num_classes()
 
+    @property
+    def dataset_name(self):
+        """Returns the name of the dataset."""
+        return self._moa_header.getRelationName()
 
-class Instance:
-    """
-    Wraps a MOA InstanceExample to make it easier to manipulate these objects through python.
-    TODO: Add Schema and capabilities to create an instance from a non-MOA source.
-    """
+    @staticmethod
+    def from_custom(
+        feature_names: Sequence[str],
+        values_for_nominal_features: Dict[str, Sequence[str]] = {},
+        values_for_class_label: Sequence[str] = None,
+        dataset_name="No_Name",
+        target_attribute_name=None,
+        enforce_regression=False,
+    ):
+        """
+        Create a CapyMOA Schema which contains all the necessary attribute information.
 
-    # def __init__(self, MOAInstanceExample=None, schema=None, x=None, y=None):
-    # 	if MOAInstanceExample is None:
-    # 	self.MOAInstanceExample = MOAInstanceExample
+        The following example shows how to use this method to create a classification schema:
 
-    def __init__(self, schema, MOAInstanceExample=None):
-        self.schema = schema
-        if self.schema is None:
-            raise ValueError('Schema must be initialised')
+        >>> from capymoa.stream import Schema
+        ...
+        >>> Schema.from_custom(
+        ...     feature_names=["attrib_1", "attrib_2"],
+        ...     dataset_name="MyClassification",
+        ...     target_attribute_name="class",
+        ...     values_for_class_label=["yes", "no"])
+        @relation MyClassification
+        <BLANKLINE>
+        @attribute attrib_1 numeric
+        @attribute attrib_2 numeric
+        @attribute class {yes,no}
+        <BLANKLINE>
+        @data
 
-        if MOAInstanceExample is not None:
-            self.MOAInstanceExample = MOAInstanceExample
+        The following example shows how to use this method to create a regression schema:
 
-    def get_MOA_InstanceExample(self):
-        return self.MOAInstanceExample
+        >>> Schema.from_custom(
+        ...     feature_names=["attrib_1", "attrib_2"],
+        ...     values_for_nominal_features={"attrib_1": ["a", "b"]},
+        ...     dataset_name="MyRegression",
+        ...     target_attribute_name="target",
+        ...     enforce_regression=True)
+        @relation MyRegression
+        <BLANKLINE>
+        @attribute attrib_1 {a,b}
+        @attribute attrib_2 numeric
+        @attribute target numeric
+        <BLANKLINE>
+        @data
 
-    def y(self):
-        # return np.array(self.MOAInstanceExample.getData().classValue(), ndmin=0)
-        if self.schema.is_regression():
-            return self.MOAInstanceExample.getData().classValue()
-        return self.schema.get_value_for_index(int(self.MOAInstanceExample.getData().classValue()))
+        Sample code to get relevant information from two Numpy arrays: X[rows][features] and y[rows]
 
-    # Assume data is numeric.
-    def x(self):
-        moa_instance = self.get_MOA_InstanceExample().getData()
-        x_array = np.empty(moa_instance.numInputAttributes())
-        for i in range(0, moa_instance.numInputAttributes()):
-            x_array[i] = moa_instance.value(i)
+        :param feature_names: A list containing names of features. if none sets
+            a default name.
+        :param values_for_nominal_features: Possible values of each nominal feature.
+        :param values_for_class_label: Possible values for class label. Values
+            are turned into strings.
+        :param dataset_name: Name of the dataset. Default is "No_Name".
+        :param target_attribute_name: Name of the target/class attribute.
+            Default is None.
+        :param enforce_regression: If True, the schema is interpreted as a
+            regression problem. Default is False.
+        :return CayMOA Schema: Initialized CapyMOA Schema which contain all
+            necessary attribute information for all features and the class label
+        """
+        _, moa_header = _init_moa_stream_and_create_moa_header(
+            feature_names=feature_names,
+            values_for_nominal_features=values_for_nominal_features,
+            values_for_class_label=values_for_class_label,
+            dataset_name=dataset_name,
+            target_attribute_name=target_attribute_name,
+            enforce_regression=enforce_regression,
+        )
+        return Schema(moa_header=moa_header)
 
-        return x_array
+    def __repr__(self) -> str:
+        """Returns a string representation of the schema as an ARFF header."""
+        return str(self)
+
+    def __str__(self):
+        return str(self._moa_header.toString().strip())
 
 
 class Stream:
@@ -153,31 +216,55 @@ class Stream:
         self.moa_stream = moa_stream
 
         if self.moa_stream is None:
-            self.moa_stream = MOA_RandomTreeGenerator()
+            pass
+            # self.moa_stream = MOA_RandomTreeGenerator()
 
         if self.CLI is not None:
-            self.moa_stream.getOptions().setViaCLIString(CLI)
+            if self.moa_stream is not None:
+                self.moa_stream.getOptions().setViaCLIString(CLI)
+            else:
+                raise RuntimeError("Must provide a moa_stream to set via CLI.")
 
-        # Must call this method exactly here, because prepareForUse invoke the method to initialize the
-        # header file of the stream (synthetic ones)
-        self.moa_stream.prepareForUse()
+        if self.moa_stream is not None:
+            # Must call this method exactly here, because prepareForUse invoke the method to initialize the
+            # header file of the stream (synthetic ones)
+            self.moa_stream.prepareForUse()
+        else:
+            # NumpyStream or PytorchStream: does not have a CLI string on moa_stream
+            pass
 
         if self.schema is None:
-            self.schema = Schema(moa_header=self.moa_stream.getHeader())
-
-        self.moa_stream.prepareForUse()
+            if self.moa_stream is not None:
+                self.schema = Schema(moa_header=self.moa_stream.getHeader())
+            else:
+                raise RuntimeError(
+                    "Must provide a moa_stream to initialize the Schema."
+                )
 
     def __str__(self):
-        return str(self.moa_stream.getHeader().getRelationName()).replace(" ", "")
+        return str(self.schema._moa_header.getRelationName()).replace(" ", "")
 
     def CLI_help(self):
-        return str(self.moa_stream.getOptions().getHelpString())
+        return str(
+            self.moa_stream.getOptions().getHelpString()
+            if self.moa_stream is not None
+            else ""
+        )
 
     def has_more_instances(self):
         return self.moa_stream.hasMoreInstances()
 
-    def next_instance(self):
-        return Instance(self.schema, self.moa_stream.nextInstance())
+    def next_instance(self) -> typing.Union[LabeledInstance, RegressionInstance]:
+        java_instance = self.moa_stream.nextInstance()
+        if self.schema._regression:
+            return _JavaRegressionInstance(self.schema, java_instance)
+        elif self.schema.is_classification():
+            return _JavaLabeledInstance(self.schema, java_instance)
+        else:
+            raise ValueError(
+                "Unknown machine learning task must be a regression "
+                "or classification task"
+            )
 
     def get_schema(self):
         return self.schema
@@ -219,13 +306,15 @@ class NumpyStream(Stream):
     ):
         self.current_instance_index = 0
 
-        self.arff_instances_data, self.arff_instances_header = numpy_to_ARFF(
-            X,
-            y,
-            dataset_name,
-            feature_names=feature_names,
-            target_name=target_name,
-            enforce_regression=enforce_regression,
+        self.arff_instances_data, self.arff_instances_header, class_labels = (
+            _numpy_to_ARFF(
+                X,
+                y,
+                dataset_name,
+                feature_names=feature_names,
+                target_name=target_name,
+                enforce_regression=enforce_regression,
+            )
         )
 
         self.schema = Schema(moa_header=self.arff_instances_header)
@@ -241,7 +330,17 @@ class NumpyStream(Stream):
         if self.has_more_instances():
             instance = self.arff_instances_data.instance(self.current_instance_index)
             self.current_instance_index += 1
-        return Instance(self.schema, InstanceExample(instance))
+        # TODO: We should natively support Numpy as a type of instance, rather
+        # than converting it to a Java instance.
+        if self.schema.is_classification():
+            return _JavaLabeledInstance(self.schema, InstanceExample(instance))
+        elif self.schema._regression:
+            return _JavaRegressionInstance(self.schema, InstanceExample(instance))
+        else:
+            raise ValueError(
+                "Unknown machine learning task must be a regression or "
+                "classification task"
+            )
 
     def get_schema(self):
         return self.schema
@@ -256,22 +355,34 @@ class NumpyStream(Stream):
 # TODO: put this function on a 'utils' module
 def _get_moa_creation_CLI(moa_object):
     moa_class_id = str(moa_object.getClass().getName())
-    moa_class_id_parts = moa_class_id.split('.')
+    moa_class_id_parts = moa_class_id.split(".")
     moa_stream_str = f"{moa_class_id_parts[-2]}.{moa_class_id_parts[-1]}"
 
     moa_cli_creation = str(moa_object.getCLICreationString(moa_object.__class__))
-    CLI = moa_cli_creation.split(' ', 1)
+    CLI = moa_cli_creation.split(" ", 1)
 
     if len(CLI) > 1 and len(CLI[1]) > 1:
         moa_stream_str = f"({moa_stream_str} {CLI[1]})"
 
     return moa_stream_str
 
+
 class RandomTreeGenerator(Stream):
-    def __init__(self, schema=None, CLI=None, instance_random_seed=1, tree_random_seed=1, 
-    num_classes=2, num_nominals=5, num_numerics=5, num_vals_per_nominal=5, max_tree_depth=5, 
-    first_leaf_level=3, leaf_fraction=0.15):
-        
+    def __init__(
+        self,
+        schema=None,
+        CLI=None,
+        instance_random_seed=1,
+        tree_random_seed=1,
+        num_classes=2,
+        num_nominals=5,
+        num_numerics=5,
+        num_vals_per_nominal=5,
+        max_tree_depth=5,
+        first_leaf_level=3,
+        leaf_fraction=0.15,
+    ):
+
         self.moa_stream = MOA_RandomTreeGenerator()
 
         self.CLI = CLI
@@ -294,15 +405,39 @@ class RandomTreeGenerator(Stream):
 
     def __str__(self):
         attributes = [
-            f"instance_random_seed={self.instance_random_seed}" if self.instance_random_seed != 1 else None,
-            f"tree_random_seed={self.tree_random_seed}" if self.tree_random_seed != 1 else None,
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"tree_random_seed={self.tree_random_seed}"
+                if self.tree_random_seed != 1
+                else None
+            ),
             f"num_classes={self.num_classes}" if self.num_classes != 2 else None,
             f"num_nominals={self.num_nominals}" if self.num_nominals != 5 else None,
             f"num_numerics={self.num_numerics}" if self.num_numerics != 5 else None,
-            f"num_vals_per_nominal={self.num_vals_per_nominal}" if self.num_vals_per_nominal != 5 else None,
-            f"max_tree_depth={self.max_tree_depth}" if self.max_tree_depth != 5 else None,
-            f"first_leaf_level={self.first_leaf_level}" if self.first_leaf_level != 3 else None,
-            f"leaf_fraction={self.leaf_fraction}" if self.leaf_fraction != 0.15 else None,
+            (
+                f"num_vals_per_nominal={self.num_vals_per_nominal}"
+                if self.num_vals_per_nominal != 5
+                else None
+            ),
+            (
+                f"max_tree_depth={self.max_tree_depth}"
+                if self.max_tree_depth != 5
+                else None
+            ),
+            (
+                f"first_leaf_level={self.first_leaf_level}"
+                if self.first_leaf_level != 3
+                else None
+            ),
+            (
+                f"leaf_fraction={self.leaf_fraction}"
+                if self.leaf_fraction != 0.15
+                else None
+            ),
         ]
 
         non_default_attributes = [attr for attr in attributes if attr is not None]
@@ -310,9 +445,16 @@ class RandomTreeGenerator(Stream):
 
 
 class SEA(Stream):
-    def __init__(self, schema=None, CLI=None, instance_random_seed=1, function=1, 
-    balance_classes=False, noise_percentage=10):
-        
+    def __init__(
+        self,
+        schema=None,
+        CLI=None,
+        instance_random_seed=1,
+        function=1,
+        balance_classes=False,
+        noise_percentage=10,
+    ):
+
         self.moa_stream = MOA_SEAGenerator()
 
         self.CLI = CLI
@@ -322,7 +464,6 @@ class SEA(Stream):
             self.balance_classes = balance_classes
             self.noise_percentage = noise_percentage
 
-
             self.CLI = f"-i {instance_random_seed} -f {self.function} \
                {'-b' if self.balance_classes else ''} -p {self.noise_percentage}"
 
@@ -330,10 +471,18 @@ class SEA(Stream):
 
     def __str__(self):
         attributes = [
-            f"instance_random_seed={self.instance_random_seed}" if self.instance_random_seed != 1 else None,
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
             f"function={self.function}",
             f"balance_classes={self.balance_classes}" if self.balance_classes else None,
-            f"noise_percentage={self.noise_percentage}" if self.noise_percentage != 10 else None
+            (
+                f"noise_percentage={self.noise_percentage}"
+                if self.noise_percentage != 10
+                else None
+            ),
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"SEA({', '.join(non_default_attributes)})"
@@ -346,10 +495,10 @@ class SEA(Stream):
 
 class DriftStream(Stream):
     def __init__(self, schema=None, CLI=None, moa_stream=None, stream=None):
-        # If moa_stream is specified, just instantiate it directly. We can check whether it is a ConceptDriftStream object or not. 
+        # If moa_stream is specified, just instantiate it directly. We can check whether it is a ConceptDriftStream object or not.
         # if composite_stream is set, then the ConceptDriftStream object is build according to the list of Concepts and Drifts specified in composite_stream
-        # ```moa_stream``` and ```CLI``` allow the user to specify the stream using a ConceptDriftStream from MOA alongside its CLI. However, in the future we might remove that functionality to make the code simpler. 
-        
+        # ```moa_stream``` and ```CLI``` allow the user to specify the stream using a ConceptDriftStream from MOA alongside its CLI. However, in the future we might remove that functionality to make the code simpler.
+
         self.stream = stream
         self.drifts = []
         moa_concept_drift_stream = MOA_ConceptDriftStream()
@@ -358,7 +507,7 @@ class DriftStream(Stream):
             stream1 = None
             stream2 = None
             drift = None
-            
+
             CLI = ""
             for component in self.stream:
                 if isinstance(component, Stream):
@@ -367,10 +516,14 @@ class DriftStream(Stream):
                     else:
                         stream2 = component
                         if drift is None:
-                            raise ValueError("A Drift object must be specified between two Stream objects.")
+                            raise ValueError(
+                                "A Drift object must be specified between two Stream objects."
+                            )
 
-                        CLI += f' -d {_get_moa_creation_CLI(stream2.moa_stream)} -w {drift.width} -p {drift.position} -r {drift.random_seed} -a {drift.alpha}'
-                        CLI = CLI.replace("streams.", "") # got to remove package name from streams.ConceptDriftStream
+                        CLI += f" -d {_get_moa_creation_CLI(stream2.moa_stream)} -w {drift.width} -p {drift.position} -r {drift.random_seed} -a {drift.alpha}"
+                        CLI = CLI.replace(
+                            "streams.", ""
+                        )  # got to remove package name from streams.ConceptDriftStream
 
                         stream1 = Stream(moa_stream=moa_concept_drift_stream, CLI=CLI)
                         stream2 = None
@@ -379,32 +532,38 @@ class DriftStream(Stream):
                     # print(component)
                     drift = component
                     self.drifts.append(drift)
-                    CLI = f' -s {_get_moa_creation_CLI(stream1.moa_stream)} ' 
+                    CLI = f" -s {_get_moa_creation_CLI(stream1.moa_stream)} "
 
             # print(CLI)
             # CLI = command_line
             moa_stream = moa_concept_drift_stream
         else:
             # [EXPERIMENTAL]
-            # If the user is attempting to create a DriftStream using a MOA CLI, we need to derive the Drift meta-data through the CLI. 
-            # The number of ConceptDriftStream occurrences corresponds to the number of Drifts. 
+            # If the user is attempting to create a DriftStream using a MOA CLI, we need to derive the Drift meta-data through the CLI.
+            # The number of ConceptDriftStream occurrences corresponds to the number of Drifts.
             # +1 because we expect at least one drift from an implit ConceptDriftStream (i.e. not shown in the CLI because it is the moa_stream object)
-            num_drifts = CLI.count('ConceptDriftStream')+1 
+            num_drifts = CLI.count("ConceptDriftStream") + 1
 
-            # This is a best effort in obtaining the meta-data from a MOA CLI. 
-            # Notice that if the width (-w) or position (-p) are not explicitly shown in the CLI it is difficult to infer them. 
-            pattern_position = r'-p (\d+)'
-            pattern_width = r'-w (\d+)'
+            # This is a best effort in obtaining the meta-data from a MOA CLI.
+            # Notice that if the width (-w) or position (-p) are not explicitly shown in the CLI it is difficult to infer them.
+            pattern_position = r"-p (\d+)"
+            pattern_width = r"-w (\d+)"
             matches_position = re.findall(pattern_position, CLI)
             matches_width = re.findall(pattern_width, CLI)
 
             for i in range(0, num_drifts):
                 if len(matches_width) == len(matches_position):
-                    self.drifts.append(Drift(position=int(matches_position[i]), width=int(matches_width[i])))
+                    self.drifts.append(
+                        Drift(
+                            position=int(matches_position[i]),
+                            width=int(matches_width[i]),
+                        )
+                    )
                 else:
-                    # Assuming the width of the drifts (or at least one) are not show, implies that the default value (1000) was used. 
-                    self.drifts.append(Drift(position=int(matches_position[i]), width=1000))
-
+                    # Assuming the width of the drifts (or at least one) are not show, implies that the default value (1000) was used.
+                    self.drifts.append(
+                        Drift(position=int(matches_position[i]), width=1000)
+                    )
 
         super().__init__(schema=schema, CLI=CLI, moa_stream=moa_stream)
 
@@ -416,27 +575,30 @@ class DriftStream(Stream):
 
     def __str__(self):
         if self.stream is not None:
-            return ','.join(str(component) for component in self.stream)
+            return ",".join(str(component) for component in self.stream)
         # If the stream was defined using the backward compatility (MOA object + CLI) then there are no Stream objects in stream.
-        # Best we can do is return the CLI directly. 
-        return f'ConceptDriftStream {self.CLI}'
+        # Best we can do is return the CLI directly.
+        return f"ConceptDriftStream {self.CLI}"
+
 
 # TODO: remove width from the base Drift class and keep it only on the GradualDrift
 
+
 class Drift:
     """
-    Represents a concept drift in a DriftStream. 
+    Represents a concept drift in a DriftStream.
 
     Parameters:
-    - position (int): The location of the drift in terms of the number of instances processed prior to it occurring.
-    - width (int, optional): The size of the window of change. A width of 0 or 1 corresponds to an abrupt drift.
-        Default is 0.
-    - alpha (float, optional): The grade of change (See 2.7.1 Concept Drift Framework in [1]). Default is 0.0.
-    - random_seed (int, optional): Seed for random number generation (See 2.7.1 Concept Drift Framework [1]). Default is 1.
+        - position (int): The location of the drift in terms of the number of instances processed prior to it occurring.
+        - width (int, optional): The size of the window of change. A width of 0 or 1 corresponds to an abrupt drift.
+            Default is 0.
+        - alpha (float, optional): The grade of change (See 2.7.1 Concept Drift Framework in [1]). Default is 0.0.
+        - random_seed (int, optional): Seed for random number generation (See 2.7.1 Concept Drift Framework [1]). Default is 1.
 
     References:
     [1] Bifet, Albert, et al. "Data stream mining: a practical approach." COSI (2011).
     """
+
     def __init__(self, position, width=0, alpha=0.0, random_seed=1):
         self.width = width
         self.position = position
@@ -451,35 +613,46 @@ class Drift:
             f"position={self.position}",
             f"width={self.width}" if self.width not in [0, 1] else None,
             f"alpha={self.alpha}" if self.alpha != 0.0 else None,
-            f"random_seed={self.random_seed}" if self.random_seed != 1 else None
+            f"random_seed={self.random_seed}" if self.random_seed != 1 else None,
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"{drift_kind}({', '.join(non_default_attributes)})"
 
 
 class GradualDrift(Drift):
-    def __init__(self, position=None, width=None, start=None, end=None, alpha=0.0, random_seed=1):
-        
+    def __init__(
+        self, position=None, width=None, start=None, end=None, alpha=0.0, random_seed=1
+    ):
+
         # since python doesn't allow overloading functions we need to check if the user hasn't defined position + width and start+end.
-        if position is not None and width is not None and start is not None and end is not None:
-            raise ValueError("Either use start and end OR position and width to determine the location of the gradual drift.")
+        if (
+            position is not None
+            and width is not None
+            and start is not None
+            and end is not None
+        ):
+            raise ValueError(
+                "Either use start and end OR position and width to determine the location of the gradual drift."
+            )
 
         if start is None and end is None:
             self.width = width
             self.position = position
-            self.start = int(position - width/2)
-            self.end = int(position + width/2)
+            self.start = int(position - width / 2)
+            self.end = int(position + width / 2)
         elif position is None and width is None:
             self.start = start
             self.end = end
             self.width = end - start
             print(width)
-            self.position = int((start+end)/2)
+            self.position = int((start + end) / 2)
 
         self.alpha = alpha
         self.random_seed = random_seed
 
-        super().__init__(position=self.position, random_seed=self.random_seed, width=self.width)
+        super().__init__(
+            position=self.position, random_seed=self.random_seed, width=self.width
+        )
 
     def __str__(self):
         attributes = [
@@ -488,10 +661,11 @@ class GradualDrift(Drift):
             f"end={self.end}",
             f"width={self.width}",
             f"alpha={self.alpha}" if self.alpha != 0.0 else None,
-            f"random_seed={self.random_seed}" if self.random_seed != 1 else None
+            f"random_seed={self.random_seed}" if self.random_seed != 1 else None,
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"GradualDrift({', '.join(non_default_attributes)})"
+
 
 class AbruptDrift(Drift):
     def __init__(self, position, random_seed=1):
@@ -503,7 +677,7 @@ class AbruptDrift(Drift):
     def __str__(self):
         attributes = [
             f"position={self.position}",
-            f"random_seed={self.random_seed}" if self.random_seed != 1 else None
+            f"random_seed={self.random_seed}" if self.random_seed != 1 else None,
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"AbruptDrift({', '.join(non_default_attributes)})"
@@ -538,8 +712,6 @@ def stream_from_file(
         with open(path_to_csv_or_arff, "r") as file:
             header = file.readline().strip().split(",")
 
-        # stop converting to int in here
-
         return NumpyStream(
             X=X,
             y=y.astype(int),
@@ -550,7 +722,7 @@ def stream_from_file(
         )
 
 
-def numpy_to_ARFF(
+def _numpy_to_ARFF(
     X,
     y,
     dataset_name="No_Name",
@@ -563,58 +735,138 @@ def numpy_to_ARFF(
     based on the y type. If y[0] is a double, then assumes regression (thus output will be numeric) otherwise assume
     it as a classifiation problem. If the user desires to "force" regression, then set enforce_regression=True
     """
+
+    number_of_instances = X.shape[0]
+    enforce_regression = (
+        True if enforce_regression else np.issubdtype(type(y[0]), np.double)
+    )
+    class_labels = (
+        None if enforce_regression else [str(value) for value in np.unique(y)]
+    )
+    feature_names = (
+        [f"attrib_{i}" for i in range(X.shape[1])]
+        if feature_names is None
+        else feature_names
+    )
+    moa_stream, moa_header = _init_moa_stream_and_create_moa_header(
+        number_of_instances=number_of_instances,
+        feature_names=feature_names,
+        values_for_class_label=class_labels,
+        dataset_name=dataset_name,
+        target_attribute_name=target_name,
+        enforce_regression=enforce_regression,
+    )
+    _add_instances_to_moa_stream(moa_stream, moa_header, X, y)
+    return moa_stream, moa_header, class_labels
+
+
+def create_nominal_attribute(attribute_name=None, possible_values: list = None):
+    value_list = FastVector()
+    for value in possible_values:
+        value_list.addElement(str(value))
+    return Attribute(attribute_name, value_list)
+
+
+"""
+
+"""
+
+
+def _init_moa_stream_and_create_moa_header(
+    number_of_instances: int = 100,
+    feature_names: list = None,
+    values_for_nominal_features={},
+    values_for_class_label: list = None,
+    dataset_name="No_Name",
+    target_attribute_name=None,
+    enforce_regression=False,
+):
+    """
+    Initialize a moa stream with number_of_instances capacity and create a mao header which contains all the necessary
+     attribute information.
+
+     Note: Each instance is not added to the moa_stream.
+
+    :param number_of_instances: number of instances in the stream
+    :param feature_names: a list containing names of features. if none sets a default name
+    :param values_for_nominal_features: possible values of each nominal feature.
+    e.g {i: [1,2,3], k: [Aa, BB]}. Key is integer. Values are turned into strings
+    :param values_for_class_label: possible values for class label. Values are turned into strings
+    :param dataset_name: name of the dataset. Defaults to "No_Name"
+    :param target_attribute_name: name for the target/class attribute
+    :param enforce_regression: If True assumes the problem as a regression problem
+
+    :return moa_stream: initialized moa stream with capacity number_of_instances.
+    :return moa_header: initialized moa header which contain all necessary attribute information for all features and the class label
+
+    Sample code to get relevant information from two Numpy arrays: X[rows][features] and y[rows]
+
+    feature_names = [f"attrib_{i}" for i in range(X.shape[1])]
+
+    number_of_instances = X.shape[0]
+
+    values_for_class_label = [str(value) for value in np.unique(y)]
+
+    enforce_regression = np.issubdtype(type(y[0]), np.double)
+
+    """
     attributes = FastVector()
     # Attribute("name") will create a numeric attribute; Attribute("name", array_of_values) will create a nominal attribute
-    for attribute_index in range(X.shape[1]):
-        if feature_names is None:
-            attributes.addElement(Attribute(f"attrib_{attribute_index}"))
-        else:
-            attributes.addElement(Attribute(feature_names[attribute_index]))
+    if feature_names is None:
+        raise ValueError("feature_names are None")
 
-    # Infer whether we have a classification (int values) or regression task.
-    # Check only if the first value is a double.
-    # enforce_regression overrides the inference.
-    if np.issubdtype(type(y[0]), np.double) or enforce_regression:
-        if target_name is None:
+    for name in feature_names:
+        if name in values_for_nominal_features:
+            attribute = create_nominal_attribute(
+                attribute_name=name,
+                possible_values=values_for_nominal_features.get(name),
+            )
+        else:
+            attribute = Attribute(name)
+        attributes.addElement(attribute)
+
+    if enforce_regression:
+        if target_attribute_name is None:
             attributes.addElement(Attribute("target"))
         else:
-            attributes.addElement(Attribute(target_name))
+            attributes.addElement(Attribute(target_attribute_name))
     else:
-        if np.issubdtype(type(y[0]), np.integer):
-            classLabels = FastVector()
-            unique_class_labels = np.unique(y)  # Extract unique integer values from 'y'
-            for value in unique_class_labels:
-                classLabels.addElement(str(value))
-            if target_name is None:
-                attributes.addElement(Attribute("class", classLabels))
-            else:
-                attributes.addElement(Attribute(target_name, classLabels))
-        else:
+        if values_for_class_label is None:
             raise ValueError(
-                "y is neither a float or an int, can't infer whether it is regression or classification"
+                "values_for_class_label are None and enforce_regression is False. Looks like a regression problem?"
             )
+        else:
+            class_attribute = create_nominal_attribute(
+                attribute_name=(
+                    "class" if target_attribute_name is None else target_attribute_name
+                ),
+                possible_values=values_for_class_label,
+            )
+            attributes.addElement(class_attribute)
 
-    # if it is a string, then do the unique thing and map then (create the schema manually?)
+    moa_stream = Instances(dataset_name, attributes, number_of_instances)
+    # set last index for class index
+    moa_stream.setClassIndex(attributes.size() - 1)
+    # create stream header
+    moa_header = InstancesHeader(moa_stream)
+    # moa_header.setClassIndex(moa_header.classIndex())
+    return moa_stream, moa_header
 
-    capacity = X.shape[0]
-    arff_dataset = Instances(dataset_name, attributes, capacity)
 
-    streamHeader = InstancesHeader(arff_dataset)
-    streamHeader.setClassIndex(streamHeader.numAttributes() - 1)
-
+def _add_instances_to_moa_stream(moa_stream, moa_header, X, y):
     for instance_index in range(X.shape[0]):
-        instance = DenseInstance(streamHeader.numAttributes())
+        instance = DenseInstance(moa_header.numAttributes())
 
         for attribute_index in range(X.shape[1]):
-            instance.setValue(attribute_index, X[instance_index, attribute_index])
+            instance.setValue(
+                attribute_index, X[instance_index, attribute_index]
+            )  # set value for each attribute
 
-        instance.setDataset(streamHeader)
+        instance.setDataset(moa_header)
         instance.setWeight(1.0)  # a default weight of 1.0
-        instance.setClassValue(y[instance_index])
+        instance.setClassValue(y[instance_index])  # set class value
 
-        arff_dataset.add(instance)
-
-    return arff_dataset, streamHeader
+        moa_stream.add(instance)
 
 
 # Example loading an ARFF file in python without using MOA

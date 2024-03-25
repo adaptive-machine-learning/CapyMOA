@@ -214,12 +214,23 @@ class def_loss(nn.Module):
 
 
 class OSNN(ClassifierSSL):
-    def __init__(self, num_center=10, n_out=1, window_size=200, beta=1, gamma=1, optim_steps=200, seed=1):
-        self.Network = OSNeuralNetwork(num_center=num_center,
-                                  n_out=n_out,
-                                  window_size=window_size,
-                                  beta=beta,
-                                  gamma=gamma)
+    def __init__(
+        self,
+        num_center=10,
+        n_out=1,
+        window_size=200,
+        beta=1,
+        gamma=1,
+        optim_steps=200,
+        seed=1,
+    ):
+        self.Network = OSNeuralNetwork(
+            num_center=num_center,
+            n_out=n_out,
+            window_size=window_size,
+            beta=beta,
+            gamma=gamma,
+        )
 
         self.window_size = window_size
         self.optim_steps = optim_steps
@@ -233,10 +244,10 @@ class OSNN(ClassifierSSL):
         self.i = -1
 
     def train(self, instance):
-        self._train(instance.x(), instance.y())
-    
+        self._train(instance.x, instance.y_index)
+
     def train_on_unlabeled(self, instance):
-        self._train(instance.x(), -1)
+        self._train(instance.x, -1)
 
     def _train(self, x, y):
         data = torch.tensor(np.array([x]), dtype=torch.float32)
@@ -261,11 +272,10 @@ class OSNN(ClassifierSSL):
                 self.Network.pseudo_label()
                 optimizer.step(closure)
 
-
     def predict_proba(self, instance):
         if self.i == -1:
             return None
-        X = torch.tensor(instance.x(), dtype=torch.float32).reshape(1, -1)
+        X = torch.tensor(instance.x, dtype=torch.float32).reshape(1, -1)
         proba = self.Network.forward(X)
         proba = torch.cat((1 - proba, proba), dim=1).detach().numpy()
         return proba
@@ -274,7 +284,6 @@ class OSNN(ClassifierSSL):
         if self.i == -1:
             return None
         return np.argmax(self.predict_proba(instance))
-    
 
     def __str__(self):
         return f"OSNN(num_center={self.Network.num_centers}, window_size={self.window_size}, beta={self.Network.beta}, gamma={self.Network.gamma})"

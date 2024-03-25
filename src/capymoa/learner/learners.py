@@ -1,10 +1,14 @@
-from jpype import _jpype
-from abc import ABC, abstractmethod, ABCMeta
-from capymoa.stream.stream import Instance
-# MOA/Java imports
-from moa.core import Utils
-from moa.classifiers import Classifier as MOA_Classifier_Interface
+from abc import ABC, abstractmethod
+from typing import Optional
 
+from jpype import _jpype
+from moa.classifiers import Classifier as MOA_Classifier_Interface
+from moa.core import Utils
+
+from capymoa.stream.instance import (Instance, LabeledInstance,
+                                     RegressionInstance)
+from capymoa.stream.stream import Schema
+from capymoa.type_alias import LabelIndex, LabelProbabilities, TargetValue
 
 ##############################################################
 ##################### INTERNAL FUNCTIONS #####################
@@ -79,26 +83,26 @@ class Classifier(ABC):
     - random_seed: The random seed for reproducibility. Defaults to 1.
     """
 
-    def __init__(self, schema=None, random_seed=1):
+    def __init__(self, schema: Schema, random_seed=1):
         self.random_seed = random_seed
         self.schema = schema
         if self.schema is None:
-            raise ValueError('Schema must be initialised')
+            raise ValueError("Schema must be initialised")
 
     @abstractmethod
     def __str__(self):
         pass
 
     @abstractmethod
-    def train(self, instance: Instance):
+    def train(self, instance: LabeledInstance):
         pass
 
     @abstractmethod
-    def predict(self, instance: Instance):
+    def predict(self, instance: Instance) -> Optional[LabelIndex]:
         pass
 
     @abstractmethod
-    def predict_proba(self, instance: Instance):
+    def predict_proba(self, instance: Instance) -> LabelProbabilities:
         pass
 
 
@@ -145,18 +149,14 @@ class MOAClassifier(Classifier):
     def CLI_help(self):
         return str(self.moa_learner.getOptions().getHelpString())
 
-    def train(self, instance: Instance):
-        self.moa_learner.trainOnInstance(instance.get_MOA_InstanceExample())
+    def train(self, instance):
+        self.moa_learner.trainOnInstance(instance.java_instance)
 
-    def predict(self, instance: Instance):
-        return self.schema.get_value_for_index(
-            Utils.maxIndex(
-                self.moa_learner.getVotesForInstance(instance.get_MOA_InstanceExample())
-                )
-            )
+    def predict(self, instance):
+        return Utils.maxIndex(self.moa_learner.getVotesForInstance(instance.java_instance))
 
-    def predict_proba(self, instance: Instance):
-        return self.moa_learner.getVotesForInstance(instance.get_MOA_InstanceExample())
+    def predict_proba(self, instance):
+        return self.moa_learner.getVotesForInstance(instance.java_instance)
 
 
 class SKClassifier(Classifier):
@@ -189,7 +189,9 @@ class SKClassifier(Classifier):
 
     def train(self, instance):
         self.sklearner.partial_fit(
-            [instance.x()], [instance.y()], classes=self.schema.get_label_indexes()
+            [instance.x],
+            [instance.y_index],
+            classes=self.schema.get_label_indexes(),
         )
         self.trained_at_least_once = True  # deve (e tem que) ter um jeito melhor
 
@@ -197,7 +199,7 @@ class SKClassifier(Classifier):
         if (
             self.trained_at_least_once
         ):  # scikit-learn does not allows invoking predict in a model that was not fit before
-            return self.sklearner.predict([instance.x()])
+            return self.sklearner.predict([instance.x])[0]
         else:
             return None
 
@@ -205,7 +207,7 @@ class SKClassifier(Classifier):
         if (
             self.trained_at_least_once
         ):  # scikit-learn does not allows invoking predict in a model that was not fit before
-            return self.sklearner.predict_proba([instance.x()])
+            return self.sklearner.predict_proba([instance.x])
         else:
             return None
 
@@ -227,9 +229,7 @@ class ClassifierSSL(Classifier):
 # Multiple inheritance
 class MOAClassifierSSL(MOAClassifier, ClassifierSSL):
     def train_on_unlabeled(self, instance):
-        self.moa_learner.trainOnUnlabeledInstance(
-            instance.get_MOA_InstanceExample().getData()
-        )
+        self.moa_learner.trainOnUnlabeledInstance(instance.java_instance.getData())
 
 
 ##############################################################
@@ -246,11 +246,11 @@ class Regressor(ABC):
         pass
 
     @abstractmethod
-    def train(self, instance):
+    def train(self, instance: RegressionInstance):
         pass
 
     @abstractmethod
-    def predict(self, instance):
+    def predict(self, instance: RegressionInstance) -> TargetValue:
         pass
 
 
@@ -282,12 +282,10 @@ class MOARegressor(Regressor):
         return self.moa_learner.getOptions().getHelpString()
 
     def train(self, instance):
-        self.moa_learner.trainOnInstance(instance.get_MOA_InstanceExample())
+        self.moa_learner.trainOnInstance(instance.java_instance)
 
     def predict(self, instance):
-        prediction_array = self.moa_learner.getVotesForInstance(
-            instance.get_MOA_InstanceExample()
-        )
+        prediction_array = self.moa_learner.getVotesForInstance(instance.java_instance)
         # The learner didn't provide a prediction, returns 0.0 (probably the learner has not been initialised.)
         if len(prediction_array) == 0:
             return 0.0
