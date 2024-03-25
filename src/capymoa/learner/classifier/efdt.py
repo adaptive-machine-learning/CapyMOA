@@ -76,30 +76,32 @@ class EFDT(MOAClassifier):
         If True, disable merit-based tree pre-pruning.
     """
 
+    MAJORITY_CLASS = 0
+    NAIVE_BAYES = 1
+    NAIVE_BAYES_ADAPTIVE = 2
+
+
     def __init__(
             self,
             schema: Schema | None = None,
             random_seed: int = 0,
             grace_period: int = 200,
-            min_samples_reevaluate: int = 20,
-            split_criterion: str = "info_gain",
-            confidence: float = 1e-7,
+            min_samples_reevaluate: int = 200,
+            split_criterion: str = "InfoGainSplitCriterion",
+            confidence: float = 1e-3,
             tie_threshold: float = 0.05,
-            leaf_prediction: str = "nba",
+            leaf_prediction: int = MAJORITY_CLASS,
             nb_threshold: int = 0,
-            numeric_attribute_observer: str | None = None,
+            numeric_attribute_observer: str = "GaussianNumericAttributeClassObserver",
             binary_split: bool = False,
             min_branch_fraction: float = 0.01,
             max_share_to_split: float = 0.99,
             max_byte_size: float = 33554433,
             memory_estimate_period: int = 1000000,
-            stop_mem_management: bool = False,
+            stop_mem_management: bool = True,
             remove_poor_attrs: bool = False,
             disable_prepruning: bool = True,
     ):
-        # Example configuration string:
-        # "trees.EFDT -R 2001 -m 33554433 -n FIMTDDNumericAttributeClassObserver -e 10003000 -g 201 -s GiniSplitCriterion -c 0.002 -t 0.051 -b -z -r -p -l NB -q 1"
-
         mappings = {
             "grace_period": "-g",
             "min_samples_reevaluate": "-R",
@@ -126,10 +128,14 @@ class EFDT(MOAClassifier):
             default_value = this_parameter.default
             set_value = locals()[key]
             is_bool = type(set_value) == bool
-            default_value = default_value if type(default_value) != bool else int(default_value)
-            set_value = set_value if type(set_value) != bool else int(set_value)
-            str_extension = f"{mappings[key]} {set_value if not is_bool else ''} "
-            config_str += str_extension if set_value != default_value else ""
+            if is_bool:
+                if set_value:
+                    str_extension = mappings[key] + " "
+                else:
+                    str_extension = ""
+            else:
+                str_extension = f"{mappings[key]} {set_value} "
+            config_str += str_extension
 
         super(EFDT, self).__init__(moa_learner=moa_trees.EFDT,
                                    schema=schema,
