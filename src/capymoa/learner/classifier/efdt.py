@@ -22,28 +22,28 @@ class EFDT(MOAClassifier):
     decision tree structure. Still, in such cases, the Hoeffind Adaptive Tree might
     be a better option, as it was specifically designed to handle non-stationarity.
 
-
     Parameters
     ----------
+    schema
+        The schema of the stream.
+    random_seed
+        The random seed passed to the moa learner
     grace_period
         Number of instances a leaf should observe between split attempts.
     min_samples_reevaluate
         Number of instances a node should observe before reevaluating the best split.
     split_criterion
-        Split criterion to use.</br>
-        - 'gini' - Gini</br>
-        - 'info_gain' - Information Gain</br>
-        - 'hellinger' - Helinger Distance</br>
+        Split criterion to use. Defaults to `InfoGainSplitCriterion`.
     confidence
         Significance level to calculate the Hoeffding bound. The significance level is given by
         `1 - delta`. Values closer to zero imply longer split decision delays.
-    tau
+    tie_threshold
         Threshold below which a split will be forced to break ties.
     leaf_prediction
         Prediction mechanism used at leafs.</br>
-        - 'mc' - Majority Class</br>
-        - 'nb' - Naive Bayes</br>
-        - 'nba' - Naive Bayes Adaptive</br>
+        - 0 - Majority Class</br>
+        - 1 - Naive Bayes</br>
+        - 2 - Naive Bayes Adaptive</br>
     nb_threshold
         Number of instances a leaf should observe before allowing Naive Bayes.
     numeric_attribute_observer
@@ -55,15 +55,6 @@ class EFDT(MOAClassifier):
         By default, `tree.splitter.GaussianSplitter` is used if `splitter` is `None`.
     binary_split
         If True, only allow binary splits.
-    min_branch_fraction
-        The minimum percentage of observed data required for branches resulting from split
-        candidates. To validate a split candidate, at least two resulting branches must have
-        a percentage of samples greater than `min_branch_fraction`. This criterion prevents
-        unnecessary splits when the majority of instances are concentrated in a single branch.
-    max_share_to_split
-        Only perform a split in a leaf if the proportion of elements in the majority class is
-        smaller than this parameter value. This parameter avoids performing splits when most
-        of the data belongs to a single class.
     max_byte_size
         The max size of the tree, in bytes.
     memory_estimate_period
@@ -94,8 +85,6 @@ class EFDT(MOAClassifier):
             nb_threshold: int = 0,
             numeric_attribute_observer: str = "GaussianNumericAttributeClassObserver",
             binary_split: bool = False,
-            min_branch_fraction: float = 0.01,
-            max_share_to_split: float = 0.99,
             max_byte_size: float = 33554433,
             memory_estimate_period: int = 1000000,
             stop_mem_management: bool = True,
@@ -105,18 +94,18 @@ class EFDT(MOAClassifier):
         mappings = {
             "grace_period": "-g",
             "min_samples_reevaluate": "-R",
-            "max_byte_size": "-m",
-            "numeric_attribute_observer": "-n",
-            "memory_estimate_period": "-e",
             "split_criterion": "-s",
             "confidence": "-c",
             "tie_threshold": "-t",
+            "leaf_prediction": "-l",
+            "nb_threshold": "-q",
+            "numeric_attribute_observer": "-n",
             "binary_split": "-b",
+            "max_byte_size": "-m",
+            "memory_estimate_period": "-e",
             "stop_mem_management": "-z",
             "remove_poor_attrs": "-r",
             "disable_prepruning": "-p",
-            "leaf_prediction": "-l",
-            "nb_threshold": "-q"
         }
 
         config_str = ""
