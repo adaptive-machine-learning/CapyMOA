@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import inspect
-
 from capymoa.learner import MOAClassifier
-import moa.classifiers.trees as moa_trees
 from capymoa.stream import Schema
+from capymoa.utils import build_cli_str_from_mapping_and_locals
+
+import moa.classifiers.trees as moa_trees
 
 
 class EFDT(MOAClassifier):
@@ -67,7 +67,6 @@ class EFDT(MOAClassifier):
     NAIVE_BAYES = 1
     NAIVE_BAYES_ADAPTIVE = 2
 
-
     def __init__(
             self,
             schema: Schema | None = None,
@@ -87,7 +86,7 @@ class EFDT(MOAClassifier):
             remove_poor_attrs: bool = False,
             disable_prepruning: bool = True,
     ):
-        mappings = {
+        mapping = {
             "grace_period": "-g",
             "min_samples_reevaluate": "-R",
             "split_criterion": "-s",
@@ -104,24 +103,7 @@ class EFDT(MOAClassifier):
             "disable_prepruning": "-p",
         }
 
-        config_str = ""
-        parameters = inspect.signature(self.__init__).parameters
-        for key in mappings:
-            if key not in parameters:
-                continue
-            this_parameter = parameters[key]
-            default_value = this_parameter.default
-            set_value = locals()[key]
-            is_bool = type(set_value) == bool
-            if is_bool:
-                if set_value:
-                    str_extension = mappings[key] + " "
-                else:
-                    str_extension = ""
-            else:
-                str_extension = f"{mappings[key]} {set_value} "
-            config_str += str_extension
-
+        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(EFDT, self).__init__(moa_learner=moa_trees.EFDT,
                                    schema=schema,
                                    CLI=config_str,

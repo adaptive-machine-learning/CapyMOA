@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import inspect
-
 from capymoa.learner import MOAClassifier
-import moa.classifiers.trees as moa_trees
 from capymoa.stream import Schema
+from capymoa.utils import build_cli_str_from_mapping_and_locals
+
+import moa.classifiers.trees as moa_trees
 
 
 class HoeffdingTree(MOAClassifier):
@@ -71,7 +71,7 @@ class HoeffdingTree(MOAClassifier):
             remove_poor_attrs: bool = False,
             disable_prepruning: bool = True,
     ):
-        mappings = {
+        mapping = {
             "grace_period": "-g",
             "max_byte_size": "-m",
             "numeric_attribute_observer": "-n",
@@ -87,23 +87,7 @@ class HoeffdingTree(MOAClassifier):
             "nb_threshold": "-q"
         }
 
-        config_str = ""
-        parameters = inspect.signature(self.__init__).parameters
-        for key in mappings:
-            if key not in parameters:
-                continue
-            this_parameter = parameters[key]
-            set_value = locals()[key]
-            is_bool = type(set_value) == bool
-            if is_bool:
-                if set_value:
-                    str_extension = mappings[key] + " "
-                else:
-                    str_extension = ""
-            else:
-                str_extension = f"{mappings[key]} {set_value} "
-            config_str += str_extension
-
+        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(HoeffdingTree, self).__init__(moa_learner=moa_trees.HoeffdingTree,
                                             schema=schema,
                                             CLI=config_str,
