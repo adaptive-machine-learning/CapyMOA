@@ -1,6 +1,7 @@
 from capymoa.evaluation import ClassificationEvaluator
 from capymoa.evaluation.evaluation import ClassificationWindowedEvaluator
 from capymoa.learner.classifier.classifiers import AdaptiveRandomForest, OnlineBagging
+from capymoa.learner.classifier import EFDT, HoeffdingTree
 from capymoa.datasets import ElectricityTiny
 import pytest
 from functools import partial
@@ -10,11 +11,15 @@ from functools import partial
     "learner_constructor,accuracy,win_accuracy",
     [
         (partial(OnlineBagging, ensemble_size=5), 84.6, 89.0),
-        (partial(AdaptiveRandomForest), 89.6, 91.0)
+        (partial(AdaptiveRandomForest), 89.6, 91.0),
+        (partial(HoeffdingTree), 73.85, 73.0),
+        (partial(EFDT), 82.7, 82.0)
     ],
     ids=[
         "OnlineBagging",
-        "AdaptiveRandomForest"
+        "AdaptiveRandomForest",
+        "HoeffdingTree",
+        "EFDT"
     ]
 )
 def test_on_tiny(learner_constructor, accuracy, win_accuracy):
