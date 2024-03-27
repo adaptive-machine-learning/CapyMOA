@@ -1,6 +1,8 @@
-from capymoa.stream import Stream
+from abc import ABC, abstractmethod
 
 
-class FilteredStream(Stream):
-    def __init__(self, schema=None, CLI=None, moa_filter=None):
-        super(FilteredStream, self).__init__(schema, CLI, moa_filter)
+class Transformer(ABC):
+    @abstractmethod
+    def transform_instance(self, instance):
+        raise NotImplementedError
+
