@@ -18,10 +18,9 @@ from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerato
 from moa.streams.generators import SEAGenerator as MOA_SEAGenerator
 
 from capymoa.stream.instance import (
+    Instance,
     LabeledInstance,
     RegressionInstance,
-    _JavaLabeledInstance,
-    _JavaRegressionInstance,
 )
 
 
@@ -120,7 +119,7 @@ class Schema:
     def is_classification(self):
         """Returns True if the problem is a classification problem."""
         return not self._regression
-    
+
     def is_y_index_in_range(self, y_index: int):
         """Returns True if the y_index is in the range of the class label indexes."""
         return 0 <= y_index < self.get_num_classes()
@@ -256,10 +255,10 @@ class Stream:
 
     def next_instance(self) -> typing.Union[LabeledInstance, RegressionInstance]:
         java_instance = self.moa_stream.nextInstance()
-        if self.schema._regression:
-            return _JavaRegressionInstance(self.schema, java_instance)
+        if self.schema.is_regression():
+            return RegressionInstance.from_java_instance(self.schema, java_instance)
         elif self.schema.is_classification():
-            return _JavaLabeledInstance(self.schema, java_instance)
+            return LabeledInstance.from_java_instance(self.schema, java_instance)
         else:
             raise ValueError(
                 "Unknown machine learning task must be a regression "
@@ -324,18 +323,25 @@ class NumpyStream(Stream):
     def has_more_instances(self):
         return self.arff_instances_data.numInstances() > self.current_instance_index
 
-    def next_instance(self):
+    def next_instance(self) -> Instance:
         # Return None if all instances have been read already.
-        instance = None
-        if self.has_more_instances():
-            instance = self.arff_instances_data.instance(self.current_instance_index)
-            self.current_instance_index += 1
+        if not self.has_more_instances():
+            return None
+
+        instance = self.arff_instances_data.instance(self.current_instance_index)
+        self.current_instance_index += 1
+
         # TODO: We should natively support Numpy as a type of instance, rather
-        # than converting it to a Java instance.
+        # than converting it to a Java instance. We can probably combine the logic
+        # for pytorch and numpy into a single method.
         if self.schema.is_classification():
-            return _JavaLabeledInstance(self.schema, InstanceExample(instance))
-        elif self.schema._regression:
-            return _JavaRegressionInstance(self.schema, InstanceExample(instance))
+            return LabeledInstance.from_java_instance(
+                self.schema, InstanceExample(instance)
+            )
+        elif self.schema.is_regression():
+            return RegressionInstance.from_java_instance(
+                self.schema, InstanceExample(instance)
+            )
         else:
             raise ValueError(
                 "Unknown machine learning task must be a regression or "
@@ -382,7 +388,6 @@ class RandomTreeGenerator(Stream):
         first_leaf_level=3,
         leaf_fraction=0.15,
     ):
-
         self.moa_stream = MOA_RandomTreeGenerator()
 
         self.CLI = CLI
@@ -454,7 +459,6 @@ class SEA(Stream):
         balance_classes=False,
         noise_percentage=10,
     ):
-
         self.moa_stream = MOA_SEAGenerator()
 
         self.CLI = CLI
@@ -623,7 +627,6 @@ class GradualDrift(Drift):
     def __init__(
         self, position=None, width=None, start=None, end=None, alpha=0.0, random_seed=1
     ):
-
         # since python doesn't allow overloading functions we need to check if the user hasn't defined position + width and start+end.
         if (
             position is not None
@@ -867,27 +870,3 @@ def _add_instances_to_moa_stream(moa_stream, moa_header, X, y):
         instance.setClassValue(y[instance_index])  # set class value
 
         moa_stream.add(instance)
-
-
-# Example loading an ARFF file in python without using MOA
-# from scipy.io import arff
-
-# from io import StringIO
-
-# content = """
-# @relation foo
-# @attribute width  numeric
-# @attribute height numeric
-# @attribute color  {red,green,blue,yellow,black}
-# @data
-# 5.0,3.25,blue
-# 4.5,3.75,green
-# 3.0,4.00,red
-# """
-# f = StringIO(content)
-
-# data, meta = arff.loadarff(f)
-
-# print(data)
-
-# print(meta)
