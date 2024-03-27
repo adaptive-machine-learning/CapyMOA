@@ -10,7 +10,7 @@ from invoke import task
 from invoke.collection import Collection
 from invoke.context import Context
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 import wget
 from os import cpu_count
 
@@ -116,13 +116,25 @@ def clean(ctx: Context):
     clean_moa(ctx)
 
 
-@task
-def test_notebooks(ctx: Context, parallel: bool = True, overwrite: bool = False):
+@task(
+    help={
+        "parallel": "Run the notebooks in parallel.",
+        "overwrite": "Overwrite the notebooks with the executed output.",
+        "pattern": "Run only the notebooks that match the pattern. Same as `pytest -k`",
+    }
+)
+def test_notebooks(
+    ctx: Context,
+    parallel: bool = True,
+    overwrite: bool = False,
+    pattern: Optional[str] = None,
+):
     """Run the notebooks and check for errors.
 
     Uses nbmake https://github.com/treebeardtech/nbmake to execute the notebooks and
     check for errors. The `--overwrite` flag can be used to overwrite the notebooks
     with the executed output.
+
     """
 
     skip_notebooks = ctx["test_skip_notebooks"]
@@ -141,6 +153,10 @@ def test_notebooks(ctx: Context, parallel: bool = True, overwrite: bool = False)
         ["--overwrite"] if overwrite else []
     )  # Overwrite the notebooks with the executed output
     cmd += ["--deselect " + nb for nb in skip_notebooks]  # Skip some notebooks
+
+    if pattern:
+        cmd += [f"-k {pattern}"]
+
     ctx.run(" ".join(cmd))
 
 
@@ -149,10 +165,10 @@ def unittest(ctx: Context, parallel: bool = True):
     """Run the tests using pytest."""
     cmd = [
         "python -m pytest",
-        "--doctest-modules", # Run tests defined in docstrings
-        "--durations=0", # Show the duration of each test
-        "-x", # Stop after the first failure
-    ]  
+        "--doctest-modules",  # Run tests defined in docstrings
+        "--durations=0",  # Show the duration of each test
+        "-x",  # Stop after the first failure
+    ]
     cmd += ["-n=auto"] if parallel else []
     ctx.run(" ".join(cmd))
 
@@ -160,8 +176,8 @@ def unittest(ctx: Context, parallel: bool = True):
 @task
 def all_tests(ctx: Context, parallel: bool = True):
     """Run all the tests."""
-    test_notebooks(ctx, parallel)
     unittest(ctx, parallel)
+    test_notebooks(ctx, parallel)
 
 
 docs = Collection("docs")
