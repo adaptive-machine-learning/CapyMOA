@@ -22,6 +22,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.extlinks",
     "sphinx.ext.doctest",
+    "myst_parser"
 ]
 
 autoclass_content = 'both'
