@@ -33,16 +33,18 @@ and modules.
 .. toctree::
    :maxdepth: 2
 
-   api
+   api/api
 
-Contributor Notes
------------------
+Contributing
+------------
 This part of the documentation is for developers and contributors.
 
 .. toctree::
    :maxdepth: 2
+   :caption: Contributing
 
-   contributing
+   testing
+   README
 
 Indices and tables
 ==================
