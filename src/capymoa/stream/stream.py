@@ -204,7 +204,7 @@ class Schema:
         return str(self)
 
     def __str__(self):
-        return str(self._moa_header.toString().strip())
+        return str(self._moa_header.toString()).strip()
 
 
 class Stream:
