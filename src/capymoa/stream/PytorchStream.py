@@ -9,12 +9,11 @@ from capymoa.stream.instance import (
     LabeledInstance,
     RegressionInstance,
 )
+from torch.utils.data import Dataset
 
 
 class PytorchStream(Stream):
-    """
-    PytorchStream is a Stream that reads instances from a PyTorch dataset and
-    provides them as instances for CapyMOA.
+    """PytorchStream turns a PyTorch dataset into a datastream.
 
     >>> from capymoa.evaluation import ClassificationEvaluator
     ...
@@ -51,7 +50,12 @@ class PytorchStream(Stream):
     """
 
     # https://pytorch.org/tutorials/beginner/basics/data_tutorial.html
-    def __init__(self, dataset=None, enforce_regression=False):
+    def __init__(self, dataset: Dataset, enforce_regression=False):
+        """Construct PytorchStream from a PyTorch dataset.
+
+        :param dataset: PyTorch containing tuples of `x` and `y`
+        :param enforce_regression: Force the task to be a regression task, default is False
+        """
         self.training_data = dataset
         # self.train_dataloader = DataLoader(self.training_data, batch_size=1, shuffle=False)
         self.current_instance_index = 0
