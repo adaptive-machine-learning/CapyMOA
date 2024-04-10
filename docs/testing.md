@@ -7,7 +7,7 @@ invoke test
 
 ## PyTest
 Tests can be added to the ``tests`` directory. PyTest will automatically discover
-and run these tests. They should be named ``test_*.py`` and the test functions
+and run these tests. They should be named ``test_*.py``, and the test functions
 should be named ``test_*``. See the [PyTest documentation](https://docs.pytest.org) 
 for more information.
 
@@ -32,7 +32,7 @@ invoke test.unit
 ## Doctest
 [Doctest](https://docs.python.org/3/library/doctest.html) allows you to write 
 tests directly in the docstrings of your code, making it easier to keep documentation
-up-to-date. The tests are written in the form of examples in a Python interactive shell.
+up-to-date. The tests are written as examples in a Python interactive shell.
 
 Use doctest style test to document code with simple tested examples.
 
@@ -51,7 +51,7 @@ You can run this test with:
 pytest --doctest-modules -k src
 ```
 
-The `-k src` flag tells pytest to only run tests in the `src` directory. This is useful
+The `-k src` flag tells PyTest to run tests only in the `src` directory. This is useful
 if you only want to run doctests in source code but not PyTest tests.
 
 Alternatively, you can run all unit tests with the same configuration as continuous integration:
@@ -68,8 +68,7 @@ extension for PyTest.
 Use this type of test for tests that provide tutorials, documentation, and
 examples. They should be easy to read and understand.
 
-These test can be run just these tests with:
-
+Just these tests can be run with:
 ```bash
 invoke test.nb
 ```
