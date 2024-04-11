@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from capymoa.learner import MOAClassifier
 from capymoa.stream import Schema
-from capymoa.utils import build_cli_str_from_mapping_and_locals
+from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 import moa.classifiers.trees as moa_trees
 
@@ -68,23 +68,23 @@ class EFDT(MOAClassifier):
     NAIVE_BAYES_ADAPTIVE = 2
 
     def __init__(
-            self,
-            schema: Schema | None = None,
-            random_seed: int = 0,
-            grace_period: int = 200,
-            min_samples_reevaluate: int = 200,
-            split_criterion: str = "InfoGainSplitCriterion",
-            confidence: float = 1e-3,
-            tie_threshold: float = 0.05,
-            leaf_prediction: int = MAJORITY_CLASS,
-            nb_threshold: int = 0,
-            numeric_attribute_observer: str = "GaussianNumericAttributeClassObserver",
-            binary_split: bool = False,
-            max_byte_size: float = 33554433,
-            memory_estimate_period: int = 1000000,
-            stop_mem_management: bool = True,
-            remove_poor_attrs: bool = False,
-            disable_prepruning: bool = True,
+        self,
+        schema: Schema | None = None,
+        random_seed: int = 0,
+        grace_period: int = 200,
+        min_samples_reevaluate: int = 200,
+        split_criterion: str = "InfoGainSplitCriterion",
+        confidence: float = 1e-3,
+        tie_threshold: float = 0.05,
+        leaf_prediction: int = MAJORITY_CLASS,
+        nb_threshold: int = 0,
+        numeric_attribute_observer: str = "GaussianNumericAttributeClassObserver",
+        binary_split: bool = False,
+        max_byte_size: float = 33554433,
+        memory_estimate_period: int = 1000000,
+        stop_mem_management: bool = True,
+        remove_poor_attrs: bool = False,
+        disable_prepruning: bool = True,
     ):
         mapping = {
             "grace_period": "-g",
@@ -104,7 +104,9 @@ class EFDT(MOAClassifier):
         }
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
-        super(EFDT, self).__init__(moa_learner=moa_trees.EFDT,
-                                   schema=schema,
-                                   CLI=config_str,
-                                   random_seed=random_seed)
+        super(EFDT, self).__init__(
+            moa_learner=moa_trees.EFDT,
+            schema=schema,
+            CLI=config_str,
+            random_seed=random_seed,
+        )

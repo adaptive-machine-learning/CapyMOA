@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import os
-from capymoa.stream.stream import DriftStream
+from capymoa.stream.drift import DriftStream
 
 def plot_windowed_results(*results, metric="classifications correct (percent)", 
                             plot_title=None, xlabel=None, ylabel=None,

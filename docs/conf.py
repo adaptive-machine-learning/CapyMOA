@@ -22,10 +22,14 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.extlinks",
     "sphinx.ext.doctest",
-    "myst_parser"
+    "myst_parser",
 ]
 
-autoclass_content = 'both'
+bibtex_bibfiles = ['references.bib']
+
+autoclass_content = 'class'
+autodoc_class_signature = 'separated'
+autodoc_member_order = 'bysource'
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
@@ -33,6 +37,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 extlinks = {
     'wiki': ('https://en.wikipedia.org/wiki/%s', ''),
     'moa-api': ('https://javadoc.io/doc/nz.ac.waikato.cms.moa/moa/latest/%s', ''),
+    'doi': ('https://doi.org/%s', ''),
 }
 
 
