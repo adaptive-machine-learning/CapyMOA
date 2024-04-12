@@ -1,6 +1,8 @@
 from __future__ import annotations
+from typing import Union
 
 from capymoa.learner import MOAClassifier
+from capymoa.learner.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
 from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
@@ -73,7 +75,7 @@ class EFDT(MOAClassifier):
         random_seed: int = 0,
         grace_period: int = 200,
         min_samples_reevaluate: int = 200,
-        split_criterion: str = "InfoGainSplitCriterion",
+        split_criterion: Union[str, SplitCriterion] = "InfoGainSplitCriterion",
         confidence: float = 1e-3,
         tie_threshold: float = 0.05,
         leaf_prediction: int = MAJORITY_CLASS,
@@ -103,6 +105,7 @@ class EFDT(MOAClassifier):
             "disable_prepruning": "-p",
         }
 
+        split_criterion = _split_criterion_to_cli_str(split_criterion)
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(EFDT, self).__init__(
             moa_learner=moa_trees.EFDT,
