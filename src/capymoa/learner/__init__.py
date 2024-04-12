@@ -7,6 +7,7 @@ from .learners import (
     MOARegressor,
     SKClassifier,
 )
+from .minibatch import MiniBatchClassifier
 
 
 __ALL__ = [
@@ -17,4 +18,5 @@ __ALL__ = [
     "Regressor",
     "MOARegressor",
     "SKClassifier",
+    "MiniBatchClassifier",
 ]
