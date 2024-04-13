@@ -403,12 +403,12 @@ def stream_from_file(
     >>> from capymoa.stream import stream_from_file
     >>> stream = stream_from_file("data/electricity_tiny.csv")
     >>> stream.next_instance()
-LabeledInstance(
-    Schema(CSVDataset),
-    x=ndarray(..., 6),
-    y_index=1,
-    y_label='1'
-)
+    LabeledInstance(
+        Schema(CSVDataset),
+        x=ndarray(..., 6),
+        y_index=1,
+        y_label='1'
+    )
     >>> stream.next_instance().x
     array([0.021277, 0.051699, 0.415055, 0.003467, 0.422915, 0.414912])
 
