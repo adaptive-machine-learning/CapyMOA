@@ -2,7 +2,9 @@ from .stream import (
     Stream,
     Schema,
     ARFFStream,
-    stream_from_file
+    RandomTreeGenerator,
+    stream_from_file,
+    CSVStream
 )
 from .PytorchStream import PytorchStream
 
@@ -11,5 +13,7 @@ __all__ = [
     "Schema",
     "stream_from_file",
     "ARFFStream",
+    "RandomTreeGenerator",
     "PytorchStream",
+    "CSVStream"
 ]
