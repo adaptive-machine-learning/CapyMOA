@@ -404,7 +404,7 @@ def stream_from_file(
     >>> stream = stream_from_file("data/electricity_tiny.csv", dataset_name="Electricity")
     >>> stream.next_instance()
     LabeledInstance(
-        Schema(Electricity),
+        Schema(CSVDataset),
         x=ndarray(..., 6),
         y_index=1,
         y_label='1'
