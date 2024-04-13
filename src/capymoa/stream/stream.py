@@ -401,7 +401,7 @@ def stream_from_file(
     """Create a datastream from a csv or arff file.
 
     >>> from capymoa.stream import stream_from_file
-    >>> stream = stream_from_file("data/electricity_tiny.csv", dataset_name="Electricity")
+    >>> stream = stream_from_file("data/electricity_tiny.csv")
     >>> stream.next_instance()
     LabeledInstance(
         Schema(CSVDataset),
