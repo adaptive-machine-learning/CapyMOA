@@ -10,7 +10,7 @@ def build_cli_str_from_mapping_and_locals(mapping: Dict[str, str], lcs: Dict[str
     >>> grace_period = 200
     >>> mapping = {"grace_period": "-g", "max_byte_size": "-m"}
     >>> build_cli_str_from_mapping_and_locals(mapping, locals())
-    '-g 200 -m 33554433 '
+    '-g (200) -m (33554433) '
 
     :param mapping: A dict[str,str] which maps from the parameter as specified
         in the signature to the respective cli character. E.g., 'm = {"grace_period": "-g"}'
@@ -26,7 +26,8 @@ def build_cli_str_from_mapping_and_locals(mapping: Dict[str, str], lcs: Dict[str
         if is_bool:
             str_extension = mapping[key] + " " if set_value else ""
         else:
-            str_extension = f"{mapping[key]} {set_value} "
+            # The parenthesis are used to support nested classes
+            str_extension = f"{mapping[key]} ({set_value}) "
         config_str += str_extension
     return config_str
 

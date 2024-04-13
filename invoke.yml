@@ -1,7 +1,7 @@
 # This file contains the configuration for the invoke command
 
 moa_path: "src/capymoa/jar/moa.jar" 
-moa_url: "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/moa.jar"
+moa_url: "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/versions/240412_moa.jar"
 
 # What notebooks to skip when running them as tests.
 test_skip_notebooks:
