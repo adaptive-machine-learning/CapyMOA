@@ -86,7 +86,13 @@ def build_stubs(ctx: Context):
     assert moa_path.exists() and moa_path.is_file()
     class_path = moa_path.resolve().as_posix()
 
-    if all_exist(directories=["src/moa-stubs", "src/com-stubs/yahoo/labs/samoa"]):
+    if all_exist(
+        directories=[
+            "src/moa-stubs",
+            "src/com-stubs/yahoo/labs/samoa",
+            "src/com-stubs/github/javacliparser",
+        ]
+    ):
         print("Nothing todo: Java stubs already exist.")
         return
 
@@ -95,7 +101,7 @@ def build_stubs(ctx: Context):
         f"--classpath {class_path} "
         "--output-dir src "
         "--convert-strings --no-jpackage-stubs "
-        "moa com.yahoo.labs.samoa"
+        "moa com.yahoo.labs.samoa com.github.javacliparser"
     )
 
 

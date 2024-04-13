@@ -38,6 +38,7 @@ extlinks = {
     'wiki': ('https://en.wikipedia.org/wiki/%s', ''),
     'moa-api': ('https://javadoc.io/doc/nz.ac.waikato.cms.moa/moa/latest/%s', ''),
     'doi': ('https://doi.org/%s', ''),
+    'sklearn': ('https://scikit-learn.org/stable/modules/generated/sklearn.%s.html', 'sklearn.%s'),
 }
 
 

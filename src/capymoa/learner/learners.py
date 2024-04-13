@@ -260,7 +260,8 @@ class MOARegressor(Regressor):
         self.CLI = CLI
         self.moa_learner = moa_learner
 
-        self.moa_learner.setRandomSeed(random_seed)
+        if random_seed is not None:
+            self.moa_learner.setRandomSeed(random_seed)
 
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())

@@ -5,7 +5,7 @@ from hashlib import sha256
 import warnings
 import os
 
-_MOA_JAR_HASH="429b7fa60009b7d5ec46b027b9a1fb2fc32d4d12cac02a06e3d9bb3aa44cab22"
+_MOA_JAR_HASH="dd6f22ee090c63a4567804023019c7713de97e2ae88e0d7aeb6c574edfe12dfc"
 
 def test_imports():
     assert jpype.isJVMStarted(), "JVM should be started automatically when importing capymoa"

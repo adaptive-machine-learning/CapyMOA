@@ -28,7 +28,34 @@ invoke docs.clean
 ### Auto-Generated Documentation
 Auto-generated documentation from the source code using Autodoc. See this 
 [link](https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html) 
-for more information.
+for more information. CapyMOA, for now is using Sphinx/reStructuredText style
+docstrings. Rather than having type information in the docstring, we prefer to 
+use Python-type hints.
+
+```
+class Stream:
+    """A datastream that can be learnt instance by instance."""
+
+    def __init__(
+        self,
+        moa_stream: Optional[InstanceStream] = None,
+        schema: Optional[Schema] = None,
+        CLI: Optional[str] = None,
+    ):
+        """Construct a Stream from a MOA stream object.
+
+        Usually, you will want to construct a Stream using the :func:`stream_from_file`
+        function.
+
+        :param moa_stream: The MOA stream object to read instances from. Is None
+            if the stream is created from a numpy array.
+        :param schema: The schema of the stream. If None, the schema is inferred
+            from the moa_stream.
+        :param CLI: Additional command line arguments to pass to the MOA stream.
+        :raises ValueError: If no schema is provided and no moa_stream is provided.
+        :raises ValueError: If command line arguments are provided without a moa_stream.
+        """
+```
 
 ### Juptyer Notebooks
 
