@@ -26,7 +26,8 @@ def _get_moa_creation_CLI(moa_learner):
     moa_learner_class_id = str(moa_learner.getClass().getName())
     moa_learner_class_id_parts = moa_learner_class_id.split(".")
     moa_learner_str = (
-        f"{moa_learner_class_id_parts[-2]}.{moa_learner_class_id_parts[-1]}"
+        # f"{moa_learner_class_id_parts[-2]}.{moa_learner_class_id_parts[-1]}"
+        f"{moa_learner_class_id_parts[-1]}"
     )
 
     moa_cli_creation = str(moa_learner.getCLICreationString(moa_learner.__class__))
@@ -52,7 +53,7 @@ def _extract_moa_learner_CLI(learner):
     """
 
     # Check if the base_learner is a MOAClassifier
-    if isinstance(learner, MOAClassifier):
+    if isinstance(learner, MOAClassifier) or isinstance(learner, MOARegressor):
         learner = _get_moa_creation_CLI(learner.moa_learner)
 
     # ... or a Classifier (Interface from MOA) type

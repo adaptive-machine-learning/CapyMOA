@@ -393,21 +393,17 @@ class AdaptiveRandomForestRegressor(MOARegressor):
     ):
         # Important: must create the MOA object before invoking the super class __init__
         self.moa_learner = MOA_AdaptiveRandomForestRegressor()
-        super().__init__(
-            schema=schema,
-            CLI=CLI,
-            random_seed=random_seed,
-            moa_learner=self.moa_learner,
-        )
+
 
         # Initialize instance attributes with default values, CLI was not set.
-        if self.CLI is None:
-            self.tree_learner = (
-                # "(ARFFIMTDD -s VarianceReductionSplitCriterion -g 50 -c 0.01)"
-                ARFFIMTDD(grace_period=50, split_confidence=0.01)
-                if tree_learner is None
-                else tree_learner
-            )
+        if CLI is None:
+            if tree_learner is None:
+                self.tree_learner = ARFFIMTDD(grace_period=50, split_confidence=0.01)
+            elif type(tree_learner) is str:
+                self.tree_learner = tree_learner
+            else:
+                self.tree_learner = _extract_moa_learner_CLI(tree_learner)
+
             self.ensemble_size = ensemble_size
 
             self.max_features = max_features
@@ -451,6 +447,12 @@ class AdaptiveRandomForestRegressor(MOARegressor):
             self.moa_learner.prepareForUse()
             self.moa_learner.resetLearning()
 
+        super().__init__(
+            schema=schema,
+            CLI=CLI,
+            random_seed=random_seed,
+            moa_learner=self.moa_learner,
+        )
 
 class SOKNL(MOARegressor):
     def __init__(
@@ -466,26 +468,22 @@ class SOKNL(MOARegressor):
         warning_detection_method=None,
         disable_drift_detection=False,
         disable_background_learner=False,
-        self_optimising=True,
+        disable_self_optimising=False,
         k_value=10,
     ):
         # Important: must create the MOA object before invoking the super class __init__
         self.moa_learner = MOA_SOKNL()
-        super().__init__(
-            schema=schema,
-            CLI=CLI,
-            random_seed=random_seed,
-            moa_learner=self.moa_learner,
-        )
 
         # Initialize instance attributes with default values, CLI was not set.
-        if self.CLI is None:
-            self.tree_learner = (
-                # "(SelfOptimisingBaseTree -s VarianceReductionSplitCriterion -g 50 -c 0.01)"
-                SOKNLBT(grace_period=50, split_confidence=0.01)
-                if tree_learner is None
-                else tree_learner
-            )
+        if CLI is None:
+
+            if tree_learner is None:
+                self.tree_learner = SOKNLBT(grace_period=50, split_confidence=0.01)
+            elif type(tree_learner) is str:
+                self.tree_learner = tree_learner
+            else:
+                self.tree_learner = _extract_moa_learner_CLI(tree_learner)
+
             self.ensemble_size = ensemble_size
 
             self.max_features = max_features
@@ -521,13 +519,20 @@ class SOKNL(MOARegressor):
             self.disable_drift_detection = disable_drift_detection
             self.disable_background_learner = disable_background_learner
 
-            self.self_optimising = self_optimising
+            self.disable_self_optimising = disable_self_optimising
             self.k_value = k_value
 
             self.moa_learner.getOptions().setViaCLIString(
-                f"-l {self.tree_learner} -s {self.ensemble_size} {'-f' if self.self_optimising else ''} -k {self.k_value} -o {self.m_features_mode} -m \
+                f"-l {self.tree_learner} -s {self.ensemble_size} {'-f' if self.disable_self_optimising else ''} -k {self.k_value} -o {self.m_features_mode} -m \
                 {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
                 {self.warning_detection_method} {'-u' if self.disable_drift_detection else ''}  {'-q' if self.disable_background_learner else ''}"
             )
             self.moa_learner.prepareForUse()
             self.moa_learner.resetLearning()
+
+        super().__init__(
+            schema=schema,
+            CLI=CLI,
+            random_seed=random_seed,
+            moa_learner=self.moa_learner,
+        )
