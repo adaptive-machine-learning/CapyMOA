@@ -31,13 +31,16 @@ def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
 
 
 @task()
-def docs_build(ctx: Context):
+def docs_build(ctx: Context, ignore_warnings: bool = False):
     """Build the documentation using Sphinx."""
+    warn = "-W" if not ignore_warnings else ""
+
     doc_dir = Path("docs/_build")
     doc_dir.mkdir(exist_ok=True, parents=True)
     cpu = cpu_count() // 2
     print("Building documentation...")
-    ctx.run(f"python -m sphinx build -j {cpu} -E -b html docs {doc_dir}")
+
+    ctx.run(f"python -m sphinx build {warn} --color -E -b html docs {doc_dir}")
 
     print("-" * 80)
     print("Documentation is built and available at:")
@@ -83,7 +86,13 @@ def build_stubs(ctx: Context):
     assert moa_path.exists() and moa_path.is_file()
     class_path = moa_path.resolve().as_posix()
 
-    if all_exist(directories=["src/moa-stubs", "src/com-stubs/yahoo/labs/samoa"]):
+    if all_exist(
+        directories=[
+            "src/moa-stubs",
+            "src/com-stubs/yahoo/labs/samoa",
+            "src/com-stubs/github/javacliparser",
+        ]
+    ):
         print("Nothing todo: Java stubs already exist.")
         return
 
@@ -92,7 +101,7 @@ def build_stubs(ctx: Context):
         f"--classpath {class_path} "
         "--output-dir src "
         "--convert-strings --no-jpackage-stubs "
-        "moa com.yahoo.labs.samoa"
+        "moa com.yahoo.labs.samoa com.github.javacliparser"
     )
 
 

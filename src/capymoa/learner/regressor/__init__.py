@@ -1,3 +1,19 @@
-from .regressors import KNNRegressor, AdaptiveRandomForestRegressor
+from .regressors import (
+    KNNRegressor,
+    AdaptiveRandomForestRegressor,
+    FIMTDD,
+    ARFFIMTDD,
+    ORTO,
+    SOKNLBT,
+    SOKNL,
+)
 
-__all__ = ["KNNRegressor", "AdaptiveRandomForestRegressor"]
+__all__ = [
+    "KNNRegressor",
+    "AdaptiveRandomForestRegressor",
+    "FIMTDD",
+    "ARFFIMTDD",
+    "ORTO",
+    "SOKNLBT",
+    "SOKNL",
+]

@@ -37,10 +37,16 @@ dev=[
 ]
 
 doc=[
+    # Documentation generator
     "sphinx",
+    # Theme for the documentation
     "sphinx-book-theme",
+    # Allows to include Jupyter notebooks in the documentation
     "sphinx-autobuild",
-    "nbsphinx"
+    # Allows to include Jupyter notebooks in the documentation
+    "nbsphinx",
+    # Parses markdown files
+    "myst-parser"
 ]
 
 [tool.pytest.ini_options]
