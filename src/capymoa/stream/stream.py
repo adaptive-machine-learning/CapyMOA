@@ -423,7 +423,7 @@ def stream_from_file(
         # Delegate to the ARFFFileStream object within ARFFStream to actually read the file.
         return ARFFStream(path=path_to_csv_or_arff)
     elif path_to_csv_or_arff.endswith(".csv"):
-        return CSVStream(path_to_csv_or_arff, class_index=class_index)
+        return CSVStream(path_to_csv_or_arff)
 
 
 def _numpy_to_ARFF(
