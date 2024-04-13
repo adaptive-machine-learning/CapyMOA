@@ -6,6 +6,8 @@ from capymoa.datasets import ElectricityTiny
 import pytest
 from functools import partial
 
+from capymoa.learner.classifier.sklearn import PassiveAggressiveClassifier
+
 
 @pytest.mark.parametrize(
     "learner_constructor,accuracy,win_accuracy",
@@ -13,14 +15,16 @@ from functools import partial
         (partial(OnlineBagging, ensemble_size=5), 84.6, 89.0),
         (partial(AdaptiveRandomForest), 89.6, 91.0),
         (partial(HoeffdingTree), 73.85, 73.0),
-        (partial(EFDT), 82.7, 82.0)
+        (partial(EFDT), 82.7, 82.0),
+        (partial(PassiveAggressiveClassifier), 84.7, 81.0),
     ],
     ids=[
         "OnlineBagging",
         "AdaptiveRandomForest",
         "HoeffdingTree",
-        "EFDT"
-    ]
+        "EFDT",
+        "PassiveAggressiveClassifier",
+    ],
 )
 def test_on_tiny(learner_constructor, accuracy, win_accuracy):
     """Test on tiny is a fast running simple test to check if a learner's
@@ -32,7 +36,9 @@ def test_on_tiny(learner_constructor, accuracy, win_accuracy):
     """
     stream = ElectricityTiny()
     evaluator = ClassificationEvaluator(schema=stream.get_schema())
-    win_evaluator = ClassificationWindowedEvaluator(schema=stream.get_schema(), window_size=100)
+    win_evaluator = ClassificationWindowedEvaluator(
+        schema=stream.get_schema(), window_size=100
+    )
     learner = learner_constructor(schema=stream.get_schema())
 
     while stream.has_more_instances():
@@ -44,4 +50,3 @@ def test_on_tiny(learner_constructor, accuracy, win_accuracy):
 
     assert evaluator.accuracy() == pytest.approx(accuracy, abs=0.1)
     assert win_evaluator.accuracy() == pytest.approx(win_accuracy, abs=0.1)
-
