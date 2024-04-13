@@ -2,11 +2,11 @@ from .stream import (
     Stream,
     Schema,
     ARFFStream,
-    RandomTreeGenerator,
     stream_from_file,
     CSVStream
 )
 from .PytorchStream import PytorchStream
+from.generator import RandomTreeGenerator
 
 __all__ = [
     "Stream",
