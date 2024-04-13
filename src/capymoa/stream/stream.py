@@ -403,6 +403,7 @@ def stream_from_file(
     >>> from capymoa.stream import stream_from_file
     >>> stream = stream_from_file("data/electricity_tiny.csv")
     >>> stream.next_instance()
+    2001 1
     LabeledInstance(
         Schema(CSVDataset),
         x=ndarray(..., 6),
@@ -410,6 +411,7 @@ def stream_from_file(
         y_label='1'
     )
     >>> stream.next_instance().x
+    2001 2
     array([0.021277, 0.051699, 0.415055, 0.003467, 0.422915, 0.414912])
 
     :param path_to_csv_or_arff: A file path to a CSV or ARFF file.
