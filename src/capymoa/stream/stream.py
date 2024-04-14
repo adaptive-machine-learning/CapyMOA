@@ -649,7 +649,6 @@ class CSVStream(Stream):
                 self.total_number_of_lines += 1
 
     def has_more_instances(self):
-        print(f'{self.total_number_of_lines} {self.n_lines_to_skip}')
         return self.total_number_of_lines > self.n_lines_to_skip
 
     def next_instance(self):
