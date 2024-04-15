@@ -423,7 +423,14 @@ def stream_from_file(
         # Delegate to the ARFFFileStream object within ARFFStream to actually read the file.
         return ARFFStream(path=path_to_csv_or_arff)
     elif path_to_csv_or_arff.endswith(".csv"):
-        return CSVStream(path_to_csv_or_arff, class_index=class_index)
+        # TODO: Upgrade to CSVStream once its faster and notebook tests don't fail
+        x_features = np.genfromtxt(path_to_csv_or_arff, delimiter=",", skip_header=1)
+        targets = x_features[:, -1]
+        targets = targets.astype(int)
+        x_features = x_features[:, :-1]
+        return NumpyStream(
+            x_features, targets, dataset_name=dataset_name, enforce_regression=enforce_regression
+        )
 
 
 def _numpy_to_ARFF(
@@ -647,7 +654,6 @@ class CSVStream(Stream):
                 self.total_number_of_lines += 1
 
     def has_more_instances(self):
-        print(f'{self.total_number_of_lines} {self.n_lines_to_skip}')
         return self.total_number_of_lines > self.n_lines_to_skip
 
     def next_instance(self):

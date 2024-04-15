@@ -26,7 +26,7 @@ class PassiveAggressiveClassifier(Classifier):
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
     >>> learner = PassiveAggressiveClassifier(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000, optimise=False)
+    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
     84.3
     """
