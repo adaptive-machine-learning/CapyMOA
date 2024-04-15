@@ -88,7 +88,6 @@ def test_batch_real():
         learner=learner,
         label_probability=0.01,
         window_size=100,
-        optimise=False,
     )
 
     assert learner.instance_counter == 2000

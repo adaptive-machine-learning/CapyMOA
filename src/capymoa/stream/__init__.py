@@ -2,10 +2,10 @@ from .stream import (
     Stream,
     Schema,
     ARFFStream,
-    RandomTreeGenerator,
     stream_from_file,
     CSVStream
 )
+from .generator import RandomTreeGenerator
 from .PytorchStream import PytorchStream
 
 __all__ = [
