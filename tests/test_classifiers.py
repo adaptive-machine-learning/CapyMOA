@@ -4,6 +4,7 @@ from capymoa.learner.classifier import (
     HoeffdingTree,
     AdaptiveRandomForest,
     OnlineBagging,
+    NaiveBayes,
 )
 from capymoa.learner import Classifier, MOAClassifier
 from capymoa.datasets import ElectricityTiny
@@ -21,7 +22,6 @@ from capymoa.learner.classifier.sklearn import PassiveAggressiveClassifier
 @pytest.mark.parametrize(
     "learner_constructor,accuracy,win_accuracy,cli_string",
     [
-
         (partial(OnlineBagging, ensemble_size=5), 84.6, 89.0, None),
         (partial(AdaptiveRandomForest), 89.0, 91.0, None),
         (partial(HoeffdingTree), 73.85, 73.0, None),
@@ -32,22 +32,10 @@ from capymoa.learner.classifier.sklearn import PassiveAggressiveClassifier
             84.0,
             "trees.EFDT -R 200 -m 33554433 -g 10 -s (InfoGainSplitCriterion -f 0.2) -c 0.001 -z -p -l MC",
         ),
+        (partial(NaiveBayes), 84.0, 91.0, None),
     ],
-    ids=["OnlineBagging", "AdaptiveRandomForest", "HoeffdingTree", "EFDT", "EFDT_gini"],
+    ids=["OnlineBagging", "AdaptiveRandomForest", "HoeffdingTree", "EFDT", "EFDT_gini", "NaiveBayes"],
 
-    #     (partial(OnlineBagging, ensemble_size=5), 84.6, 89.0),
-    #     (partial(AdaptiveRandomForest), 89.6, 91.0),
-    #     (partial(HoeffdingTree), 73.85, 73.0),
-    #     (partial(EFDT), 82.7, 82.0),
-    #     (partial(PassiveAggressiveClassifier), 84.7, 81.0),
-    # ],
-    # ids=[
-    #     "OnlineBagging",
-    #     "AdaptiveRandomForest",
-    #     "HoeffdingTree",
-    #     "EFDT",
-    #     "PassiveAggressiveClassifier",
-    # ],
 )
 def test_classifiers(
     learner_constructor: Callable[[Schema], Classifier],
