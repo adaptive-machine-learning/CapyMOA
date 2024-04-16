@@ -8,3 +8,9 @@ and used being downloaded the first time you use them.
     :undoc-members:
     :show-inheritance:
     :inherited-members:
+
+.. automodule:: capymoa.datasets.downloader
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :inherited-members:

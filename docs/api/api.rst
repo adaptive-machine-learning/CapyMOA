@@ -18,10 +18,16 @@ with the :ref:`tutorials<tutorials>`.
 
 ..  toctree::
     :maxdepth: 1
+    :caption: Interfaces
+
+    learner
+    moa_learner
+
+..  toctree::
+    :maxdepth: 1
     :caption: Learners
 
     regressor
-    learners
     ssl
     classifiers
 
@@ -30,3 +36,10 @@ with the :ref:`tutorials<tutorials>`.
     :caption: Evaluation
     
     evaluation
+
+
+..  toctree::
+    :maxdepth: 1
+    :caption: Other
+    
+    splitcriteria

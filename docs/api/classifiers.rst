@@ -1,9 +1,8 @@
 Classifiers
 ===========
-Classifiers implement the :class:`capymoa.learner.learners.Classifier` interface.
+Classifiers implement the :class:`capymoa.Classifier` interface.
 
-.. automodule:: capymoa.learner.classifier
+.. automodule:: capymoa.classifier
     :members:
     :undoc-members:
     :show-inheritance:
-    :inherited-members:

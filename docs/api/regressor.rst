@@ -1,10 +1,9 @@
 Regressors
 ==========
-Regressors implement the :class:`capymoa.learner.learners.Regressor` interface.
+Regressors implement the :class:`capymoa.Regressor` interface.
 
-.. automodule:: capymoa.learner.regressor
+.. automodule:: capymoa.regressor
     :members:
     :undoc-members:
     :show-inheritance:
-    :inherited-members:
 
