@@ -1,5 +1,5 @@
 from capymoa.datasets.datasets import ElectricityTiny, CovtypeTiny
-from capymoa.learner.ssl.classifier.CPSSDS import CPSSDS
+from capymoa.ssl.classifier import CPSSDS
 from test_utility.ssl_helpers import assert_ssl_evaluation
 import pytest
 

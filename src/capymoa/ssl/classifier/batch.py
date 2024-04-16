@@ -4,7 +4,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 
-from capymoa.learner import ClassifierSSL
+from capymoa import ClassifierSSL
 from capymoa.stream.instance import Instance, LabeledInstance
 from capymoa.stream.stream import Schema
 from capymoa.type_alias import FeatureVector

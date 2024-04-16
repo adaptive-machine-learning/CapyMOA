@@ -1,7 +1,8 @@
 import pytest
 from capymoa.evaluation.evaluation import prequential_SSL_evaluation
-from capymoa.learner import ClassifierSSL
+from capymoa import ClassifierSSL
 from capymoa.stream import Stream
+
 
 def assert_ssl_evaluation(
     learner: ClassifierSSL,
@@ -18,6 +19,7 @@ def assert_ssl_evaluation(
         max_instances=max_instances,
     )
 
-    assert results["cumulative"].accuracy() == pytest.approx(expectation), \
-        f"Expected accuracy of {expectation} but got {results['cumulative'].accuracy()}" + \
-        f" for learner {learner} on stream {stream}"
+    assert results["cumulative"].accuracy() == pytest.approx(expectation), (
+        f"Expected accuracy of {expectation} but got {results['cumulative'].accuracy()}"
+        + f" for learner {learner} on stream {stream}"
+    )

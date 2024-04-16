@@ -1,41 +1,27 @@
 from __future__ import annotations
 from typing import Union
 
-from capymoa.learner import MOAClassifier
-from capymoa.learner.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
+from capymoa.base import MOAClassifier
+from capymoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
 from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 import moa.classifiers.trees as moa_trees
 
 
-class EFDT(MOAClassifier):
-    """Extremely Fast Decision Tree (EFDT) classifier.
-
-    Also referred to as the Hoeffding AnyTime Tree (HATT) classifier. In practice,
-    despite the name, EFDTs are typically slower than a vanilla Hoeffding Tree
-    to process data. The speed differences come from the mechanism of split
-    re-evaluation present in EFDT. Nonetheless, EFDT has theoretical properties
-    that ensure it converges faster than the vanilla Hoeffding Tree to the structure
-    that would be created by a batch decision tree model (such as Classification and
-    Regression Trees - CART). Keep in mind that such propositions hold when processing
-    a stationary data stream. When dealing with non-stationary data, EFDT is somewhat
-    robust to concept drifts as it continually revisits and updates its internal
-    decision tree structure. Still, in such cases, the Hoeffind Adaptive Tree might
-    be a better option, as it was specifically designed to handle non-stationarity.
+class HoeffdingTree(MOAClassifier):
+    """Hoeffding Tree classifier.
 
     Parameters
     ----------
     schema
-        The schema of the stream.
+        The schema of the stream
     random_seed
         The random seed passed to the moa learner
     grace_period
         Number of instances a leaf should observe between split attempts.
-    min_samples_reevaluate
-        Number of instances a node should observe before reevaluating the best split.
     split_criterion
-        Split criterion to use. Defaults to `InfoGainSplitCriterion`.
+        Split criterion to use. Defaults to `InfoGainSplitCriterion`
     confidence
         Significance level to calculate the Hoeffding bound. The significance level is given by
         `1 - delta`. Values closer to zero imply longer split decision delays.
@@ -74,7 +60,6 @@ class EFDT(MOAClassifier):
         schema: Schema | None = None,
         random_seed: int = 0,
         grace_period: int = 200,
-        min_samples_reevaluate: int = 200,
         split_criterion: Union[str, SplitCriterion] = "InfoGainSplitCriterion",
         confidence: float = 1e-3,
         tie_threshold: float = 0.05,
@@ -90,25 +75,23 @@ class EFDT(MOAClassifier):
     ):
         mapping = {
             "grace_period": "-g",
-            "min_samples_reevaluate": "-R",
+            "max_byte_size": "-m",
+            "numeric_attribute_observer": "-n",
+            "memory_estimate_period": "-e",
             "split_criterion": "-s",
             "confidence": "-c",
             "tie_threshold": "-t",
-            "leaf_prediction": "-l",
-            "nb_threshold": "-q",
-            "numeric_attribute_observer": "-n",
             "binary_split": "-b",
-            "max_byte_size": "-m",
-            "memory_estimate_period": "-e",
             "stop_mem_management": "-z",
             "remove_poor_attrs": "-r",
             "disable_prepruning": "-p",
+            "leaf_prediction": "-l",
+            "nb_threshold": "-q",
         }
-
         split_criterion = _split_criterion_to_cli_str(split_criterion)
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
-        super(EFDT, self).__init__(
-            moa_learner=moa_trees.EFDT,
+        super(HoeffdingTree, self).__init__(
+            moa_learner=moa_trees.HoeffdingTree,
             schema=schema,
             CLI=config_str,
             random_seed=random_seed,

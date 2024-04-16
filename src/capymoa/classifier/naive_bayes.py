@@ -1,7 +1,7 @@
 from __future__ import annotations
 import typing
 
-from capymoa.learner import MOAClassifier
+from capymoa.base import MOAClassifier
 from capymoa.stream import Schema
 
 import moa.classifiers.bayes as moa_bayes
@@ -17,13 +17,11 @@ class NaiveBayes(MOAClassifier):
     :type random_seed: int, optional
     """
 
-
     def __init__(self, schema: typing.Union[Schema, None] = None, random_seed: int = 0):
-        super(NaiveBayes, self).__init__(moa_learner=moa_bayes.NaiveBayes(), 
-                                        schema=schema,
-                                        random_seed=random_seed)
+        super(NaiveBayes, self).__init__(
+            moa_learner=moa_bayes.NaiveBayes(), schema=schema, random_seed=random_seed
+        )
 
     def __str__(self):
         # Overrides the default class name from MOA (OzaBag)
         return "Naive Bayes CapyMOA Classifier"
-

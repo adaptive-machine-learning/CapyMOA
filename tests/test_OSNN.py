@@ -1,5 +1,6 @@
 from capymoa.datasets.datasets import ElectricityTiny, CovtypeTiny
 from test_utility.ssl_helpers import assert_ssl_evaluation
+from capymoa.ssl.classifier import OSNN
 import pytest
 import importlib
 
@@ -12,8 +13,6 @@ import importlib
     ids=["ElectricityTiny", "CovtypeTiny"],
 )
 def test_OSNN(stream, expectation):
-    pytest.importorskip("torch.nn", reason="PyTorch not installed. Skipping test.")
-    OSNN = importlib.import_module("capymoa.learner.ssl.classifier.OSNN").OSNN
     # The optimizer steps are set to 10 to speed up the test
     learner = OSNN(optim_steps=10)
     assert_ssl_evaluation(

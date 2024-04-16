@@ -1,5 +1,5 @@
 from capymoa.datasets.datasets import ElectricityTiny
-from capymoa.learner.ssl.classifier.batch import BatchClassifierSSL
+from capymoa.ssl.classifier.batch import BatchClassifierSSL
 from capymoa.stream.stream import Schema, NumpyStream
 from capymoa.evaluation.evaluation import prequential_SSL_evaluation
 import numpy as np

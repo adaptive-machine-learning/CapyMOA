@@ -1,5 +1,5 @@
 # Library imports
-from capymoa.learner.learners import (
+from capymoa.base import (
     MOAClassifier,
     MOARegressor,
     _get_moa_creation_CLI,

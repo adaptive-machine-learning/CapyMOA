@@ -1,11 +1,11 @@
 # Library imports
 from typing import Optional, Union
 
-from capymoa.learner.learners import (
+from capymoa.base import (
     MOARegressor,
 )
 
-from capymoa.learner.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
+from capymoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
 from capymoa.stream.stream import Schema
 from moa.classifiers.lazy import kNN as MOA_kNN
 from moa.classifiers.meta import (

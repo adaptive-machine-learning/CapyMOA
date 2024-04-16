@@ -1,5 +1,5 @@
 from typing import Optional, Dict, Union, Literal
-from capymoa.learner.learners import Classifier
+from capymoa.base import Classifier
 from sklearn.linear_model import (
     PassiveAggressiveClassifier as skPassiveAggressiveClassifier,
 )
@@ -21,7 +21,7 @@ class PassiveAggressiveClassifier(Classifier):
     <http://jmlr.csail.mit.edu/papers/volume7/crammer06a/crammer06a.pdf>`_
 
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.learner.classifier import PassiveAggressiveClassifier
+    >>> from capymoa.classifier import PassiveAggressiveClassifier
     >>> from capymoa.evaluation import prequential_evaluation
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
