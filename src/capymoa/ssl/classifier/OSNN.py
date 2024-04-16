@@ -29,7 +29,6 @@ def Euclidean_Distances(a, b):
 
 
 class OSNeuralNetwork(nn.Module):
-
     def __init__(self, num_center, n_out, window_size, beta=1, gamma=1):
         super(OSNeuralNetwork, self).__init__()
         self.n_out = n_out
@@ -93,7 +92,6 @@ class OSNeuralNetwork(nn.Module):
             )
 
         for i in range(data.size(0)):
-
             self.data_window = torch.cat(
                 [self.data_window[1:, :], data[i : i + 1, :]], dim=0
             )

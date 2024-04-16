@@ -1,18 +1,12 @@
 # Library imports
 from capymoa.base import (
     MOAClassifier,
-    MOARegressor,
-    _get_moa_creation_CLI,
     _extract_moa_learner_CLI,
 )
 
 # MOA/Java imports
-from moa.classifiers import Classifier
 from moa.classifiers.meta import AdaptiveRandomForest as MOA_AdaptiveRandomForest
 from moa.classifiers.meta import OzaBag as MOA_OzaBag
-from moa.classifiers.meta import (
-    AdaptiveRandomForestRegressor as MOA_AdaptiveRandomForestRegressor,
-)
 
 
 # TODO: replace the m_features_mode logic such that we can infer from m_features_per_tree_size, e.g. if value is double between 0.0 and 1.0 = percentage

@@ -1,4 +1,4 @@
-from .classifiers import AdaptiveRandomForest, OnlineBagging, AdaptiveRandomForest
+from .classifiers import OnlineBagging, AdaptiveRandomForest
 from .efdt import EFDT
 from .sklearn import PassiveAggressiveClassifier
 from .hoeffding_tree import HoeffdingTree

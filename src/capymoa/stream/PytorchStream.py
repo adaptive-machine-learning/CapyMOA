@@ -1,6 +1,4 @@
-from jpype import JObject
 
-import numpy as np
 import torch
 
 from capymoa.stream import Stream, Schema

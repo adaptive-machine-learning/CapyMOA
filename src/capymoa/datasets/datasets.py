@@ -51,6 +51,7 @@ class ElectricityTiny(DownloadARFFGzip):
     filename = "electricity_tiny.arff"
     remote_url = ROOT_URL
 
+
 class CovtypeTiny(DownloadARFFGzip):
     """A truncated version of the Covtype dataset with 1000 instances."""
 

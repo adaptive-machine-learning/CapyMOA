@@ -1,5 +1,4 @@
 # Python imports
-import subprocess
 import configparser
 import jpype
 import jpype.imports

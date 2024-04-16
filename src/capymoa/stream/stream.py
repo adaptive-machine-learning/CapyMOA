@@ -429,7 +429,10 @@ def stream_from_file(
         targets = targets.astype(int)
         x_features = x_features[:, :-1]
         return NumpyStream(
-            x_features, targets, dataset_name=dataset_name, enforce_regression=enforce_regression
+            x_features,
+            targets,
+            dataset_name=dataset_name,
+            enforce_regression=enforce_regression,
         )
 
 
@@ -571,18 +574,20 @@ def _add_instances_to_moa_stream(moa_stream, moa_header, X, y):
 
         moa_stream.add(instance)
 
-class CSVStream(Stream):
-    def __init__(self,
-                 csv_file_path,
-                 dtypes: list = None,  # [('column1', np.float64), ('column2', np.int32), ('column3', np.float64), ('column3', str)] reads nomonal attributes as str
-                 values_for_nominal_features={}, # {i: [1,2,3], k: [Aa, BB]}. Key is integer. Values are turned into strings
-                 class_index: int = -1,
-                 values_for_class_label: list = None,
-                 target_attribute_name=None,
-                 enforce_regression=False,
-                 skip_header: bool = False,
-                 delimiter=','):
 
+class CSVStream(Stream):
+    def __init__(
+        self,
+        csv_file_path,
+        dtypes: list = None,  # [('column1', np.float64), ('column2', np.int32), ('column3', np.float64), ('column3', str)] reads nomonal attributes as str
+        values_for_nominal_features={},  # {i: [1,2,3], k: [Aa, BB]}. Key is integer. Values are turned into strings
+        class_index: int = -1,
+        values_for_class_label: list = None,
+        target_attribute_name=None,
+        enforce_regression=False,
+        skip_header: bool = False,
+        delimiter=",",
+    ):
         self.csv_file_path = csv_file_path
         self.values_for_nominal_features = values_for_nominal_features
         self.class_index = class_index
@@ -592,56 +597,94 @@ class CSVStream(Stream):
         self.skip_header = skip_header
         self.delimiter = delimiter
 
-        self.dtypes = [] # [('column1', np.float64), ('column2', np.int32), ('column3', np.float64), ('column3', str)] reads nomonal attributes as str
-        if dtypes is None or len(dtypes) == 0: # data definition for each column not provided
-            if len(self.values_for_nominal_features) == 0: # data definition for nominal features are given
+        self.dtypes = []  # [('column1', np.float64), ('column2', np.int32), ('column3', np.float64), ('column3', str)] reads nomonal attributes as str
+        if (
+            dtypes is None or len(dtypes) == 0
+        ):  # data definition for each column not provided
+            if (
+                len(self.values_for_nominal_features) == 0
+            ):  # data definition for nominal features are given
                 # need to infer number of columns, then generate full data definition using nominal information
                 # LOADS FIRST TWO ROWS INTO THE MEMORY
-                data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=None, names=True,
-                                     skip_header=0, max_rows=2)
+                data = np.genfromtxt(
+                    self.csv_file_path,
+                    delimiter=self.delimiter,
+                    dtype=None,
+                    names=True,
+                    skip_header=0,
+                    max_rows=2,
+                )
                 if not self.enforce_regression and self.values_for_class_label is None:
                     # LOADS THE FULL FILE INTO THE MEMORY
-                    data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=None, names=True,
-                                         skip_header=1 if skip_header else 0)
+                    data = np.genfromtxt(
+                        self.csv_file_path,
+                        delimiter=self.delimiter,
+                        dtype=None,
+                        names=True,
+                        skip_header=1 if skip_header else 0,
+                    )
                     y = data[data.dtype.names[self.class_index]]
                     self.values_for_class_label = [str(value) for value in np.unique(y)]
                 for i, data_info in enumerate(data.dtype.descr):
                     column_name, data_type = data_info
-                    if self.values_for_nominal_features.get(i) is not None: # i is in nominal feature keys
-                        self.dtypes.append((column_name, 'str'))
+                    if (
+                        self.values_for_nominal_features.get(i) is not None
+                    ):  # i is in nominal feature keys
+                        self.dtypes.append((column_name, "str"))
                     else:
                         self.dtypes.append((column_name, data_type))
-            else: # need to infer data definitions
+            else:  # need to infer data definitions
                 # LOADS THE FULL FILE INTO THE MEMORY
-                data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=None, names=True,
-                                     skip_header=1 if skip_header else 0)
+                data = np.genfromtxt(
+                    self.csv_file_path,
+                    delimiter=self.delimiter,
+                    dtype=None,
+                    names=True,
+                    skip_header=1 if skip_header else 0,
+                )
                 self.dtypes = data.dtype
                 if not self.enforce_regression and self.values_for_class_label is None:
                     y = data[data.dtype.names[self.class_index]]
                     self.values_for_class_label = [str(value) for value in np.unique(y)]
-        else: # data definition for each column are provided
+        else:  # data definition for each column are provided
             self.dtypes = dtypes
 
         self.total_number_of_lines = 0
         if self.skip_header:
             self.n_lines_to_skip = 1
         else:
-            row1_data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=None, names=True, skip_header=0,max_rows=1)
-            row2_data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=None, names=True, skip_header=1, max_rows=1)
+            row1_data = np.genfromtxt(
+                self.csv_file_path,
+                delimiter=self.delimiter,
+                dtype=None,
+                names=True,
+                skip_header=0,
+                max_rows=1,
+            )
+            row2_data = np.genfromtxt(
+                self.csv_file_path,
+                delimiter=self.delimiter,
+                dtype=None,
+                names=True,
+                skip_header=1,
+                max_rows=1,
+            )
             if row1_data.dtype.names != row2_data.dtype.names:
                 self.n_lines_to_skip = 1
             else:
                 self.n_lines_to_skip = 0
 
-        self.__moa_stream_with_only_header, self.moa_header = _init_moa_stream_and_create_moa_header(
-                number_of_instances=1, # we only need this to initialize the MOA header
-                feature_names = [data_info[0] for data_info in  self.dtypes],
-                values_for_nominal_features = self.values_for_nominal_features,
-                values_for_class_label = self.values_for_class_label,
+        self.__moa_stream_with_only_header, self.moa_header = (
+            _init_moa_stream_and_create_moa_header(
+                number_of_instances=1,  # we only need this to initialize the MOA header
+                feature_names=[data_info[0] for data_info in self.dtypes],
+                values_for_nominal_features=self.values_for_nominal_features,
+                values_for_class_label=self.values_for_class_label,
                 dataset_name="CSVDataset",
-                target_attribute_name = self.target_attribute_name,
-                enforce_regression = self.enforce_regression,
+                target_attribute_name=self.target_attribute_name,
+                enforce_regression=self.enforce_regression,
             )
+        )
 
         self.schema = Schema(moa_header=self.moa_header)
         super().__init__(schema=self.schema, CLI=None, moa_stream=None)
@@ -660,15 +703,32 @@ class CSVStream(Stream):
         if not self.has_more_instances():
             return None
         # skip header
-        data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=self.dtypes, names=None, skip_header=self.n_lines_to_skip, max_rows=1)
+        data = np.genfromtxt(
+            self.csv_file_path,
+            delimiter=self.delimiter,
+            dtype=self.dtypes,
+            names=None,
+            skip_header=self.n_lines_to_skip,
+            max_rows=1,
+        )
         # np.genfromtxt() returns a structured https://numpy.org/doc/stable/user/basics.rec.html#structured-arrays
         self.n_lines_to_skip += 1
 
         # data = np.expand_dims(data, axis=0)
         # y = data[[data.dtype.names[self.class_index]]].view('i4')
-        y = rfn.structured_to_unstructured(data[[data.dtype.names[self.class_index]]])[0]
+        y = rfn.structured_to_unstructured(data[[data.dtype.names[self.class_index]]])[
+            0
+        ]
         # X = data[[item for item in data.dtype.names if item != data.dtype.names[self.class_index]]].view('f4')
-        X = rfn.structured_to_unstructured(data[[item for item in data.dtype.names if item != data.dtype.names[self.class_index]]])
+        X = rfn.structured_to_unstructured(
+            data[
+                [
+                    item
+                    for item in data.dtype.names
+                    if item != data.dtype.names[self.class_index]
+                ]
+            ]
+        )
 
         if self.schema.is_classification():
             return LabeledInstance.from_array(self.schema, X, y)

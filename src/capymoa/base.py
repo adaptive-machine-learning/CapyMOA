@@ -5,8 +5,7 @@ from jpype import _jpype
 from moa.classifiers import Classifier as MOA_Classifier_Interface
 from moa.core import Utils
 
-from capymoa.stream.instance import (Instance, LabeledInstance,
-                                     RegressionInstance)
+from capymoa.stream.instance import Instance, LabeledInstance, RegressionInstance
 from capymoa.stream.stream import Schema
 from capymoa.type_alias import LabelIndex, LabelProbabilities, TargetValue
 
@@ -153,7 +152,9 @@ class MOAClassifier(Classifier):
         self.moa_learner.trainOnInstance(instance.java_instance)
 
     def predict(self, instance):
-        return Utils.maxIndex(self.moa_learner.getVotesForInstance(instance.java_instance))
+        return Utils.maxIndex(
+            self.moa_learner.getVotesForInstance(instance.java_instance)
+        )
 
     def predict_proba(self, instance):
         return self.moa_learner.getVotesForInstance(instance.java_instance)
@@ -196,17 +197,13 @@ class SKClassifier(Classifier):
         self.trained_at_least_once = True  # deve (e tem que) ter um jeito melhor
 
     def predict(self, instance):
-        if (
-            self.trained_at_least_once
-        ):  # scikit-learn does not allows invoking predict in a model that was not fit before
+        if self.trained_at_least_once:  # scikit-learn does not allows invoking predict in a model that was not fit before
             return self.sklearner.predict([instance.x])[0]
         else:
             return None
 
     def predict_proba(self, instance):
-        if (
-            self.trained_at_least_once
-        ):  # scikit-learn does not allows invoking predict in a model that was not fit before
+        if self.trained_at_least_once:  # scikit-learn does not allows invoking predict in a model that was not fit before
             return self.sklearner.predict_proba([instance.x])
         else:
             return None

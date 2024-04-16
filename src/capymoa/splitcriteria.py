@@ -4,8 +4,9 @@ from typing import Optional, Union
 import moa.classifiers.core.splitcriteria as moa_split
 
 
-class SplitCriterion():
+class SplitCriterion:
     """Split criterions are used to evaluate the quality of a split in a decision tree."""
+
     _java_object: Optional[moa_split.SplitCriterion] = None
 
     def java_object(self) -> moa_split.SplitCriterion:
@@ -65,4 +66,6 @@ def _split_criterion_to_cli_str(split_criterion: Union[str, SplitCriterion]) -> 
     elif isinstance(split_criterion, str):
         return split_criterion.strip().strip("() ")
     else:
-        raise TypeError(f"Expected a string or SplitCriterion, got {type(split_criterion)}")
+        raise TypeError(
+            f"Expected a string or SplitCriterion, got {type(split_criterion)}"
+        )

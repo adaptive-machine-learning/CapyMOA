@@ -6,11 +6,9 @@ from .datasets import (
     Hyper100k,
     Sensor,
     ElectricityTiny,
-    Fried
+    Fried,
 )
-from .downloader import (
-    get_download_dir
-)
+from .downloader import get_download_dir
 
 __all__ = [
     "Hyper100k",
@@ -21,5 +19,5 @@ __all__ = [
     "Sensor",
     "ElectricityTiny",
     "Fried",
-    "get_download_dir"
+    "get_download_dir",
 ]
