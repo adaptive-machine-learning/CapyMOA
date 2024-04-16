@@ -12,9 +12,7 @@ class NaiveBayes(MOAClassifier):
     Performs classic Bayesian prediction while making the naive assumption that all inputs are independent. Naive Bayes is a classifier algorithm known for its simplicity and low computational cost. Given n different classes, the trained Naive Bayes classifier predicts, for every unlabeled instance I, the class C to which it belongs with high accuracy.
 
     :param schema: The schema of the stream, defaults to None.
-    :type schema: object, optional
     :param random_seed: The random seed passed to the MOA learner, defaults to 0.
-    :type random_seed: int, optional
     """
 
     def __init__(self, schema: typing.Union[Schema, None] = None, random_seed: int = 0):

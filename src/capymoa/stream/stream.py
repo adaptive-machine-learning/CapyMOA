@@ -35,9 +35,9 @@ class Schema:
     """
 
     def __init__(self, moa_header: InstancesHeader):
-        """Construct a schema by wrapping a :class:`InstancesHeader`.
+        """Construct a schema by wrapping a ``InstancesHeader``.
 
-        To create a schema without an :class:`InstancesHeader` use
+        To create a schema without an ``InstancesHeader`` use
         :meth:`from_custom` method.
 
         :param moa_header: A Java MOA header object.
@@ -218,7 +218,7 @@ class Stream:
     ):
         """Construct a Stream from a MOA stream object.
 
-        Usually, you will want to construct a Stream using the :func:`stream_from_file`
+        Usually, you will want to construct a Stream using the :func:`capymoa.stream.stream_from_file`
         function.
 
         :param moa_stream: The MOA stream object to read instances from. Is None

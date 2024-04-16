@@ -34,13 +34,14 @@ def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
 def docs_build(ctx: Context, ignore_warnings: bool = False):
     """Build the documentation using Sphinx."""
     warn = "-W" if not ignore_warnings else ""
+    nitpicky = "-n" if not ignore_warnings else ""
 
     doc_dir = Path("docs/_build")
     doc_dir.mkdir(exist_ok=True, parents=True)
     cpu = cpu_count() // 2
     print("Building documentation...")
 
-    ctx.run(f"python -m sphinx build {warn} --color -E -b html docs {doc_dir}")
+    ctx.run(f"python -m sphinx build {warn} {nitpicky} --color -E -b html docs {doc_dir}")
 
     print("-" * 80)
     print("Documentation is built and available at:")
