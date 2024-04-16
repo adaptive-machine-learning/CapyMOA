@@ -9,7 +9,7 @@ from typing import Any, Optional
 import wget
 from moa.streams import ArffFileStream
 
-from capymoa.stream.stream import Stream
+from capymoa.stream._stream import Stream
 
 
 def get_download_dir():

@@ -13,7 +13,7 @@ import torch.nn as nn
 import torch
 from scipy.spatial.distance import cdist
 
-from capymoa import ClassifierSSL
+from capymoa.base import ClassifierSSL
 
 
 def kernel_fun(a, b, sigma):
@@ -260,6 +260,7 @@ class def_loss(nn.Module):
 class OSNN(ClassifierSSL):
     def __init__(
         self,
+        schema=None,
         num_center=10,
         n_out=1,
         window_size=200,

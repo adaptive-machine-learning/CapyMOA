@@ -6,7 +6,7 @@ from capymoa.base import (
 )
 
 from capymoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
-from capymoa.stream.stream import Schema
+from capymoa.stream._stream import Schema
 from moa.classifiers.meta import SelfOptimisingKNearestLeaves as _MOA_SOKNL
 from moa.classifiers.trees import SelfOptimisingBaseTree as _MOA_SelfOptimisingBaseTree
 

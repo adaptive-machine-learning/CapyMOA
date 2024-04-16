@@ -3,8 +3,8 @@ from capymoa.base import Classifier
 from sklearn.linear_model import (
     PassiveAggressiveClassifier as skPassiveAggressiveClassifier,
 )
-from capymoa.stream.instance import Instance, LabeledInstance
-from capymoa.stream.stream import Schema
+from capymoa.instance import Instance, LabeledInstance
+from capymoa.stream._stream import Schema
 from capymoa.type_alias import LabelIndex, LabelProbabilities
 import numpy as np
 

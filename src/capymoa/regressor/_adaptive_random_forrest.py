@@ -1,7 +1,7 @@
 # Library imports
 
 from capymoa.base import MOARegressor
-from .arffimtdd import ARFFIMTDD
+from ._arffimtdd import ARFFIMTDD
 
 from moa.classifiers.meta import (
     AdaptiveRandomForestRegressor as MOA_AdaptiveRandomForestRegressor,

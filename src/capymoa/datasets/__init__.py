@@ -1,4 +1,4 @@
-from .datasets import (
+from ._datasets import (
     CovtFD,
     Covtype,
     RBFm_100k,

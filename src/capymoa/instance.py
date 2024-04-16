@@ -62,7 +62,7 @@ class Instance:
 
         >>> from capymoa.stream import Schema
         ...
-        >>> from capymoa.stream.instance import Instance
+        >>> from capymoa.instance import Instance
         >>> import numpy as np
         >>> schema = Schema.from_custom(
         ...     ["f1", "f2"],
@@ -146,7 +146,7 @@ class LabeledInstance(Instance):
 
     >>> from capymoa.datasets import ElectricityTiny
     ...
-    >>> from capymoa.stream.instance import LabeledInstance
+    >>> from capymoa.instance import LabeledInstance
     >>> stream = ElectricityTiny()
     >>> instance: LabeledInstance = stream.next_instance()
     >>> instance.y_label
@@ -182,7 +182,7 @@ class LabeledInstance(Instance):
 
         >>> from capymoa.stream import Schema
         ...
-        >>> from capymoa.stream.instance import LabeledInstance
+        >>> from capymoa.instance import LabeledInstance
         >>> import numpy as np
         >>> schema = Schema.from_custom(
         ...     ["f1", "f2"],
@@ -253,7 +253,7 @@ class RegressionInstance(Instance):
 
     >>> from capymoa.datasets import Fried
     ...
-    >>> from capymoa.stream.instance import RegressionInstance
+    >>> from capymoa.instance import RegressionInstance
     >>> stream = Fried()
     >>> instance: RegressionInstance = stream.next_instance()
     >>> instance.y_value
@@ -286,7 +286,7 @@ class RegressionInstance(Instance):
 
         >>> from capymoa.stream import Schema
         ...
-        >>> from capymoa.stream.instance import LabeledInstance
+        >>> from capymoa.instance import LabeledInstance
         >>> import numpy as np
         >>> schema = Schema.from_custom(
         ...     ["f1", "f2"],

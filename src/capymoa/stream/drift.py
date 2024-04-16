@@ -2,7 +2,7 @@
 
 import re
 
-from capymoa.stream.stream import Stream
+from capymoa.stream._stream import Stream
 from capymoa._utils import _get_moa_creation_CLI
 from moa.streams import ConceptDriftStream as MOA_ConceptDriftStream
 

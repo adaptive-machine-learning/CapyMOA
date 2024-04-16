@@ -43,8 +43,9 @@ This part of the documentation is for developers and contributors.
    :maxdepth: 2
    :caption: Contributing
 
-   testing
-   README
+   contributing/learners
+   contributing/docs
+   contributing/tests
 
 Indices and tables
 ==================

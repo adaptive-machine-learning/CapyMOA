@@ -1,5 +1,5 @@
-from .CPSSDS import CPSSDS
-from .OSNN import OSNN
-from .batch import BatchClassifierSSL
+from ._cpssds import CPSSDS
+from ._osnn import OSNN
+from ._batch import BatchClassifierSSL
 
 __all__ = ["BatchClassifierSSL", "CPSSDS", "OSNN"]

@@ -1,6 +1,6 @@
 Semi-Supervised Learners (SSL)
 ==============================
-Semi-Supervised classifiers implement the :class:`capymoa.ClassifierSSL` interface.
+Semi-Supervised classifiers implement the :class:`capymoa.base.ClassifierSSL` interface.
 
 .. automodule:: capymoa.ssl.classifier
     :members:

@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.typing import NDArray
 
-from capymoa import ClassifierSSL
-from capymoa.stream.instance import Instance, LabeledInstance
-from capymoa.stream.stream import Schema
+from capymoa.base import ClassifierSSL
+from capymoa.instance import Instance, LabeledInstance
+from capymoa.stream._stream import Schema
 from capymoa.type_alias import FeatureVector
 
 

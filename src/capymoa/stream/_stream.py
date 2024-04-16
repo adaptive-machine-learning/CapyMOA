@@ -15,7 +15,7 @@ from moa.streams import ArffFileStream, InstanceStream
 
 # MOA/Java imports
 
-from capymoa.stream.instance import (
+from capymoa.instance import (
     Instance,
     LabeledInstance,
     RegressionInstance,
@@ -597,7 +597,9 @@ class CSVStream(Stream):
         self.skip_header = skip_header
         self.delimiter = delimiter
 
-        self.dtypes = []  # [('column1', np.float64), ('column2', np.int32), ('column3', np.float64), ('column3', str)] reads nomonal attributes as str
+        self.dtypes = (
+            []
+        )  # [('column1', np.float64), ('column2', np.int32), ('column3', np.float64), ('column3', str)] reads nomonal attributes as str
         if (
             dtypes is None or len(dtypes) == 0
         ):  # data definition for each column not provided

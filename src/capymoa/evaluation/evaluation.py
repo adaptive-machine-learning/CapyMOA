@@ -4,7 +4,7 @@ import numpy as np
 import time
 import random
 
-from capymoa.stream.stream import Schema, Stream
+from capymoa.stream import Schema, Stream
 from capymoa.base import ClassifierSSL
 
 from com.yahoo.labs.samoa.instances import Instances, Attribute, DenseInstance

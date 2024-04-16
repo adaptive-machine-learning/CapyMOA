@@ -3,17 +3,17 @@ Learners
 CapyMOA defines different interfaces for learners performing different machine
 learning tasks.
 
-..  autoclass:: capymoa.Classifier
+..  autoclass:: capymoa.base.Classifier
     :members:
     :undoc-members:
     :inherited-members:
 
-..  autoclass:: capymoa.Regressor
+..  autoclass:: capymoa.base.Regressor
     :members:
     :undoc-members:
     :inherited-members:
 
-.. autoclass:: capymoa.ClassifierSSL
+.. autoclass:: capymoa.base.ClassifierSSL
     :members:
     :undoc-members:
     :inherited-members:

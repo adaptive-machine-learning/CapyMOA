@@ -6,9 +6,9 @@ from river.base import Classifier
 from river.naive_bayes import GaussianNB
 from river.tree import HoeffdingTreeClassifier
 
-from capymoa.ssl.classifier.batch import BatchClassifierSSL
+from ._batch import BatchClassifierSSL
 from capymoa.stream import Schema
-from capymoa.stream.instance import Instance
+from capymoa.instance import Instance
 
 
 def shuffle_split(

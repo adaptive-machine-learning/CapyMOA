@@ -1,6 +1,6 @@
 Classifiers
 ===========
-Classifiers implement the :class:`capymoa.Classifier` interface.
+Classifiers implement the :class:`capymoa.base.Classifier` interface.
 
 .. automodule:: capymoa.classifier
     :members:
