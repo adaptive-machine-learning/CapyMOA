@@ -1,15 +1,16 @@
-from .classifiers import OnlineBagging, AdaptiveRandomForest
+from .adaptive_random_forest import AdaptiveRandomForest
 from .efdt import EFDT
-from .sklearn import PassiveAggressiveClassifier
 from .hoeffding_tree import HoeffdingTree
 from .naive_bayes import NaiveBayes
+from .online_bagging import OnlineBagging
+from .passive_aggressive_classifier import PassiveAggressiveClassifier
 
 __all__ = [
     "AdaptiveRandomForest",
-    "OnlineBagging",
     "AdaptiveRandomForest",
     "EFDT",
     "HoeffdingTree",
     "NaiveBayes",
+    "OnlineBagging",
     "PassiveAggressiveClassifier",
 ]

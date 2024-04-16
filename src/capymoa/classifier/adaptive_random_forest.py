@@ -1,12 +1,9 @@
-# Library imports
 from capymoa.base import (
     MOAClassifier,
     _extract_moa_learner_CLI,
 )
 
-# MOA/Java imports
-from moa.classifiers.meta import AdaptiveRandomForest as MOA_AdaptiveRandomForest
-from moa.classifiers.meta import OzaBag as MOA_OzaBag
+from moa.classifiers.meta import AdaptiveRandomForest as _MOA_AdaptiveRandomForest
 
 
 # TODO: replace the m_features_mode logic such that we can infer from m_features_per_tree_size, e.g. if value is double between 0.0 and 1.0 = percentage
@@ -79,29 +76,5 @@ class AdaptiveRandomForest(MOAClassifier):
             schema=schema,
             CLI=CLI,
             random_seed=random_seed,
-            moa_learner=MOA_AdaptiveRandomForest(),
+            moa_learner=_MOA_AdaptiveRandomForest(),
         )
-
-
-class OnlineBagging(MOAClassifier):
-    def __init__(
-        self, schema=None, CLI=None, random_seed=1, base_learner=None, ensemble_size=100
-    ):
-        # This method basically configures the CLI, object creation is delegated to MOAClassifier (the super class, through super().__init___()))
-        # Initialize instance attributes with default values, if the CLI was not set.
-        if CLI is None:
-            self.base_learner = (
-                "trees.HoeffdingTree"
-                if base_learner is None
-                else _extract_moa_learner_CLI(base_learner)
-            )
-            self.ensemble_size = ensemble_size
-            CLI = f"-l {self.base_learner} -s {self.ensemble_size}"
-
-        super().__init__(
-            schema=schema, CLI=CLI, random_seed=random_seed, moa_learner=MOA_OzaBag()
-        )
-
-    def __str__(self):
-        # Overrides the default class name from MOA (OzaBag)
-        return "OnlineBagging"
