@@ -3,6 +3,7 @@ from typing import Optional
 
 from jpype import _jpype
 from moa.classifiers import Classifier as MOA_Classifier_Interface
+from moa.classifiers import Regressor as MOA_Regressor_Interface
 from moa.core import Utils
 
 from capymoa.stream.instance import (Instance, LabeledInstance,
@@ -30,7 +31,7 @@ def _get_moa_creation_CLI(moa_learner):
     moa_learner_class_id = str(moa_learner.getClass().getName())
     moa_learner_class_id_parts = moa_learner_class_id.split(".")
     moa_learner_str = (
-        f"{moa_learner_class_id_parts[-2]}.{moa_learner_class_id_parts[-1]}" if moa_learner_class_id_parts[-3] == 'classifiers'
+        f"{moa_learner_class_id_parts[-2]}.{moa_learner_class_id_parts[-1]}" if not isinstance(moa_learner, MOA_Regressor_Interface)
         else f"{moa_learner_class_id_parts[-1]}"
     )
 
