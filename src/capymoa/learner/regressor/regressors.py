@@ -357,7 +357,6 @@ class AdaptiveRandomForestRegressor(MOARegressor):
         # Important: must create the MOA object before invoking the super class __init__
         self.moa_learner = MOA_AdaptiveRandomForestRegressor()
 
-
         # Initialize instance attributes with default values, CLI was not set.
         if CLI is None:
             if tree_learner is None:
@@ -431,7 +430,7 @@ class SOKNL(MOARegressor):
         warning_detection_method=None,
         disable_drift_detection=False,
         disable_background_learner=False,
-        disable_self_optimising=False,
+        self_optimising=True,
         k_value=10,
     ):
         # Important: must create the MOA object before invoking the super class __init__
@@ -481,11 +480,11 @@ class SOKNL(MOARegressor):
             self.disable_drift_detection = disable_drift_detection
             self.disable_background_learner = disable_background_learner
 
-            self.disable_self_optimising = disable_self_optimising
+            self.self_optimising = self_optimising
             self.k_value = k_value
 
             self.moa_learner.getOptions().setViaCLIString(
-                f"-l {self.tree_learner} -s {self.ensemble_size} {'-f' if self.disable_self_optimising else ''} -k {self.k_value} -o {self.m_features_mode} -m \
+                f"-l {self.tree_learner} -s {self.ensemble_size} {'-f' if self.self_optimising else ''} -k {self.k_value} -o {self.m_features_mode} -m \
                 {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
                 {self.warning_detection_method} {'-u' if self.disable_drift_detection else ''}  {'-q' if self.disable_background_learner else ''}"
             )
