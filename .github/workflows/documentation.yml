@@ -1,0 +1,29 @@
+name: "Build Documentation"
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  documentation:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
+        cache: 'pip' # caching pip dependencies
+    - name: Install Dependencies
+      run: |
+        sudo apt-get install -y pandoc
+        python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        python -m pip install ".[dev,doc]"
+    - name: Build Documentation
+      run: invoke docs.build
+    - name: Upload Documentation
+      uses: actions/upload-artifact@v4
+      with:
+        name: docs
+        path: docs/_build

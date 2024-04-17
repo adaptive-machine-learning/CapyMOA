@@ -1,15 +1,14 @@
+import typing as t
 from typing import Dict, Literal
 
 import numpy as np
-
-from river.tree import HoeffdingTreeClassifier
-from river.naive_bayes import GaussianNB
 from river.base import Classifier
+from river.naive_bayes import GaussianNB
+from river.tree import HoeffdingTreeClassifier
 
-import typing as t
-
-from capymoa.learner.classifier.batch import BatchClassifierSSL
-from capymoa.stream import Instance, Schema
+from capymoa.learner.ssl.classifier.batch import BatchClassifierSSL
+from capymoa.stream import Schema
+from capymoa.stream.instance import Instance
 
 
 def shuffle_split(
@@ -240,8 +239,8 @@ class CPSSDS(BatchClassifierSSL):
         # Set seed for reproducibility
         np.random.seed(random_seed)
 
-    def train_on_batch(self, x: np.ndarray, y: np.ndarray) -> None:
-        (x_label, y_label), x_unlabeled = split_by_label_presence(x, y)
+    def train_on_batch(self, x_batch, y_indices):
+        (x_label, y_label), x_unlabeled = split_by_label_presence(x_batch, y_indices)
         (x_cal, y_cal), (x_train, y_train) = shuffle_split(
             self.calibration_split, x_label, y_label
         )
@@ -279,13 +278,16 @@ class CPSSDS(BatchClassifierSSL):
 
     def instance_to_dict(self, instance: Instance) -> Dict[str, float]:
         """Convert an instance to a dictionary with the feature names as keys."""
-        return dict(enumerate(instance.x()))
+        return dict(enumerate(instance.x))
 
     def skmf_to_river(self, x):
         return dict(enumerate(x))
 
     def predict(self, instance: Instance):
-        return self.classifier.predict_one(self.instance_to_dict(instance))
+        class_index = self.classifier.predict_one(self.instance_to_dict(instance))
+        if class_index is None:
+            return None
+        return class_index
 
     def predict_proba(self, instance):
         raise NotImplementedError()

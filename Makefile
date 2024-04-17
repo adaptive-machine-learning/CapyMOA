@@ -2,12 +2,12 @@
 # Variables
 NOTEBOOKS := $(wildcard notebooks/*.ipynb)
 
-run_all_notebooks:
-	@echo "Running all notebooks..."
-	@for notebook in $(NOTEBOOKS); do \
-		jupyter nbconvert --inplace --to notebook --execute $$notebook; \
-	done
-	@echo "Done."
+test:
+	python -m pytest --durations=0 
+	@echo "All Unit Tests Passed"
+	@echo "Testing Notebook"
+	python -m pytest --nbmake -n=auto notebooks
+	@echo "All Notebook Tests Passed"
 
 download:
 	python scripts/download_datasets_and_moa.py

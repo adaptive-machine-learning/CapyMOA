@@ -33,7 +33,7 @@ def _start_jpype():
     if not jpype.isJVMStarted():
         print(f"MOA jar path location (config.ini): {moa_jar}")
         print("JVM Location (system): ")
-        print(f"JAVA_HOME: {os.environ['JAVA_HOME']}")
+        print(f"JAVA_HOME: {os.environ.get('JAVA_HOME', 'Inferred from system')}")
         print(f"JVM args: {jvm_args}")
 
         jpype.startJVM(jpype.getDefaultJVMPath(), *jvm_args)

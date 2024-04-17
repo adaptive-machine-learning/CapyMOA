@@ -1,340 +1,301 @@
 # Library imports
-import inspect
+from typing import Optional, Union
 
 from capymoa.learner.learners import (
     MOARegressor,
-    _get_moa_creation_CLI,
-    _extract_moa_learner_CLI,
 )
 
-# MOA/Java imports
+from capymoa.learner.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
+from capymoa.stream.stream import Schema
 from moa.classifiers.lazy import kNN as MOA_kNN
 from moa.classifiers.meta import (
     AdaptiveRandomForestRegressor as MOA_AdaptiveRandomForestRegressor,
     SelfOptimisingKNearestLeaves as MOA_SOKNL,
 )
 from moa.classifiers.trees import (
-    FIMTDD as MOA_FIMTDD,
-    ARFFIMTDD as MOA_ARFFIMTDD,
-    ORTO as MOA_ORTO,
-    SelfOptimisingBaseTree as MOA_SOKNLBT,
+    FIMTDD as _MOA_FIMTDD,
+    ARFFIMTDD as _MOA_ARFFIMTDD,
+    ORTO as _MOA_ORTO,
+    SelfOptimisingBaseTree as _MOA_SelfOptimisingBaseTree,
 )
 
 
 ########################
 ######### TREES ########
 ########################
-"""
-Fast Incremental Model Tree with Drift Detection
-"""
 class FIMTDD(MOARegressor):
+    """Implementation of the FIMT-DD tree as described by Ikonomovska et al."""
+
     def __init__(
         self,
-        schema=None,
-        CLI=None,
-        random_seed=1,
-        sub_space_size=2,
-        split_criterion="VarianceReductionSplitCriterion",
-        grace_period=200,
-        split_confidence=0.0000001,
-        tie_threshold=0.05,
-        page_hinckley_alpha=0.005,
-        page_hinckley_threshold=50,
-        alternate_tree_fading_factor=0.995,
-        alternate_tree_Tmin=150,
-        alternate_tree_time=1500,
-        regression_tree=False,
-        learning_ratio=0.02,
-        learning_ratio_decay_factor=0.001,
-        learning_ratio_const=False,
-        disable_change_detection=False,
-    ):
-        mappings = {
-            "sub_space_size": "-k",
-            "split_criterion": "-s",
-            "grace_period": "-g",
-            "split_confidence": "-c",
-            "tie_threshold": "-t",
-            "page_hinckley_alpha": "-a",
-            "page_hinckley_threshold": "-h",
-            "alternate_tree_fading_factor": "-f",
-            "alternate_tree_Tmin": "-y",
-            "alternate_tree_time": "-u",
-            "regression_tree": "-e",
-            "learning_ratio": "-l",
-            "learning_ratio_decay_factor": "-d",
-            "learning_ratio_const": "-p",
-            "disable_change_detection": "-x",
-        }
+        schema: Schema,
+        split_criterion: Union[SplitCriterion, str] = "VarianceReductionSplitCriterion",
+        grace_period: int = 200,
+        split_confidence: float = 1.0e-7,
+        tie_threshold: float = 0.05,
+        page_hinckley_alpha: float = 0.005,
+        page_hinckley_threshold: int = 50,
+        alternate_tree_fading_factor: float = 0.995,
+        alternate_tree_t_min: int = 150,
+        alternate_tree_time: int = 1500,
+        regression_tree: bool = False,
+        learning_ratio: float = 0.02,
+        learning_ratio_decay_factor: float = 0.001,
+        learning_ratio_const: bool = False,
+        random_seed: Optional[int] = None,
+    ) -> None:
+        """
+        Construct FIMTDD.
 
-        config_str = ""
-        parameters = inspect.signature(self.__init__).parameters
-        for key in mappings:
-            if key not in parameters:
-                continue
-            this_parameter = parameters[key]
-            set_value = locals()[key]
-            is_bool = type(set_value) == bool
-            if is_bool:
-                if set_value:
-                    str_extension = mappings[key] + " "
-                else:
-                    str_extension = ""
-            else:
-                str_extension = f"{mappings[key]} {set_value} "
-            config_str += str_extension
+        :param split_criterion: Split criterion to use.
+        :param grace_period: Number of instances a leaf should observe between split attempts.
+        :param split_confidence: Allowed error in split decision, values close to 0 will take long to decide.
+        :param tie_threshold: Threshold below which a split will be forced to break ties.
+        :param page_hinckley_alpha: Alpha value to use in the Page Hinckley change detection tests.
+        :param page_hinckley_threshold: Threshold value used in the Page Hinckley change detection tests.
+        :param alternate_tree_fading_factor: Fading factor used to decide if an alternate tree should replace an original.
+        :param alternate_tree_t_min: Tmin value used to decide if an alternate tree should replace an original.
+        :param alternate_tree_time: The number of instances used to decide if an alternate tree should be discarded.
+        :param regression_tree: Build a regression tree instead of a model tree.
+        :param learning_ratio: Learning ratio to used for training the Perceptrons in the leaves.
+        :param learning_ratio_decay_factor: Learning rate decay factor (not used when learning rate is constant).
+        :param learning_ratio_const: Keep learning rate constant instead of decaying.
+        """
+        cli = []
 
-        self.moa_learner = MOA_FIMTDD()
+        cli.append(f"-s ({_split_criterion_to_cli_str(split_criterion)})")
+        cli.append(f"-g {grace_period}")
+        cli.append(f"-c {split_confidence}")
+        cli.append(f"-t {tie_threshold}")
+        cli.append(f"-a {page_hinckley_alpha}")
+        cli.append(f"-h {page_hinckley_threshold}")
+        cli.append(f"-f {alternate_tree_fading_factor}")
+        cli.append(f"-y {alternate_tree_t_min}")
+        cli.append(f"-u {alternate_tree_time}")
+        cli.append("-e") if regression_tree else None
+        cli.append(f"-l {learning_ratio}")
+        cli.append(f"-d {learning_ratio_decay_factor}")
+        cli.append("-p") if learning_ratio_const else None
+
+        self.moa_learner = _MOA_FIMTDD()
+
         super().__init__(
             schema=schema,
-            CLI=CLI,
+            CLI=" ".join(cli),
             random_seed=random_seed,
             moa_learner=self.moa_learner,
         )
 
-        if self.CLI is None:
-            self.moa_learner.getOptions().setViaCLIString(config_str)
-            self.moa_learner.prepareForUse()
-            self.moa_learner.resetLearning()
-    def __str__(self):
-        # Overrides the default class name from MOA
-        return "FIMT-DD"
 
-"""
-Modified Fast Incremental Model Tree with Drift Detection for basic learner for ARF-Reg
-"""
 class ARFFIMTDD(MOARegressor):
-    def __init__(
-            self,
-            schema=None,
-            CLI=None,
-            random_seed=1,
-            sub_space_size=2,
-            split_criterion="VarianceReductionSplitCriterion",
-            grace_period=200,
-            split_confidence=0.0000001,
-            tie_threshold=0.05,
-            page_hinckley_alpha=0.005,
-            page_hinckley_threshold=50,
-            alternate_tree_fading_factor=0.995,
-            alternate_tree_Tmin=150,
-            alternate_tree_time=1500,
-            learning_ratio=0.02,
-            learning_ratio_decay_factor=0.001,
-            learning_ratio_const=False,
-    ):
-        mappings = {
-            "sub_space_size": "-k",
-            "split_criterion": "-s",
-            "grace_period": "-g",
-            "split_confidence": "-c",
-            "tie_threshold": "-t",
-            "page_hinckley_alpha": "-a",
-            "page_hinckley_threshold": "-h",
-            "alternate_tree_fading_factor": "-f",
-            "alternate_tree_Tmin": "-y",
-            "alternate_tree_time": "-u",
-            "learning_ratio": "-l",
-            "learning_ratio_decay_factor": "-d",
-            "learning_ratio_const": "-p",
-            "disable_change_detection": "-x",
-        }
-        config_str = ""
-        parameters = inspect.signature(self.__init__).parameters
-        for key in mappings:
-            if key not in parameters:
-                continue
-            this_parameter = parameters[key]
-            set_value = locals()[key]
-            is_bool = type(set_value) == bool
-            if is_bool:
-                if set_value:
-                    str_extension = mappings[key] + " "
-                else:
-                    str_extension = ""
-            else:
-                str_extension = f"{mappings[key]} {set_value} "
-            config_str += str_extension
+    """Modified Fast Incremental Model Tree with Drift Detection for basic
+    learner for ARF-Regas described by Ikonomovska et al."""
 
-        self.moa_learner = MOA_ARFFIMTDD()
+    def __init__(
+        self,
+        schema: Schema,
+        subspace_size_size: int = 2,
+        split_criterion: Union[SplitCriterion, str] = "VarianceReductionSplitCriterion",
+        grace_period: int = 200,
+        split_confidence: float = 1.0e-7,
+        tie_threshold: float = 0.05,
+        page_hinckley_alpha: float = 0.005,
+        page_hinckley_threshold: int = 50,
+        alternate_tree_fading_factor: float = 0.995,
+        alternate_tree_t_min: int = 150,
+        alternate_tree_time: int = 1500,
+        learning_ratio: float = 0.02,
+        learning_ratio_decay_factor: float = 0.001,
+        learning_ratio_const: bool = False,
+        random_seed: Optional[int] = None,
+    ) -> None:
+        """
+        Construct ARFFIMTDD.
+
+        :param subspace_size_size: Number of features per subset for each node split. Negative values = #features - k
+        :param split_criterion: Split criterion to use.
+        :param grace_period: Number of instances a leaf should observe between split attempts.
+        :param split_confidence: Allowed error in split decision, values close to 0 will take long to decide.
+        :param tie_threshold: Threshold below which a split will be forced to break ties.
+        :param page_hinckley_alpha: Alpha value to use in the Page Hinckley change detection tests.
+        :param page_hinckley_threshold: Threshold value used in the Page Hinckley change detection tests.
+        :param alternate_tree_fading_factor: Fading factor used to decide if an alternate tree should replace an original.
+        :param alternate_tree_t_min: Tmin value used to decide if an alternate tree should replace an original.
+        :param alternate_tree_time: The number of instances used to decide if an alternate tree should be discarded.
+        :param learning_ratio: Learning ratio to used for training the Perceptrons in the leaves.
+        :param learning_ratio_decay_factor: Learning rate decay factor (not used when learning rate is constant).
+        :param learning_ratio_const: Keep learning rate constant instead of decaying.
+        """
+        cli = []
+
+        cli.append(f"-k {subspace_size_size}")
+        cli.append(f"-s ({_split_criterion_to_cli_str(split_criterion)})")
+        cli.append(f"-g {grace_period}")
+        cli.append(f"-c {split_confidence}")
+        cli.append(f"-t {tie_threshold}")
+        cli.append(f"-a {page_hinckley_alpha}")
+        cli.append(f"-h {page_hinckley_threshold}")
+        cli.append(f"-f {alternate_tree_fading_factor}")
+        cli.append(f"-y {alternate_tree_t_min}")
+        cli.append(f"-u {alternate_tree_time}")
+        cli.append(f"-l {learning_ratio}")
+        cli.append(f"-d {learning_ratio_decay_factor}")
+        cli.append("-p") if learning_ratio_const else None
+
+        self.moa_learner = _MOA_ARFFIMTDD()
 
         super().__init__(
             schema=schema,
-            CLI=CLI,
+            CLI=" ".join(cli),
             random_seed=random_seed,
             moa_learner=self.moa_learner,
         )
 
-        if self.CLI is None:
-            self.moa_learner.getOptions().setViaCLIString(config_str)
-            self.moa_learner.prepareForUse()
-            self.moa_learner.resetLearning()
 
-    def __str__(self):
-        # Overrides the default class name from MOA
-        return "ARFFIMTDD"
-
-"""
-Option Regression Tree
-"""
 class ORTO(MOARegressor):
-    def __init__(
-            self,
-            schema=None,
-            CLI=None,
-            random_seed=1,
-            max_trees=10,
-            max_option_level=10,
-            option_decay_factor=0.9,
-            option_node_aggregation="average",
-            option_fading_factor=0.995,
-            sub_space_size=2,
-            split_criterion="VarianceReductionSplitCriterion",
-            grace_period=200,
-            split_confidence=0.0000001,
-            tie_threshold=0.05,
-            page_hinckley_alpha=0.005,
-            page_hinckley_threshold=50,
-            alternate_tree_fading_factor=0.995,
-            alternate_tree_Tmin=150,
-            alternate_tree_time=1500,
-            learning_ratio=0.02,
-            learning_ratio_decay_factor=0.001,
-            learning_ratio_const=False,
-    ):
-        mappings = {
-            "max_trees": "-m",
-            "max_option_level": "-b",
-            "option_decay_factor": "-z",
-            "option_node_aggregation": "-o",
-            "option_fading_factor": "-q",
-            "sub_space_size": "-k",
-            "split_criterion": "-s",
-            "grace_period": "-g",
-            "split_confidence": "-c",
-            "tie_threshold": "-t",
-            "page_hinckley_alpha": "-a",
-            "page_hinckley_threshold": "-h",
-            "alternate_tree_fading_factor": "-f",
-            "alternate_tree_Tmin": "-y",
-            "alternate_tree_time": "-u",
-            "learning_ratio": "-l",
-            "learning_ratio_decay_factor": "-d",
-            "learning_ratio_const": "-p",
-            "disable_change_detection": "-x",
-        }
-        config_str = ""
-        parameters = inspect.signature(self.__init__).parameters
-        for key in mappings:
-            if key not in parameters:
-                continue
-            this_parameter = parameters[key]
-            set_value = locals()[key]
-            is_bool = type(set_value) == bool
-            if is_bool:
-                if set_value:
-                    str_extension = mappings[key] + " "
-                else:
-                    str_extension = ""
-            else:
-                str_extension = f"{mappings[key]} {set_value} "
-            config_str += str_extension
+    """Implementation of the ORTO tree as described by Ikonomovska et al."""
 
-        self.moa_learner = MOA_ORTO()
+    def __init__(
+        self,
+        schema: Schema,
+        max_trees: int = 10,
+        max_option_level: int = 10,
+        option_decay_factor: float = 0.9,
+        option_fading_factor: float = 0.9995,
+        split_criterion: Union[SplitCriterion, str] = "VarianceReductionSplitCriterion",
+        grace_period: int = 200,
+        split_confidence: float = 1.0e-7,
+        tie_threshold: float = 0.05,
+        page_hinckley_alpha: float = 0.005,
+        page_hinckley_threshold: int = 50,
+        alternate_tree_fading_factor: float = 0.995,
+        alternate_tree_t_min: int = 150,
+        alternate_tree_time: int = 1500,
+        regression_tree: bool = False,
+        learning_ratio: float = 0.02,
+        learning_ratio_decay_factor: float = 0.001,
+        learning_ratio_const: bool = False,
+        random_seed: Optional[int] = None,
+    ) -> None:
+        """
+        Construct ORTO.
+
+        :param max_trees: The maximum number of trees contained in the option tree.
+        :param max_option_level: The maximal depth at which option nodes can be created.
+        :param option_decay_factor: The option decay factor that determines how many options can be selected at a given level.
+        :param option_fading_factor: The fading factor used for comparing subtrees of an option node.
+        :param split_criterion: Split criterion to use.
+        :param grace_period: Number of instances a leaf should observe between split attempts.
+        :param split_confidence: Allowed error in split decision, values close to 0 will take long to decide.
+        :param tie_threshold: Threshold below which a split will be forced to break ties.
+        :param page_hinckley_alpha: Alpha value to use in the Page Hinckley change detection tests.
+        :param page_hinckley_threshold: Threshold value used in the Page Hinckley change detection tests.
+        :param alternate_tree_fading_factor: Fading factor used to decide if an alternate tree should replace an original.
+        :param alternate_tree_t_min: Tmin value used to decide if an alternate tree should replace an original.
+        :param alternate_tree_time: The number of instances used to decide if an alternate tree should be discarded.
+        :param regression_tree: Build a regression tree instead of a model tree.
+        :param learning_ratio: Learning ratio to used for training the Perceptrons in the leaves.
+        :param learning_ratio_decay_factor: Learning rate decay factor (not used when learning rate is constant).
+        :param learning_ratio_const: Keep learning rate constant instead of decaying.
+        """
+        cli = []
+
+        cli.append(f"-m {max_trees}")
+        cli.append(f"-x {max_option_level}")
+        cli.append(f"-z {option_decay_factor}")
+        cli.append(f"-q {option_fading_factor}")
+        cli.append(f"-s ({_split_criterion_to_cli_str(split_criterion)})")
+        cli.append(f"-g {grace_period}")
+        cli.append(f"-c {split_confidence}")
+        cli.append(f"-t {tie_threshold}")
+        cli.append(f"-a {page_hinckley_alpha}")
+        cli.append(f"-h {page_hinckley_threshold}")
+        cli.append(f"-f {alternate_tree_fading_factor}")
+        cli.append(f"-y {alternate_tree_t_min}")
+        cli.append(f"-u {alternate_tree_time}")
+        cli.append("-e") if regression_tree else None
+        cli.append(f"-l {learning_ratio}")
+        cli.append(f"-d {learning_ratio_decay_factor}")
+        cli.append("-p") if learning_ratio_const else None
+
+        self.moa_learner = _MOA_ORTO()
+
         super().__init__(
             schema=schema,
-            CLI=CLI,
+            CLI=" ".join(cli),
             random_seed=random_seed,
             moa_learner=self.moa_learner,
         )
 
-        if self.CLI is None:
-            self.moa_learner.getOptions().setViaCLIString(config_str)
-            self.moa_learner.prepareForUse()
-            self.moa_learner.resetLearning()
 
-    def __str__(self):
-        # Overrides the default class name from MOA
-        return "ORTO"
-
-
-"""
-SOKNL Base Tree
-"""
 class SOKNLBT(MOARegressor):
-    def __init__(
-            self,
-            schema=None,
-            CLI=None,
-            random_seed=1,
-            sub_space_size=2,
-            split_criterion="VarianceReductionSplitCriterion",
-            grace_period=200,
-            split_confidence=0.0000001,
-            tie_threshold=0.05,
-            page_hinckley_alpha=0.005,
-            page_hinckley_threshold=50,
-            alternate_tree_fading_factor=0.995,
-            alternate_tree_Tmin=150,
-            alternate_tree_time=1500,
-            learning_ratio=0.02,
-            learning_ratio_decay_factor=0.001,
-            learning_ratio_const=False,
-    ):
-        mappings = {
-            "sub_space_size": "-k",
-            "split_criterion": "-s",
-            "grace_period": "-g",
-            "split_confidence": "-c",
-            "tie_threshold": "-t",
-            "page_hinckley_alpha": "-a",
-            "page_hinckley_threshold": "-h",
-            "alternate_tree_fading_factor": "-f",
-            "alternate_tree_Tmin": "-y",
-            "alternate_tree_time": "-u",
-            "learning_ratio": "-l",
-            "learning_ratio_decay_factor": "-d",
-            "learning_ratio_ratio_const": "-p",
-        }
-        config_str = ""
-        parameters = inspect.signature(self.__init__).parameters
-        for key in mappings:
-            if key not in parameters:
-                continue
-            this_parameter = parameters[key]
-            set_value = locals()[key]
-            is_bool = type(set_value) == bool
-            if is_bool:
-                if set_value:
-                    str_extension = mappings[key] + " "
-                else:
-                    str_extension = ""
-            else:
-                str_extension = f"{mappings[key]} {set_value} "
-            config_str += str_extension
+    """Implementation of the FIMT-DD tree as described by Ikonomovska et al."""
 
-        self.moa_learner = MOA_SOKNLBT()
+    def __init__(
+        self,
+        schema: Schema,
+        subspace_size_size: int = 2,
+        split_criterion: Union[SplitCriterion, str] = "VarianceReductionSplitCriterion",
+        grace_period: int = 200,
+        split_confidence: float = 1.0e-7,
+        tie_threshold: float = 0.05,
+        page_hinckley_alpha: float = 0.005,
+        page_hinckley_threshold: int = 50,
+        alternate_tree_fading_factor: float = 0.995,
+        alternate_tree_t_min: int = 150,
+        alternate_tree_time: int = 1500,
+        learning_ratio: float = 0.02,
+        learning_ratio_decay_factor: float = 0.001,
+        learning_ratio_const: bool = False,
+        random_seed: Optional[int] = None,
+    ) -> None:
+        """
+        Construct SelfOptimisingBaseTree.
+
+        :param subspace_size_size: Number of features per subset for each node split. Negative values = #features - k
+        :param split_criterion: Split criterion to use.
+        :param grace_period: Number of instances a leaf should observe between split attempts.
+        :param split_confidence: Allowed error in split decision, values close to 0 will take long to decide.
+        :param tie_threshold: Threshold below which a split will be forced to break ties.
+        :param page_hinckley_alpha: Alpha value to use in the Page Hinckley change detection tests.
+        :param page_hinckley_threshold: Threshold value used in the Page Hinckley change detection tests.
+        :param alternate_tree_fading_factor: Fading factor used to decide if an alternate tree should replace an original.
+        :param alternate_tree_t_min: Tmin value used to decide if an alternate tree should replace an original.
+        :param alternate_tree_time: The number of instances used to decide if an alternate tree should be discarded.
+        :param learning_ratio: Learning ratio to used for training the Perceptrons in the leaves.
+        :param learning_ratio_decay_factor: Learning rate decay factor (not used when learning rate is constant).
+        :param learning_ratio_const: Keep learning rate constant instead of decaying.
+        """
+        cli = []
+
+        cli.append(f"-k {subspace_size_size}")
+        cli.append(f"-s ({_split_criterion_to_cli_str(split_criterion)})")
+        cli.append(f"-g {grace_period}")
+        cli.append(f"-c {split_confidence}")
+        cli.append(f"-t {tie_threshold}")
+        cli.append(f"-a {page_hinckley_alpha}")
+        cli.append(f"-h {page_hinckley_threshold}")
+        cli.append(f"-f {alternate_tree_fading_factor}")
+        cli.append(f"-y {alternate_tree_t_min}")
+        cli.append(f"-u {alternate_tree_time}")
+        cli.append(f"-l {learning_ratio}")
+        cli.append(f"-d {learning_ratio_decay_factor}")
+        cli.append("-p") if learning_ratio_const else None
+
+        self.moa_learner = _MOA_SelfOptimisingBaseTree()
 
         super().__init__(
             schema=schema,
-            CLI=CLI,
+            CLI=" ".join(cli),
             random_seed=random_seed,
             moa_learner=self.moa_learner,
         )
-        if self.CLI is None:
-            self.moa_learner.getOptions().setViaCLIString(config_str)
-            self.moa_learner.prepareForUse()
-            self.moa_learner.resetLearning()
-
-    def __str__(self):
-        # Overrides the default class name from MOA
-        return "SelfOptimisingBaseTree"
-
 
 
 ########################
 ######### LAZY #########
 ########################
+
 
 class KNNRegressor(MOARegressor):
     """
@@ -393,17 +354,20 @@ class AdaptiveRandomForestRegressor(MOARegressor):
     ):
         # Important: must create the MOA object before invoking the super class __init__
         self.moa_learner = MOA_AdaptiveRandomForestRegressor()
-
+        super().__init__(
+            schema=schema,
+            CLI=CLI,
+            random_seed=random_seed,
+            moa_learner=self.moa_learner,
+        )
 
         # Initialize instance attributes with default values, CLI was not set.
-        if CLI is None:
-            if tree_learner is None:
-                self.tree_learner = ARFFIMTDD(grace_period=50, split_confidence=0.01)
-            elif type(tree_learner) is str:
-                self.tree_learner = tree_learner
-            else:
-                self.tree_learner = _extract_moa_learner_CLI(tree_learner)
-
+        if self.CLI is None:
+            self.tree_learner = (
+                ARFFIMTDD(schema, grace_period=50, split_confidence=0.01)
+                if tree_learner is None
+                else tree_learner
+            )
             self.ensemble_size = ensemble_size
 
             self.max_features = max_features
@@ -447,12 +411,6 @@ class AdaptiveRandomForestRegressor(MOARegressor):
             self.moa_learner.prepareForUse()
             self.moa_learner.resetLearning()
 
-        super().__init__(
-            schema=schema,
-            CLI=CLI,
-            random_seed=random_seed,
-            moa_learner=self.moa_learner,
-        )
 
 class SOKNL(MOARegressor):
     def __init__(
@@ -468,22 +426,26 @@ class SOKNL(MOARegressor):
         warning_detection_method=None,
         disable_drift_detection=False,
         disable_background_learner=False,
-        disable_self_optimising=False,
+        self_optimising=True,
         k_value=10,
     ):
         # Important: must create the MOA object before invoking the super class __init__
         self.moa_learner = MOA_SOKNL()
+        super().__init__(
+            schema=schema,
+            CLI=CLI,
+            random_seed=random_seed,
+            moa_learner=self.moa_learner,
+        )
 
         # Initialize instance attributes with default values, CLI was not set.
-        if CLI is None:
-
-            if tree_learner is None:
-                self.tree_learner = SOKNLBT(grace_period=50, split_confidence=0.01)
-            elif type(tree_learner) is str:
-                self.tree_learner = tree_learner
-            else:
-                self.tree_learner = _extract_moa_learner_CLI(tree_learner)
-
+        if self.CLI is None:
+            self.tree_learner = (
+                # "(SelfOptimisingBaseTree -s VarianceReductionSplitCriterion -g 50 -c 0.01)"
+                SOKNLBT(schema, grace_period=50, split_confidence=0.01)
+                if tree_learner is None
+                else tree_learner
+            )
             self.ensemble_size = ensemble_size
 
             self.max_features = max_features
@@ -519,20 +481,13 @@ class SOKNL(MOARegressor):
             self.disable_drift_detection = disable_drift_detection
             self.disable_background_learner = disable_background_learner
 
-            self.disable_self_optimising = disable_self_optimising
+            self.self_optimising = self_optimising
             self.k_value = k_value
 
             self.moa_learner.getOptions().setViaCLIString(
-                f"-l {self.tree_learner} -s {self.ensemble_size} {'-f' if self.disable_self_optimising else ''} -k {self.k_value} -o {self.m_features_mode} -m \
+                f"-l {self.tree_learner} -s {self.ensemble_size} {'-f' if self.self_optimising else ''} -k {self.k_value} -o {self.m_features_mode} -m \
                 {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
                 {self.warning_detection_method} {'-u' if self.disable_drift_detection else ''}  {'-q' if self.disable_background_learner else ''}"
             )
             self.moa_learner.prepareForUse()
             self.moa_learner.resetLearning()
-
-        super().__init__(
-            schema=schema,
-            CLI=CLI,
-            random_seed=random_seed,
-            moa_learner=self.moa_learner,
-        )
