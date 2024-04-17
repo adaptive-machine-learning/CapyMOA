@@ -15,7 +15,6 @@ def assert_ssl_evaluation(
         learner=learner,
         label_probability=label_probability,
         window_size=10,
-        optimise=False,
         max_instances=max_instances,
     )
 

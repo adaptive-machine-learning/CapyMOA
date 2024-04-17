@@ -2,6 +2,7 @@ from .classifiers import AdaptiveRandomForest, OnlineBagging, AdaptiveRandomFore
 from .efdt import EFDT
 from .sklearn import PassiveAggressiveClassifier
 from .hoeffding_tree import HoeffdingTree
+from .naive_bayes import NaiveBayes
 
 __all__ = [
     "AdaptiveRandomForest",
@@ -9,5 +10,6 @@ __all__ = [
     "AdaptiveRandomForest",
     "EFDT",
     "HoeffdingTree",
+    "NaiveBayes",
     "PassiveAggressiveClassifier",
 ]

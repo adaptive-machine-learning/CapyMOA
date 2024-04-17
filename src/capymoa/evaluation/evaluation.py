@@ -1,17 +1,15 @@
-# Python imports
 from typing import Optional
 import pandas as pd
 import numpy as np
 import time
 import warnings
+import random
 
-# Library imports
-from capymoa.stream.stream import NumpyStream, Schema
+from capymoa.stream.stream import Schema, Stream
 from capymoa.learner.learners import ClassifierSSL
 
-# MOA/Java imports
-from com.yahoo.labs.samoa.instances import Instances, Instance, Attribute, DenseInstance
-from moa.core import Example, InstanceExample, Utils
+from com.yahoo.labs.samoa.instances import Instances, Attribute, DenseInstance
+from moa.core import InstanceExample
 from moa.evaluation import (
     BasicClassificationPerformanceEvaluator,
     WindowClassificationPerformanceEvaluator,
@@ -20,6 +18,16 @@ from moa.evaluation import (
 )
 from java.util import ArrayList
 from moa.evaluation import EfficientEvaluationLoops
+from moa.streams import InstanceStream
+
+
+def _is_fast_mode_compilable(stream: Stream, learner, optimise=True) -> bool:
+    """Check if the stream is compatible with the efficient loops in MOA."""
+    is_moa_stream = stream.moa_stream is not None and isinstance(
+        stream.moa_stream, InstanceStream
+    )
+    is_moa_learner = hasattr(learner, "moa_learner") and learner.moa_learner is not None
+    return is_moa_stream and is_moa_learner and optimise
 
 # class Evaluator:
 #
@@ -33,7 +41,7 @@ class ClassificationEvaluator:
 
     def __init__(
         self,
-        schema: Schema=None,
+        schema: Schema = None,
         window_size=None,
         allow_abstaining=True,
         moa_evaluator=None,
@@ -378,8 +386,9 @@ def test_then_train_evaluation(
     Test-then-train evaluation. Returns a dictionary with the results.
     """
 
-    if isinstance(stream, NumpyStream) == False and optimise:
-        return _test_then_train_evaluation_fast(
+    if _is_fast_mode_compilable(stream, learner, optimise):
+        return test_then_train_evaluation_fast(
+
             stream, learner, max_instances, sample_frequency, evaluator
         )
 
@@ -478,8 +487,9 @@ def prequential_evaluation(
     Calculates the metrics cumulatively (i.e. test-then-train) and in a window-fashion (i.e. windowed prequential evaluation).
     Returns both evaluators so that the caller has access to metric from both evaluators.
     """
-    if isinstance(stream, NumpyStream) == False and optimise:
-        return _prequential_evaluation_fast(stream, learner, max_instances, window_size)
+
+    if _is_fast_mode_compilable(stream, learner, optimise):
+        return prequential_evaluation_fast(stream, learner, max_instances, window_size)
 
     predictions = None
     if store_predictions:
@@ -586,7 +596,7 @@ def test_then_train_SSL_evaluation(
     """
     Test-then-train SSL evaluation. Returns a dictionary with the results.
     """
-    if isinstance(stream, NumpyStream) == False and optimise:
+    if _is_fast_mode_compilable(stream, learner, optimise):
         return test_then_train_SSL_evaluation_fast(
             stream,
             learner,
@@ -616,17 +626,8 @@ def prequential_SSL_evaluation(
     """
     If the learner is not a SSL learner, then it will just train on labeled instances.
     """
-    if isinstance(stream, NumpyStream) == False and optimise:
-        return prequential_SSL_evaluation_fast(
-            stream,
-            learner,
-            max_instances,
-            window_size,
-            initial_window_size,
-            delay_length,
-            label_probability,
-            random_seed,
-        )
+    if _is_fast_mode_compilable(stream, learner, optimise):
+        return prequential_evaluation_fast(stream, learner, max_instances, window_size)
 
     # IMPORTANT: delay_length and initial_window_size have not been implemented in python yet
     # In MOA it is implemented so prequential_SSL_evaluation_fast works just fine.
@@ -732,10 +733,9 @@ def _test_then_train_evaluation_fast(
     """
     Test-then-train evaluation using a MOA learner.
     """
-    # If NumpyStream was used, the data already sits in Python memory.
-    if isinstance(stream, NumpyStream):
-        return test_then_train_evaluation(
-            stream, learner, max_instances, sample_frequency
+    if not _is_fast_mode_compilable(stream, learner):
+        raise ValueError(
+            "`test_then_train_evaluation_fast` requires the stream object to have a`Stream.moa_stream`"
         )
 
     if max_instances is None:
@@ -800,8 +800,10 @@ def _prequential_evaluation_fast(stream, learner, max_instances=None, window_siz
     Prequential evaluation fast.
     """
 
-    if isinstance(stream, NumpyStream):
-        return prequential_evaluation(stream, learner, max_instances, window_size)
+    if not _is_fast_mode_compilable(stream, learner):
+        raise ValueError(
+            "`prequential_evaluation_fast` requires the stream object to have a`Stream.moa_stream`"
+        )
 
     if max_instances is None:
         max_instances = -1
@@ -874,11 +876,11 @@ def test_then_train_SSL_evaluation_fast(
     """
     Test-then-train SSL evaluation.
     """
-    # If NumpyStream was used, the data already sits in Python memory.
-    if isinstance(stream, NumpyStream):
-        raise ValueError("test_then_train_SSL_evaluation(...) to be implemented")
-        # return test_then_train_SSL_evaluation(stream, learner, max_instances, sample_frequency,
-        #                                 initial_window_size, delay_length, label_probability, random_seed, evaluator)
+
+    if not _is_fast_mode_compilable(stream, learner):
+        raise ValueError(
+            "`test_then_train_SSL_evaluation_fast` requires the stream object to have a`Stream.moa_stream`"
+        )
 
     if max_instances is None:
         max_instances = -1
@@ -966,8 +968,10 @@ def prequential_SSL_evaluation_fast(
     """
     Prequential SSL evaluation fast.
     """
-    if isinstance(stream, NumpyStream):
-        return prequential_SSL_evaluation(stream, learner, max_instances, window_size)
+    if not _is_fast_mode_compilable(stream, learner):
+        raise ValueError(
+            "`prequential_evaluation_fast` requires the stream object to have a`Stream.moa_stream`"
+        )
 
     if max_instances is None:
         max_instances = -1
@@ -1099,46 +1103,3 @@ def prequential_evaluation_multiple_learners(
                 result["windowed"].result_windows.append(result["windowed"].metrics())
 
     return results
-
-
-# # USAGE EXAMPLES USING MOA LEARNERS
-# from moa.classifiers.meta import AdaptiveRandomForest
-# from moa.streams import ArffFileStream
-
-# def example_ARF_on_RTG_2abrupt_with_TestThenTrain(dataset_path="/Users/gomeshe/Desktop/data/RTG_2abrupt.arff"):
-#     arf10 = AdaptiveRandomForest()
-#     arf10.getOptions().setViaCLIString("-s 10")
-#     arf10.setRandomSeed(1)
-#     arf10.prepareForUse()
-
-#     sampleFrequency = 100
-
-#     rtg_2abrupt = ArffFileStream(dataset_path, -1)
-#     rtg_2abrupt.prepareForUse()
-
-#     acc, wallclock, cpu_time, df = test_then_train(rtg_2abrupt, arf10, max_instances=2000, sample_frequency=sampleFrequency)
-
-#     print(f"Test-Then-Train evaluation. Final accuracy: {acc:.4f}, Wallclock: {wallclock:.4f}, CPU Time: {cpu_time:.4f}")
-#     print(df.to_string())
-
-# def example_ARF_on_RTG_2abrupt_with_Prequential(dataset_path="/Users/gomeshe/Desktop/data/RTG_2abrupt.arff"):
-#     arf10 = AdaptiveRandomForest()
-#     arf10.getOptions().setViaCLIString("-s 10")
-#     arf10.setRandomSeed(1)
-#     arf10.prepareForUse()
-
-#     sampleFrequency = 100
-
-#     rtg_2abrupt = ArffFileStream(dataset_path, -1)
-#     rtg_2abrupt.prepareForUse()
-
-#     wallclock, cpu_time, df = prequential(rtg_2abrupt, arf10, max_instances=2000, window_size=sampleFrequency)
-
-#     print(f"Prequential evaluation. Wallclock: {wallclock:.4f}, CPU Time: {cpu_time:.4f}")
-#     print(df.to_string())
-
-# if __name__ == "__main__":
-#     print('example_ARF_on_RTG_2abrupt_with_TestThenTrain()')
-#     example_ARF_on_RTG_2abrupt_with_TestThenTrain()
-#     print('example_ARF_on_RTG_2abrupt_with_Prequential')
-#     example_ARF_on_RTG_2abrupt_with_Prequential()
