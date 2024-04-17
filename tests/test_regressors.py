@@ -1,6 +1,6 @@
 from capymoa.evaluation import RegressionEvaluator, RegressionWindowedEvaluator
 from capymoa.datasets import Fried
-from capymoa.learner.regressor import (
+from capymoa.regressor import (
     KNNRegressor,
     AdaptiveRandomForestRegressor,
     FIMTDD,
@@ -12,7 +12,7 @@ from capymoa.learner.regressor import (
 import pytest
 from functools import partial
 
-from capymoa.learner import Regressor
+from capymoa.base import Regressor
 
 
 @pytest.mark.parametrize(

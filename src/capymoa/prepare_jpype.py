@@ -1,9 +1,7 @@
 # Python imports
-import subprocess
 import configparser
 import jpype
 import jpype.imports
-from jpype.types import *
 import os
 from pathlib import Path
 

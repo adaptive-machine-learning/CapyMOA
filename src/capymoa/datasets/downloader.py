@@ -5,18 +5,19 @@ from os import environ
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Optional
-import shutil
 
 import wget
 from moa.streams import ArffFileStream
 
-from capymoa.stream.stream import Stream
+from capymoa.stream._stream import Stream
+
 
 def get_download_dir():
     """A default directory to store datasets in. Defaults to `./data` when the
     environment variable `CAPYMOA_DATASETS_DIR` is not set.
     """
     return environ.get("CAPYMOA_DATASETS_DIR", "data")
+
 
 class DownloadableDataset(ABC, Stream):
     filename: str = None
@@ -54,7 +55,7 @@ class DownloadableDataset(ABC, Stream):
                 )
 
         return stream
-    
+
     def get_path(self):
         return self._path
 

@@ -1,11 +1,8 @@
-from jpype import JObject
-
-import numpy as np
 import torch
 
 from capymoa.stream import Stream, Schema
-from capymoa.stream.stream import _init_moa_stream_and_create_moa_header
-from capymoa.stream.instance import (
+from capymoa.stream._stream import _init_moa_stream_and_create_moa_header
+from capymoa.instance import (
     LabeledInstance,
     RegressionInstance,
 )

@@ -5,8 +5,14 @@ moa_url: "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/versions/240412_moa.
 
 # What notebooks to skip when running them as tests.
 test_skip_notebooks:
-  - notebooks/04_drift_streams.ipynb
-  - notebooks/02_learners_api_examples.ipynb
-  - notebooks/Basic_Classification_Examples.ipynb
   - notebooks/00_getting_started.ipynb
+  - notebooks/01_evaluation_and_data_reading.ipynb
+  - notebooks/02_learners_api_examples.ipynb
   - notebooks/03_using_sklearn_pytorch.ipynb
+  - notebooks/04_drift_streams.ipynb
+  - notebooks/Basic_Classification_Examples.ipynb
+  - notebooks/Creating_new_classifier.ipynb
+  - notebooks/Data_Reading.ipynb
+  - notebooks/Preprocessing.ipynb
+  - notebooks/SSL_example.ipynb
+

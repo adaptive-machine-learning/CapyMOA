@@ -33,7 +33,7 @@ and modules.
 .. toctree::
    :maxdepth: 2
 
-   api/api
+   api/index
 
 Contributing
 ------------
@@ -41,10 +41,8 @@ This part of the documentation is for developers and contributors.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contributing
 
-   testing
-   README
+   contributing/index
 
 Indices and tables
 ==================
