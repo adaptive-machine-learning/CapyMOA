@@ -1,4 +1,8 @@
+import io
+import random
 import typing
+from io import BufferedReader
+from tempfile import NamedTemporaryFile
 from typing import Dict, Optional, Sequence
 
 import numpy as np
@@ -425,6 +429,28 @@ def stream_from_file(
         # Delegate to the ARFFFileStream object within ARFFStream to actually read the file.
         return ARFFStream(path=path_to_csv_or_arff)
     elif path_to_csv_or_arff.endswith(".csv"):
+        # # Do the file reading here.
+        # _data = np.genfromtxt(
+        #     path_to_csv_or_arff, delimiter=",", skip_header=1
+        # )  # Assuming a header row
+        #
+        # # Extract the feature data (all columns except the last one) and target data (last column)
+        # # TODO: class_index logic should appear in here.
+        # X = _data[:, :-1]
+        # y = _data[:, -1]
+        #
+        # # Extract the header from the CSV file (first row)
+        # with open(path_to_csv_or_arff, "r") as file:
+        #     header = file.readline().strip().split(",")
+        #
+        # return NumpyStream(
+        #     X=X,
+        #     y=y.astype(int),
+        #     dataset_name=dataset_name,
+        #     feature_names=header[:-1],
+        #     target_name=header[-1],
+        #     enforce_regression=enforce_regression,
+        # )
         return CSVStream(path_to_csv_or_arff)
 
 
@@ -576,7 +602,8 @@ class CSVStream(Stream):
                  target_attribute_name=None,
                  enforce_regression=False,
                  skip_header: bool = False,
-                 delimiter=','):
+                 delimiter=',',
+                 max_lines_for_tmp_file=100):
 
         self.csv_file_path = csv_file_path
         self.values_for_nominal_features = values_for_nominal_features
@@ -586,47 +613,12 @@ class CSVStream(Stream):
         self.enforce_regression = enforce_regression
         self.skip_header = skip_header
         self.delimiter = delimiter
-
-        self.dtypes = [] # [('column1', np.float64), ('column2', np.int32), ('column3', np.float64), ('column3', str)] reads nomonal attributes as str
-        if dtypes is None or len(dtypes) == 0: # data definition for each column not provided
-            if len(self.values_for_nominal_features) == 0: # data definition for nominal features are given
-                # need to infer number of columns, then generate full data definition using nominal information
-                # LOADS FIRST TWO ROWS INTO THE MEMORY
-                data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=None, names=True,
-                                     skip_header=0, max_rows=2)
-                if not self.enforce_regression and self.values_for_class_label is None:
-                    # LOADS THE FULL FILE INTO THE MEMORY
-                    data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=None, names=True,
-                                         skip_header=1 if skip_header else 0)
-                    y = data[data.dtype.names[self.class_index]]
-                    self.values_for_class_label = [str(value) for value in np.unique(y)]
-                for i, data_info in enumerate(data.dtype.descr):
-                    column_name, data_type = data_info
-                    if self.values_for_nominal_features.get(i) is not None: # i is in nominal feature keys
-                        self.dtypes.append((column_name, 'str'))
-                    else:
-                        self.dtypes.append((column_name, data_type))
-            else: # need to infer data definitions
-                # LOADS THE FULL FILE INTO THE MEMORY
-                data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=None, names=True,
-                                     skip_header=1 if skip_header else 0)
-                self.dtypes = data.dtype
-                if not self.enforce_regression and self.values_for_class_label is None:
-                    y = data[data.dtype.names[self.class_index]]
-                    self.values_for_class_label = [str(value) for value in np.unique(y)]
-        else: # data definition for each column are provided
-            self.dtypes = dtypes
+        self.max_lines_for_tmp_file = max_lines_for_tmp_file
+        self.tmp_file = None
 
         self.total_number_of_lines = 0
-        if self.skip_header:
-            self.n_lines_to_skip = 1
-        else:
-            row1_data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=None, names=True, skip_header=0,max_rows=1)
-            row2_data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=None, names=True, skip_header=1, max_rows=1)
-            if row1_data.dtype.names != row2_data.dtype.names:
-                self.n_lines_to_skip = 1
-            else:
-                self.n_lines_to_skip = 0
+        self.load_full_file_into_memory = True
+        self.infer_dtypes_and_header(dtypes)
 
         self.__moa_stream_with_only_header, self.moa_header = _init_moa_stream_and_create_moa_header(
                 number_of_instances=1, # we only need this to initialize the MOA header
@@ -640,24 +632,114 @@ class CSVStream(Stream):
 
         self.schema = Schema(moa_header=self.moa_header)
         super().__init__(schema=self.schema, CLI=None, moa_stream=None)
-        self.count_number_of_lines()
+
+        if self.load_full_file_into_memory:
+            self.data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=self.dtypes, names=None, skip_header=self.n_lines_to_skip)
+            self.total_number_of_lines = self.data.shape[0]
+            self.n_lines_to_skip = 0 # for has_more_instances() to work properly
+        else:
+            self.csv_file = open(self.csv_file_path, 'r+b')
+            self.buffer = BufferedReader(self.csv_file, buffer_size=512 * 1024 * 1024)
+            skip_lines = self.n_lines_to_skip
+            for i in range(skip_lines):
+                self.buffer.readline()
+                self.n_lines_to_skip += 1
+
+    def infer_dtypes_and_header(self, dtypes):
+        csv_file_path = None
+        if self.load_full_file_into_memory:
+            csv_file_path = self.csv_file_path
+        else:
+            self.count_number_of_lines()
+            csv_file_path = self.tmp_file.name
+
+        self.dtypes = [] # [('column1', np.float64), ('column2', np.int32), ('column3', np.float64), ('column3', str)] reads nomonal attributes as str
+        if dtypes is None or len(dtypes) == 0: # data definition for each column not provided
+            if len(self.values_for_nominal_features) == 0: # data definition for nominal features are given
+                # need to infer number of columns, then generate full data definition using nominal information
+                # LOADS FIRST TWO ROWS INTO THE MEMORY
+                data = np.genfromtxt(csv_file_path, delimiter=self.delimiter, dtype=None, names=True,
+                                     skip_header=0, max_rows=2)
+                if not self.enforce_regression and self.values_for_class_label is None:
+                    # LOADS THE FULL FILE INTO THE MEMORY
+                    data = np.genfromtxt(csv_file_path, delimiter=self.delimiter, dtype=None, names=True,
+                                         skip_header=1 if self.skip_header else 0)
+                    y = data[data.dtype.names[self.class_index]]
+                    self.values_for_class_label = [str(value) for value in np.unique(y)]
+                for i, data_info in enumerate(data.dtype.descr):
+                    column_name, data_type = data_info
+                    if self.values_for_nominal_features.get(i) is not None: # i is in nominal feature keys
+                        self.dtypes.append((column_name, 'str'))
+                    else:
+                        self.dtypes.append((column_name, data_type))
+            else: # need to infer data definitions
+                # LOADS THE FULL FILE INTO THE MEMORY
+                data = np.genfromtxt(csv_file_path, delimiter=self.delimiter, dtype=None, names=True,
+                                     skip_header=1 if self.skip_header else 0)
+                self.dtypes = data.dtype
+                if not self.enforce_regression and self.values_for_class_label is None:
+                    y = data[data.dtype.names[self.class_index]]
+                    self.values_for_class_label = [str(value) for value in np.unique(y)]
+        else: # data definition for each column are provided
+            self.dtypes = dtypes
+
+        if self.skip_header:
+            self.n_lines_to_skip = 1
+        else: # check whether there is a header
+            row1_data = np.genfromtxt(csv_file_path, delimiter=self.delimiter, dtype=None, names=True, skip_header=0,max_rows=1)
+            row2_data = np.genfromtxt(csv_file_path, delimiter=self.delimiter, dtype=None, names=True, skip_header=1, max_rows=1)
+            if row1_data.dtype.names != row2_data.dtype.names:
+                self.n_lines_to_skip = 1
+            else:
+                self.n_lines_to_skip = 0
+
+        if self.tmp_file is not None:
+            self.tmp_file.close()
 
     def count_number_of_lines(self):
+        self.tmp_file = NamedTemporaryFile(mode='w')
+        random_subset = []
         with open(self.csv_file_path, "r") as file:
             for line in file:
                 # Process each line here
+                if self.total_number_of_lines < self.max_lines_for_tmp_file:
+                    random_subset.append(line)
+                else: # random_subset full, update one using reservoir sampling
+                    random_int = random.randrange(1,  # do not replace first line
+                                                  self.total_number_of_lines + 1)
+                    if random_int < self.max_lines_for_tmp_file:
+                        random_subset[random_int] = line
+
                 self.total_number_of_lines += 1
+
+        self.tmp_file.writelines(random_subset)
+        print(self.tmp_file.name)
 
     def has_more_instances(self):
         return self.total_number_of_lines > self.n_lines_to_skip
 
+    def read_line_with_bytes(self, file):
+        """Reads a line from the file and returns the line and number of bytes read."""
+        start_pos = file.tell()  # Get current position (in bytes)
+        line = file.readline()
+        end_pos = file.tell()  # Get position after reading (in bytes)
+        bytes_read = end_pos - start_pos
+        return line.strip(), bytes_read
+
     def next_instance(self):
         if not self.has_more_instances():
             return None
-        # skip header
-        data = np.genfromtxt(self.csv_file_path, delimiter=self.delimiter, dtype=self.dtypes, names=None, skip_header=self.n_lines_to_skip, max_rows=1)
-        # np.genfromtxt() returns a structured https://numpy.org/doc/stable/user/basics.rec.html#structured-arrays
-        self.n_lines_to_skip += 1
+
+        if self.load_full_file_into_memory:
+            data = self.data[self.n_lines_to_skip]
+        else:
+            line = self.buffer.readline()
+            try:
+                data = np.genfromtxt(io.BytesIO(line), delimiter=self.delimiter, dtype=self.dtypes, names=None, max_rows=1)
+                 # np.genfromtxt() returns a structured https://numpy.org/doc/stable/user/basics.rec.html#structured-arrays
+                self.n_lines_to_skip += 1
+            except ValueError as e:
+                print(f'Error: {e} , line content: {line}')
 
         # data = np.expand_dims(data, axis=0)
         # y = data[[data.dtype.names[self.class_index]]].view('i4')
