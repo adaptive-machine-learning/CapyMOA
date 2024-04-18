@@ -2,6 +2,7 @@ from typing import Optional
 import pandas as pd
 import numpy as np
 import time
+import warnings
 import random
 
 from capymoa.stream import Schema, Stream
@@ -28,10 +29,14 @@ def _is_fast_mode_compilable(stream: Stream, learner, optimise=True) -> bool:
     is_moa_learner = hasattr(learner, "moa_learner") and learner.moa_learner is not None
     return is_moa_stream and is_moa_learner and optimise
 
+# class Evaluator:
+#
+
 
 class ClassificationEvaluator:
     """
-    Wrapper for the Classification Performance Evaluator from MOA. By default uses the BasicClassificationPerformanceEvaluator
+    Wrapper for the Classification Performance Evaluator from MOA. By default, it uses the
+    BasicClassificationPerformanceEvaluator
     """
 
     def __init__(
@@ -39,10 +44,6 @@ class ClassificationEvaluator:
         schema: Schema = None,
         window_size=None,
         allow_abstaining=True,
-        recall_per_class=False,
-        precision_per_class=False,
-        f1_precision_recall=False,
-        f1_per_class=False,
         moa_evaluator=None,
     ):
         self.instances_seen = 0
@@ -89,15 +90,7 @@ class ClassificationEvaluator:
         self._instance.setDataset(self._header)
 
     def __str__(self):
-        return str(
-            {
-                header: value
-                for header, value in zip(self.metrics_header(), self.metrics())
-            }
-        )
-
-    # # def metrics_with_header(self):
-    #     return {header: value for header, value in zip(self.metrics_header(), self.metrics())}
+        return str(self.metrics_dict())
 
     def get_instances_seen(self):
         return self.instances_seen
@@ -131,7 +124,8 @@ class ClassificationEvaluator:
             else:
                 raise ValueError(f"Invalid prediction y_pred_index = {y_pred_index}")
 
-        # Notice, in MOA the class value is an index, not the actual value (e.g. not "one" but 0 assuming labels=["one", "two"])
+        # Notice, in MOA the class value is an index, not the actual value
+        # (e.g. not "one" but 0 assuming labels=["one", "two"])
         self._instance.setClassValue(y_target_index)
         example = InstanceExample(self._instance)
 
@@ -140,14 +134,16 @@ class ClassificationEvaluator:
         #    (may or may not be normalised, but for our purposes it doesn't matter)
         prediction_array = self.pred_template[:]
 
-        # if y_pred is None, it indicates the learner did not produce a prediction for this instace, count as an error
+        # if y_pred is None, it indicates the learner did not produce a prediction for this instance,
+        # count as an error
         if y_pred_index is None:
             # TODO: I'm not sure what the actual logic should be here, but for
             # now I'm just setting the prediction to the first class since this
             # does not break the tests.
             y_pred_index = 0
             # Set y_pred_index to any valid prediction that is not y (force an incorrect prediction)
-            # This does not affect recall or any other metrics, because the selected value is always incorrect.
+            # This does not affect recall or any other metrics, because the selected value is always
+            # incorrect.
 
             # Create an intermediary array with indices excluding the y
             # indexesWithoutY = [
@@ -205,38 +201,10 @@ class ClassificationEvaluator:
         return self.metrics()[index]
 
 
-class ClassificationWindowedEvaluator(ClassificationEvaluator):
-    """
-    The results for the last window are always through ```metrics()```, if the window_size does not perfectly divides the stream, i.e.
-    there are remaining instances are the last window, then we can obtain the results for this last window by invoking ```metrics()```
-    """
-
-    def __init__(
-        self,
-        schema=None,
-        window_size=1000,
-        recall_per_class=False,
-        precision_per_class=False,
-        f1_precision_recall=False,
-        f1_per_class=False,
-    ):
-        self.moa_evaluator = WindowClassificationPerformanceEvaluator()
-        self.moa_evaluator.widthOption.setValue(window_size)
-
-        super().__init__(
-            schema=schema,
-            window_size=window_size,
-            recall_per_class=recall_per_class,
-            precision_per_class=precision_per_class,
-            f1_precision_recall=f1_precision_recall,
-            f1_per_class=f1_per_class,
-            moa_evaluator=self.moa_evaluator,
-        )
-
-
 class RegressionEvaluator:
     """
-    Wrapper for the Regression Performance Evaluator from MOA. By default uses the BasicRegressionPerformanceEvaluator
+    Wrapper for the Regression Performance Evaluator from MOA.
+    By default, it uses the MOA BasicRegressionPerformanceEvaluator as moa_evaluator.
     """
 
     def __init__(self, schema=None, window_size=None, moa_evaluator=None):
@@ -247,8 +215,6 @@ class RegressionEvaluator:
         self.moa_basic_evaluator = moa_evaluator
         if self.moa_basic_evaluator is None:
             self.moa_basic_evaluator = BasicRegressionPerformanceEvaluator()
-
-        # self.moa_basic_evaluator.prepareForUse()
 
         _attributeValues = ArrayList()
 
@@ -264,7 +230,6 @@ class RegressionEvaluator:
                 attSub.append(_targetAttribute)
                 self._header = Instances("", attSub, 1)
                 self._header.setClassIndex(self.schema.get_num_attributes())
-                # print(self._header)
             else:
                 raise ValueError("Schema was not set for a regression task")
         else:
@@ -278,12 +243,7 @@ class RegressionEvaluator:
         self._instance.setDataset(self._header)
 
     def __str__(self):
-        return str(
-            {
-                header: value
-                for header, value in zip(self.metrics_header(), self.metrics())
-            }
-        )
+        return str(self.metrics_dict())
 
     def get_instances_seen(self):
         return self.instances_seen
@@ -295,18 +255,11 @@ class RegressionEvaluator:
         self._instance.setClassValue(y)
         example = InstanceExample(self._instance)
 
-        # if y_pred is None, it indicates the learner did not produce a prediction for this instace
+        # The learner did not produce a prediction for this instance, thus y_pred is None
         if y_pred is None:
-            # In classification it is rather easy to deal with this, but
+            warnings.warn("The learner did not produce a prediction for this instance")
 
-            # Create an intermediary array with indices excluding the y
-            indexesWithoutY = [
-                i for i in range(len(self.schema.get_label_indexes())) if i != y_index
-            ]
-            random_y_pred = random.choice(indexesWithoutY)
-            y_pred_index = self.schema.get_label_indexes()[random_y_pred]
-
-        # Different from classification, there is no need to make a shallow copy of the prediction array, just override the value.
+        # Different from classification, there is no need to copy the prediction array, just override the value.
         self.pred_template[0] = y_pred
         self.moa_basic_evaluator.addResult(example, self.pred_template)
 
@@ -333,8 +286,17 @@ class RegressionEvaluator:
             for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
         ]
 
+    def metrics_dict(self):
+        return {header: value for header, value in zip(self.metrics_header(), self.metrics())}
+
     def metrics_per_window(self):
         return pd.DataFrame(self.result_windows, columns=self.metrics_header())
+
+    def predictions(self):
+        return self.predictions
+
+    def ground_truth_y(self):
+        return self.gt_y
 
     def MAE(self):
         index = self.metrics_header().index("mean absolute error")
@@ -357,10 +319,37 @@ class RegressionEvaluator:
         return self.metrics()[index]
 
 
+class ClassificationWindowedEvaluator(ClassificationEvaluator):
+    """
+    Uses the ClassificationEvaluator to perform a windowed evaluation.
+
+    IMPORTANT: The results for the last window are always through ```metrics()```, if the window_size does not
+    perfectly divide the stream, the metrics corresponding to the last remaining instances in the last window can
+    be obtained by invoking ```metrics()```
+    """
+
+    def __init__(
+        self,
+        schema=None,
+        window_size=1000
+    ):
+        self.moa_evaluator = WindowClassificationPerformanceEvaluator()
+        self.moa_evaluator.widthOption.setValue(window_size)
+
+        super().__init__(
+            schema=schema,
+            window_size=window_size,
+            moa_evaluator=self.moa_evaluator,
+        )
+
+
 class RegressionWindowedEvaluator(RegressionEvaluator):
     """
-    The results for the last window are always through ```metrics()```, if the window_size does not perfectly divides the stream, i.e.
-    there are remaining instances are the last window, then we can obtain the results for this last window by invoking ```metrics()```
+    Uses the RegressionEvaluator to perform a windowed evaluation.
+
+    IMPORTANT: The results for the last window are always through ```metrics()```, if the window_size does not
+    perfectly divide the stream, the metrics corresponding to the last remaining instances in the last window can
+    be obtained by invoking ```metrics()```
     """
 
     def __init__(self, schema=None, window_size=1000):
@@ -406,6 +395,7 @@ def test_then_train_evaluation(
 
     if _is_fast_mode_compilable(stream, learner, optimise):
         return test_then_train_evaluation_fast(
+
             stream, learner, max_instances, sample_frequency, evaluator
         )
 
@@ -432,7 +422,6 @@ def test_then_train_evaluation(
         instance = stream.next_instance()
         prediction = learner.predict(instance)
 
-        # TODO: The multiple if statements based on the type of stream is ugly.
         if stream.get_schema().is_classification():
             y = instance.y_index
         else:
@@ -462,9 +451,10 @@ def test_then_train_evaluation(
 
 def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
     """
-    Prequential evaluation (window). Returns a dictionary with the results.
+    Windowed evaluation. Returns a dictionary with the results.
     """
-    # Run test-then-train evaluation, but change the underlying evaluator
+    # Run test-then-train evaluation, but change the underlying MOA evaluator.
+    # This is a workaround to avoid redundant code.
     evaluator = None
     if stream.get_schema().is_classification():
         evaluator = ClassificationWindowedEvaluator(
@@ -483,8 +473,9 @@ def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
     )
 
     results["windowed"] = results["cumulative"]
-    # Add the results corresponding to the remainder of the stream in case the number of processed instances is not perfectly divisible by
-    # the window_size (if it was, then it is already be in the result_windows variable).
+    # Add the results corresponding to the remainder of the stream in case the number of
+    # processed instances is not perfectly divisible by the window_size (if it was, then
+    # it is already in the result_windows variable).
     if evaluator.get_instances_seen() % window_size != 0:
         results["windowed"].result_windows.append(results["windowed"].metrics())
 
@@ -497,14 +488,23 @@ def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
 
 
 def prequential_evaluation(
-    stream, learner, max_instances=None, window_size=1000, optimise=True
+    stream, learner, max_instances=None, window_size=1000, optimise=True, store_predictions=False, store_y=False
 ):
     """
     Calculates the metrics cumulatively (i.e. test-then-train) and in a window-fashion (i.e. windowed prequential evaluation).
     Returns both evaluators so that the caller has access to metric from both evaluators.
     """
+
     if _is_fast_mode_compilable(stream, learner, optimise):
         return prequential_evaluation_fast(stream, learner, max_instances, window_size)
+
+    predictions = None
+    if store_predictions:
+        predictions = []
+
+    ground_truth_y = None
+    if store_y:
+        ground_truth_y = []
 
     # Start measuring time
     start_wallclock_time, start_cpu_time = start_time_measuring()
@@ -539,8 +539,6 @@ def prequential_evaluation(
 
         prediction = learner.predict(instance)
 
-        # TODO: The multiple if statements based on the type of stream is not
-        #  ideal.
         if stream.get_schema().is_classification():
             y = instance.y_index
         else:
@@ -551,6 +549,14 @@ def prequential_evaluation(
             evaluator_windowed.update(y, prediction)
         learner.train(instance)
 
+        # Storing predictions if store_predictions was set to True during initialisation
+        if predictions is not None:
+            predictions.append(prediction)
+
+        # Storing ground-truth if store_y was set to True during initialisation
+        if ground_truth_y is not None:
+            ground_truth_y.append(y)
+
         instancesProcessed += 1
 
     # Stop measuring time
@@ -558,9 +564,9 @@ def prequential_evaluation(
         start_wallclock_time, start_cpu_time
     )
 
-    # Add the results corresponding to the remainder of the stream in case the number of processed instances is not perfectly divisible by
-    # the window_size (if it was, then it is already be in the result_windows variable).
-    # The evaluator_windowed will be None if the window_size is None (it will not be created)
+    # Add the results corresponding to the remainder of the stream in case the number of processed
+    # instances is not perfectly divisible by the window_size (if it was, then it is already be in
+    # the result_windows variable). The evaluator_windowed will be None if the window_size is None.
     if (
         evaluator_windowed is not None
         and evaluator_windowed.get_instances_seen() % window_size != 0
@@ -575,6 +581,8 @@ def prequential_evaluation(
         "cpu_time": elapsed_cpu_time,
         "max_instances": max_instances,
         "stream": stream,
+        "predictions": predictions,
+        "ground_truth_y": ground_truth_y
     }
 
     return results
@@ -726,7 +734,7 @@ def prequential_SSL_evaluation(
 ##############################################################
 
 
-def test_then_train_evaluation_fast(
+def _test_then_train_evaluation_fast(
     stream, learner, max_instances=None, sample_frequency=None, evaluator=None
 ):
     """
@@ -794,7 +802,7 @@ def test_then_train_evaluation_fast(
     return results
 
 
-def prequential_evaluation_fast(stream, learner, max_instances=None, window_size=1000):
+def _prequential_evaluation_fast(stream, learner, max_instances=None, window_size=1000):
     """
     Prequential evaluation fast.
     """
@@ -1031,13 +1039,17 @@ def prequential_SSL_evaluation_fast(
 ########################################################################################
 
 
-# TODO: review if we want to keep this method.
 def prequential_evaluation_multiple_learners(
     stream, learners, max_instances=None, window_size=1000
 ):
     """
-    Calculates the metrics cumulatively (i.e., test-then-train) and in a window-fashion (i.e., windowed prequential evaluation) for multiple streams and learners.
-    Returns the results in a dictionary format. Infers whether it is a Classification or Regression problem based on the stream schema.
+    Calculates the metrics cumulatively (i.e., test-then-train) and in a windowed-fashion for multiple streams and
+    learners. It behaves as if we invoked prequential_evaluation() multiple times, but we only iterate through the
+    stream once.
+    This function is useful in situations where iterating through the stream is costly, but we still want to assess
+    several learners on it.
+    Returns the results in a dictionary format. Infers whether it is a Classification or Regression problem based on the
+    stream schema.
     """
     results = {}
 
@@ -1064,6 +1076,7 @@ def prequential_evaluation_multiple_learners(
                 results[learner_name]["windowed"] = RegressionWindowedEvaluator(
                     schema=stream.get_schema(), window_size=window_size
                 )
+        results[learner_name]['learner'] = learner_name
     instancesProcessed = 1
 
     while stream.has_more_instances() and (

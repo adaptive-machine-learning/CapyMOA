@@ -10,7 +10,7 @@ These tutorials will show you how to get started with the CapyMOA library.
    :caption: Tutorials:
 
    00_getting_started.ipynb
-   01_evaluation_and_data_reading.ipynb
+   01_evaluation.ipynb
    02_learners_api_examples.ipynb
    03_using_sklearn_pytorch.ipynb
    04_drift_streams.ipynb
