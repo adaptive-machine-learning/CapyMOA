@@ -88,10 +88,10 @@ def run_MOA_experiment(
             sample_frequency=MAX_INSTANCES,
         )
         print(
-            f"{arff_path}, {model.__str__()} {CLI}, {results['cumulative'].accuracy():.4f}, {results['wallclock']:.4f}, {results['cpu_time']:.4f}"
+            f"{arff_path}, \"{model.__str__()} {CLI}\", {results['cumulative'].accuracy():.4f}, {results['wallclock']:.4f}, {results['cpu_time']:.4f}"
         )
         writer.writerow(
-            [arff_path, model.__str__() + CLI, results['cumulative'].accuracy(), results['wallclock'], results['cpu_time']]
+            [arff_path, '"'+model.__str__() + CLI+'"', results['cumulative'].accuracy(), results['wallclock'], results['cpu_time']]
         )
 
 
@@ -110,10 +110,10 @@ def run_RIVER_experiment(
             sample_frequency=MAX_INSTANCES,
         )
         print(
-            f"{csv_path}, {model.__class__.__name__} {CLI}, {acc:.4f}, {wallclock:.4f}, {cpu_time:.4f}"
+            f'{csv_path}, "{model.__class__.__name__} {CLI}", {acc:.4f}, {wallclock:.4f}, {cpu_time:.4f}'
         )
         writer.writerow(
-            [csv_path, model.__class__.__name__ + CLI, acc, wallclock, cpu_time]
+            [csv_path, '"'+model.__class__.__name__ + CLI+'"', acc, wallclock, cpu_time]
         )
 
 
