@@ -29,8 +29,8 @@ def _get_moa_creation_CLI(moa_learner):
     moa_learner_class_id = str(moa_learner.getClass().getName())
     moa_learner_class_id_parts = moa_learner_class_id.split(".")
     moa_learner_str = (
-        # f"{moa_learner_class_id_parts[-2]}.{moa_learner_class_id_parts[-1]}"
-        f"{moa_learner_class_id_parts[-1]}"
+        f"{moa_learner_class_id_parts[-2]}.{moa_learner_class_id_parts[-1]}" if isinstance(moa_learner, MOA_Classifier_Interface)
+        else f"{moa_learner_class_id_parts[-1]}"
     )
 
     moa_cli_creation = str(moa_learner.getCLICreationString(moa_learner.__class__))
