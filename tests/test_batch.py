@@ -1,7 +1,7 @@
 from capymoa.datasets._datasets import ElectricityTiny
 from capymoa.ssl.classifier._batch import BatchClassifierSSL
 from capymoa.stream._stream import Schema, NumpyStream
-from capymoa.evaluation.evaluation import prequential_SSL_evaluation
+from capymoa.evaluation.evaluation import prequential_ssl_evaluation
 import numpy as np
 
 
@@ -69,7 +69,7 @@ def test_batch_basic():
 
     stream = NumpyStream(x, y)
     learner = _DummyBatchClassifierSSL(batch_size, stream.schema, class_value_type=str)
-    prequential_SSL_evaluation(
+    prequential_ssl_evaluation(
         stream=stream, learner=learner, label_probability=0.01, window_size=100
     )
 
@@ -83,7 +83,7 @@ def test_batch_real():
     assert stream.schema.get_num_attributes() == 6
 
     learner = _DummyBatchClassifierSSL(128, stream.schema, class_value_type=str)
-    prequential_SSL_evaluation(
+    prequential_ssl_evaluation(
         stream=stream,
         learner=learner,
         label_probability=0.01,
