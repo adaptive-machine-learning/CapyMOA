@@ -21,12 +21,12 @@ from moa.classifiers.bayes import NaiveBayes
 from capymoa.base import MOAClassifier
 
 MAX_INSTANCES = 100
-OUTPUT_FILE_PATH = "../experiments/experiments_MOA_ARF_2.csv"
-OUTPUT_FILE_RIVER_PATH = "../experiments/experiments_RIVER_2.csv"
+OUTPUT_FILE_PATH = "./experiments/experiments_MOA_ARF_2.csv"
+OUTPUT_FILE_RIVER_PATH = "./experiments/experiments_RIVER_2.csv"
 
 ## Datasets paths
-arff_RTG_2abrupt_path = "../data/RTG_2abrupt.arff"
-csv_RTG_2abrupt_path = "../data/RTG_2abrupt.csv"
+arff_RTG_2abrupt_path = "./data/RTG_2abrupt.arff"
+csv_RTG_2abrupt_path = "./data/RTG_2abrupt.csv"
 
 
 ## Function to abstract the test and train loop using RIVER
