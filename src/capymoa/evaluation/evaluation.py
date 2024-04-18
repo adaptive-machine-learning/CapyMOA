@@ -394,7 +394,7 @@ def test_then_train_evaluation(
     """
 
     if _is_fast_mode_compilable(stream, learner, optimise):
-        return test_then_train_evaluation_fast(
+        return _test_then_train_evaluation_fast(
 
             stream, learner, max_instances, sample_frequency, evaluator
         )
@@ -404,7 +404,7 @@ def test_then_train_evaluation(
 
     instancesProcessed = 1
 
-    if stream.has_more_instances() == False:
+    if not stream.has_more_instances():
         stream.restart()
 
     if evaluator is None:
@@ -496,7 +496,7 @@ def prequential_evaluation(
     """
 
     if _is_fast_mode_compilable(stream, learner, optimise):
-        return prequential_evaluation_fast(stream, learner, max_instances, window_size)
+        return _prequential_evaluation_fast(stream, learner, max_instances, window_size)
 
     predictions = None
     if store_predictions:
@@ -604,7 +604,7 @@ def test_then_train_SSL_evaluation(
     Test-then-train SSL evaluation. Returns a dictionary with the results.
     """
     if _is_fast_mode_compilable(stream, learner, optimise):
-        return test_then_train_SSL_evaluation_fast(
+        return _test_then_train_ssl_evaluation_fast(
             stream,
             learner,
             max_instances,
@@ -619,7 +619,7 @@ def test_then_train_SSL_evaluation(
     raise ValueError("test_then_train_SSL_evaluation(...) not fully implemented yet!")
 
 
-def prequential_SSL_evaluation(
+def prequential_ssl_evaluation(
     stream,
     learner,
     max_instances=None,
@@ -634,10 +634,10 @@ def prequential_SSL_evaluation(
     If the learner is not a SSL learner, then it will just train on labeled instances.
     """
     if _is_fast_mode_compilable(stream, learner, optimise):
-        return prequential_evaluation_fast(stream, learner, max_instances, window_size)
+        return _prequential_ssl_evaluation_fast(stream, learner, max_instances, window_size)
 
     # IMPORTANT: delay_length and initial_window_size have not been implemented in python yet
-    # In MOA it is implemented so prequential_SSL_evaluation_fast works just fine.
+    # In MOA it is implemented so _prequential_ssl_evaluation_fast works just fine.
     if initial_window_size != 0:
         raise ValueError(
             "Initial window size must be 0 for this function as the feature is not implemented yet."
@@ -766,9 +766,9 @@ def _test_then_train_evaluation_fast(
             sample_frequency,
         )
         # Reset the windowed_evaluator result_windows
-        if moa_results != None:
+        if moa_results is not None:
             evaluator.result_windows = []
-            if moa_results.windowedResults != None:
+            if moa_results.windowedResults is not None:
                 for entry_idx in range(len(moa_results.windowedResults)):
                     evaluator.result_windows.append(
                         moa_results.windowedResults[entry_idx]
@@ -869,7 +869,7 @@ def _prequential_evaluation_fast(stream, learner, max_instances=None, window_siz
     return results
 
 
-def test_then_train_SSL_evaluation_fast(
+def _test_then_train_ssl_evaluation_fast(
     stream,
     learner,
     max_instances=None,
@@ -886,7 +886,7 @@ def test_then_train_SSL_evaluation_fast(
 
     if not _is_fast_mode_compilable(stream, learner):
         raise ValueError(
-            "`test_then_train_SSL_evaluation_fast` requires the stream object to have a`Stream.moa_stream`"
+            "`_test_then_train_ssl_evaluation_fast` requires the stream object to have a`Stream.moa_stream`"
         )
 
     if max_instances is None:
@@ -962,7 +962,7 @@ def test_then_train_SSL_evaluation_fast(
     return results
 
 
-def prequential_SSL_evaluation_fast(
+def _prequential_ssl_evaluation_fast(
     stream,
     learner,
     max_instances=None,
@@ -987,7 +987,8 @@ def prequential_SSL_evaluation_fast(
     start_wallclock_time, start_cpu_time = start_time_measuring()
 
     basic_evaluator = ClassificationEvaluator(schema=stream.get_schema())
-    # Always create the windowed_evaluator, even if window_size is None. TODO: may want to avoid creating it if window_size is None.
+    # Always create the windowed_evaluator, even if window_size is None.
+    # TODO: may want to avoid creating it if window_size is None.
     windowed_evaluator = ClassificationWindowedEvaluator(
         schema=stream.get_schema(), window_size=window_size
     )
@@ -1007,9 +1008,9 @@ def prequential_SSL_evaluation_fast(
     )
 
     # Reset the windowed_evaluator result_windows
-    if moa_results != None:
+    if moa_results is not None:
         windowed_evaluator.result_windows = []
-        if moa_results.windowedResults != None:
+        if moa_results.windowedResults is not None:
             for entry_idx in range(len(moa_results.windowedResults)):
                 windowed_evaluator.result_windows.append(
                     moa_results.windowedResults[entry_idx]
@@ -1053,7 +1054,7 @@ def prequential_evaluation_multiple_learners(
     """
     results = {}
 
-    if stream.has_more_instances() == False:
+    if not stream.has_more_instances():
         stream.restart()
 
     for learner_name, learner in learners.items():
