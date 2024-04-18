@@ -3,7 +3,7 @@ from .evaluation import (
     prequential_evaluation,
     windowed_evaluation,
     prequential_evaluation_multiple_learners,
-    prequential_SSL_evaluation,
+    prequential_ssl_evaluation,
     ClassificationEvaluator,
     ClassificationWindowedEvaluator,
     RegressionWindowedEvaluator,
@@ -12,7 +12,7 @@ from .evaluation import (
 
 __all__ = [
     "prequential_evaluation",
-    "prequential_SSL_evaluation",
+    "prequential_ssl_evaluation",
     "test_then_train_evaluation",
     "windowed_evaluation",
     "prequential_evaluation_multiple_learners",

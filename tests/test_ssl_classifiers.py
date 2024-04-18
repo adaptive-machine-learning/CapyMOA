@@ -2,7 +2,7 @@ from capymoa.datasets._datasets import ElectricityTiny, CovtypeTiny
 from capymoa.ssl.classifier import OSNN
 
 import pytest
-from capymoa.evaluation.evaluation import prequential_SSL_evaluation
+from capymoa.evaluation.evaluation import prequential_ssl_evaluation
 from capymoa.base import ClassifierSSL
 from capymoa.stream import Stream
 from functools import partial
@@ -15,7 +15,7 @@ def assert_ssl_evaluation(
     label_probability: float = 0.01,
     max_instances: int = 1000,
 ):
-    results = prequential_SSL_evaluation(
+    results = prequential_ssl_evaluation(
         stream=stream,
         learner=learner,
         label_probability=label_probability,
@@ -35,7 +35,7 @@ def assert_ssl_evaluation(
         (partial(OSNN, optim_steps=10), CovtypeTiny, 26.3, None),
     ],
     ids=[
-        "OSNN_ElectricityTiny", 
+        "OSNN_ElectricityTiny",
         "OSNN_CovtypeTiny",
     ],
 )
