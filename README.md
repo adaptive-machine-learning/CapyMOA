@@ -2,9 +2,10 @@
 Python wrapper for MOA to allow efficient use of existing algorithms with a more modern API
 
 > [!IMPORTANT]
-> * **[How to Install CapyMOA](docs/installation.md)**
-> * **[How to Contribute Tests](docs/testing.md)**
-> * **[How to Contribute Documentation](docs/README.md)**
+> * **[How to install CapyMOA](docs/installation.md)**
+> * **[How to add documentation](docs/contributing/docs.md)**
+> * **[How to add tests](docs/contributing/tests.md)**
+> * **[How to add new algorithms or methods](docs/contributing/learners.md)**
 
 
 # Functionality

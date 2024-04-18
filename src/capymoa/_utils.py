@@ -37,7 +37,7 @@ def _get_moa_creation_CLI(moa_object):
 
     >>> from moa.streams import ConceptDriftStream
     ...
-    >>> stream = ConceptDriftStream() 
+    >>> stream = ConceptDriftStream()
     >>> _get_moa_creation_CLI(stream)
     'streams.ConceptDriftStream'
     """
