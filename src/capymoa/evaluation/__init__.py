@@ -10,7 +10,7 @@ from .evaluation import (
     RegressionEvaluator,
 )
 
-__ALL__ = [
+__all__ = [
     "prequential_evaluation",
     "prequential_SSL_evaluation",
     "test_then_train_evaluation",

@@ -5,8 +5,8 @@ import time
 import warnings
 import random
 
-from capymoa.stream.stream import Schema, Stream
-from capymoa.learner.learners import ClassifierSSL
+from capymoa.stream import Schema, Stream
+from capymoa.base import ClassifierSSL
 
 from com.yahoo.labs.samoa.instances import Instances, Attribute, DenseInstance
 from moa.core import InstanceExample
@@ -106,13 +106,19 @@ class ClassificationEvaluator:
         :raises ValueError: If the values are not valid indexes in the schema.
         """
         if not isinstance(y_target_index, (np.integer, int)):
-            raise ValueError(f"y_target_index must be an integer, not {type(y_target_index)}")
+            raise ValueError(
+                f"y_target_index must be an integer, not {type(y_target_index)}"
+            )
         if not (y_pred_index is None or isinstance(y_pred_index, (np.integer, int))):
-            raise ValueError(f"y_pred_index must be an integer, not {type(y_pred_index)}")
+            raise ValueError(
+                f"y_pred_index must be an integer, not {type(y_pred_index)}"
+            )
 
-        # If the prediction is invalid, it could mean the classifier is abstaining from making a prediction; 
+        # If the prediction is invalid, it could mean the classifier is abstaining from making a prediction;
         # thus, it is allowed to continue (unless parameterized differently).
-        if y_pred_index is not None and not self.schema.is_y_index_in_range(y_pred_index):
+        if y_pred_index is not None and not self.schema.is_y_index_in_range(
+            y_pred_index
+        ):
             if self.allow_abstaining:
                 y_pred_index = None
             else:
@@ -131,7 +137,7 @@ class ClassificationEvaluator:
         # if y_pred is None, it indicates the learner did not produce a prediction for this instance,
         # count as an error
         if y_pred_index is None:
-            # TODO: I'm not sure what the actual logic should be here, but for 
+            # TODO: I'm not sure what the actual logic should be here, but for
             # now I'm just setting the prediction to the first class since this
             # does not break the tests.
             y_pred_index = 0
@@ -153,9 +159,7 @@ class ClassificationEvaluator:
 
         # If the window_size is set, then check if it should record the intermediary results.
         if self.window_size is not None and self.instances_seen % self.window_size == 0:
-            performance_values = (
-                self.metrics()
-            )
+            performance_values = self.metrics()
             self.result_windows.append(performance_values)
 
     def metrics_header(self):
@@ -172,7 +176,10 @@ class ClassificationEvaluator:
         ]
 
     def metrics_dict(self):
-        return {header: value for header, value in zip(self.metrics_header(), self.metrics())}
+        return {
+            header: value
+            for header, value in zip(self.metrics_header(), self.metrics())
+        }
 
     def metrics_per_window(self):
         return pd.DataFrame(self.result_windows, columns=self.metrics_header())
@@ -435,8 +442,8 @@ def test_then_train_evaluation(
         "cumulative": evaluator,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
-        "max_instances":max_instances, 
-        "stream":stream,
+        "max_instances": max_instances,
+        "stream": stream,
     }
 
     return results
@@ -713,8 +720,8 @@ def prequential_SSL_evaluation(
         "windowed": evaluator_windowed,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
-        "max_instances":max_instances, 
-        "stream":stream,
+        "max_instances": max_instances,
+        "stream": stream,
         "unlabeled": unlabeled_counter,
         "unlabeled_ratio": unlabeled_counter / instancesProcessed,
     }
@@ -788,8 +795,8 @@ def _test_then_train_evaluation_fast(
         "cumulative": evaluator,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
-        "max_instances":max_instances, 
-        "stream":stream,
+        "max_instances": max_instances,
+        "stream": stream,
     }
 
     return results
@@ -855,8 +862,8 @@ def _prequential_evaluation_fast(stream, learner, max_instances=None, window_siz
         "windowed": windowed_evaluator,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
-        "max_instances":max_instances, 
-        "stream":stream,
+        "max_instances": max_instances,
+        "stream": stream,
     }
 
     return results
@@ -942,8 +949,8 @@ def test_then_train_SSL_evaluation_fast(
         "cumulative": evaluator,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
-        "max_instances":max_instances, 
-        "stream":stream,
+        "max_instances": max_instances,
+        "stream": stream,
     }
 
     for measure in moa_results.otherMeasurements.keySet():
@@ -1019,8 +1026,8 @@ def prequential_SSL_evaluation_fast(
         "windowed": windowed_evaluator,
         "wallclock": elapsed_wallclock_time,
         "cpu_time": elapsed_cpu_time,
-        "max_instances":max_instances, 
-        "stream":stream,
+        "max_instances": max_instances,
+        "stream": stream,
         "other_measurements": dict(moa_results.otherMeasurements),
     }
 
@@ -1086,7 +1093,6 @@ def prequential_evaluation_multiple_learners(
                 y = instance.y_index
             else:
                 y = instance.y_value
-
 
             results[learner_name]["cumulative"].update(y, prediction)
             if window_size is not None:

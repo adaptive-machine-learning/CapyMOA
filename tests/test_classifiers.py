@@ -1,22 +1,23 @@
 from capymoa.evaluation import ClassificationEvaluator, ClassificationWindowedEvaluator
-from capymoa.learner.classifier import (
+from capymoa.classifier import (
     EFDT,
     HoeffdingTree,
     AdaptiveRandomForest,
     OnlineBagging,
     NaiveBayes,
 )
-from capymoa.learner import Classifier, MOAClassifier
+from capymoa.base import Classifier
+from capymoa.base import MOAClassifier
 from capymoa.datasets import ElectricityTiny
 import pytest
 from functools import partial
 from typing import Callable, Optional
-from capymoa.learner.learners import _extract_moa_learner_CLI
-from capymoa.learner.splitcriteria import InfoGainSplitCriterion
+from capymoa.base import _extract_moa_learner_CLI
+from capymoa.splitcriteria import InfoGainSplitCriterion
 
-from capymoa.stream.stream import Schema
+from capymoa.stream._stream import Schema
 
-from capymoa.learner.classifier.sklearn import PassiveAggressiveClassifier
+from capymoa.classifier import PassiveAggressiveClassifier
 
 
 @pytest.mark.parametrize(
@@ -34,8 +35,14 @@ from capymoa.learner.classifier.sklearn import PassiveAggressiveClassifier
         ),
         (partial(NaiveBayes), 84.0, 91.0, None),
     ],
-    ids=["OnlineBagging", "AdaptiveRandomForest", "HoeffdingTree", "EFDT", "EFDT_gini", "NaiveBayes"],
-
+    ids=[
+        "OnlineBagging",
+        "AdaptiveRandomForest",
+        "HoeffdingTree",
+        "EFDT",
+        "EFDT_gini",
+        "NaiveBayes",
+    ],
 )
 def test_classifiers(
     learner_constructor: Callable[[Schema], Classifier],
@@ -62,7 +69,6 @@ def test_classifiers(
     )
 
     learner: Classifier = learner_constructor(schema=stream.get_schema())
-    # learner = learner_constructor(schema=stream.get_schema())
 
     while stream.has_more_instances():
         instance = stream.next_instance()
@@ -71,6 +77,7 @@ def test_classifiers(
         win_evaluator.update(instance.y_index, prediction)
         learner.train(instance)
 
+    # Check if the accuracy matches the expected value for both evaluator types
     actual_acc = evaluator.accuracy()
     actual_win_acc = win_evaluator.accuracy()
     assert actual_acc == pytest.approx(
@@ -80,11 +87,7 @@ def test_classifiers(
         win_accuracy, abs=0.1
     ), f"Windowed Eval: Expected accuracy of {win_accuracy:0.1f} got {actual_win_acc:0.1f}"
 
+    # Optionally check the CLI string if it was provided
     if isinstance(learner, MOAClassifier) and cli_string is not None:
         cli_str = _extract_moa_learner_CLI(learner).strip("()")
-        assert (
-            cli_str == cli_string
-        ), "CLI does not match expected value"
-
-    # assert evaluator.accuracy() == pytest.approx(accuracy, abs=0.1)
-    # assert win_evaluator.accuracy() == pytest.approx(win_accuracy, abs=0.1)
+        assert cli_str == cli_string, "CLI does not match expected value"

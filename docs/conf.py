@@ -25,6 +25,18 @@ extensions = [
     "myst_parser",
 ]
 
+nitpick_ignore_regex = [
+    ('py:class', r'sklearn\..*'),
+    ('py:class', r'numpy\..*'),
+    ('py:class', r'pathlib\..*'),
+    ('py:class', r'abc\..*'),
+    ('py:class', r'moa\..*'),
+    ('py:class', r'com\..*'),
+    ('py:class', r'java\..*'),
+    ('py:class', r'org\..*'),
+    ('py:class', r'torch\..*'),
+
+]
 bibtex_bibfiles = ['references.bib']
 
 autoclass_content = 'class'
@@ -45,10 +57,12 @@ extlinks = {
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "sphinx_book_theme"
+html_theme = "pydata_sphinx_theme"
 html_static_path = ['_static']
 
 # Setup symbolic links for notebooks
+
+python_maximum_signature_line_length = 88
 
 notebooks = Path("../notebooks")
 notebook_doc_source = Path("notebooks")

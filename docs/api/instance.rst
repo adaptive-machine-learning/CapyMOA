@@ -2,7 +2,7 @@ Instance
 ========
 Instances are the basic unit of data in CapyMOA.
 
-..  automodule:: capymoa.stream.instance
+..  automodule:: capymoa.instance
     :members:
     :undoc-members:
     :show-inheritance:

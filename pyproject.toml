@@ -33,14 +33,15 @@ dev=[
     "jupyter",
     "nbmake",
     "pytest-xdist",
-    "invoke"
+    "invoke",
+    "wget"
 ]
 
 doc=[
     # Documentation generator
     "sphinx",
     # Theme for the documentation
-    "sphinx-book-theme",
+    "pydata-sphinx-theme",
     # Allows to include Jupyter notebooks in the documentation
     "sphinx-autobuild",
     # Allows to include Jupyter notebooks in the documentation
