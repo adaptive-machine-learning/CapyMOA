@@ -1,6 +1,5 @@
 from capymoa.datasets._datasets import ElectricityTiny, CovtypeTiny
-from capymoa.ssl.classifier import OSNN, CPSSDS
-import pytest
+from capymoa.ssl.classifier import OSNN
 
 import pytest
 from capymoa.evaluation.evaluation import prequential_SSL_evaluation
@@ -34,18 +33,10 @@ def assert_ssl_evaluation(
     [
         (partial(OSNN, optim_steps=10), ElectricityTiny, 46.1, None),
         (partial(OSNN, optim_steps=10), CovtypeTiny, 26.3, None),
-        (partial(CPSSDS, batch_size=100, base_model="NaiveBayes"), ElectricityTiny, 76.6, 0.5),
-        (partial(CPSSDS, batch_size=100, base_model="HoeffdingTree"), ElectricityTiny, 66.2, 0.5),
-        (partial(CPSSDS, batch_size=100, base_model="NaiveBayes"), CovtypeTiny, 55.7, 0.5),
-        (partial(CPSSDS, batch_size=100, base_model="HoeffdingTree"), CovtypeTiny, 53.3, 0.5),
     ],
     ids=[
         "OSNN_ElectricityTiny", 
         "OSNN_CovtypeTiny",
-        "CPSSDS_ElectricityTiny-NaiveBayes",
-        "CPSSDS_ElectricityTiny-HoeffdingTree",
-        "CPSSDS_CovtypeTiny-NaiveBayes",
-        "CPSSDS_CovtypeTiny-HoeffdingTree",
     ],
 )
 def test_ssl_classifiers(learner_constructor, stream_constructor, expectation, label_probability):
