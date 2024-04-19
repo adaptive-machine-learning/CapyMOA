@@ -1,7 +1,8 @@
 # Library imports
 
-from capymoa.base import MOARegressor
+from capymoa.base import MOARegressor, _extract_moa_learner_CLI
 from ._arffimtdd import ARFFIMTDD
+
 
 from moa.classifiers.meta import (
     AdaptiveRandomForestRegressor as MOA_AdaptiveRandomForestRegressor,
@@ -26,20 +27,16 @@ class AdaptiveRandomForestRegressor(MOARegressor):
     ):
         # Important: must create the MOA object before invoking the super class __init__
         self.moa_learner = MOA_AdaptiveRandomForestRegressor()
-        super().__init__(
-            schema=schema,
-            CLI=CLI,
-            random_seed=random_seed,
-            moa_learner=self.moa_learner,
-        )
 
         # Initialize instance attributes with default values, CLI was not set.
-        if self.CLI is None:
-            self.tree_learner = (
-                ARFFIMTDD(schema, grace_period=50, split_confidence=0.01)
-                if tree_learner is None
-                else tree_learner
-            )
+        if CLI is None:
+            if tree_learner is None:
+                self.tree_learner = ARFFIMTDD(schema, grace_period=50, split_confidence=0.01)
+            elif type(tree_learner) is str:
+                self.tree_learner = tree_learner
+            else:
+                self.tree_learner = _extract_moa_learner_CLI(tree_learner)
+
             self.ensemble_size = ensemble_size
 
             self.max_features = max_features
@@ -82,3 +79,10 @@ class AdaptiveRandomForestRegressor(MOARegressor):
             )
             self.moa_learner.prepareForUse()
             self.moa_learner.resetLearning()
+
+        super().__init__(
+            schema=schema,
+            CLI=CLI,
+            random_seed=random_seed,
+            moa_learner=self.moa_learner,
+        )

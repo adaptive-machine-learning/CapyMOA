@@ -2,77 +2,13 @@
 from typing import Optional, Union
 
 from capymoa.base import (
-    MOARegressor,
+    MOARegressor, _extract_moa_learner_CLI
 )
 
 from capymoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
 from capymoa.stream._stream import Schema
 from moa.classifiers.meta import SelfOptimisingKNearestLeaves as _MOA_SOKNL
-from moa.classifiers.trees import SelfOptimisingBaseTree as _MOA_SelfOptimisingBaseTree
-
-
-class SOKNLBT(MOARegressor):
-    """Implementation of the FIMT-DD tree as described by Ikonomovska et al."""
-
-    def __init__(
-        self,
-        schema: Schema,
-        subspace_size_size: int = 2,
-        split_criterion: Union[SplitCriterion, str] = "VarianceReductionSplitCriterion",
-        grace_period: int = 200,
-        split_confidence: float = 1.0e-7,
-        tie_threshold: float = 0.05,
-        page_hinckley_alpha: float = 0.005,
-        page_hinckley_threshold: int = 50,
-        alternate_tree_fading_factor: float = 0.995,
-        alternate_tree_t_min: int = 150,
-        alternate_tree_time: int = 1500,
-        learning_ratio: float = 0.02,
-        learning_ratio_decay_factor: float = 0.001,
-        learning_ratio_const: bool = False,
-        random_seed: Optional[int] = None,
-    ) -> None:
-        """
-        Construct SelfOptimisingBaseTree.
-
-        :param subspace_size_size: Number of features per subset for each node split. Negative values = #features - k
-        :param split_criterion: Split criterion to use.
-        :param grace_period: Number of instances a leaf should observe between split attempts.
-        :param split_confidence: Allowed error in split decision, values close to 0 will take long to decide.
-        :param tie_threshold: Threshold below which a split will be forced to break ties.
-        :param page_hinckley_alpha: Alpha value to use in the Page Hinckley change detection tests.
-        :param page_hinckley_threshold: Threshold value used in the Page Hinckley change detection tests.
-        :param alternate_tree_fading_factor: Fading factor used to decide if an alternate tree should replace an original.
-        :param alternate_tree_t_min: Tmin value used to decide if an alternate tree should replace an original.
-        :param alternate_tree_time: The number of instances used to decide if an alternate tree should be discarded.
-        :param learning_ratio: Learning ratio to used for training the Perceptrons in the leaves.
-        :param learning_ratio_decay_factor: Learning rate decay factor (not used when learning rate is constant).
-        :param learning_ratio_const: Keep learning rate constant instead of decaying.
-        """
-        cli = []
-
-        cli.append(f"-k {subspace_size_size}")
-        cli.append(f"-s ({_split_criterion_to_cli_str(split_criterion)})")
-        cli.append(f"-g {grace_period}")
-        cli.append(f"-c {split_confidence}")
-        cli.append(f"-t {tie_threshold}")
-        cli.append(f"-a {page_hinckley_alpha}")
-        cli.append(f"-h {page_hinckley_threshold}")
-        cli.append(f"-f {alternate_tree_fading_factor}")
-        cli.append(f"-y {alternate_tree_t_min}")
-        cli.append(f"-u {alternate_tree_time}")
-        cli.append(f"-l {learning_ratio}")
-        cli.append(f"-d {learning_ratio_decay_factor}")
-        cli.append("-p") if learning_ratio_const else None
-
-        self.moa_learner = _MOA_SelfOptimisingBaseTree()
-
-        super().__init__(
-            schema=schema,
-            CLI=" ".join(cli),
-            random_seed=random_seed,
-            moa_learner=self.moa_learner,
-        )
+from ._soknl_base_tree import SOKNLBT
 
 
 class SOKNL(MOARegressor):
@@ -89,26 +25,21 @@ class SOKNL(MOARegressor):
         warning_detection_method=None,
         disable_drift_detection=False,
         disable_background_learner=False,
-        self_optimising=True,
+        disable_self_optimising=True,
         k_value=10,
     ):
         # Important: must create the MOA object before invoking the super class __init__
         self.moa_learner = _MOA_SOKNL()
-        super().__init__(
-            schema=schema,
-            CLI=CLI,
-            random_seed=random_seed,
-            moa_learner=self.moa_learner,
-        )
 
         # Initialize instance attributes with default values, CLI was not set.
-        if self.CLI is None:
-            self.tree_learner = (
-                # "(SelfOptimisingBaseTree -s VarianceReductionSplitCriterion -g 50 -c 0.01)"
-                SOKNLBT(schema, grace_period=50, split_confidence=0.01)
-                if tree_learner is None
-                else tree_learner
-            )
+        if CLI is None:
+            if tree_learner is None:
+                self.tree_learner = SOKNLBT(schema, grace_period=50, split_confidence=0.01)
+            elif type(tree_learner) is str:
+                self.tree_learner = tree_learner
+            else:
+                self.tree_learner = _extract_moa_learner_CLI(tree_learner)
+
             self.ensemble_size = ensemble_size
 
             self.max_features = max_features
@@ -144,13 +75,20 @@ class SOKNL(MOARegressor):
             self.disable_drift_detection = disable_drift_detection
             self.disable_background_learner = disable_background_learner
 
-            self.self_optimising = self_optimising
+            self.disable_self_optimising = disable_self_optimising
             self.k_value = k_value
 
             self.moa_learner.getOptions().setViaCLIString(
-                f"-l {self.tree_learner} -s {self.ensemble_size} {'-f' if self.self_optimising else ''} -k {self.k_value} -o {self.m_features_mode} -m \
+                f"-l {self.tree_learner} -s {self.ensemble_size} {'-f' if self.disable_self_optimising else ''} -k {self.k_value} -o {self.m_features_mode} -m \
                 {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
                 {self.warning_detection_method} {'-u' if self.disable_drift_detection else ''}  {'-q' if self.disable_background_learner else ''}"
             )
             self.moa_learner.prepareForUse()
             self.moa_learner.resetLearning()
+
+        super().__init__(
+            schema=schema,
+            CLI=CLI,
+            random_seed=random_seed,
+            moa_learner=self.moa_learner,
+        )

@@ -2,7 +2,10 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from jpype import _jpype
-from moa.classifiers import Classifier as MOA_Classifier_Interface
+from moa.classifiers import (
+    Classifier as MOA_Classifier_Interface,
+    Regressor as MOA_Regressor_Interface,
+)
 from moa.core import Utils
 
 from capymoa.instance import Instance, LabeledInstance, RegressionInstance
@@ -29,7 +32,8 @@ def _get_moa_creation_CLI(moa_learner):
     moa_learner_class_id = str(moa_learner.getClass().getName())
     moa_learner_class_id_parts = moa_learner_class_id.split(".")
     moa_learner_str = (
-        f"{moa_learner_class_id_parts[-2]}.{moa_learner_class_id_parts[-1]}"
+        f"{moa_learner_class_id_parts[-2]}.{moa_learner_class_id_parts[-1]}" if isinstance(moa_learner, MOA_Classifier_Interface)
+        else f"{moa_learner_class_id_parts[-1]}"
     )
 
     moa_cli_creation = str(moa_learner.getCLICreationString(moa_learner.__class__))
@@ -54,12 +58,12 @@ def _extract_moa_learner_CLI(learner):
     A string representing the CLI command for creating the MOA learner.
     """
 
-    # Check if the base_learner is a MOAClassifier
-    if isinstance(learner, MOAClassifier):
+    # Check if the base_learner is a MOAClassifie or a MOARegressor
+    if isinstance(learner, MOAClassifier) or isinstance(learner, MOARegressor):
         learner = _get_moa_creation_CLI(learner.moa_learner)
 
-    # ... or a Classifier (Interface from MOA) type
-    if isinstance(learner, MOA_Classifier_Interface):
+    # ... or a Classifier or a Regressor (Interfaces from MOA) type
+    if isinstance(learner, MOA_Classifier_Interface) or isinstance(learner, MOA_Regressor_Interface):
         learner = _get_moa_creation_CLI(learner)
 
     # ... or a java object, which we presume is a MOA object (if it is not, MOA will raise the error)

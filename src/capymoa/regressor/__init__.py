@@ -3,7 +3,7 @@ from ._orto import ORTO
 from ._knn import KNNRegressor
 from ._fimtdd import FIMTDD
 from ._arffimtdd import ARFFIMTDD
-from ._adaptive_random_forrest import AdaptiveRandomForestRegressor
+from ._adaptive_random_forest import AdaptiveRandomForestRegressor
 
 __all__ = [
     "SOKNLBT",
