@@ -32,6 +32,7 @@ def _get_moa_creation_CLI(moa_learner):
     moa_learner_class_id = str(moa_learner.getClass().getName())
     moa_learner_class_id_parts = moa_learner_class_id.split(".")
 
+    # label the category of the moa_learner
     moa_learner_category = 0
     if isinstance(moa_learner, MOA_Classifier_Interface):
         moa_learner_category +=1
