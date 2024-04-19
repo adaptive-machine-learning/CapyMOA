@@ -11,17 +11,18 @@ from river import stream
 
 # Library imports
 from capymoa.evaluation.evaluation import *
+from capymoa.stream import stream_from_file
 
 # MOA/Java imports
-from moa.streams import ArffFileStream
 from moa.classifiers.meta import AdaptiveRandomForest, StreamingRandomPatches
 from moa.classifiers.trees import HoeffdingTree, EFDT
 from moa.classifiers.lazy import kNN
 from moa.classifiers.bayes import NaiveBayes
+from capymoa.base import MOAClassifier
 
 MAX_INSTANCES = 100
-OUTPUT_FILE_PATH = "experiments/experiments_MOA_ARF_2.csv"
-OUTPUT_FILE_RIVER_PATH = "experiments/experiments_RIVER_2.csv"
+OUTPUT_FILE_PATH = "./experiments/experiments_MOA_ARF_2.csv"
+OUTPUT_FILE_RIVER_PATH = "./experiments/experiments_RIVER_2.csv"
 
 ## Datasets paths
 arff_RTG_2abrupt_path = "./data/RTG_2abrupt.arff"
@@ -29,7 +30,7 @@ csv_RTG_2abrupt_path = "./data/RTG_2abrupt.csv"
 
 
 ## Function to abstract the test and train loop using RIVER
-def test_then_train_RIVER(dataset, model, max_instances=1000, sample_frequency=100):
+def run_test_then_train_RIVER(dataset, model, max_instances=1000, sample_frequency=100):
     # Start measuring time
     start_wallclock_time, start_cpu_time = start_time_measuring()
 
@@ -71,28 +72,26 @@ def test_then_train_RIVER(dataset, model, max_instances=1000, sample_frequency=1
 
 
 def run_MOA_experiment(
-    arff_path, model=AdaptiveRandomForest(), CLI="", output_file_path=OUTPUT_FILE_PATH
+    arff_path, model, CLI="", output_file_path=OUTPUT_FILE_PATH
 ):
     with open(output_file_path, mode="a", newline="") as file:
         writer = csv.writer(file)
 
-        model.getOptions().setViaCLIString(CLI)
-        model.prepareForUse()
 
-        data_arff = ArffFileStream(arff_path, -1)
-        data_arff.prepareForUse()
+        data_arff = stream_from_file(path_to_csv_or_arff=arff_path)
+        model = MOAClassifier(moa_learner=model(), CLI=CLI, schema=data_arff.get_schema())
 
-        acc, wallclock, cpu_time, df = test_then_train_evaluation(
+        results = test_then_train_evaluation(
             stream=data_arff,
             learner=model,
             max_instances=MAX_INSTANCES,
             sample_frequency=MAX_INSTANCES,
         )
         print(
-            f"{arff_path}, {model.getClass().getName()} {CLI}, {acc:.4f}, {wallclock:.4f}, {cpu_time:.4f}"
+            f"{arff_path}, \"{model.__str__()} {CLI}\", {results['cumulative'].accuracy():.4f}, {results['wallclock']:.4f}, {results['cpu_time']:.4f}"
         )
         writer.writerow(
-            [arff_path, model.getClass().getName() + CLI, acc, wallclock, cpu_time]
+            [arff_path, '"'+model.__str__() + CLI+'"', results['cumulative'].accuracy(), results['wallclock'], results['cpu_time']]
         )
 
 
@@ -104,17 +103,17 @@ def run_RIVER_experiment(
 
         data_csv = pd.read_csv(csv_path).to_numpy()
 
-        acc, wallclock, cpu_time, df = test_then_train_RIVER(
+        acc, wallclock, cpu_time, df = run_test_then_train_RIVER(
             dataset=data_csv,
             model=model,
             max_instances=MAX_INSTANCES,
             sample_frequency=MAX_INSTANCES,
         )
         print(
-            f"{csv_path}, {model.__class__.__name__} {CLI}, {acc:.4f}, {wallclock:.4f}, {cpu_time:.4f}"
+            f'{csv_path}, "{model.__class__.__name__} {CLI}", {acc:.4f}, {wallclock:.4f}, {cpu_time:.4f}'
         )
         writer.writerow(
-            [csv_path, model.__class__.__name__ + CLI, acc, wallclock, cpu_time]
+            [csv_path, '"'+model.__class__.__name__ + CLI+'"', acc, wallclock, cpu_time]
         )
 
 
@@ -127,57 +126,57 @@ def experiments_MOA():
                 ["dataset", "classifier", "accuracy", "wallclock(s)", "cpu_time(s)"]
             )
 
-    run_MOA_experiment(arff_path=arff_RTG_2abrupt_path, model=NaiveBayes(), CLI="")
-    run_MOA_experiment(arff_path=arff_RTG_2abrupt_path, model=HoeffdingTree(), CLI="")
-    run_MOA_experiment(arff_path=arff_RTG_2abrupt_path, model=EFDT(), CLI="")
+    run_MOA_experiment(arff_path=arff_RTG_2abrupt_path, model=NaiveBayes, CLI="")
+    run_MOA_experiment(arff_path=arff_RTG_2abrupt_path, model=HoeffdingTree, CLI="")
+    run_MOA_experiment(arff_path=arff_RTG_2abrupt_path, model=EFDT, CLI="")
     run_MOA_experiment(
-        arff_path=arff_RTG_2abrupt_path, model=kNN(), CLI=" -w 1000 -k 3"
+        arff_path=arff_RTG_2abrupt_path, model=kNN, CLI=" -w 1000 -k 3"
     )
 
     run_MOA_experiment(
         arff_path=arff_RTG_2abrupt_path,
-        model=AdaptiveRandomForest(),
+        model=AdaptiveRandomForest,
         CLI="-s 5 -o (Percentage (M * (m / 100))) -m 60",
     )
     run_MOA_experiment(
         arff_path=arff_RTG_2abrupt_path,
-        model=AdaptiveRandomForest(),
+        model=AdaptiveRandomForest,
         CLI="-s 10 -o (Percentage (M * (m / 100))) -m 60",
     )
     run_MOA_experiment(
         arff_path=arff_RTG_2abrupt_path,
-        model=AdaptiveRandomForest(),
+        model=AdaptiveRandomForest,
         CLI="-s 30 -o (Percentage (M * (m / 100))) -m 60",
     )
     run_MOA_experiment(
         arff_path=arff_RTG_2abrupt_path,
-        model=AdaptiveRandomForest(),
+        model=AdaptiveRandomForest,
         CLI="-s 100 -o (Percentage (M * (m / 100))) -m 60",
     )
     run_MOA_experiment(
         arff_path=arff_RTG_2abrupt_path,
-        model=AdaptiveRandomForest(),
+        model=AdaptiveRandomForest,
         CLI="-s 100 -j 4 -o (Percentage (M * (m / 100))) -m 60",
     )
 
     run_MOA_experiment(
         arff_path=arff_RTG_2abrupt_path,
-        model=StreamingRandomPatches(),
+        model=StreamingRandomPatches,
         CLI="-s 5 -o (Percentage (M * (m / 100))) -m 60",
     )
     run_MOA_experiment(
         arff_path=arff_RTG_2abrupt_path,
-        model=StreamingRandomPatches(),
+        model=StreamingRandomPatches,
         CLI="-s 10 -o (Percentage (M * (m / 100))) -m 60",
     )
     run_MOA_experiment(
         arff_path=arff_RTG_2abrupt_path,
-        model=StreamingRandomPatches(),
+        model=StreamingRandomPatches,
         CLI="-s 30 -o (Percentage (M * (m / 100))) -m 60",
     )
     run_MOA_experiment(
         arff_path=arff_RTG_2abrupt_path,
-        model=StreamingRandomPatches(),
+        model=StreamingRandomPatches,
         CLI="-s 100 -o (Percentage (M * (m / 100))) -m 60",
     )
 
