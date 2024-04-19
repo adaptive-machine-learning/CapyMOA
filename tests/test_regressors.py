@@ -18,13 +18,13 @@ from capymoa.base import Regressor
 @pytest.mark.parametrize(
     "learner_constructor,rmse,win_rmse",
     [
-        (partial(AdaptiveRandomForestRegressor), 4.14, 3.82),
+        (partial(AdaptiveRandomForestRegressor), 3.66, 3.00),
         (partial(KNNRegressor), 3.03, 2.49),
         (partial(FIMTDD), 7.4, 5.3),
         (partial(ARFFIMTDD), 4.95, 4.6),
         (partial(ORTO), 9.2, 7.6),
         (partial(SOKNLBT), 4.95, 4.6),
-        (partial(SOKNL), 3.50, 3.0),
+        (partial(SOKNL), 3.37, 2.77),
     ],
     ids=[
         "AdaptiveRandomForestRegressor",
