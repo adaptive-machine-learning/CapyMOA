@@ -8,6 +8,8 @@ from .evaluation import (
     ClassificationWindowedEvaluator,
     RegressionWindowedEvaluator,
     RegressionEvaluator,
+    PredictionIntervalEvaluator,
+    PredictionIntervalWindowedEvaluator,
 )
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     "ClassificationWindowedEvaluator",
     "RegressionWindowedEvaluator",
     "RegressionEvaluator",
+    "PredictionIntervalEvaluator",
+    "PredictionIntervalWindowedEvaluator",
 ]

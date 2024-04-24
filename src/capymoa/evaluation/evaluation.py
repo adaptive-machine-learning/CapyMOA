@@ -6,7 +6,7 @@ import warnings
 import random
 
 from capymoa.stream import Schema, Stream
-from capymoa.base import ClassifierSSL
+from capymoa.base import ClassifierSSL, MOAPredictionIntervalLearner
 
 from com.yahoo.labs.samoa.instances import Instances, Attribute, DenseInstance
 from moa.core import InstanceExample
@@ -15,7 +15,10 @@ from moa.evaluation import (
     WindowClassificationPerformanceEvaluator,
     BasicRegressionPerformanceEvaluator,
     WindowRegressionPerformanceEvaluator,
+    BasicPredictionIntervalEvaluator,
+    WindowPredictionIntervalEvaluator,
 )
+
 from java.util import ArrayList
 from moa.evaluation import EfficientEvaluationLoops
 from moa.streams import InstanceStream
@@ -414,7 +417,10 @@ def test_then_train_evaluation(
                 schema=schema, window_size=sample_frequency
             )
         else:
-            evaluator = RegressionEvaluator(schema=schema, window_size=sample_frequency)
+            evaluator = (
+                RegressionEvaluator(schema=schema, window_size=sample_frequency) if not isinstance(learner, MOAPredictionIntervalLearner)
+                else PredictionIntervalEvaluator(schema=schema, window_size=sample_frequency)
+            )
 
     while stream.has_more_instances() and (
         max_instances is None or instancesProcessed <= max_instances
@@ -461,9 +467,10 @@ def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
             schema=stream.get_schema(), window_size=window_size
         )
     else:
-        evaluator = RegressionWindowedEvaluator(
-            schema=stream.get_schema(), window_size=window_size
-        )
+        evaluator = (
+            RegressionWindowedEvaluator(schema=stream.get_schema(), window_size=window_size) if not isinstance(learner, MOAPredictionIntervalLearner)
+            else PredictionIntervalWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
+                     )
     results = test_then_train_evaluation(
         stream,
         learner,
@@ -524,14 +531,22 @@ def prequential_evaluation(
                 schema=stream.get_schema(), window_size=window_size
             )
     else:
-        evaluator_cumulative = RegressionEvaluator(
-            schema=stream.get_schema(), window_size=window_size
-        )
-        if window_size is not None:
-            evaluator_windowed = RegressionWindowedEvaluator(
+        if not isinstance(learner, MOAPredictionIntervalLearner):
+            evaluator_cumulative = RegressionEvaluator(
                 schema=stream.get_schema(), window_size=window_size
             )
-
+            if window_size is not None:
+                evaluator_windowed = RegressionWindowedEvaluator(
+                    schema=stream.get_schema(), window_size=window_size
+                )
+        else:
+            evaluator_cumulative = PredictionIntervalEvaluator(
+                schema=stream.get_schema(), window_size=window_size
+            )
+            if window_size is not None:
+                evaluator_windowed = PredictionIntervalWindowedEvaluator(
+                    schema=stream.get_schema(), window_size=window_size
+                )
     while stream.has_more_instances() and (
         max_instances is None or instancesProcessed <= max_instances
     ):
@@ -827,12 +842,17 @@ def _prequential_evaluation_fast(stream, learner, max_instances=None, window_siz
             schema=stream.get_schema(), window_size=window_size
         )
     else:
-        # If it is not classification, must be regression
-        basic_evaluator = RegressionEvaluator(schema=stream.get_schema())
-        windowed_evaluator = RegressionWindowedEvaluator(
-            schema=stream.get_schema(), window_size=window_size
-        )
-
+        # If it is not classification, could be regression or prediction interval
+        if not isinstance(learner, MOAPredictionIntervalLearner):
+            basic_evaluator = RegressionEvaluator(schema=stream.get_schema())
+            windowed_evaluator = RegressionWindowedEvaluator(
+                schema=stream.get_schema(), window_size=window_size
+            )
+        else:
+            basic_evaluator = PredictionIntervalEvaluator(schema=stream.get_schema())
+            windowed_evaluator = PredictionIntervalWindowedEvaluator(
+                schema=stream.get_schema(), window_size=window_size
+            )
     moa_results = EfficientEvaluationLoops.PrequentialEvaluation(
         stream.moa_stream,
         learner.moa_learner,
@@ -1070,13 +1090,22 @@ def prequential_evaluation_multiple_learners(
                     schema=stream.get_schema(), window_size=window_size
                 )
         else:
-            results[learner_name]["cumulative"] = RegressionEvaluator(
-                schema=stream.get_schema(), window_size=window_size
-            )
-            if window_size is not None:
-                results[learner_name]["windowed"] = RegressionWindowedEvaluator(
+            if not isinstance(learner, MOAPredictionIntervalLearner):
+                results[learner_name]["cumulative"] = RegressionEvaluator(
                     schema=stream.get_schema(), window_size=window_size
                 )
+                if window_size is not None:
+                    results[learner_name]["windowed"] = RegressionWindowedEvaluator(
+                        schema=stream.get_schema(), window_size=window_size
+                    )
+            else:
+                results[learner_name]["cumulative"] = PredictionIntervalEvaluator(
+                    schema=stream.get_schema(), window_size=window_size
+                )
+                if window_size is not None:
+                    results[learner_name]["windowed"] = PredictionIntervalWindowedEvaluator(
+                        schema=stream.get_schema(), window_size=window_size
+                    )
         results[learner_name]['learner'] = learner_name
     instancesProcessed = 1
 
@@ -1110,3 +1139,121 @@ def prequential_evaluation_multiple_learners(
                 result["windowed"].result_windows.append(result["windowed"].metrics())
 
     return results
+
+
+## PI Evaluation
+class PredictionIntervalEvaluator(RegressionEvaluator):
+
+    def __init__(self, schema=None, window_size=None, moa_evaluator=None):
+        self.instances_seen = 0
+        self.result_windows = []
+        self.window_size = window_size
+
+        self.moa_basic_evaluator = moa_evaluator
+        if self.moa_basic_evaluator is None:
+            self.moa_basic_evaluator = BasicPredictionIntervalEvaluator()
+
+        # self.moa_basic_evaluator.prepareForUse()
+
+        _attributeValues = ArrayList()
+
+        self.schema = schema
+        self._header = None
+        if self.schema is not None:
+            if self.schema.is_regression():
+                attSub = ArrayList()
+                for _ in range(self.schema.get_num_attributes()):
+                    attSub.append(Attribute("Attribute"))
+                _targetAttribute = Attribute("Target")
+
+                attSub.append(_targetAttribute)
+                self._header = Instances("", attSub, 1)
+                self._header.setClassIndex(self.schema.get_num_attributes())
+                # print(self._header)
+            else:
+                raise ValueError("Schema was not set for a regression task")
+        else:
+            raise ValueError("Schema is None, please define a proper Schema.")
+
+        # Prediction Interval has three outputs: lower bound, prediction, upper bound
+        self.pred_template = [0, 0, 0]
+
+        # Create the denseInstance just once and keep reusing it by changing the classValue (more efficient).
+        self._instance = DenseInstance(self.schema.get_num_attributes() + 1)
+        self._instance.setDataset(self._header)
+
+
+    def update(self, y, y_pred):
+        if y is None:
+            raise ValueError(f"Invalid ground-truth y = {y}")
+
+        self._instance.setClassValue(y)
+        example = InstanceExample(self._instance)
+
+        # if y_pred is None, it indicates the learner did not produce a prediction for this instace
+        if y_pred is None:
+            # In classification it is rather easy to deal with this, but
+
+            # Create an intermediary array with indices excluding the y
+            indexesWithoutY = [
+                i for i in range(len(self.schema.get_label_indexes())) if i != y_index
+            ]
+            random_y_pred = random.choice(indexesWithoutY)
+            y_pred_index = self.schema.get_label_indexes()[random_y_pred]
+
+        # Different from classification, there is no need to make a shallow copy of the prediction array, just override the value.
+        self.pred_template[0] = y_pred[0]
+        self.pred_template[1] = y_pred[1]
+        self.pred_template[2] = y_pred[2]
+        self.moa_basic_evaluator.addResult(example, self.pred_template)
+
+        self.instances_seen += 1
+
+        # If the window_size is set, then check if it should record the intermediary results.
+        if self.window_size is not None and self.instances_seen % self.window_size == 0:
+            performance_values = [
+                measurement.getValue()
+                for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
+            ]
+            self.result_windows.append(performance_values)
+
+
+    def metrics_header(self):
+        performance_measurements = self.moa_basic_evaluator.getPerformanceMeasurements()
+        performance_names = [
+            "".join(measurement.getName()) for measurement in performance_measurements
+        ]
+        return performance_names
+
+    def metrics(self):
+        return [
+            measurement.getValue()
+            for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
+        ]
+
+    def metrics_per_window(self):
+        return pd.DataFrame(self.result_windows, columns=self.metrics_header())
+
+
+    def coverage(self):
+        index = self.metrics_header().index("coverage")
+        return self.metrics()[index]
+
+    def average_length(self):
+        index = self.metrics_header().index("average length")
+        return self.metrics()[index]
+
+    def NMPIW(self):
+        index = self.metrics_header().index("NMPIW")
+        return self.metrics()[index]
+
+
+
+class PredictionIntervalWindowedEvaluator(PredictionIntervalEvaluator):
+    def __init__(self, schema=None, window_size=1000):
+        self.moa_evaluator = WindowPredictionIntervalEvaluator()
+        self.moa_evaluator.widthOption.setValue(window_size)
+
+        super().__init__(
+            schema=schema, window_size=window_size, moa_evaluator=self.moa_evaluator
+        )

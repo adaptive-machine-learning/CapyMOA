@@ -6,6 +6,11 @@ from moa.classifiers import (
     Classifier as MOA_Classifier_Interface,
     Regressor as MOA_Regressor_Interface,
 )
+from moa.classifiers.predictioninterval import PredictionIntervalLearner as MOA_PredictionInterval_Interface
+from moa.classifiers.trees import (
+ARFFIMTDD as MOA_ARFFIMTDD,
+SelfOptimisingBaseTree as MOA_SOKNLBT,
+)
 from moa.core import Utils
 
 from capymoa.instance import Instance, LabeledInstance, RegressionInstance
@@ -32,16 +37,9 @@ def _get_moa_creation_CLI(moa_learner):
     moa_learner_class_id = str(moa_learner.getClass().getName())
     moa_learner_class_id_parts = moa_learner_class_id.split(".")
 
-    # label the category of the moa_learner
-    moa_learner_category = 0
-    if isinstance(moa_learner, MOA_Classifier_Interface):
-        moa_learner_category +=1
-    if isinstance(moa_learner, MOA_Regressor_Interface):
-        moa_learner_category +=1
-
     moa_learner_str = (
-        f"{moa_learner_class_id_parts[-2]}.{moa_learner_class_id_parts[-1]}" if moa_learner_category == 1
-        else f"{moa_learner_class_id_parts[-1]}"
+        f"{moa_learner_class_id_parts[-1]}" if isinstance(moa_learner, MOA_ARFFIMTDD) or isinstance(moa_learner, MOA_SOKNLBT)
+        else f"{moa_learner_class_id_parts[-2]}.{moa_learner_class_id_parts[-1]}"
     )
 
     moa_cli_creation = str(moa_learner.getCLICreationString(moa_learner.__class__))
@@ -67,11 +65,11 @@ def _extract_moa_learner_CLI(learner):
     """
 
     # Check if the base_learner is a MOAClassifie or a MOARegressor
-    if isinstance(learner, MOAClassifier) or isinstance(learner, MOARegressor):
+    if isinstance(learner, MOAClassifier) or isinstance(learner, MOARegressor) or isinstance(learner, MOAPredictionIntervalLearner):
         learner = _get_moa_creation_CLI(learner.moa_learner)
 
     # ... or a Classifier or a Regressor (Interfaces from MOA) type
-    if isinstance(learner, MOA_Classifier_Interface) or isinstance(learner, MOA_Regressor_Interface):
+    if isinstance(learner, MOA_Classifier_Interface) or isinstance(learner, MOA_Regressor_Interface) or isinstance(learner, MOA_PredictionInterval_Interface):
         learner = _get_moa_creation_CLI(learner)
 
     # ... or a java object, which we presume is a MOA object (if it is not, MOA will raise the error)
@@ -304,3 +302,30 @@ class MOARegressor(Regressor):
         if len(prediction_array) == 0:
             return 0.0
         return prediction_array[0]
+
+
+### Prediction Interval Learner ###
+class PredictionIntervalLearner(Regressor):
+    def __init__(self, schema=None, random_seed=1):
+        super().__init__(schema=schema, random_seed=random_seed)
+
+    @abstractmethod
+    def train(self, instance):
+        pass
+    @abstractmethod
+    def predict(self, instance):
+        pass
+
+
+
+class MOAPredictionIntervalLearner(MOARegressor, PredictionIntervalLearner):
+
+    def train(self, instance):
+        self.moa_learner.trainOnInstance(instance.java_instance)
+    def predict(self, instance):
+        prediction_PI = self.moa_learner.getVotesForInstance(instance.java_instance)
+        if len(prediction_PI) != 3:
+            return [0, 0, 0]
+        else:
+            return prediction_PI
+
