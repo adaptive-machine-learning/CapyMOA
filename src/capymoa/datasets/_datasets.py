@@ -1,66 +1,67 @@
 from capymoa.datasets.downloader import DownloadARFFGzip
-
-ROOT_URL = "https://homepages.ecs.vuw.ac.nz/~antonlee/capymoa/standardised/"
+from ._source_list import SOURCE_LIST
+from ._util import extracted_name
 
 
 class Sensor(DownloadARFFGzip):
     # TODO: Add docstring describing the dataset and link to the original source
 
-    filename = "sensor.arff"
-    remote_url = ROOT_URL
+    filename = extracted_name(SOURCE_LIST["Sensor"].arff)[1]
+    remote_url = SOURCE_LIST["Sensor"].arff
 
 
 class Hyper100k(DownloadARFFGzip):
     # TODO: Add docstring describing the dataset and link to the original source
 
-    filename = "Hyper100k.arff"
-    remote_url = ROOT_URL
+    filename = extracted_name(SOURCE_LIST["Hyper100k"].arff)[1]
+    remote_url = SOURCE_LIST["Hyper100k"].arff
 
 
 class CovtFD(DownloadARFFGzip):
     # TODO: Add docstring describing the dataset and link to the original source
 
-    filename = "covtFD.arff"
-    remote_url = ROOT_URL
+    filename = extracted_name(SOURCE_LIST["CovtFD"].arff)[1]
+    remote_url = SOURCE_LIST["CovtFD"].arff
 
 
 class Covtype(DownloadARFFGzip):
     # TODO: Add docstring describing the dataset and link to the original source
 
-    filename = "covtype.arff"
-    remote_url = ROOT_URL
+    filename = extracted_name(SOURCE_LIST["Covtype"].arff)[1]
+    remote_url = SOURCE_LIST["Covtype"].arff
 
 
 class RBFm_100k(DownloadARFFGzip):
     # TODO: Add docstring describing the dataset and link to the original source
 
-    filename = "RBFm_100k.arff"
-    remote_url = ROOT_URL
+    filename = extracted_name(SOURCE_LIST["RBFm_100k"].arff)[1]
+    remote_url = SOURCE_LIST["RBFm_100k"].arff
 
 
 class RTG_2abrupt(DownloadARFFGzip):
     # TODO: Add docstring describing the dataset and link to the original source
 
-    filename = "RTG_2abrupt.arff"
-    remote_url = ROOT_URL
+    filename = extracted_name(SOURCE_LIST["RTG_2abrupt"].arff)[1]
+    remote_url = SOURCE_LIST["RTG_2abrupt"].arff
 
 
 class ElectricityTiny(DownloadARFFGzip):
     """A tiny version of the Electricity dataset."""
 
-    filename = "electricity_tiny.arff"
-    remote_url = ROOT_URL
+    filename = extracted_name(SOURCE_LIST["ElectricityTiny"].arff)[1]
+    remote_url = SOURCE_LIST["ElectricityTiny"].arff
+
 
 
 class CovtypeTiny(DownloadARFFGzip):
     """A truncated version of the Covtype dataset with 1000 instances."""
 
-    filename = "covtype_n1000.arff"
-    remote_url = ROOT_URL
+    filename = extracted_name(SOURCE_LIST["CovtypeTiny"].arff)[1]
+    remote_url = SOURCE_LIST["CovtypeTiny"].arff
 
 
 class Fried(DownloadARFFGzip):
     # TODO: Add docstring describing the dataset and link to the original source
 
-    filename = "fried.arff"
-    remote_url = ROOT_URL
+    filename = extracted_name(SOURCE_LIST["Fried"].arff)[1]
+    remote_url = SOURCE_LIST["Fried"].arff
