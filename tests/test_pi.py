@@ -1,7 +1,7 @@
 from capymoa.evaluation import PredictionIntervalEvaluator, PredictionIntervalWindowedEvaluator
 from capymoa.datasets import Fried
 from capymoa.base import PredictionIntervalLearner
-from capymoa.pi_learner import (
+from capymoa.prediction_interval import (
     MVE, AdaPI,
 )
 import pytest
