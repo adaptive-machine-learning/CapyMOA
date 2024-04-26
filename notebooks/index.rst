@@ -12,7 +12,9 @@ These tutorials will show you how to get started with the CapyMOA library.
    00_getting_started.ipynb
    01_evaluation.ipynb
    02_learners_api_examples.ipynb
-   03_using_sklearn_pytorch.ipynb
+   03_0_using_sklearn.ipynb
+   03_1_using_pytorch.ipynb
+   03_2_preprocess_using_MOA.ipynb
    04_drift_streams.ipynb
 
 .. toctree::
