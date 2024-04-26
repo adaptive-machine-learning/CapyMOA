@@ -8,3 +8,4 @@ This part of the documentation is for developers and contributors.
    learners
    tests
    docs
+   updating_moajar
