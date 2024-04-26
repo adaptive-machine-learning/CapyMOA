@@ -3,11 +3,11 @@ import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional, Union, Tuple
-
 import wget
 from shutil import copyfileobj
 import os
 from capymoa._env import CAPYMOA_DATASETS_DIR
+from urllib.parse import urlsplit
 
 
 def get_download_dir(download_dir: Optional[str] = None) -> Path:
@@ -40,7 +40,7 @@ def extract(in_filename: Union[Path, str]) -> Path:
     """
     in_filename = Path(in_filename)
 
-    suffix, out_filename = extracted_name(in_filename)
+    suffix, out_filename = identify_compressed_file(in_filename)
     out_path = in_filename.parent / out_filename
 
     if suffix == ".gz":
@@ -52,30 +52,37 @@ def extract(in_filename: Union[Path, str]) -> Path:
     return out_path
 
 
-def extracted_name(filename: Union[str, Path]) -> Tuple[str, str]:
+def identify_compressed_file(path: Union[str, Path]) -> Tuple[str, str]:
     """
     Returns the name and suffix of a compressed file.
 
     Useful to determine the name of a file after extraction.
 
-    >>> extracted_name("file.csv.gz")
+    >>> identify_compressed_file("file.csv.gz")
     ('.gz', 'file.csv')
-    >>> extracted_name("https://example.com/file.csv.gz")
+    >>> identify_compressed_file("https://example.com/file.csv.gz")
     ('.gz', 'file.csv')
 
     :param filename: The filename or url to extract the suffix from.
     :return: A tuple containing the suffix and the extracted filename.
     """
     # Convert to string to handle Path objects and URLs
-    filename = str(filename)
-    filename = filename.replace("https://", "").replace("http://", "")
-    filename = Path(filename)
+    path = Path(path)
 
-    suffix = filename.suffixes[-1]
+    suffix = path.suffixes[-1]
     if suffix == ".gz":
-        return suffix, filename.with_suffix("").name
+        return suffix, path.with_suffix("").name
     else:
         raise ValueError(f"Unknown file extension: {suffix}")
+
+
+def identify_compressed_hosted_file(url: str) -> Tuple[str, str]:
+    """Returns the extracted filename of a given URL and its suffix.
+
+    >>> identify_compressed_hosted_file("https://example.com/file.csv.gz")
+    ('.gz', 'file.csv')
+    """
+    return identify_compressed_file(urlsplit(url).path)
 
 
 def is_already_downloaded(url: str, output_directory: Union[str, Path]) -> bool:
@@ -84,7 +91,7 @@ def is_already_downloaded(url: str, output_directory: Union[str, Path]) -> bool:
     This function checks if the url has already been downloaded by checking if the
     extracted file exists in the output directory.
     """
-    return (Path(output_directory) / extracted_name(url)[1]).exists()
+    return (Path(output_directory) / identify_compressed_hosted_file(url)[1]).exists()
 
 
 def download_extract(url: str, output_directory: Path) -> Path:
