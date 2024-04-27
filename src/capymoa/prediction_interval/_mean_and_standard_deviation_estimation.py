@@ -8,7 +8,7 @@ from capymoa.base import (
 
 from capymoa.regressor import *
 
-from moa.classifiers.predictioninterval import  MVEPredictionInterval as MOA_MVE
+from moa.classifiers.predictioninterval import MVEPredictionInterval as MOA_MVE
 
 
 

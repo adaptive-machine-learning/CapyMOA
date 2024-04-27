@@ -8,7 +8,7 @@ from capymoa.base import (
 
 from capymoa.regressor import *
 
-from moa.classifiers.predictioninterval import  AdaptivePredictionInterval as MOA_AdaPI
+from moa.classifiers.predictioninterval import AdaptivePredictionInterval as MOA_AdaPI
 
 class AdaPI(MOAPredictionIntervalLearner):
     def __init__(
