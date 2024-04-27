@@ -1,11 +1,12 @@
 # This file contains the configuration for the invoke command
 
-moa_path: "src/capymoa/jar/moa.jar" 
+moa_path: "src/capymoa/jar/moa.jar"
 
 # DROPBOX: When using a dropbox link, ensure that the dl=1 query parameter is 
 # present in the link. This ensures  the file is downloaded directly instead
 # of going to the dropbox page
-moa_url: "https://www.dropbox.com/scl/fi/f5xz2evjllqk87fjvi06m/240412_moa.jar?rlkey=1nwlfj3awhh3lsnme37k947lb&e=1&st=kdhx1e69&dl=1"
+#moa_url: "https://www.dropbox.com/scl/fi/f5xz2evjllqk87fjvi06m/240412_moa.jar?rlkey=1nwlfj3awhh3lsnme37k947lb&e=1&st=kdhx1e69&dl=1"
+moa_url: "https://www.dropbox.com/scl/fo/5zk9brvp900gwyc8x1jd7/AOuEoSQd0nC7RFwu4mtNCws/moajar/240427_moa.jar?rlkey=cvz3ei2ay4gbltv3bytoh50t9&dl=1"
 
 # What notebooks to skip when running them as tests.
 test_skip_notebooks:
