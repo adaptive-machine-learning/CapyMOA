@@ -23,7 +23,8 @@ dependencies = [
     "pyarrow",
     "river",
     "matplotlib",
-    "scikit-learn"
+    "scikit-learn",
+    "click"
 ]
 
 [project.optional-dependencies]
@@ -52,9 +53,9 @@ doc=[
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
-pythonpath = [
-    "src",
-    "." # Used to import the test_utility module
+pythonpath = ["src"]
+norecursedirs = [
+    "docs/*"
 ]
 
 [tool.hatch]

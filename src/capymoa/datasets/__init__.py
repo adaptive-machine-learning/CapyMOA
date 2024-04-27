@@ -7,6 +7,7 @@ from ._datasets import (
     Sensor,
     ElectricityTiny,
     Fried,
+    CovtypeTiny
 )
 from .downloader import get_download_dir
 
@@ -19,5 +20,6 @@ __all__ = [
     "Sensor",
     "ElectricityTiny",
     "Fried",
+    "CovtypeTiny",
     "get_download_dir",
 ]
