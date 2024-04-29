@@ -23,7 +23,8 @@ dependencies = [
     "pyarrow",
     "river",
     "matplotlib",
-    "scikit-learn"
+    "scikit-learn",
+    "click"
 ]
 
 [project.optional-dependencies]

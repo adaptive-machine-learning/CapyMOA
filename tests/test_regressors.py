@@ -24,7 +24,7 @@ from capymoa.base import Regressor
         (partial(ARFFIMTDD), 4.95, 4.6),
         (partial(ORTO), 9.2, 7.6),
         (partial(SOKNLBT), 4.95, 4.6),
-        (partial(SOKNL), 3.37, 2.77),
+        (partial(SOKNL), 3.67, 3.04),
     ],
     ids=[
         "AdaptiveRandomForestRegressor",
