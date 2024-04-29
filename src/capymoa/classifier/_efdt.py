@@ -21,7 +21,7 @@ class EFDT(MOAClassifier):
     Regression Trees - CART). Keep in mind that such propositions hold when processing
     a stationary data stream. When dealing with non-stationary data, EFDT is somewhat
     robust to concept drifts as it continually revisits and updates its internal
-    decision tree structure. Still, in such cases, the Hoeffind Adaptive Tree might
+    decision tree structure. Still, in such cases, the Hoeffding Adaptive Tree might
     be a better option, as it was specifically designed to handle non-stationarity.
 
     Reference:
@@ -44,9 +44,9 @@ class EFDT(MOAClassifier):
     84.39999999999999
     """
 
-    MAJORITY_CLASS = 0
-    NAIVE_BAYES = 1
-    NAIVE_BAYES_ADAPTIVE = 2
+    # MAJORITY_CLASS = 0
+    # NAIVE_BAYES = 1
+    # NAIVE_BAYES_ADAPTIVE = 2
 
     def __init__(
         self,
@@ -57,7 +57,7 @@ class EFDT(MOAClassifier):
         split_criterion: Union[str, SplitCriterion] = "InfoGainSplitCriterion",
         confidence: float = 1e-3,
         tie_threshold: float = 0.05,
-        leaf_prediction: int = MAJORITY_CLASS,
+        leaf_prediction: str = "MajorityClass",
         nb_threshold: int = 0,
         numeric_attribute_observer: str = "GaussianNumericAttributeClassObserver",
         binary_split: bool = False,
@@ -77,10 +77,8 @@ class EFDT(MOAClassifier):
         :param confidence: Significance level to calculate the Hoeffding bound. The significance level is given by
             `1 - delta`. Values closer to zero imply longer split decision delays.
         :param tie_threshold: Threshold below which a split will be forced to break ties.
-        :param leaf_prediction: Prediction mechanism used at leafs.
-            - 0 - Majority Class
-            - 1 - Naive Bayes
-            - 2 - Naive Bayes Adaptive
+        :param leaf_prediction: Prediction mechanism used at leafs
+            (0: Majority Class, 1: Naive Bayes, 2: Naive Bayes Adaptive).
         :param nb_threshold: Number of instances a leaf should observe before allowing Naive Bayes.
         :param numeric_attribute_observer: The Splitter or Attribute Observer (AO) used to monitor the class statistics
             of numeric features and perform splits.
