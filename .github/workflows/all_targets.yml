@@ -56,14 +56,16 @@ jobs:
     
       - name: Install Hatch
         run: python3 -m pip install hatch~=1.9.7
-      - name: Build Package
-        run: python3 -m hatch build
 
       - name: Python Semantic Release
         id: release
         uses: python-semantic-release/python-semantic-release@v9.5.0
         with:
             github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Package
+        if: steps.release.outputs.released == 'true'
+        run: python3 -m hatch build
 
     # TODO: Uncomment the following lines to publish to PyPI
     #   - name: Publish package distributions to PyPI

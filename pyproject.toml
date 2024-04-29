@@ -99,7 +99,6 @@ allow_zero_version = true
 tag_format = "v{version}"
 
 version_variables = ["src/capymoa/__about__.py:__version__"]
-build_command = "ls dist/"
 
 [tool.semantic_release.branches.main]
 match = "(main|master)"
