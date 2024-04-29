@@ -15,6 +15,8 @@ class AdaptiveRandomForest(MOAClassifier):
     ARF is implemented in MOA (Massive Online Analysis) and provides several
     parameters for customization.
 
+    Reference:
+
     `Adaptive random forests for evolving data stream classification.
     Heitor Murilo Gomes, A. Bifet, J. Read, ..., B. Pfahringer, G. Holmes, T. Abdessalem.
     Machine Learning, 106, 1469-1495, 2017.

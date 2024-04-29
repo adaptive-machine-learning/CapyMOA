@@ -24,6 +24,13 @@ class EFDT(MOAClassifier):
     decision tree structure. Still, in such cases, the Hoeffind Adaptive Tree might
     be a better option, as it was specifically designed to handle non-stationarity.
 
+    Reference:
+
+    `Extremely fast decision tree.
+    Manapragada, Chaitanya, G. I. Webb, M. Salehi.
+    ACM SIGKDD, pp. 1953-1962, 2018.
+    <https://dl.acm.org/doi/abs/10.1145/3219819.3220005>`_
+
     Example usage:
 
     >>> from capymoa.datasets import ElectricityTiny
