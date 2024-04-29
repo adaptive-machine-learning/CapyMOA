@@ -190,6 +190,14 @@ def all_tests(ctx: Context, parallel: bool = True):
     test_notebooks(ctx, parallel)
 
 
+@task
+def commit(ctx: Context):
+    """Commit changes using conventional commits.
+
+    Utility wrapper around `python -m commitizen commit`.
+    """
+    ctx.run("python -m commitizen commit", pty=True)
+
 docs = Collection("docs")
 docs.add_task(docs_build, "build")
 docs.add_task(docs_clean, "clean")
@@ -211,3 +219,4 @@ ns = Collection()
 ns.add_collection(docs)
 ns.add_collection(build)
 ns.add_collection(test)
+ns.add_task(commit)

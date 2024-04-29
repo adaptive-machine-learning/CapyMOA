@@ -36,7 +36,8 @@ dev=[
     "nbmake",
     "pytest-xdist",
     "invoke",
-    "wget"
+    "wget",
+    "commitizen~=3.24.0"
 ]
 
 doc=[

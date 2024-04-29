@@ -6,6 +6,7 @@ Python wrapper for MOA to allow efficient use of existing algorithms with a more
 > * **[How to add documentation](docs/contributing/docs.md)**
 > * **[How to add tests](docs/contributing/tests.md)**
 > * **[How to add new algorithms or methods](docs/contributing/learners.md)**
+> * **[How to format a commit message for CapyMOA](docs/contributing/vcs.md)**
 
 
 # Functionality
