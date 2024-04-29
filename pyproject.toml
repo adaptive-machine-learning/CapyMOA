@@ -24,7 +24,8 @@ dependencies = [
     "river",
     "matplotlib",
     "scikit-learn",
-    "click"
+    "click",
+    "commitizen~=3.24.0"
 ]
 
 [project.optional-dependencies]
