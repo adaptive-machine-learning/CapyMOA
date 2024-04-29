@@ -44,9 +44,9 @@ class EFDT(MOAClassifier):
     84.39999999999999
     """
 
-    # MAJORITY_CLASS = 0
-    # NAIVE_BAYES = 1
-    # NAIVE_BAYES_ADAPTIVE = 2
+    MAJORITY_CLASS = 0
+    NAIVE_BAYES = 1
+    NAIVE_BAYES_ADAPTIVE = 2
 
     def __init__(
         self,
@@ -57,7 +57,7 @@ class EFDT(MOAClassifier):
         split_criterion: Union[str, SplitCriterion] = "InfoGainSplitCriterion",
         confidence: float = 1e-3,
         tie_threshold: float = 0.05,
-        leaf_prediction: str = "MajorityClass",
+        leaf_prediction: str = MAJORITY_CLASS,
         nb_threshold: int = 0,
         numeric_attribute_observer: str = "GaussianNumericAttributeClassObserver",
         binary_split: bool = False,
