@@ -3,13 +3,17 @@
 
 # TODO: In the future we ought to perform linting and code coverage checks
 
-name: Unit Tests
+name: Pull Request
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
   tests:
@@ -43,4 +47,12 @@ jobs:
       run: invoke test.unit
     - name: Notebooks
       run: invoke test.nb
-        
+
+  commitlint:
+    name: "Conventional Commit Compliance"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v6
