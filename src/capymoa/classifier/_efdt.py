@@ -10,7 +10,7 @@ import moa.classifiers.trees as moa_trees
 
 
 class EFDT(MOAClassifier):
-    """Extremely Fast Decision Tree (EFDT) classifier.
+    """Extremely Fast Decision Tree (EFDT) Classifier
 
     Also referred to as the Hoeffding AnyTime Tree (HATT) classifier. In practice,
     despite the name, EFDTs are typically slower than a vanilla Hoeffding Tree
@@ -24,45 +24,17 @@ class EFDT(MOAClassifier):
     decision tree structure. Still, in such cases, the Hoeffind Adaptive Tree might
     be a better option, as it was specifically designed to handle non-stationarity.
 
-    Parameters
-    ----------
-    schema
-        The schema of the stream.
-    random_seed
-        The random seed passed to the moa learner
-    grace_period
-        Number of instances a leaf should observe between split attempts.
-    min_samples_reevaluate
-        Number of instances a node should observe before reevaluating the best split.
-    split_criterion
-        Split criterion to use. Defaults to `InfoGainSplitCriterion`.
-    confidence
-        Significance level to calculate the Hoeffding bound. The significance level is given by
-        `1 - delta`. Values closer to zero imply longer split decision delays.
-    tie_threshold
-        Threshold below which a split will be forced to break ties.
-    leaf_prediction
-        Prediction mechanism used at leafs.</br>
-        - 0 - Majority Class</br>
-        - 1 - Naive Bayes</br>
-        - 2 - Naive Bayes Adaptive</br>
-    nb_threshold
-        Number of instances a leaf should observe before allowing Naive Bayes.
-    numeric_attribute_observer
-        The Splitter or Attribute Observer (AO) used to monitor the class statistics of numeric
-        features and perform splits.
-    binary_split
-        If True, only allow binary splits.
-    max_byte_size
-        The max size of the tree, in bytes.
-    memory_estimate_period
-        Interval (number of processed instances) between memory consumption checks.
-    stop_mem_management
-        If True, stop growing as soon as memory limit is hit.
-    remove_poor_attrs
-        If True, disable poor attributes to reduce memory usage.
-    disable_prepruning
-        If True, disable merit-based tree pre-pruning.
+    Example usage:
+
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.classifier import EFDT
+    >>> from capymoa.evaluation import prequential_evaluation
+    >>> stream = ElectricityTiny()
+    >>> schema = stream.get_schema()
+    >>> learner = EFDT(schema)
+    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
+    >>> results["cumulative"].accuracy()
+    84.39999999999999
     """
 
     MAJORITY_CLASS = 0
@@ -88,6 +60,31 @@ class EFDT(MOAClassifier):
         remove_poor_attrs: bool = False,
         disable_prepruning: bool = True,
     ):
+        """Construct an Extremely Fast Decision Tree (EFDT) Classifier
+
+        :param schema: The schema of the stream.
+        :param random_seed: The random seed passed to the MOA learner.
+        :param grace_period: Number of instances a leaf should observe between split attempts.
+        :param min_samples_reevaluate: Number of instances a node should observe before re-evaluating the best split.
+        :param split_criterion: Split criterion to use. Defaults to `InfoGainSplitCriterion`.
+        :param confidence: Significance level to calculate the Hoeffding bound. The significance level is given by
+            `1 - delta`. Values closer to zero imply longer split decision delays.
+        :param tie_threshold: Threshold below which a split will be forced to break ties.
+        :param leaf_prediction: Prediction mechanism used at leafs.
+            - 0 - Majority Class
+            - 1 - Naive Bayes
+            - 2 - Naive Bayes Adaptive
+        :param nb_threshold: Number of instances a leaf should observe before allowing Naive Bayes.
+        :param numeric_attribute_observer: The Splitter or Attribute Observer (AO) used to monitor the class statistics
+            of numeric features and perform splits.
+        :param binary_split: If True, only allow binary splits.
+        :param max_byte_size: The max size of the tree, in bytes.
+        :param memory_estimate_period: Interval (number of processed instances) between memory consumption checks.
+        :param stop_mem_management: If True, stop growing as soon as memory limit is hit.
+        :param remove_poor_attrs: If True, disable poor attributes to reduce memory usage.
+        :param disable_prepruning: If True, disable merit-based tree pre-pruning.
+        """
+
         mapping = {
             "grace_period": "-g",
             "min_samples_reevaluate": "-R",
