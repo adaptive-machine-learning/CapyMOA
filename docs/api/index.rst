@@ -27,9 +27,10 @@ with the :ref:`tutorials<tutorials>`.
     :maxdepth: 1
     :caption: Learners
 
+    classifiers
     regressor
     ssl
-    classifiers
+
 
 ..  toctree::
     :maxdepth: 1

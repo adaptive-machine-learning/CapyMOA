@@ -18,13 +18,15 @@ class AdaptiveRandomForestRegressor(MOARegressor):
         ARF is implemented in MOA (Massive Online Analysis) and provides several
         parameters for customization.
 
-        `Adaptive random forests for evolving data stream classification.
-        Heitor Murilo Gomes, A. Bifet, J. Read, ..., B. Pfahringer, G. Holmes, T. Abdessalem.
-        Machine Learning, 106, 1469-1495, 2017.
-        <https://link.springer.com/article/10.1007/s10994-017-5642-8>`_
-
         See also :py:class:`capymoa.classifier.AdaptiveRandomForest`
         See :py:class:`capymoa.base.MOARegressor` for train and predict.
+
+        Reference:
+
+        `Adaptive random forests for data stream regression.
+        Heitor Murilo Gomes, J. P. Barddal, L. E. B. Ferreira, A. Bifet.
+        ESANN, pp. 267-272, 2018.
+        <https://www.esann.org/sites/default/files/proceedings/legacy/es2018-183.pdf>`_
 
         Example usage:
 
