@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "capymoa"
-version = "0.0.1"
+version = "0.0.0-development"
 description = "Python wrapper for MOA to allow efficient use of existing algorithms with a more modern API."
 requires-python = ">=3.9"
 # Defines the pip packages that are required by this package. These should be
