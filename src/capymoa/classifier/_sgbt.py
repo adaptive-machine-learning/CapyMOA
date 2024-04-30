@@ -3,7 +3,6 @@ from typing import Union
 
 from capymoa.base import (
     MOAClassifier,
-    _extract_moa_learner_CLI,
 )
 from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals
@@ -36,6 +35,12 @@ class SGBT(MOAClassifier):
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
     86.3
+    >>> stream = ElectricityTiny()
+    >>> schema = stream.get_schema()
+    >>> learner = SGBT(schema, base_learner='meta.AdaptiveRandomForestRegressor -s 10', boosting_iterations=10)
+    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
+    >>> results["cumulative"].accuracy()
+    86.8
     """
 
     def __init__(
@@ -77,8 +82,8 @@ class SGBT(MOAClassifier):
             "random_seed": "-r",
         }
 
-        if type(base_learner) != str:
-            base_learner = _extract_moa_learner_CLI(base_learner)
+        assert (type(base_learner) == str
+                ), "Only MOA CLI strings are supported for SGBT base_learner, at the moment."
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(SGBT, self).__init__(
