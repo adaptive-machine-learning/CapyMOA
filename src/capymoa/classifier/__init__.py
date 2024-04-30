@@ -5,6 +5,7 @@ from ._naive_bayes import NaiveBayes
 from ._online_bagging import OnlineBagging
 from ._passive_aggressive_classifier import PassiveAggressiveClassifier
 from ._knn import KNN
+from ._sgbt import SGBT
 
 __all__ = [
     "AdaptiveRandomForest",
@@ -15,4 +16,5 @@ __all__ = [
     "OnlineBagging",
     "PassiveAggressiveClassifier",
     "KNN",
+    "SGBT"
 ]
