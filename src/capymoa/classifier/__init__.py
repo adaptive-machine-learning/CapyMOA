@@ -4,6 +4,7 @@ from ._hoeffding_tree import HoeffdingTree
 from ._naive_bayes import NaiveBayes
 from ._online_bagging import OnlineBagging
 from ._passive_aggressive_classifier import PassiveAggressiveClassifier
+from ._sgd_classifier import SGDClassifier
 from ._knn import KNN
 
 __all__ = [
@@ -13,6 +14,7 @@ __all__ = [
     "HoeffdingTree",
     "NaiveBayes",
     "OnlineBagging",
-    "PassiveAggressiveClassifier",
     "KNN",
+    "PassiveAggressiveClassifier",
+    "SGDClassifier",
 ]
