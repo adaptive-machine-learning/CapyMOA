@@ -1,5 +1,5 @@
-Learners
-========
+Learner Interfaces
+==================
 CapyMOA defines different interfaces for learners performing different machine
 learning tasks.
 

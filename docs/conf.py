@@ -18,6 +18,7 @@ release = '0.0.1'
 
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
     "nbsphinx",
     "sphinx.ext.mathjax",
     "sphinx.ext.extlinks",
@@ -68,3 +69,11 @@ notebooks = Path("../notebooks")
 notebook_doc_source = Path("notebooks")
 if not notebook_doc_source.exists():
     os.symlink(notebooks, notebook_doc_source)
+
+# -- Options for InterSphinx -------------------------------------------------
+# See: https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
+# tldr: This allows us to link to other projects' documentation
+
+intersphinx_mapping = {
+    'sklearn': ('https://scikit-learn.org/stable/', None),
+}
