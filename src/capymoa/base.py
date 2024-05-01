@@ -369,18 +369,21 @@ class SKRegressor(Regressor):
     >>> for _ in range(10):
     ...     instance = stream.next_instance()
     ...     prediction = learner.predict(instance)
-    ...     print(f"y_value: {instance.y_value}, y_prediction: {prediction}")
+    ...     if prediction is not None:
+    ...         print(f"y_value: {instance.y_value}, y_prediction: {prediction:.2f}")
+    ...     else:
+    ...         print(f"y_value: {instance.y_value}, y_prediction: None")
     ...     learner.train(instance)
     y_value: 17.949, y_prediction: None
-    y_value: 13.815, y_prediction: 0.60498863502
-    y_value: 20.766, y_prediction: 1.2994543867739676
-    y_value: 18.301, y_prediction: 1.8642292301771453
-    y_value: 22.989, y_prediction: 2.278098250070029
-    y_value: 25.986, y_prediction: 2.648440908479948
-    y_value: 17.15, y_prediction: 3.509721097162714
-    y_value: 14.006, y_prediction: 3.2518332499688514
-    y_value: 18.566, y_prediction: 3.8024999398093753
-    y_value: 12.107, y_prediction: 3.8708584184864403
+    y_value: 13.815, y_prediction: 0.60
+    y_value: 20.766, y_prediction: 1.30
+    y_value: 18.301, y_prediction: 1.86
+    y_value: 22.989, y_prediction: 2.28
+    y_value: 25.986, y_prediction: 2.65
+    y_value: 17.15, y_prediction: 3.51
+    y_value: 14.006, y_prediction: 3.25
+    y_value: 18.566, y_prediction: 3.80
+    y_value: 12.107, y_prediction: 3.87
 
     A word of caution: even compatible scikit-learn regressors are not
     necessarily designed for online learning and might require some tweaking
