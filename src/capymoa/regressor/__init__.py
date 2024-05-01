@@ -4,6 +4,7 @@ from ._knn import KNNRegressor
 from ._fimtdd import FIMTDD
 from ._arffimtdd import ARFFIMTDD
 from ._adaptive_random_forest import AdaptiveRandomForestRegressor
+from ._passive_aggressive_regressor import PassiveAggressiveRegressor
 
 __all__ = [
     "SOKNLBT",
@@ -13,4 +14,5 @@ __all__ = [
     "FIMTDD",
     "ARFFIMTDD",
     "AdaptiveRandomForestRegressor",
+    "PassiveAggressiveRegressor"
 ]
