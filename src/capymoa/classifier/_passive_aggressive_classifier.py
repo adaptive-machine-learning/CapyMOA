@@ -1,7 +1,7 @@
 from typing import Optional, Dict, Union, Literal
 from capymoa.base import SKClassifier
 from sklearn.linear_model import (
-    PassiveAggressiveClassifier as skPassiveAggressiveClassifier,
+    PassiveAggressiveClassifier as _SKPassiveAggressiveClassifier,
 )
 from capymoa.stream._stream import Schema
 
@@ -28,7 +28,7 @@ class PassiveAggressiveClassifier(SKClassifier):
     84.3
     """
 
-    sklearner: skPassiveAggressiveClassifier
+    sklearner: _SKPassiveAggressiveClassifier
     """The underlying scikit-learn object. See: :sklearn:`linear_model.PassiveAggressiveClassifier`"""
 
     def __init__(
@@ -70,7 +70,7 @@ class PassiveAggressiveClassifier(SKClassifier):
         """
 
         super().__init__(
-            skPassiveAggressiveClassifier(
+            _SKPassiveAggressiveClassifier(
                 C=max_step_size,
                 fit_intercept=fit_intercept,
                 early_stopping=False,

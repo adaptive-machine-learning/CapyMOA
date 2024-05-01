@@ -1,7 +1,7 @@
 from typing import Optional, Literal
 from capymoa.base import SKClassifier
 from sklearn.linear_model import (
-    SGDClassifier as skSGDClassifier,
+    SGDClassifier as _SKSGDClassifier,
 )
 from capymoa.stream._stream import Schema
 
@@ -25,7 +25,7 @@ class SGDClassifier(SKClassifier):
     84.2
     """
 
-    sklearner: skSGDClassifier
+    sklearner: _SKSGDClassifier
     """The underlying scikit-learn object"""
 
     def __init__(
@@ -86,7 +86,7 @@ class SGDClassifier(SKClassifier):
         """
 
         super().__init__(
-            skSGDClassifier(
+            _SKSGDClassifier(
                 loss=loss,
                 penalty=penalty,
                 alpha=alpha,
