@@ -8,7 +8,8 @@ from capymoa.regressor import (
     ORTO,
     SOKNLBT,
     SOKNL,
-    PassiveAggressiveRegressor
+    PassiveAggressiveRegressor,
+    SGDRegressor
 )
 import pytest
 from functools import partial
@@ -27,6 +28,7 @@ from capymoa.stream import Schema
         (partial(SOKNLBT), 4.95, 4.6),
         (partial(SOKNL), 3.67, 3.04),
         (partial(PassiveAggressiveRegressor), 3.67, 3.68),
+        (partial(SGDRegressor), 4.63, 3.6),
     ],
     ids=[
         "AdaptiveRandomForestRegressor",
@@ -36,7 +38,8 @@ from capymoa.stream import Schema
         "ORTO",
         "SOKNLBT",
         "SOKNL",
-        "PassiveAggressiveRegressor"
+        "PassiveAggressiveRegressor",
+        "SGDRegressor"
     ]
 )
 def test_regressor(learner_constructor, rmse, win_rmse):
