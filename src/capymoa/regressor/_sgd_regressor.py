@@ -37,7 +37,7 @@ class SGDRegressor(SKRegressor):
             "epsilon_insensitive",
             "squared_epsilon_insensitive",
         ] = "squared_error",
-        penalty: Literal["l2", "l1", "elasticnet"] | None = "l2",
+        penalty: Optional[Literal["l2", "l1", "elasticnet"]] = "l2",
         alpha: float = 0.0001,
         l1_ratio: float = 0.15,
         fit_intercept: bool = True,
