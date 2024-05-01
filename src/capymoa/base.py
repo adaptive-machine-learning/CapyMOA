@@ -69,7 +69,7 @@ def _extract_moa_learner_CLI(learner):
     A string representing the CLI command for creating the MOA learner.
     """
 
-    # Check if the base_learner is a MOAClassifie or a MOARegressor
+    # Check if the base_learner is a MOAClassifier or a MOARegressor
     if isinstance(learner, MOAClassifier) or isinstance(learner, MOARegressor):
         learner = _get_moa_creation_CLI(learner.moa_learner)
 
@@ -214,6 +214,8 @@ class SKClassifier(Classifier):
     A word of caution: even compatible scikit-learn classifiers are not
     necessarily designed for online learning and might require some tweaking
     to work well in an online setting.
+
+    See also :class:`capymoa.base.SKRegressor` for scikit-learn regressors.
     """
 
     sklearner: _SKClassifierMixin
@@ -224,7 +226,7 @@ class SKClassifier(Classifier):
 
         :param sklearner: A scikit-learn classifier object to wrap that must
             implements ``partial_fit`` and ``predict``.
-        :param schema: Descibes the structure of the datastream.
+        :param schema: Describes the structure of the datastream.
         :param random_seed: Random seed for reproducibility.
         :raises ValueError: If the scikit-learn algorithm does not implement
             ``partial_fit`` or ``predict``.
@@ -346,21 +348,20 @@ class MOARegressor(Regressor):
 
 
 class SKRegressor(Regressor):
-    """A wrapper class for using scikit-learn classifiers in CapyMOA.
+    """A wrapper class for using scikit-learn regressors in CapyMOA.
 
-    Some of scikit-learn's classifiers that are compatible with online learning
+    Some of scikit-learn's regressors that are compatible with online learning
     have been wrapped and tested already in CapyMOA (See :mod:`capymoa.regressor`). 
     
-    However, if you want to use a scikit-learn classifier that has not been
+    However, if you want to use a scikit-learn regressor that has not been
     wrapped yet, you can use this class to wrap it yourself. This requires
-    that the scikit-learn classifier implements the ``partial_fit`` and
+    that the scikit-learn regressor implements the ``partial_fit`` and
     ``predict`` methods.
 
     For example, the following code demonstrates how to use a scikit-learn
-    classifier in CapyMOA:
+    regressor in CapyMOA:
 
     >>> from sklearn.linear_model import SGDRegressor
-    >>> from capymoa.base import SKClassifier
     >>> from capymoa.datasets import Fried
     >>> stream = Fried()
     >>> sklearner = SGDRegressor(random_state=1)
@@ -381,9 +382,11 @@ class SKRegressor(Regressor):
     y_value: 18.566, y_prediction: 3.8024999398093753
     y_value: 12.107, y_prediction: 3.8708584184864403
 
-    A word of caution: even compatible scikit-learn classifiers are not
+    A word of caution: even compatible scikit-learn regressors are not
     necessarily designed for online learning and might require some tweaking
     to work well in an online setting.
+
+    See also :class:`capymoa.base.SKClassifier` for scikit-learn classifiers.
     """
 
     sklearner: _SKRegressorMixin
@@ -394,7 +397,7 @@ class SKRegressor(Regressor):
 
         :param sklearner: A scikit-learn classifier object to wrap that must
             implements ``partial_fit`` and ``predict``.
-        :param schema: Descibes the structure of the datastream.
+        :param schema: Describes the structure of the datastream.
         :param random_seed: Random seed for reproducibility.
         :raises ValueError: If the scikit-learn algorithm does not implement
             ``partial_fit`` or ``predict``.

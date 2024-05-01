@@ -1,6 +1,6 @@
 from capymoa.base import SKRegressor
 from sklearn.linear_model import (
-    PassiveAggressiveRegressor as skPassiveAggressiveRegressor,
+    PassiveAggressiveRegressor as _SKPassiveAggressiveRegressor,
 )
 from capymoa.stream._stream import Schema
 
@@ -27,7 +27,7 @@ class PassiveAggressiveRegressor(SKRegressor):
     3.7...
     """
 
-    sklearner: skPassiveAggressiveRegressor
+    sklearner: _SKPassiveAggressiveRegressor
     """The underlying scikit-learn object. See: :sklearn:`linear_model.PassiveAggressiveRegressor`"""
 
     def __init__(
@@ -60,7 +60,7 @@ class PassiveAggressiveRegressor(SKRegressor):
         """
 
         super().__init__(
-            skPassiveAggressiveRegressor(
+            _SKPassiveAggressiveRegressor(
                 C=max_step_size,
                 fit_intercept=fit_intercept,
                 early_stopping=False,
