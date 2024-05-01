@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Union
 
 from jpype import _jpype
 from moa.classifiers import (
@@ -11,6 +11,9 @@ from moa.core import Utils
 from capymoa.instance import Instance, LabeledInstance, RegressionInstance
 from capymoa.stream._stream import Schema
 from capymoa.type_alias import LabelIndex, LabelProbabilities, TargetValue
+
+from sklearn.base import ClassifierMixin as _SKClassifierMixin
+from sklearn.base import RegressorMixin as _SKRegressorMixin
 
 ##############################################################
 ##################### INTERNAL FUNCTIONS #####################
@@ -66,7 +69,7 @@ def _extract_moa_learner_CLI(learner):
     A string representing the CLI command for creating the MOA learner.
     """
 
-    # Check if the base_learner is a MOAClassifie or a MOARegressor
+    # Check if the base_learner is a MOAClassifier or a MOARegressor
     if isinstance(learner, MOAClassifier) or isinstance(learner, MOARegressor):
         learner = _get_moa_creation_CLI(learner.moa_learner)
 
@@ -173,21 +176,63 @@ class MOAClassifier(Classifier):
 
 
 class SKClassifier(Classifier):
-    """
-    A wrapper class for using scikit-learn classifiers in CapyMOA
+    """A wrapper class for using scikit-learn classifiers in CapyMOA.
 
-    Attributes:
-    - schema (optional): The schema for the input instances. Defaults to None.
-    - random_seed (optional): The random seed for reproducibility. Defaults to 1.
-    - sklearner: The scikit-learn classifier object or class identifier.
+    Some of scikit-learn's classifiers that are compatible with online learning
+    have been wrapped and tested already in CapyMOA (See :mod:`capymoa.classifier`). 
+    
+    However, if you want to use a scikit-learn classifier that has not been
+    wrapped yet, you can use this class to wrap it yourself. This requires
+    that the scikit-learn classifier implements the ``partial_fit`` and
+    ``predict`` methods.
+
+    For example, the following code demonstrates how to use a scikit-learn
+    classifier in CapyMOA:
+
+    >>> from sklearn.linear_model import SGDClassifier
+    >>> from capymoa.base import SKClassifier
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> stream = ElectricityTiny()
+    >>> sklearner = SGDClassifier(random_state=1)
+    >>> learner = SKClassifier(sklearner, stream.schema)
+    >>> for _ in range(10):
+    ...     instance = stream.next_instance()
+    ...     prediction = learner.predict(instance)
+    ...     print(f"True: {instance.y_index}, Predicted: {prediction}")
+    ...     learner.train(instance)
+    True: 1, Predicted: None
+    True: 1, Predicted: 1
+    True: 1, Predicted: 1
+    True: 1, Predicted: 1
+    True: 0, Predicted: 1
+    True: 0, Predicted: 1
+    True: 0, Predicted: 0
+    True: 0, Predicted: 0
+    True: 0, Predicted: 0
+    True: 0, Predicted: 0
+
+    A word of caution: even compatible scikit-learn classifiers are not
+    necessarily designed for online learning and might require some tweaking
+    to work well in an online setting.
+
+    See also :class:`capymoa.base.SKRegressor` for scikit-learn regressors.
     """
 
-    def __init__(self, sklearner, schema=None, random_seed=1):
+    sklearner: _SKClassifierMixin
+    """The underlying scikit-learn object."""
+
+    def __init__(self, sklearner: _SKClassifierMixin, schema: Schema = None, random_seed: int = 1):
+        """Construct a scikit-learn classifier wrapper.
+
+        :param sklearner: A scikit-learn classifier object to wrap that must
+            implements ``partial_fit`` and ``predict``.
+        :param schema: Describes the structure of the datastream.
+        :param random_seed: Random seed for reproducibility.
+        :raises ValueError: If the scikit-learn algorithm does not implement
+            ``partial_fit`` or ``predict``.
+        """        
         super().__init__(schema=schema, random_seed=random_seed)
 
-        # If sklearner is a class identifier instead of an object.
-        if isinstance(sklearner, type):
-            sklearner = sklearner()
         # Checks if it implements partial_fit and predict
         if not hasattr(sklearner, "partial_fit") or not hasattr(sklearner, "predict"):
             raise ValueError(
@@ -195,34 +240,30 @@ class SKClassifier(Classifier):
             )
 
         self.sklearner = sklearner
-        self.trained_at_least_once = False
+        self._trained_at_least_once = False
 
     def __str__(self):
-        return "sklearner"  # TODO: get the string describing the sklearner
+        return str(self.sklearner)
 
-    def train(self, instance):
+    def train(self, instance: LabeledInstance):
         self.sklearner.partial_fit(
             [instance.x],
             [instance.y_index],
             classes=self.schema.get_label_indexes(),
         )
-        self.trained_at_least_once = True  # deve (e tem que) ter um jeito melhor
+        self._trained_at_least_once = True
 
-    def predict(self, instance):
-        if (
-            self.trained_at_least_once
-        ):  # scikit-learn does not allows invoking predict in a model that was not fit before
-            return self.sklearner.predict([instance.x])[0]
-        else:
+    def predict(self, instance: Instance):
+        if not self._trained_at_least_once:
+            # scikit-learn does not allows invoking predict in a model that was not fit before
             return None
+        return self.sklearner.predict([instance.x])[0]
 
-    def predict_proba(self, instance):
-        if (
-            self.trained_at_least_once
-        ):  # scikit-learn does not allows invoking predict in a model that was not fit before
-            return self.sklearner.predict_proba([instance.x])
-        else:
+    def predict_proba(self, instance: Instance):
+        if not self._trained_at_least_once:
+            # scikit-learn does not allows invoking predict in a model that was not fit before
             return None
+        self.sklearner.predict_proba([instance.x])
 
 
 ##############################################################
@@ -304,3 +345,86 @@ class MOARegressor(Regressor):
         if len(prediction_array) == 0:
             return 0.0
         return prediction_array[0]
+
+
+class SKRegressor(Regressor):
+    """A wrapper class for using scikit-learn regressors in CapyMOA.
+
+    Some of scikit-learn's regressors that are compatible with online learning
+    have been wrapped and tested already in CapyMOA (See :mod:`capymoa.regressor`). 
+    
+    However, if you want to use a scikit-learn regressor that has not been
+    wrapped yet, you can use this class to wrap it yourself. This requires
+    that the scikit-learn regressor implements the ``partial_fit`` and
+    ``predict`` methods.
+
+    For example, the following code demonstrates how to use a scikit-learn
+    regressor in CapyMOA:
+
+    >>> from sklearn.linear_model import SGDRegressor
+    >>> from capymoa.datasets import Fried
+    >>> stream = Fried()
+    >>> sklearner = SGDRegressor(random_state=1)
+    >>> learner = SKRegressor(sklearner, stream.schema)
+    >>> for _ in range(10):
+    ...     instance = stream.next_instance()
+    ...     prediction = learner.predict(instance)
+    ...     print(f"y_value: {instance.y_value}, y_prediction: {prediction}")
+    ...     learner.train(instance)
+    y_value: 17.949, y_prediction: None
+    y_value: 13.815, y_prediction: 0.60498863502
+    y_value: 20.766, y_prediction: 1.2994543867739676
+    y_value: 18.301, y_prediction: 1.8642292301771453
+    y_value: 22.989, y_prediction: 2.278098250070029
+    y_value: 25.986, y_prediction: 2.648440908479948
+    y_value: 17.15, y_prediction: 3.509721097162714
+    y_value: 14.006, y_prediction: 3.2518332499688514
+    y_value: 18.566, y_prediction: 3.8024999398093753
+    y_value: 12.107, y_prediction: 3.8708584184864403
+
+    A word of caution: even compatible scikit-learn regressors are not
+    necessarily designed for online learning and might require some tweaking
+    to work well in an online setting.
+
+    See also :class:`capymoa.base.SKClassifier` for scikit-learn classifiers.
+    """
+
+    sklearner: _SKRegressorMixin
+    """The underlying scikit-learn object."""
+
+    def __init__(self, sklearner: _SKRegressorMixin, schema: Schema = None, random_seed: int = 1):
+        """Construct a scikit-learn regressor wrapper.
+
+        :param sklearner: A scikit-learn classifier object to wrap that must
+            implements ``partial_fit`` and ``predict``.
+        :param schema: Describes the structure of the datastream.
+        :param random_seed: Random seed for reproducibility.
+        :raises ValueError: If the scikit-learn algorithm does not implement
+            ``partial_fit`` or ``predict``.
+        """        
+        super().__init__(schema=schema, random_seed=random_seed)
+
+        # Checks if it implements partial_fit and predict
+        if not hasattr(sklearner, "partial_fit") or not hasattr(sklearner, "predict"):
+            raise ValueError(
+                "Invalid scikit-learn algorithm provided. The algorithm does not implement partial_fit or predict. "
+            )
+
+        self.sklearner = sklearner
+        self._trained_at_least_once = False
+
+    def __str__(self):
+        return str(self.sklearner)
+
+    def train(self, instance: RegressionInstance):
+        self.sklearner.partial_fit(
+            [instance.x],
+            [instance.y_value],
+        )
+        self._trained_at_least_once = True
+
+    def predict(self, instance: Instance) -> float:
+        if not self._trained_at_least_once:
+            # scikit-learn does not allows invoking predict in a model that was not fit before
+            return None
+        return self.sklearner.predict([instance.x])[0]

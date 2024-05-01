@@ -19,7 +19,7 @@ from capymoa.splitcriteria import InfoGainSplitCriterion
 
 from capymoa.stream._stream import Schema
 
-from capymoa.classifier import PassiveAggressiveClassifier
+from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
 
 
 @pytest.mark.parametrize(
@@ -37,6 +37,8 @@ from capymoa.classifier import PassiveAggressiveClassifier
         ),
         (partial(NaiveBayes), 84.0, 91.0, None),
         (partial(KNN), 81.6, 74.0, None),
+        (partial(PassiveAggressiveClassifier), 84.7, 81.0, None),
+        (partial(SGDClassifier), 84.7, 83.0, None),
         (partial(SGBT), 88.75, 88.0, None),
     ],
     ids=[
@@ -47,6 +49,8 @@ from capymoa.classifier import PassiveAggressiveClassifier
         "EFDT_gini",
         "NaiveBayes",
         "KNN",
+        "PassiveAggressiveClassifier",
+        "SGDClassifier",
         "SGBT"
     ],
 )

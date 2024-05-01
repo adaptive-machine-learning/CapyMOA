@@ -1,6 +1,6 @@
-MOA Learners
-============
-Interfaces for objects that wrap MOA functionality.
+MOA Adapter
+===========
+Adapter objects for using MOA learners with CapyMOA.
 
 ..  autoclass:: capymoa.base.MOAClassifier
     :members:
