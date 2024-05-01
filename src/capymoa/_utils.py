@@ -53,3 +53,24 @@ def _get_moa_creation_CLI(moa_object):
         moa_stream_str = f"({moa_stream_str} {CLI[1]})"
 
     return moa_stream_str
+
+
+def _leaf_prediction(leaf_prediction):
+    """Checks the leaf_prediction option. Internal method used to check leaf_prediction parameters.
+
+    See :py:class:`capymoa.classifier.EFDT` and :py:class:`capymoa.classifier.HoeffdingTree`
+
+    >>> _leaf_prediction(leaf_prediction="MajorityClass")
+    0
+
+    >>> _leaf_prediction(leaf_prediction=2)
+    2
+    """
+    if isinstance(leaf_prediction, str):
+        leaf_prediction_mapping = {"MajorityClass": 0, "NaiveBayes": 1, "NaiveBayesAdaptive": 2}
+        leaf_prediction = leaf_prediction_mapping.get(leaf_prediction, None)
+    if not isinstance(leaf_prediction, int) or leaf_prediction < 0 or leaf_prediction > 2:
+        raise ValueError("Invalid value for leaf_prediction, valid options are 'MajorityClass' or 0, "
+                         "'NaiveBayes' or 1, 'NaiveBayesAdaptive' or 2,")
+
+    return leaf_prediction

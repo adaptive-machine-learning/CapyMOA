@@ -14,7 +14,7 @@ import pytest
 from functools import partial
 from typing import Callable, Optional
 from capymoa.base import _extract_moa_learner_CLI
-from capymoa.splitcriteria import InfoGainSplitCriterion
+from capymoa.splitcriteria import GiniSplitCriterion
 
 from capymoa.stream._stream import Schema
 
@@ -26,13 +26,13 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
     [
         (partial(OnlineBagging, ensemble_size=5), 84.6, 89.0, None),
         (partial(AdaptiveRandomForest), 89.0, 91.0, None),
-        (partial(HoeffdingTree), 73.85, 73.0, None),
-        (partial(EFDT), 82.7, 82.0, None),
+        (partial(HoeffdingTree), 82.65, 83.0, None),
+        (partial(EFDT), 82.69, 82.0, None),
         (
-            partial(EFDT, grace_period=10, split_criterion=InfoGainSplitCriterion(0.2)),
-            86.2,
-            84.0,
-            "trees.EFDT -R 200 -m 33554433 -g 10 -s (InfoGainSplitCriterion -f 0.2) -c 0.001 -z -p -l MC",
+            partial(EFDT, grace_period=10, split_criterion=GiniSplitCriterion(), leaf_prediction="NaiveBayes"),
+            87.8,
+            85.0,
+            "trees.EFDT -R 200 -m 33554433 -g 10 -s GiniSplitCriterion -c 0.001 -z -p -l NB",
         ),
         (partial(NaiveBayes), 84.0, 91.0, None),
         (partial(KNN), 81.6, 74.0, None),
