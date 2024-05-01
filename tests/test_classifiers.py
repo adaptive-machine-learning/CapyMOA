@@ -5,7 +5,8 @@ from capymoa.classifier import (
     AdaptiveRandomForest,
     OnlineBagging,
     NaiveBayes,
-    KNN
+    KNN,
+    SGBT
 )
 from capymoa.base import Classifier
 from capymoa.base import MOAClassifier
@@ -38,6 +39,7 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         (partial(KNN), 81.6, 74.0, None),
         (partial(PassiveAggressiveClassifier), 84.7, 81.0, None),
         (partial(SGDClassifier), 84.7, 83.0, None),
+        (partial(SGBT), 88.75, 88.0, None),
     ],
     ids=[
         "OnlineBagging",
@@ -49,6 +51,7 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         "KNN",
         "PassiveAggressiveClassifier",
         "SGDClassifier",
+        "SGBT"
     ],
 )
 def test_classifiers(
