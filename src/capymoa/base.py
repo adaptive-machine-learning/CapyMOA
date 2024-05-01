@@ -195,7 +195,7 @@ class SKClassifier(Classifier):
     >>> stream = ElectricityTiny()
     >>> sklearner = SGDClassifier(random_state=1)
     >>> learner = SKClassifier(sklearner, stream.schema)
-    >>> for _ in range(5):
+    >>> for _ in range(10):
     ...     instance = stream.next_instance()
     ...     prediction = learner.predict(instance)
     ...     print(f"True: {instance.y_index}, Predicted: {prediction}")

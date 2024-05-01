@@ -8,12 +8,13 @@ from capymoa.regressor import (
     ORTO,
     SOKNLBT,
     SOKNL,
+    PassiveAggressiveRegressor
 )
 import pytest
 from functools import partial
 
 from capymoa.base import Regressor
-
+from capymoa.stream import Schema
 
 @pytest.mark.parametrize(
     "learner_constructor,rmse,win_rmse",
@@ -25,6 +26,7 @@ from capymoa.base import Regressor
         (partial(ORTO), 9.2, 7.6),
         (partial(SOKNLBT), 4.95, 4.6),
         (partial(SOKNL), 3.67, 3.04),
+        (partial(PassiveAggressiveRegressor), 3.67, 3.68),
     ],
     ids=[
         "AdaptiveRandomForestRegressor",
@@ -34,6 +36,7 @@ from capymoa.base import Regressor
         "ORTO",
         "SOKNLBT",
         "SOKNL",
+        "PassiveAggressiveRegressor"
     ]
 )
 def test_regressor(learner_constructor, rmse, win_rmse):
@@ -68,3 +71,10 @@ def test_regressor(learner_constructor, rmse, win_rmse):
     assert actual_win_rmse == pytest.approx(win_rmse, abs=0.1), \
         f"Windowed Eval: Expected {win_rmse:0.1f} RMSE got {actual_win_rmse:0.1f} RMSE"
 
+def test_none_predict():
+    """Test that a prediction of None is handled."""
+    schema = Schema.from_custom(feature_names=["x"], target_attribute_name="y", enforce_regression=True)
+    evaluator = RegressionEvaluator(schema=schema)
+    win_evaluator = RegressionWindowedEvaluator(schema=schema, window_size=100)
+    evaluator.update(1.0, None)
+    win_evaluator.update(1.0, None)
