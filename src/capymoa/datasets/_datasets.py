@@ -1,6 +1,6 @@
 from capymoa.datasets.downloader import DownloadARFFGzip
 from ._source_list import SOURCE_LIST
-from ._util import identify_compressed_hosted_file
+from ._utils import identify_compressed_hosted_file
 
 
 class Sensor(DownloadARFFGzip):

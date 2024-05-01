@@ -2,7 +2,7 @@
 
 import click
 from ._source_list import SOURCE_LIST
-from ._util import get_download_dir, is_already_downloaded, download_extract
+from ._utils import get_download_dir, is_already_downloaded, download_extract
 from typing import Set
 from typing import Optional
 

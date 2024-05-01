@@ -8,7 +8,7 @@ import wget
 from moa.streams import ArffFileStream
 
 from capymoa.stream import Stream
-from capymoa.datasets._util import extract, get_download_dir
+from capymoa.datasets._utils import extract, get_download_dir
 import os
 
 class DownloadableDataset(ABC, Stream):

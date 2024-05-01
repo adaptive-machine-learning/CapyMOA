@@ -1,11 +1,11 @@
-"""Module containing split criterions for decision trees."""
+"""Module containing split criteria for decision trees."""
 
 from typing import Optional, Union
 import moa.classifiers.core.splitcriteria as moa_split
 
 
 class SplitCriterion:
-    """Split criterions are used to evaluate the quality of a split in a decision tree."""
+    """Split criteria are used to evaluate the quality of a split in a decision tree."""
 
     _java_object: Optional[moa_split.SplitCriterion] = None
 
