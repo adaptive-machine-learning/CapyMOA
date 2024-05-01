@@ -7,3 +7,7 @@ Adapter objects for using scikit-learn learners in CapyMOA.
     :undoc-members:
     :show-inheritance:
 
+..  autoclass:: capymoa.base.SKRegressor
+    :members:
+    :undoc-members:
+    :show-inheritance:
