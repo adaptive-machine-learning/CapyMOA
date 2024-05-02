@@ -45,3 +45,4 @@ with the :ref:`tutorials<tutorials>`.
     :caption: Other
     
     splitcriteria
+    env
