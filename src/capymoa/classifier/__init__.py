@@ -8,6 +8,8 @@ from ._sgd_classifier import SGDClassifier
 from ._knn import KNN
 from ._sgbt import StreamingGradientBoostedTrees
 from ._oza_boost import OzaBoost
+from ._majority_class import MajorityClass
+from ._no_change import NoChange
 
 __all__ = [
     "AdaptiveRandomForest",
@@ -20,5 +22,7 @@ __all__ = [
     "PassiveAggressiveClassifier",
     "SGDClassifier",
     "StreamingGradientBoostedTrees",
-    "OzaBoost"
+    "OzaBoost",
+    "MajorityClass",
+    "NoChange"
 ]
