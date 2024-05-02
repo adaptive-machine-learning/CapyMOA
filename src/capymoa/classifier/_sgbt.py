@@ -10,7 +10,7 @@ from capymoa._utils import build_cli_str_from_mapping_and_locals
 from moa.classifiers.meta import StreamingGradientBoostedTrees as _MOA_SGBT
 
 
-class SGBT(MOAClassifier):
+class StreamingGradientBoostedTrees(MOAClassifier):
     """Streaming Gradient Boosted Trees (SGBT) Classifier
 
     Streaming Gradient Boosted Trees (SGBT), which is trained using weighted squared loss elicited
@@ -27,17 +27,17 @@ class SGBT(MOAClassifier):
     Example usages:
 
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.classifier import SGBT
+    >>> from capymoa.classifier import StreamingGradientBoostedTrees
     >>> from capymoa.evaluation import prequential_evaluation
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
-    >>> learner = SGBT(schema)
+    >>> learner = StreamingGradientBoostedTrees(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
     86.3
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
-    >>> learner = SGBT(schema, base_learner='meta.AdaptiveRandomForestRegressor -s 10', boosting_iterations=10)
+    >>> learner = StreamingGradientBoostedTrees(schema, base_learner='meta.AdaptiveRandomForestRegressor -s 10', boosting_iterations=10)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
     86.8
@@ -86,7 +86,7 @@ class SGBT(MOAClassifier):
                 ), "Only MOA CLI strings are supported for SGBT base_learner, at the moment."
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
-        super(SGBT, self).__init__(
+        super(StreamingGradientBoostedTrees, self).__init__(
             moa_learner=_MOA_SGBT,
             schema=schema,
             CLI=config_str,
