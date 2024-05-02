@@ -26,7 +26,7 @@ from capymoa.stream import Schema
         (partial(ARFFIMTDD), 4.95, 4.6),
         (partial(ORTO), 9.2, 7.6),
         (partial(SOKNLBT), 4.95, 4.6),
-        (partial(SOKNL), 3.67, 3.04),
+        (partial(SOKNL), 3.37, 2.77),
         (partial(PassiveAggressiveRegressor), 3.67, 3.68),
         (partial(SGDRegressor), 4.63, 3.6),
     ],

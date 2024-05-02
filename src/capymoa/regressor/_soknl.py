@@ -25,7 +25,7 @@ class SOKNL(MOARegressor):
         warning_detection_method=None,
         disable_drift_detection=False,
         disable_background_learner=False,
-        disable_self_optimising=True,
+        disable_self_optimising=False,
         k_value=10,
     ):
         # Important: must create the MOA object before invoking the super class __init__
