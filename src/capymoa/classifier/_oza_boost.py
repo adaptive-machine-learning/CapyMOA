@@ -26,7 +26,8 @@ class OzaBoost(MOAClassifier):
 
     `Online bagging and boosting.
     Nikunj Oza, Stuart Russell.
-    Artiﬁcial Intelligence and Statistics 2001.`_
+    Artiﬁcial Intelligence and Statistics 2001.
+    <https://proceedings.mlr.press/r3/oza01a.html>`_
 
     Example usages:
 
