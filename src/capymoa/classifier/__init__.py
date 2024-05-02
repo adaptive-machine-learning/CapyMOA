@@ -7,6 +7,7 @@ from ._passive_aggressive_classifier import PassiveAggressiveClassifier
 from ._sgd_classifier import SGDClassifier
 from ._knn import KNN
 from ._sgbt import SGBT
+from ._oza_boost import OzaBoost
 
 __all__ = [
     "AdaptiveRandomForest",
@@ -18,5 +19,6 @@ __all__ = [
     "KNN",
     "PassiveAggressiveClassifier",
     "SGDClassifier",
-    "SGBT"
+    "SGBT",
+    "OzaBoost"
 ]
