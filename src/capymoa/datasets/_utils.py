@@ -6,7 +6,7 @@ from typing import Optional, Union, Tuple
 import wget
 from shutil import copyfileobj
 import os
-from capymoa._env import CAPYMOA_DATASETS_DIR
+from capymoa.env import capymoa_datasets_dir
 from urllib.parse import urlsplit
 
 
@@ -25,7 +25,7 @@ def get_download_dir(download_dir: Optional[str] = None) -> Path:
     if download_dir is not None:
         download_dir = Path(download_dir)
     else:
-        download_dir = Path(CAPYMOA_DATASETS_DIR)
+        download_dir = Path(capymoa_datasets_dir())
     download_dir: Path
     download_dir.mkdir(exist_ok=True)
     return download_dir
