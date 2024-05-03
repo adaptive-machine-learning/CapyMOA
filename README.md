@@ -34,8 +34,8 @@ python -c "import capymoa; print(capymoa.__version__)"
 > [!WARNING]  
 > CapyMOA is still in the early stages of development. The API is subject to 
 > change until version 1.0.0. If you encounter any issues, please report 
-> them in (GitHub Issues)[https://github.com/adaptive-machine-learning/CapyMOA/issues]
-> or talk to us on (Discord)[https://discord.gg/spd2gQJGAb].
+> them in [GitHub Issues](https://github.com/adaptive-machine-learning/CapyMOA/issues)
+> or talk to us on [Discord](https://discord.gg/spd2gQJGAb).
 
 
 ![Benchmark of capymoa being faster than river.](/docs/images/benchmark_20240422_221824_performance_plot_wallclock.png)
