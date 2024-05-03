@@ -1,8 +1,8 @@
-![A cute capybara animal riding a moa like a horse](/docs/images/CapyMOA.jpeg)
+![Banner Image](https://github.com/adaptive-machine-learning/CapyMOA/raw/main/docs/images/CapyMOA.jpeg)
 
 # [CapyMOA](https://capymoa.org)
-<img src="https://img.shields.io/pypi/v/capymoa" href="https://pypi.org/project/capymoa/" alt="PyPi Version"/>
-<img src="https://img.shields.io/discord/1235780483845984367?label=Discord" href="https://discord.gg/spd2gQJGAb" alt="Join the discord"/>
+[<img  alt="PyPi Version"    src="https://img.shields.io/pypi/v/capymoa">](https://pypi.org/project/capymoa/)
+[<img alt="Join the Discord" src="https://img.shields.io/discord/1235780483845984367?label=Discord">](https://discord.gg/spd2gQJGAb)
 
 Machine learning library tailored for data streams. Featuring a Python API
 tightly integrated with MOA (**Stream Learners**), PyTorch (**Neural
@@ -31,14 +31,15 @@ python -c "import capymoa; print(capymoa.__version__)"
 
 
 
-> [!WARNING]  
+> **⚠️ WARNING**
+>
 > CapyMOA is still in the early stages of development. The API is subject to 
 > change until version 1.0.0. If you encounter any issues, please report 
 > them in [GitHub Issues](https://github.com/adaptive-machine-learning/CapyMOA/issues)
 > or talk to us on [Discord](https://discord.gg/spd2gQJGAb).
 
 
-![Benchmark of capymoa being faster than river.](/docs/images/benchmark_20240422_221824_performance_plot_wallclock.png)
+![Benchmark Image](https://github.com/adaptive-machine-learning/CapyMOA/raw/main/docs/images/benchmark_20240422_221824_performance_plot_wallclock.png)
 
 ## 🏗️ Contributing 
 
