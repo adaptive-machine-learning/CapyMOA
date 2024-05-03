@@ -13,18 +13,19 @@ from river.forest import ARFClassifier
 
 # Library imports
 from capymoa.evaluation.evaluation import test_then_train_evaluation, start_time_measuring, stop_time_measuring
-from capymoa.stream import stream_from_file
-from capymoa.classifier import NaiveBayes, HoeffdingTree, EFDT, KNN, AdaptiveRandomForest
+from capymoa.datasets import RTG_2abrupt
+from capymoa.classifier import NaiveBayes, HoeffdingTree, EFDT, KNN, AdaptiveRandomForestClassifier
 
 # Globals
 DT_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 RESULTS_OUTPUT_CSV = f"./benchmark_{DT_stamp}.csv"
 RAW_RESULTS_OUTPUT_CSV = f"./benchmark_{DT_stamp}_raw.csv"
 
+# To check if the benchmark is running appropriately until the end, you might want to set this to a lower value.
 MAX_INSTANCES = 100
 
-# Data paths
-arff_RTG_2abrupt_path = "../data/RTG_2abrupt.arff"
+# Data path for river (csv file), can be downloaded using the cli tool
+# See python -m capymoa.datasets --help, python -m capymoa.datasets -d RTG_2abrupt -o "../data/"
 csv_RTG_2abrupt_path = "../data/RTG_2abrupt.csv"
 
 
@@ -161,7 +162,7 @@ def river_experiment(
             "repetition": repetition,
             "dataset": dataset_name,
             "learner": learner_name,
-            "hyperparameters": str(hyperparameters),
+            "hyperparameters": str(hyperparameters).replace("\n", ""),
             "accuracy": acc,
             "wallclock": wallclock,
             "cpu_time": cpu_time
@@ -252,7 +253,7 @@ def benchmark_classifiers_capymoa(intermediary_results, raw_intermediary_results
         dataset_name=dataset_names,
         learner_name="ARF5",
         stream=data,
-        learner=AdaptiveRandomForest,
+        learner=AdaptiveRandomForestClassifier,
         hyperparameters={"ensemble_size":5, "max_features":0.6},
         repetitions=5)
 
@@ -264,7 +265,7 @@ def benchmark_classifiers_capymoa(intermediary_results, raw_intermediary_results
         dataset_name=dataset_names,
         learner_name="ARF10",
         stream=data,
-        learner=AdaptiveRandomForest,
+        learner=AdaptiveRandomForestClassifier,
         hyperparameters={"ensemble_size":10, "max_features":0.6},
         repetitions=5)
 
@@ -276,7 +277,7 @@ def benchmark_classifiers_capymoa(intermediary_results, raw_intermediary_results
         dataset_name=dataset_names,
         learner_name="ARF30",
         stream=data,
-        learner=AdaptiveRandomForest,
+        learner=AdaptiveRandomForestClassifier,
         hyperparameters={"ensemble_size":30, "max_features":0.6},
         repetitions=5)
 
@@ -288,7 +289,7 @@ def benchmark_classifiers_capymoa(intermediary_results, raw_intermediary_results
         dataset_name=dataset_names,
         learner_name="ARF100",
         stream=data,
-        learner=AdaptiveRandomForest,
+        learner=AdaptiveRandomForestClassifier,
         hyperparameters={"ensemble_size":100, "max_features":0.6},
         repetitions=5)
 
@@ -300,7 +301,7 @@ def benchmark_classifiers_capymoa(intermediary_results, raw_intermediary_results
         dataset_name=dataset_names,
         learner_name="ARF100j4",
         stream=data,
-        learner=AdaptiveRandomForest,
+        learner=AdaptiveRandomForestClassifier,
         hyperparameters={"ensemble_size":100, "max_features":0.6, "number_of_jobs":4},
         repetitions=5)
 
@@ -470,7 +471,7 @@ if __name__ == "__main__":
     combined_results = pd.DataFrame()
     raw_results = pd.DataFrame()
 
-    rtg2abrupt_stream = stream_from_file(path_to_csv_or_arff=arff_RTG_2abrupt_path)
+    rtg2abrupt_stream = RTG_2abrupt()
 
     combined_results, raw_results = benchmark_classifiers_capymoa(
         intermediary_results=combined_results,

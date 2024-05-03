@@ -18,7 +18,7 @@ class AdaptiveRandomForestRegressor(MOARegressor):
         ARF is implemented in MOA (Massive Online Analysis) and provides several
         parameters for customization.
 
-        See also :py:class:`capymoa.classifier.AdaptiveRandomForest`
+        See also :py:class:`capymoa.classifier.AdaptiveRandomForestClassifier`
         See :py:class:`capymoa.base.MOARegressor` for train and predict.
 
         Reference:

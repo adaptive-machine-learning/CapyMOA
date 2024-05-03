@@ -6,7 +6,7 @@ from capymoa.base import (
 from moa.classifiers.meta import AdaptiveRandomForest as _MOA_AdaptiveRandomForest
 
 
-class AdaptiveRandomForest(MOAClassifier):
+class AdaptiveRandomForestClassifier(MOAClassifier):
     """Adaptive Random Forest Classifier
 
     This class implements the Adaptive Random Forest (ARF) algorithm, which is
@@ -28,11 +28,11 @@ class AdaptiveRandomForest(MOAClassifier):
     Example usage:
 
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.classifier import AdaptiveRandomForest
+    >>> from capymoa.classifier import AdaptiveRandomForestClassifier
     >>> from capymoa.evaluation import prequential_evaluation
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
-    >>> learner = AdaptiveRandomForest(schema)
+    >>> learner = AdaptiveRandomForestClassifier(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
     87.9
