@@ -2,11 +2,22 @@
 
 
 
+## v0.1.1 (2024-05-03)
+
+### Fix
+
+* fix: update pyproject.toml for initial release ([`cd7279c`](https://github.com/adaptive-machine-learning/CapyMOA/commit/cd7279c7567c51a16c17a33842e53f3dd14217d4))
+
+
 ## v0.1.0 (2024-05-03)
 
 ### Build
 
 * build: remove river from default dependencies ([`66a3a21`](https://github.com/adaptive-machine-learning/CapyMOA/commit/66a3a21c7e2e564decada5b7028abbddb0d1ee5a))
+
+### Chore
+
+* chore(version): increment version to 0.1.0 ([`1a983a2`](https://github.com/adaptive-machine-learning/CapyMOA/commit/1a983a239e7a6092e4bf9bd224687f65c0e90988))
 
 ### Ci
 
