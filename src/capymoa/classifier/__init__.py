@@ -10,6 +10,7 @@ from ._sgbt import StreamingGradientBoostedTrees
 from ._oza_boost import OzaBoost
 from ._majority_class import MajorityClass
 from ._no_change import NoChange
+from ._online_smooth_boost import OnlineSmoothBoost
 
 __all__ = [
     "AdaptiveRandomForest",
@@ -24,5 +25,6 @@ __all__ = [
     "StreamingGradientBoostedTrees",
     "OzaBoost",
     "MajorityClass",
-    "NoChange"
+    "NoChange",
+    "OnlineSmoothBoost"
 ]

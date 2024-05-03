@@ -9,7 +9,8 @@ from capymoa.classifier import (
     StreamingGradientBoostedTrees,
     OzaBoost,
     MajorityClass,
-    NoChange
+    NoChange,
+    OnlineSmoothBoost
 )
 from capymoa.base import Classifier
 from capymoa.base import MOAClassifier
@@ -46,6 +47,7 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         (partial(OzaBoost), 89.95, 89.0, None),
         (partial(MajorityClass), 60.199999999999996, 66.0, None),
         (partial(NoChange), 85.95, 81.0, None),
+        (partial(OnlineSmoothBoost), 87.85, 90.0, None),
     ],
     ids=[
         "OnlineBagging",
@@ -60,7 +62,8 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         "StreamingGradientBoostedTrees",
         "OzaBoost",
         "MajorityClass",
-        "NoChange"
+        "NoChange",
+        "OnlineSmoothBoost"
     ],
 )
 def test_classifiers(
