@@ -21,11 +21,9 @@ dependencies = [
     "numpy",
     "pandas",
     "pyarrow",
-    "river",
     "matplotlib",
     "scikit-learn",
     "click",
-    "python-semantic-release~=9.5.0"
 ]
 
 [project.optional-dependencies]
@@ -56,6 +54,7 @@ doc=[
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
 pythonpath = ["src"]
+testpaths = ["tests", "src"]
 norecursedirs = [
     "docs/*"
 ]
