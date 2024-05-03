@@ -90,10 +90,9 @@ jobs:
         if: steps.release.outputs.released == 'true'
         run: python3 -m hatch build
 
-    # TODO: Uncomment the following lines to publish to PyPI
-    #   - name: Publish package distributions to PyPI
-    #     uses: pypa/gh-action-pypi-publish@release/v1
-    #     if: steps.release.outputs.released == 'true'
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: steps.release.outputs.released == 'true'
 
       - name: Publish package distributions to GitHub Releases
         uses: python-semantic-release/upload-to-gh-release@0f96c02a48278aff14251e9f1a0d73122a8c638b
