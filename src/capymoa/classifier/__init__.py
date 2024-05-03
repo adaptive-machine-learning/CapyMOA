@@ -1,4 +1,4 @@
-from ._adaptive_random_forest import AdaptiveRandomForest
+from ._adaptive_random_forest import AdaptiveRandomForestClassifier
 from ._efdt import EFDT
 from ._hoeffding_tree import HoeffdingTree
 from ._naive_bayes import NaiveBayes
@@ -13,8 +13,7 @@ from ._no_change import NoChange
 from ._online_smooth_boost import OnlineSmoothBoost
 
 __all__ = [
-    "AdaptiveRandomForest",
-    "AdaptiveRandomForest",
+    "AdaptiveRandomForestClassifier",
     "EFDT",
     "HoeffdingTree",
     "NaiveBayes",

@@ -2,7 +2,7 @@ from capymoa.evaluation import ClassificationEvaluator, ClassificationWindowedEv
 from capymoa.classifier import (
     EFDT,
     HoeffdingTree,
-    AdaptiveRandomForest,
+    AdaptiveRandomForestClassifier,
     OnlineBagging,
     NaiveBayes,
     KNN,
@@ -30,7 +30,7 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
     "learner_constructor,accuracy,win_accuracy,cli_string",
     [
         (partial(OnlineBagging, ensemble_size=5), 84.6, 89.0, None),
-        (partial(AdaptiveRandomForest), 89.0, 91.0, None),
+        (partial(AdaptiveRandomForestClassifier), 89.0, 91.0, None),
         (partial(HoeffdingTree), 82.65, 83.0, None),
         (partial(EFDT), 82.69, 82.0, None),
         (
