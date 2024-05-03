@@ -1,5 +1,5 @@
 Contributing
-============
+
 This part of the documentation is for developers and contributors.
 
 .. toctree::

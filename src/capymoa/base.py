@@ -456,3 +456,28 @@ class SKRegressor(Regressor):
             # scikit-learn does not allows invoking predict in a model that was not fit before
             return None
         return self.sklearner.predict([instance.x])[0]
+
+
+### Prediction Interval Learner ###
+class PredictionIntervalLearner(Regressor):
+    def __init__(self, schema=None, random_seed=1):
+        super().__init__(schema=schema, random_seed=random_seed)
+
+    @abstractmethod
+    def train(self, instance):
+        pass
+    @abstractmethod
+    def predict(self, instance):
+        pass
+
+
+class MOAPredictionIntervalLearner(MOARegressor, PredictionIntervalLearner):
+
+    def train(self, instance):
+        self.moa_learner.trainOnInstance(instance.java_instance)
+    def predict(self, instance):
+        prediction_PI = self.moa_learner.getVotesForInstance(instance.java_instance)
+        if len(prediction_PI) != 3:
+            return [0, 0, 0]
+        else:
+            return prediction_PI

@@ -3,6 +3,7 @@ from ._source_list import SOURCE_LIST
 from ._utils import identify_compressed_hosted_file
 
 
+
 class Sensor(DownloadARFFGzip):
     # TODO: Add docstring describing the dataset and link to the original source
 
