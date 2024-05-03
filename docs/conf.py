@@ -7,11 +7,13 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
 from pathlib import Path
+from capymoa.__about__ import __version__
 
 project = 'CapyMOA'
 copyright = '2024, Heitor Murilo Gomes, Anton Lee, Nuwan Gunasekara, Marco Heyden'
 author = 'Heitor Murilo Gomes, Anton Lee, Nuwan Gunasekara, Marco Heyden'
-release = '0.0.1'
+release = __version__
+html_title = f"{project}"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

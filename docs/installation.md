@@ -63,8 +63,9 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 ```
 
 ## Install CapyMOA
-```
-TODO: Add CapyMOA to PyPi and update this section.
+
+```bash
+pip install capymoa
 ```
 
 ### Install CapyMOA for Development
