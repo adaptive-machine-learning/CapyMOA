@@ -10,8 +10,8 @@ from pathlib import Path
 from capymoa.__about__ import __version__
 
 project = 'CapyMOA'
-copyright = '2024, Heitor Murilo Gomes, Anton Lee, Nuwan Gunasekara, Marco Heyden'
-author = 'Heitor Murilo Gomes, Anton Lee, Nuwan Gunasekara, Marco Heyden'
+copyright = '2024 CapyMOA Developers'
+author = 'Heitor Murilo Gomes, Anton Lee, Nuwan Gunasekara, Marco Heyden, Yibin Sun, Guilherme Weigert Cassales'
 release = __version__
 html_title = f"{project}"
 

@@ -11,6 +11,34 @@ build-backend = "hatchling.build"
 name = "capymoa"
 dynamic = ['version']
 description = "Python wrapper for MOA to allow efficient use of existing algorithms with a more modern API."
+readme = "README.md"
+homepage = "https://capymoa.org"
+repository = "https://github.com/adaptive-machine-learning/CapyMOA"
+authors = [
+    {name="Heitor Murilo Gomes", email="hmugomes@gmail.com"},
+    {name="Anton Lee", email="anton.lee@vuw.ac.nz"},
+    {name="Nuwan Gunasekara"},
+    {name="Marco Heyden"},
+    {name="Yibin Sun"},
+    {name="Guilherme Weigert Cassales"}
+]
+keywords = [
+    "MOA",
+    "Machine Learning",
+    "Data Stream",
+    "Online Learning",
+    "Stream Learning",
+    "Data Stream Mining",
+    "Data Mining",
+    "Incremental Learning",
+    "Concept Drift",
+    "Concept Evolution",
+    "Concept Shift",
+    "Big Data",
+    "Data Science",
+]
+
+long_description_content_type = "text/markdown"
 requires-python = ">=3.9"
 # Defines the pip packages that are required by this package. These should be
 # as permissive as possible, since capymoa should collaborate with other
