@@ -20,16 +20,18 @@ with the :ref:`tutorials<tutorials>`.
     :maxdepth: 1
     :caption: Interfaces
 
-    learner
-    moa_learner
+    abl/base
+    abl/moa
+    abl/sklearn
 
 ..  toctree::
     :maxdepth: 1
     :caption: Learners
 
+    classifiers
     regressor
     ssl
-    classifiers
+
 
 ..  toctree::
     :maxdepth: 1
@@ -43,3 +45,4 @@ with the :ref:`tutorials<tutorials>`.
     :caption: Other
     
     splitcriteria
+    env

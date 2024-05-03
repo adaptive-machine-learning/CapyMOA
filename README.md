@@ -6,6 +6,7 @@ Python wrapper for MOA to allow efficient use of existing algorithms with a more
 > * **[How to add documentation](docs/contributing/docs.md)**
 > * **[How to add tests](docs/contributing/tests.md)**
 > * **[How to add new algorithms or methods](docs/contributing/learners.md)**
+> * **[How to format a commit message for CapyMOA](docs/contributing/vcs.md)**
 
 
 # Functionality
@@ -16,9 +17,11 @@ Python wrapper for MOA to allow efficient use of existing algorithms with a more
 These notebooks show how to do things. Data is available in the ```/data/``` directory (some of which will need to be downloaded, see instrucitons there). 
 
 * [`00_getting_started.ipynb`](notebooks/00_getting_started.ipynb): Contains simple examples on how to execute classification and regression, using MOA objets to configure synthetic generators or classifiers/regressors. 
-* [`01_evaluation_and_data_reading.ipynb`](notebooks/01_evaluation_and_data_reading.ipynb): Many examples showing how to perform different evaluations for classification and regression using different methods (i.e. a loop or buildin functions). 
+* [`01_evaluation.ipynb`](notebooks/01_evaluation.ipynb): Many examples showing how to perform different evaluations for classification and regression using different methods (i.e. a loop or buildin functions). 
 * [`02_learners_api_examples.ipynb`](notebooks/02_learners_api_examples.ipynb): Shows more capabilities of the evaluator and learner objects.
-* [`03_using_sklearn_pytorch.ipynb`](notebooks/03_using_sklearn_pytorch.ipynb): Shows how one can use the API to run sklearn algorithms (those that implement ```partial_fit```) and PyTorch models.
+* [`03_0_using_sklearn.ipynb`](notebooks/03_0_using_sklearn.ipynb): Shows how one can use the API to run sklearn algorithms (those that implement ```partial_fit```).
+* [`03_1_using_pytorch.ipynb`](notebooks/03_1_using_pytorch.ipynb): Shows how one can use the API to run PyTorch models.
+* [`03_2_preprocess_using_MOA.ipynb`](notebooks/03_2_preprocess_using_MOA.ipynb): Shows how preprocessing (from MOA) can be used different models.
 * [`04_drift_streams.ipynb`](notebooks/04_drift_streams.ipynb): Shows how to setup
    simulated concept drifts in data streams.
 

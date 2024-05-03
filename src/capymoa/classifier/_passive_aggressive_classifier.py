@@ -1,15 +1,12 @@
 from typing import Optional, Dict, Union, Literal
-from capymoa.base import Classifier
+from capymoa.base import SKClassifier
 from sklearn.linear_model import (
-    PassiveAggressiveClassifier as skPassiveAggressiveClassifier,
+    PassiveAggressiveClassifier as _SKPassiveAggressiveClassifier,
 )
-from capymoa.instance import Instance, LabeledInstance
 from capymoa.stream._stream import Schema
-from capymoa.type_alias import LabelIndex, LabelProbabilities
-import numpy as np
 
 
-class PassiveAggressiveClassifier(Classifier):
+class PassiveAggressiveClassifier(SKClassifier):
     """Streaming Passive Aggressive Classifier
 
     This wraps :sklearn:`linear_model.PassiveAggressiveClassifier` for
@@ -31,7 +28,7 @@ class PassiveAggressiveClassifier(Classifier):
     84.3
     """
 
-    sklearner: skPassiveAggressiveClassifier
+    sklearner: _SKPassiveAggressiveClassifier
     """The underlying scikit-learn object. See: :sklearn:`linear_model.PassiveAggressiveClassifier`"""
 
     def __init__(
@@ -72,40 +69,23 @@ class PassiveAggressiveClassifier(Classifier):
         :param random_seed: Seed for the random number generator.
         """
 
-        super().__init__(schema, random_seed)
-
-        self.sklearner = skPassiveAggressiveClassifier(
-            C=max_step_size,
-            fit_intercept=fit_intercept,
-            early_stopping=False,
-            shuffle=False,
-            verbose=0,
-            loss=loss,
-            n_jobs=n_jobs,
-            warm_start=False,
-            class_weight=class_weight,
-            average=average,
-            random_state=random_seed,
+        super().__init__(
+            _SKPassiveAggressiveClassifier(
+                C=max_step_size,
+                fit_intercept=fit_intercept,
+                early_stopping=False,
+                shuffle=False,
+                verbose=0,
+                loss=loss,
+                n_jobs=n_jobs,
+                warm_start=False,
+                class_weight=class_weight,
+                average=average,
+                random_state=random_seed,
+            ),
+            schema,
+            random_seed,
         )
-        self._classes = schema.get_label_indexes()
-        self._is_fitted = False
 
     def __str__(self):
-        return str(self.sklearner)
-
-    def train(self, instance: LabeledInstance):
-        x = instance.x.reshape(1, -1)
-        y = np.array(instance.y_index).reshape(1)
-        self.sklearner.partial_fit(x, y, classes=self._classes)
-        self._is_fitted = True
-
-    def predict(self, instance: Instance) -> Optional[LabelIndex]:
-        if not self._is_fitted:
-            return None
-        x = instance.x.reshape(1, -1)
-        return self.sklearner.predict(x).item()
-
-    def predict_proba(self, instance: Instance) -> LabelProbabilities:
-        proba = np.zeros(len(self._classes))
-        proba[self.predict(instance)] = 1
-        return proba
+        return str("PassiveAggressiveClassifier")

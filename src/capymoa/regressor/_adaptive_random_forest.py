@@ -9,8 +9,38 @@ from moa.classifiers.meta import (
 )
 
 
-# TODO: replace the m_features_mode logic such that we can infer from m_features_per_tree_size, e.g. if value is double between 0.0 and 1.0 = percentage
 class AdaptiveRandomForestRegressor(MOARegressor):
+    """Adaptive Random Forest Regressor
+
+        This class implements the Adaptive Random Forest (ARF) algorithm, which is
+        an ensemble regressor capable of adapting to concept drift.
+
+        ARF is implemented in MOA (Massive Online Analysis) and provides several
+        parameters for customization.
+
+        See also :py:class:`capymoa.classifier.AdaptiveRandomForest`
+        See :py:class:`capymoa.base.MOARegressor` for train and predict.
+
+        Reference:
+
+        `Adaptive random forests for data stream regression.
+        Heitor Murilo Gomes, J. P. Barddal, L. E. B. Ferreira, A. Bifet.
+        ESANN, pp. 267-272, 2018.
+        <https://www.esann.org/sites/default/files/proceedings/legacy/es2018-183.pdf>`_
+
+        Example usage:
+
+        >>> from capymoa.datasets import Fried
+        >>> from capymoa.regressor import AdaptiveRandomForestRegressor
+        >>> from capymoa.evaluation import prequential_evaluation
+        >>> stream = Fried()
+        >>> schema = stream.get_schema()
+        >>> learner = AdaptiveRandomForestRegressor(schema)
+        >>> results = prequential_evaluation(stream, learner, max_instances=1000)
+        >>> results["cumulative"].RMSE()
+        3.659072011685404
+        """
+
     def __init__(
         self,
         schema=None,
@@ -19,13 +49,33 @@ class AdaptiveRandomForestRegressor(MOARegressor):
         tree_learner=None,
         ensemble_size=100,
         max_features=0.6,
-        lambda_param=6.0,  # m_features_mode=None, m_features_per_tree_size=60,
+        lambda_param=6.0,
         drift_detection_method=None,
         warning_detection_method=None,
         disable_drift_detection=False,
         disable_background_learner=False,
     ):
-        # Important: must create the MOA object before invoking the super class __init__
+        """Construct an Adaptive Random Forest Regressor
+
+        :param schema: The schema of the stream. If not provided, it will be inferred from the data.
+        :param CLI: Command Line Interface (CLI) options for configuring the ARF algorithm.
+            If not provided, default options will be used.
+        :param random_seed: Seed for the random number generator.
+        :param tree_learner: The tree learner to use. If not provided, a default Hoeffding Tree is used.
+        :param ensemble_size: The number of trees in the ensemble.
+        :param max_features: The maximum number of features to consider when splitting a node.
+            If provided as a float between 0.0 and 1.0, it represents the percentage of features to consider.
+            If provided as an integer, it specifies the exact number of features to consider.
+            If provided as the string "sqrt", it indicates that the square root of the total number of features.
+            If not provided, the default value is 60%.
+        :param lambda_param: The lambda parameter that controls the Poisson distribution for
+            the online bagging simulation.
+        :param drift_detection_method: The method used for drift detection.
+        :param warning_detection_method: The method used for warning detection.
+        :param disable_drift_detection: Whether to disable drift detection.
+        :param disable_background_learner: Whether to disable background learning.
+        """
+
         self.moa_learner = MOA_AdaptiveRandomForestRegressor()
 
         # Initialize instance attributes with default values, CLI was not set.
@@ -53,11 +103,11 @@ class AdaptiveRandomForestRegressor(MOARegressor):
                 self.m_features_mode = "(Percentage (M * (m / 100)))"
                 self.m_features_per_tree_size = 60
             else:
-                # Handle other cases or raise an exception if needed
-                raise ValueError("Invalid value for max_features")
+                # Raise an exception with information about valid options for max_features
+                raise ValueError("Invalid value for max_features. Valid options: float between 0.0 and 1.0 "
+                                 "representing percentage, integer specifying exact number, or 'sqrt' for "
+                                 "square root of total features.")
 
-            # self.m_features_mode = "(Percentage (M * (m / 100)))" if m_features_mode is None else m_features_mode
-            # self.m_features_per_tree_size = m_features_per_tree_size
             self.lambda_param = lambda_param
             self.drift_detection_method = (
                 "(ADWINChangeDetector -a 1.0E-3)"

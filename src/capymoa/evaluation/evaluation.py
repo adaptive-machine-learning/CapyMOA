@@ -251,7 +251,7 @@ class RegressionEvaluator:
     def get_instances_seen(self):
         return self.instances_seen
 
-    def update(self, y, y_pred):
+    def update(self, y, y_pred: Optional[float]):
         if y is None:
             raise ValueError(f"Invalid ground-truth y = {y}")
 
@@ -261,6 +261,7 @@ class RegressionEvaluator:
         # The learner did not produce a prediction for this instance, thus y_pred is None
         if y_pred is None:
             warnings.warn("The learner did not produce a prediction for this instance")
+            y_pred = 0.0
 
         # Different from classification, there is no need to copy the prediction array, just override the value.
         self.pred_template[0] = y_pred

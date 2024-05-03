@@ -68,6 +68,7 @@ def download_moa(ctx: Context):
     url = ctx["moa_url"]
     moa_path = Path(ctx["moa_path"])
     if not moa_path.exists():
+        moa_path.parent.mkdir(parents=True, exist_ok=True)
         print(f"Downloading moa.jar from : {url}")
         wget.download(url, out=moa_path.resolve().as_posix())
     else:
@@ -178,6 +179,7 @@ def unittest(ctx: Context, parallel: bool = True):
         "--doctest-modules",  # Run tests defined in docstrings
         "--durations=0",  # Show the duration of each test
         "-x",  # Stop after the first failure
+        "-p no:faulthandler" #jpype can raise irrelevant warnings: https://github.com/jpype-project/jpype/issues/561
     ]
     cmd += ["-n=auto"] if parallel else []
     ctx.run(" ".join(cmd))
@@ -189,6 +191,14 @@ def all_tests(ctx: Context, parallel: bool = True):
     unittest(ctx, parallel)
     test_notebooks(ctx, parallel)
 
+
+@task
+def commit(ctx: Context):
+    """Commit changes using conventional commits.
+
+    Utility wrapper around `python -m commitizen commit`.
+    """
+    ctx.run("python -m commitizen commit", pty=True)
 
 docs = Collection("docs")
 docs.add_task(docs_build, "build")
@@ -211,3 +221,4 @@ ns = Collection()
 ns.add_collection(docs)
 ns.add_collection(build)
 ns.add_collection(test)
+ns.add_task(commit)

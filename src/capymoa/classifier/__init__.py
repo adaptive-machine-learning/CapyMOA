@@ -4,7 +4,12 @@ from ._hoeffding_tree import HoeffdingTree
 from ._naive_bayes import NaiveBayes
 from ._online_bagging import OnlineBagging
 from ._passive_aggressive_classifier import PassiveAggressiveClassifier
+from ._sgd_classifier import SGDClassifier
 from ._knn import KNN
+from ._sgbt import StreamingGradientBoostedTrees
+from ._oza_boost import OzaBoost
+from ._majority_class import MajorityClass
+from ._no_change import NoChange
 
 __all__ = [
     "AdaptiveRandomForest",
@@ -13,6 +18,11 @@ __all__ = [
     "HoeffdingTree",
     "NaiveBayes",
     "OnlineBagging",
-    "PassiveAggressiveClassifier",
     "KNN",
+    "PassiveAggressiveClassifier",
+    "SGDClassifier",
+    "StreamingGradientBoostedTrees",
+    "OzaBoost",
+    "MajorityClass",
+    "NoChange"
 ]

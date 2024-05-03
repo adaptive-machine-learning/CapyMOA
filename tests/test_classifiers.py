@@ -5,7 +5,11 @@ from capymoa.classifier import (
     AdaptiveRandomForest,
     OnlineBagging,
     NaiveBayes,
-    KNN
+    KNN,
+    StreamingGradientBoostedTrees,
+    OzaBoost,
+    MajorityClass,
+    NoChange
 )
 from capymoa.base import Classifier
 from capymoa.base import MOAClassifier
@@ -14,11 +18,11 @@ import pytest
 from functools import partial
 from typing import Callable, Optional
 from capymoa.base import _extract_moa_learner_CLI
-from capymoa.splitcriteria import InfoGainSplitCriterion
+from capymoa.splitcriteria import GiniSplitCriterion
 
 from capymoa.stream._stream import Schema
 
-from capymoa.classifier import PassiveAggressiveClassifier
+from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
 
 
 @pytest.mark.parametrize(
@@ -26,16 +30,22 @@ from capymoa.classifier import PassiveAggressiveClassifier
     [
         (partial(OnlineBagging, ensemble_size=5), 84.6, 89.0, None),
         (partial(AdaptiveRandomForest), 89.0, 91.0, None),
-        (partial(HoeffdingTree), 73.85, 73.0, None),
-        (partial(EFDT), 82.7, 82.0, None),
+        (partial(HoeffdingTree), 82.65, 83.0, None),
+        (partial(EFDT), 82.69, 82.0, None),
         (
-            partial(EFDT, grace_period=10, split_criterion=InfoGainSplitCriterion(0.2)),
-            86.2,
-            84.0,
-            "trees.EFDT -R 200 -m 33554433 -g 10 -s (InfoGainSplitCriterion -f 0.2) -c 0.001 -z -p -l MC",
+            partial(EFDT, grace_period=10, split_criterion=GiniSplitCriterion(), leaf_prediction="NaiveBayes"),
+            87.8,
+            85.0,
+            "trees.EFDT -R 200 -m 33554433 -g 10 -s GiniSplitCriterion -c 0.001 -z -p -l NB",
         ),
         (partial(NaiveBayes), 84.0, 91.0, None),
         (partial(KNN), 81.6, 74.0, None),
+        (partial(PassiveAggressiveClassifier), 84.7, 81.0, None),
+        (partial(SGDClassifier), 84.7, 83.0, None),
+        (partial(StreamingGradientBoostedTrees), 88.75, 88.0, None),
+        (partial(OzaBoost), 89.95, 89.0, None),
+        (partial(MajorityClass), 60.199999999999996, 66.0, None),
+        (partial(NoChange), 85.95, 81.0, None),
     ],
     ids=[
         "OnlineBagging",
@@ -44,7 +54,13 @@ from capymoa.classifier import PassiveAggressiveClassifier
         "EFDT",
         "EFDT_gini",
         "NaiveBayes",
-        "KNN"
+        "KNN",
+        "PassiveAggressiveClassifier",
+        "SGDClassifier",
+        "StreamingGradientBoostedTrees",
+        "OzaBoost",
+        "MajorityClass",
+        "NoChange"
     ],
 )
 def test_classifiers(
