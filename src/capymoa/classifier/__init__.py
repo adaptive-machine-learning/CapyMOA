@@ -11,6 +11,7 @@ from ._oza_boost import OzaBoost
 from ._majority_class import MajorityClass
 from ._no_change import NoChange
 from ._online_smooth_boost import OnlineSmoothBoost
+from ._srp import StreamingRandomPatches
 
 __all__ = [
     "AdaptiveRandomForest",
@@ -26,5 +27,6 @@ __all__ = [
     "OzaBoost",
     "MajorityClass",
     "NoChange",
-    "OnlineSmoothBoost"
+    "OnlineSmoothBoost",
+    "StreamingRandomPatches"
 ]
