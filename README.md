@@ -1,35 +1,49 @@
-# CapyMOA
-Python wrapper for MOA to allow efficient use of existing algorithms with a more modern API
+![A cute capybara animal riding a moa like a horse](/docs/images/CapyMOA.jpeg)
 
-> [!IMPORTANT]
-> * **[How to install CapyMOA](docs/installation.md)**
-> * **[How to add documentation](docs/contributing/docs.md)**
-> * **[How to add tests](docs/contributing/tests.md)**
-> * **[How to add new algorithms or methods](docs/contributing/learners.md)**
-> * **[How to format a commit message for CapyMOA](docs/contributing/vcs.md)**
+# [CapyMOA](https://capymoa.org)
+<img src="https://img.shields.io/pypi/v/capymoa" href="https://pypi.org/project/capymoa/" alt="PyPi Version"/>
+<img src="https://img.shields.io/discord/1235780483845984367?label=Discord" href="https://discord.gg/spd2gQJGAb" alt="Join the discord"/>
+
+Machine learning library tailored for data streams. Featuring a Python API
+tightly integrated with MOA (**Stream Learners**), PyTorch (**Neural
+Networks**), and scikit-learn (**Machine Learning**). CapyMOA provides a
+**fast** python interface to leverage the state-of-the-art algorithms in the
+field of data streams.
+
+To setup CapyMOA, simply install it via pip. If you have any issues with the 
+installation (like not having Java installed) or if you want GPU support, please
+refer to the [installation guide](docs/installation.md). Once installed take a
+look at the [tutorials](capymoa.org/notebooks/index.html) to get started.
+
+```bash
+# CapyMOA requires Java. This checks if you have it installed
+java -version
+
+# CapyMOA requires PyTorch. This installs the CPU version
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# Install CapyMOA and its dependencies
+pip install capymoa
+
+# Check that the install worked
+python -c "import capymoa; print(capymoa.__version__)"
+```
 
 
-# Functionality
-* Full support for classification, regression and semi-supervised classification. 
-* Read CSV or ARFF files, or use synthetic generators from MOA.
 
-# Tutorial notebooks
-These notebooks show how to do things. Data is available in the ```/data/``` directory (some of which will need to be downloaded, see instrucitons there). 
+> [!WARNING]  
+> CapyMOA is still in the early stages of development. The API is subject to 
+> change until version 1.0.0. If you encounter any issues, please report 
+> them in (GitHub Issues)[https://github.com/adaptive-machine-learning/CapyMOA/issues]
+> or talk to us on (Discord)[https://discord.gg/spd2gQJGAb].
 
-* [`00_getting_started.ipynb`](notebooks/00_getting_started.ipynb): Contains simple examples on how to execute classification and regression, using MOA objets to configure synthetic generators or classifiers/regressors. 
-* [`01_evaluation.ipynb`](notebooks/01_evaluation.ipynb): Many examples showing how to perform different evaluations for classification and regression using different methods (i.e. a loop or buildin functions). 
-* [`02_learners_api_examples.ipynb`](notebooks/02_learners_api_examples.ipynb): Shows more capabilities of the evaluator and learner objects.
-* [`03_0_using_sklearn.ipynb`](notebooks/03_0_using_sklearn.ipynb): Shows how one can use the API to run sklearn algorithms (those that implement ```partial_fit```).
-* [`03_1_using_pytorch.ipynb`](notebooks/03_1_using_pytorch.ipynb): Shows how one can use the API to run PyTorch models.
-* [`03_2_preprocess_using_MOA.ipynb`](notebooks/03_2_preprocess_using_MOA.ipynb): Shows how preprocessing (from MOA) can be used different models.
-* [`04_drift_streams.ipynb`](notebooks/04_drift_streams.ipynb): Shows how to setup
-   simulated concept drifts in data streams.
 
-# Test notebooks
-These show how some parts of the library were developed and provide comparisons of different options on how to do things. 
+![Benchmark of capymoa being faster than river.](/docs/images/benchmark_20240422_221824_performance_plot_wallclock.png)
 
-* **Efficient_Evaluation.ipynb**: Some simple benchmarks comparing different versions of test_then_train_evaluation and prequential_evaluation. Interesting to developers looking to improve that aspect of the platform. 
-* **Using_jpype_MOA_example.ipynb**: Example using MOA directly from jpype without the library in-between. Interesting to developers looking for a full example of how it is done without the library. 
-* **Data_Reading.ipynb**: Data reading examples. More interesting to developers looking to improve the data capabilities. 
+## 🏗️ Contributing 
 
-**Updated all the notebooks on 16/01/2024, removed some that were outdated**
+* **[How to install CapyMOA.](docs/installation.md)**
+* **[How to add documentation.](docs/contributing/docs.md)**
+* **[How to add tests.](docs/contributing/tests.md)**
+* **[How to add new algorithms or methods.](docs/contributing/learners.md)**
+* **[How to format a commit message for CapyMOA.](docs/contributing/vcs.md)**
