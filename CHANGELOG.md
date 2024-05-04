@@ -2,7 +2,43 @@
 
 
 
+## v0.2.0 (2024-05-04)
+
+### Documentation
+
+* docs: fix readme for pypi ([`9c7af27`](https://github.com/adaptive-machine-learning/CapyMOA/commit/9c7af27992b72d744264a28ee30bda45f932f46c))
+
+### Feature
+
+* feat: add streaming random patches classifiers ([`5d3b877`](https://github.com/adaptive-machine-learning/CapyMOA/commit/5d3b877d9d5dbae1b38d9b77e581985dd44c050a))
+
+### Fix
+
+* fix: updating tutorial 6
+
+Fixing issues with tensorboard ([`95a4d54`](https://github.com/adaptive-machine-learning/CapyMOA/commit/95a4d5499b19825adec7db3a6542299703c4bd25))
+
+* fix: updating notebooks and more
+
+Updated all the tutorial notebooks.
+AdaptiveRandomForest -&gt; AdaptiveRandomForestClassifier.
+Removed some outdated files (like accessing_sample_data.txt).
+Removed outdated notebooks. ([`d1aef09`](https://github.com/adaptive-machine-learning/CapyMOA/commit/d1aef0964181b099f5a90393be4bc81338a41db3))
+
+### Unknown
+
+* Create CNAME ([`44ea759`](https://github.com/adaptive-machine-learning/CapyMOA/commit/44ea7593649ff4927c047196b12f619746d43d63))
+
+* Delete CNAME ([`049621f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/049621ffcb0d83000bbb90b84180fb48c29276bc))
+
+* Create CNAME ([`7e0c5d5`](https://github.com/adaptive-machine-learning/CapyMOA/commit/7e0c5d5d83ed9d7aef9d10cd35d42f5c57d35264))
+
+
 ## v0.1.1 (2024-05-03)
+
+### Chore
+
+* chore(version): increment version to 0.1.1 ([`1d1cd9f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/1d1cd9f20e88e57a7b554a320f1aa0eaaf949b14))
 
 ### Fix
 
