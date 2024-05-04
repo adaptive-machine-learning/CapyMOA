@@ -16,6 +16,7 @@ These tutorials will show you how to get started with the CapyMOA library.
    03_1_using_pytorch.ipynb
    preprocess_using_MOA.ipynb
    04_drift_streams.ipynb
+   prediction_interval.ipynb
 
 .. toctree::
    :maxdepth: 1
