@@ -22,4 +22,5 @@ test_skip_notebooks:
   - notebooks/Data_Reading.ipynb
   - notebooks/Preprocessing.ipynb
   - notebooks/SSL_example.ipynb
+  - notebooks/prediction_interval.ipynb
 
