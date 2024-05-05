@@ -1,8 +1,12 @@
+# [CapyMOA](https://capymoa.org)
+
 ![Banner Image](https://github.com/adaptive-machine-learning/CapyMOA/raw/main/docs/images/CapyMOA.jpeg)
 
-# [CapyMOA](https://capymoa.org)
-[<img  alt="PyPi Version"    src="https://img.shields.io/pypi/v/capymoa">](https://pypi.org/project/capymoa/)
-[<img alt="Join the Discord" src="https://img.shields.io/discord/1235780483845984367?label=Discord">](https://discord.gg/spd2gQJGAb)
+[![PyPi Version](https://img.shields.io/pypi/v/capymoa)](https://pypi.org/project/capymoa/)
+[![Join the Discord](https://img.shields.io/discord/1235780483845984367?label=Discord)](https://discord.gg/spd2gQJGAb)
+[![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://capymoa.org)
+[![GitHub](https://img.shields.io/github/stars/adaptive-machine-learning/CapyMOA?style=social)](https://github.com/adaptive-machine-learning/CapyMOA)
+
 
 Machine learning library tailored for data streams. Featuring a Python API
 tightly integrated with MOA (**Stream Learners**), PyTorch (**Neural
@@ -10,10 +14,10 @@ Networks**), and scikit-learn (**Machine Learning**). CapyMOA provides a
 **fast** python interface to leverage the state-of-the-art algorithms in the
 field of data streams.
 
-To setup CapyMOA, simply install it via pip. If you have any issues with the 
+To setup CapyMOA, simply install it via pip. If you have any issues with the
 installation (like not having Java installed) or if you want GPU support, please
-refer to the [installation guide](docs/installation.md). Once installed take a
-look at the [tutorials](capymoa.org/notebooks/index.html) to get started.
+refer to the [installation guide](https://capymoa.org/installation). Once installed take a
+look at the [tutorials](https://capymoa.org/notebooks/) to get started.
 
 ```bash
 # CapyMOA requires Java. This checks if you have it installed
@@ -29,22 +33,11 @@ pip install capymoa
 python -c "import capymoa; print(capymoa.__version__)"
 ```
 
-
-
 > **⚠️ WARNING**
 >
-> CapyMOA is still in the early stages of development. The API is subject to 
-> change until version 1.0.0. If you encounter any issues, please report 
+> CapyMOA is still in the early stages of development. The API is subject to
+> change until version 1.0.0. If you encounter any issues, please report
 > them in [GitHub Issues](https://github.com/adaptive-machine-learning/CapyMOA/issues)
 > or talk to us on [Discord](https://discord.gg/spd2gQJGAb).
 
-
-![Benchmark Image](https://github.com/adaptive-machine-learning/CapyMOA/raw/main/docs/images/benchmark_20240422_221824_performance_plot_wallclock.png)
-
-## 🏗️ Contributing 
-
-* **[How to install CapyMOA.](docs/installation.md)**
-* **[How to add documentation.](docs/contributing/docs.md)**
-* **[How to add tests.](docs/contributing/tests.md)**
-* **[How to add new algorithms or methods.](docs/contributing/learners.md)**
-* **[How to format a commit message for CapyMOA.](docs/contributing/vcs.md)**
+![Benchmark Image](https://github.com/adaptive-machine-learning/CapyMOA/raw/main/docs/images/arf100_cpu_time.png)
