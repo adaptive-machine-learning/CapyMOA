@@ -8,6 +8,7 @@
 import os
 from pathlib import Path
 from capymoa.__about__ import __version__
+from docs.util.github_link import make_linkcode_resolve
 
 project = 'CapyMOA'
 copyright = '2024 CapyMOA Developers'
@@ -19,6 +20,7 @@ html_title = f"{project}"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    "sphinx.ext.linkcode",
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "nbsphinx",
@@ -78,4 +80,43 @@ if not notebook_doc_source.exists():
 
 intersphinx_mapping = {
     'sklearn': ('https://scikit-learn.org/stable/', None),
+}
+
+""" Options for linkcode extension ------------------------------------------
+The linkcode extension is used to provide links to the source code of functions
+and classes in the documentation.
+"""
+
+linkcode_resolve = make_linkcode_resolve(
+    "capymoa",
+    (
+        "https://github.com/adaptive-machine-learning/"
+        "CapyMOA/blob/{revision}/src/"
+        "{package}/{path}#L{lineno}"
+    ),
+)
+
+""" Options for the Theme ---------------------------------------------------
+"""
+html_theme_options = {
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/adaptive-machine-learning/CapyMOA",  # required
+            "icon": "fa-brands fa-github",
+            "type": "fontawesome",
+        },
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/capymoa/",
+            "icon": "fa-solid fa-box",
+            "type": "fontawesome",
+        },
+        {
+            "name": "Discord",
+            "url": "https://discord.gg/spd2gQJGAb",
+            "icon": "fa-brands fa-discord",
+            "type": "fontawesome",
+        }
+   ]
 }

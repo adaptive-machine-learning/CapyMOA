@@ -79,6 +79,10 @@ doc=[
     "myst-parser"
 ]
 
+[project.urls]
+Documentation = "https://capymoa.org"
+Source = "https://github.com/adaptive-machine-learning/CapyMOA"
+
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
 pythonpath = ["src"]
