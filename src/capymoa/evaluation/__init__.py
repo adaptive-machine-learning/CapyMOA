@@ -10,6 +10,7 @@ from .evaluation import (
     RegressionEvaluator,
     PredictionIntervalEvaluator,
     PredictionIntervalWindowedEvaluator,
+    AUCEvaluator,
 )
 
 __all__ = [
