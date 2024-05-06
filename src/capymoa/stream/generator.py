@@ -3,6 +3,8 @@
 from capymoa.stream import Stream
 from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
 from moa.streams.generators import SEAGenerator as MOA_SEAGenerator
+from moa.streams.generators import HyperplaneGenerator as MOA_HyperplaneGenerator
+from moa.streams.generators import HyperplaneGeneratorForRegression as MOA_HyperplaneGeneratorForRegression
 
 
 class RandomTreeGenerator(Stream):
@@ -24,16 +26,16 @@ class RandomTreeGenerator(Stream):
     """
 
     def __init__(
-        self,
-        instance_random_seed: int = 1,
-        tree_random_seed: int = 1,
-        num_classes: int = 2,
-        num_nominals: int = 5,
-        num_numerics: int = 5,
-        num_vals_per_nominal: int = 5,
-        max_tree_depth: int = 5,
-        first_leaf_level: int = 3,
-        leaf_fraction: float = 0.15,
+            self,
+            instance_random_seed: int = 1,
+            tree_random_seed: int = 1,
+            num_classes: int = 2,
+            num_nominals: int = 5,
+            num_numerics: int = 5,
+            num_vals_per_nominal: int = 5,
+            max_tree_depth: int = 5,
+            first_leaf_level: int = 3,
+            leaf_fraction: float = 0.15,
     ):
         """Construct a random tree generator.
 
@@ -130,11 +132,11 @@ class SEA(Stream):
     """
 
     def __init__(
-        self,
-        instance_random_seed: int = 1,
-        function: int = 1,
-        balance_classes: bool = False,
-        noise_percentage: int = 10,
+            self,
+            instance_random_seed: int = 1,
+            function: int = 1,
+            balance_classes: bool = False,
+            noise_percentage: int = 10,
     ):
         """Construct a SEA datastream generator.
 
@@ -172,3 +174,203 @@ class SEA(Stream):
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"SEA({', '.join(non_default_attributes)})"
+
+
+class HyperPlaneClassification(Stream):
+    """Generates HyperPlane concepts functions.
+
+    >>> from capymoa.stream.generator import HyperPlaneClassification
+    ...
+    >>> stream = HyperPlaneClassification()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.HyperPlaneClassificationGenerator ),
+        x=ndarray(..., 3),
+        y_index=1,
+        y_label='groupB'
+    )
+    >>> stream.next_instance().x
+    array([6.58867239, 7.10739628, 1.52736201])
+    """
+
+    def __init__(
+            self,
+            instance_random_seed: int = 1,
+            number_of_classes: int = 2,
+            number_of_attributes: int = 10,
+            number_of_drifting_attributes: int = 2,
+            magnitude_of_change: float = 0.0,
+            noise_percentage: int = 5,
+            sigma_percentage: int = 10,
+            CLI=None,
+            moa_stream=None,
+    ):
+        """Construct a HyperPlane Classification datastream generator.
+
+        :param instance_random_seed: Seed for random generation of instances, defaults to 1
+        :param number_of_classes: The number of classes of the generated instances, defaults to 2
+        :param number_of_attributes: The number of attributes of the generated instances, defaults to 10
+        :param number_of_drifting_attributes: The number of drifting attributes, defaults to 2
+        :param magnitude_of_change: Magnitude of change in the generated instances, defaults to 0.0
+        :param noise_percentage: Percentage of noise to add to the data, defaults to 10
+        :param sigma_percentage: Percentage of sigma to add to the data, defaults to 10
+        """
+        self.moa_stream = MOA_HyperplaneGenerator()
+
+        self.instance_random_seed = instance_random_seed
+        self.number_of_classes = number_of_classes
+        self.number_of_attributes = number_of_attributes
+        self.number_of_drifting_attributes = number_of_drifting_attributes
+        self.magnitude_of_change = magnitude_of_change
+        self.noise_percentage = noise_percentage
+        self.sigma_percentage = sigma_percentage
+        self.CLI = CLI
+        if moa_stream is None:
+            self.moa_stream = MOA_HyperplaneGenerator()
+        else:
+            self.moa_stream = moa_stream
+
+        if CLI is None:
+            self.CLI = (f"-i {instance_random_seed} -c {self.number_of_classes} -a {self.number_of_attributes} \
+                -k {self.number_of_attributes} -t {self.magnitude_of_change} \
+                -n {self.noise_percentage} -s {self.sigma_percentage}")
+
+        super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"number_of_classes={self.number_of_classes}"
+                if self.number_of_classes != 2
+                else None
+            ),
+            (
+                f"number_of_attributes={self.number_of_attributes}"
+                if self.number_of_attributes != 10
+                else None
+            ),
+            (
+                f"number_of_drifting_attributes={self.number_of_drifting_attributes}"
+                if self.number_of_drifting_attributes != 2
+                else None
+            ),
+            (
+                f"magnitude_of_change={self.magnitude_of_change}"
+                if self.magnitude_of_change != 0.0
+                else None
+            ),
+            (
+                f"noise_percentage={self.noise_percentage}"
+                if self.noise_percentage != 5
+                else None
+            ),
+            (
+                f"sigma_percentage={self.sigma_percentage}"
+                if self.sigma_percentage != 10
+                else None
+            ),
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"HyperPlaneClassification({', '.join(non_default_attributes)})"
+
+
+
+class HyperPlaneRegression(HyperPlaneClassification):
+    """Generates HyperPlane Regression concepts functions.
+
+    >>> from capymoa.stream.generator import HyperPlaneRegression
+    ...
+    >>> stream = HyperPlaneRegression()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.HyperPlaneClassificationGenerator ),
+        x=ndarray(..., 3),
+        y_index=1,
+        y_label='groupB'
+    )
+    >>> stream.next_instance().x
+    array([6.58867239, 7.10739628, 1.52736201])
+    """
+    def __init__(
+            self,
+            instance_random_seed: int = 1,
+            number_of_classes: int = 2,
+            number_of_attributes: int = 10,
+            number_of_drifting_attributes: int = 2,
+            magnitude_of_change: float = 0.0,
+            noise_percentage: int = 5,
+            sigma_percentage: int = 10,
+    ):
+        """Construct a HyperPlane Classification datastream generator.
+
+        :param instance_random_seed: Seed for random generation of instances, defaults to 1
+        :param number_of_classes: The number of classes of the generated instances, defaults to 2
+        :param number_of_attributes: The number of attributes of the generated instances, defaults to 10
+        :param number_of_drifting_attributes: The number of drifting attributes, defaults to 2
+        :param magnitude_of_change: Magnitude of change in the generated instances, defaults to 0.0
+        :param noise_percentage: Percentage of noise to add to the data, defaults to 10
+        :param sigma_percentage: Percentage of sigma to add to the data, defaults to 10
+        """
+        self.moa_stream = MOA_HyperplaneGeneratorForRegression()
+
+        self.instance_random_seed = instance_random_seed
+        self.number_of_classes = number_of_classes
+        self.number_of_attributes = number_of_attributes
+        self.number_of_drifting_attributes = number_of_drifting_attributes
+        self.magnitude_of_change = magnitude_of_change
+        self.noise_percentage = noise_percentage
+        self.sigma_percentage = sigma_percentage
+
+        self.CLI = (f"-i {instance_random_seed} -c {self.number_of_classes} -a {self.number_of_attributes} \
+            -k {self.number_of_attributes} -t {self.magnitude_of_change} \
+            -n {self.noise_percentage} -s {self.sigma_percentage}")
+
+        super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"number_of_classes={self.number_of_classes}"
+                if self.number_of_classes != 2
+                else None
+            ),
+            (
+                f"number_of_attributes={self.number_of_attributes}"
+                if self.number_of_attributes != 10
+                else None
+            ),
+            (
+                f"number_of_drifting_attributes={self.number_of_drifting_attributes}"
+                if self.number_of_drifting_attributes != 2
+                else None
+            ),
+            (
+                f"magnitude_of_change={self.magnitude_of_change}"
+                if self.magnitude_of_change != 0.0
+                else None
+            ),
+            (
+                f"noise_percentage={self.noise_percentage}"
+                if self.noise_percentage != 5
+                else None
+            ),
+            (
+                f"sigma_percentage={self.sigma_percentage}"
+                if self.sigma_percentage != 10
+                else None
+            ),
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"HyperPlaneClassification({', '.join(non_default_attributes)})"
+
+
