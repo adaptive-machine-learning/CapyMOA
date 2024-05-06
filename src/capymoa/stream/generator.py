@@ -215,8 +215,6 @@ class HyperPlaneClassification(Stream):
         :param noise_percentage: Percentage of noise to add to the data, defaults to 10
         :param sigma_percentage: Percentage of sigma to add to the data, defaults to 10
         """
-        self.moa_stream = MOA_HyperplaneGenerator()
-
         self.instance_random_seed = instance_random_seed
         self.number_of_classes = number_of_classes
         self.number_of_attributes = number_of_attributes
