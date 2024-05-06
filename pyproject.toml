@@ -52,6 +52,7 @@ dependencies = [
     "matplotlib",
     "scikit-learn",
     "click",
+    "seaborn",
 ]
 
 [project.optional-dependencies]
