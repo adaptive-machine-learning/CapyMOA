@@ -184,13 +184,14 @@ class HyperPlaneClassification(Stream):
     >>> stream = HyperPlaneClassification()
     >>> stream.next_instance()
     LabeledInstance(
-        Schema(generators.HyperPlaneClassificationGenerator ),
-        x=ndarray(..., 3),
-        y_index=1,
-        y_label='groupB'
+        Schema(generators.HyperplaneGenerator -k 10),
+        x=ndarray(..., 10),
+        y_index=0,
+        y_label='class1'
     )
     >>> stream.next_instance().x
-    array([6.58867239, 7.10739628, 1.52736201])
+    array([0.27502995, 0.0753878 , 0.61059154, 0.95493077, 0.2740691 ,
+           0.19020221, 0.00129858, 0.6835265 , 0.48625958, 0.48751503])
     """
 
     def __init__(
@@ -279,14 +280,14 @@ class HyperPlaneRegression(Stream):
     ...
     >>> stream = HyperPlaneRegression()
     >>> stream.next_instance()
-    LabeledInstance(
-        Schema(generators.HyperPlaneClassificationGenerator ),
-        x=ndarray(..., 3),
-        y_index=1,
-        y_label='groupB'
+    RegressionInstance(
+        Schema(generators.HyperplaneGeneratorForRegression -k 10),
+        x=ndarray(..., 10),
+        y_value=205.17965508540908
     )
     >>> stream.next_instance().x
-    array([6.58867239, 7.10739628, 1.52736201])
+    array([0.27502995, 0.0753878 , 0.61059154, 0.95493077, 0.2740691 ,
+           0.19020221, 0.00129858, 0.6835265 , 0.48625958, 0.48751503])
     """
     def __init__(
             self,
@@ -298,7 +299,7 @@ class HyperPlaneRegression(Stream):
             noise_percentage: int = 5,
             sigma_percentage: int = 10,
     ):
-        """Construct a HyperPlane Classification datastream generator.
+        """Construct a HyperPlane Regression datastream generator.
 
         :param instance_random_seed: Seed for random generation of instances, defaults to 1
         :param number_of_classes: The number of classes of the generated instances, defaults to 2
@@ -311,7 +312,7 @@ class HyperPlaneRegression(Stream):
         self.moa_stream = MOA_HyperplaneGeneratorForRegression()
 
         self.instance_random_seed = instance_random_seed
-        self.number_of_classes = number_of_classes
+        self.number_of_classes = number_of_classes  # useless for regression but necessary for CLI
         self.number_of_attributes = number_of_attributes
         self.number_of_drifting_attributes = number_of_drifting_attributes
         self.magnitude_of_change = magnitude_of_change
@@ -363,6 +364,6 @@ class HyperPlaneRegression(Stream):
             ),
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
-        return f"HyperPlaneClassification({', '.join(non_default_attributes)})"
+        return f"HyperPlaneRegression({', '.join(non_default_attributes)})"
 
 
