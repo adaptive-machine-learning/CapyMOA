@@ -202,8 +202,6 @@ class HyperPlaneClassification(Stream):
             magnitude_of_change: float = 0.0,
             noise_percentage: int = 5,
             sigma_percentage: int = 10,
-            CLI=None,
-            moa_stream=None,
     ):
         """Construct a HyperPlane Classification datastream generator.
 
@@ -222,16 +220,12 @@ class HyperPlaneClassification(Stream):
         self.magnitude_of_change = magnitude_of_change
         self.noise_percentage = noise_percentage
         self.sigma_percentage = sigma_percentage
-        self.CLI = CLI
-        if moa_stream is None:
-            self.moa_stream = MOA_HyperplaneGenerator()
-        else:
-            self.moa_stream = moa_stream
+        self.moa_stream = MOA_HyperplaneGenerator()
 
-        if CLI is None:
-            self.CLI = (f"-i {instance_random_seed} -c {self.number_of_classes} -a {self.number_of_attributes} \
-                -k {self.number_of_attributes} -t {self.magnitude_of_change} \
-                -n {self.noise_percentage} -s {self.sigma_percentage}")
+
+        self.CLI = (f"-i {instance_random_seed} -c {self.number_of_classes} -a {self.number_of_attributes} \
+            -k {self.number_of_attributes} -t {self.magnitude_of_change} \
+            -n {self.noise_percentage} -s {self.sigma_percentage}")
 
         super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
 
@@ -278,7 +272,7 @@ class HyperPlaneClassification(Stream):
 
 
 
-class HyperPlaneRegression(HyperPlaneClassification):
+class HyperPlaneRegression(Stream):
     """Generates HyperPlane Regression concepts functions.
 
     >>> from capymoa.stream.generator import HyperPlaneRegression
