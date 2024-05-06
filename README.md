@@ -47,6 +47,6 @@ Benchmark comparing CapyMOA against other data stream libraries. The benchmark
 was performed using an ensemble of 100 ARF learners trained on
 `capymoa.datasets.RTG_2abrupt` dataset containing 100,000 samples and 30
 features.  You can find the code to reproduce this benchmark in
-[`notebooks/benchmarking.py`](https://github.com/adaptive-machine-learning/CapyMOA/notebooks/benchmarking.py).
+[`notebooks/benchmarking.py`](https://github.com/adaptive-machine-learning/CapyMOA/blob/main/notebooks/benchmarking.py).
 *CapyMOA has the speed of MOA with the flexibility of Python and the richness of
 Python's data science ecosystem.*
