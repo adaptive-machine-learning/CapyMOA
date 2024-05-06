@@ -2,7 +2,24 @@
 
 
 
+## v0.2.1 (2024-05-06)
+
+### Documentation
+
+* docs: add blurb to plot and improve moajar update steps ([`cd6ca55`](https://github.com/adaptive-machine-learning/CapyMOA/commit/cd6ca554b15087149f20607e1dc1614b4d5487bf))
+
+* docs: use wall time in benchmark plot ([`31bb320`](https://github.com/adaptive-machine-learning/CapyMOA/commit/31bb32006856c94149f9daf5d3bb53611cbe5f5f))
+
+### Fix
+
+* fix: tweak docs and add links between sites ([`5eca95d`](https://github.com/adaptive-machine-learning/CapyMOA/commit/5eca95dfe8260f7a2ff337ed73f9fca68d390d0c))
+
+
 ## v0.2.0 (2024-05-04)
+
+### Chore
+
+* chore(version): increment version to 0.2.0 ([`7fc2966`](https://github.com/adaptive-machine-learning/CapyMOA/commit/7fc29666e4a6dbf9f3ef8483c793e1b8047fe0a2))
 
 ### Documentation
 
