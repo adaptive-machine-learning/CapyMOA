@@ -28,10 +28,11 @@ Networks**), and scikit-learn (**Machine Learning**). CapyMOA provides a
 **fast** python interface to leverage the state-of-the-art algorithms in the
 field of data streams.
 
-To setup CapyMOA, simply install it with pip. If you have any issues with the
-installation (like no Java) or if you want GPU support, please refer to the
-:ref:`installation` section. Once installed take a look at the :ref:`tutorials`
-to get started.
+To setup CapyMOA, simply install it via pip. If you have any issues with the
+installation (like not having Java installed) or if you want GPU support, please
+refer to the :ref:`installation`. Once installed take a look at the
+:ref:`tutorials` to get started.
+
 
 .. code-block:: bash
 
@@ -63,6 +64,14 @@ to get started.
    :alt: Performance plot
    :align: center
    :class: only-dark
+
+Benchmark comparing CapyMOA against other data stream libraries. The benchmark
+was performed using an ensemble of 100 ARF learners trained on
+:class:`capymoa.datasets.RTG_2abrupt` dataset containing 100,000 samples and 30
+features.  You can find the code to reproduce this benchmark in
+`benchmarking.py <https://github.com/adaptive-machine-learning/CapyMOA/blob/main/notebooks/benchmarking.py>`_.
+*CapyMOA has the speed of MOA with the flexibility of Python and the richness of
+Python's data science ecosystem.*
 
 .. _installation:
 
