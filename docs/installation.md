@@ -1,7 +1,7 @@
 # Installation
 This document describes how to install CapyMOA and its dependencies. CapyMOA
-is tested against Python 3.9, 3.10, and 3.11. Newer versions of python will
-likely work, but have not been tested.
+is tested against Python 3.9, 3.10, and 3.11. Newer versions of Python will
+likely work but have yet to be tested.
 
 - [Installation](#installation)
   - [Environment](#environment)
@@ -12,8 +12,8 @@ likely work, but have not been tested.
     - [Install CapyMOA for Development](#install-capymoa-for-development)
 
 ## Environment
-We recommend using a virtual environment to manage your python environment. Miniconda
-is a good choice for managing python environments. You can install Miniconda from
+We recommend using a virtual environment to manage your Python environment. Miniconda
+is a good choice for managing Python environments. You can install Miniconda from
 [here](https://docs.conda.io/en/latest/miniconda.html). Once you have Miniconda
 installed, you can create a new environment with:
 
@@ -73,7 +73,7 @@ If you want to contribute to CapyMOA, you should clone the repository, install
 development dependencies, and install CapyMOA in editable mode:
 
 ```bash
-git clone git@github.com:hmgomes/CapyMOA.git
+git clone git@github.com:adaptive-machine-learning/CapyMOA.git # or your fork
 cd CapyMOA
 pip install --editable ".[dev]"
 ```
