@@ -397,6 +397,8 @@ def test_then_train_evaluation(
     Test-then-train evaluation. Returns a dictionary with the results.
     """
 
+    stream.restart()  # Always restart the stream to avoid undesired side effects
+
     if _is_fast_mode_compilable(stream, learner, optimise):
         return _test_then_train_evaluation_fast(
 
@@ -407,9 +409,6 @@ def test_then_train_evaluation(
     start_wallclock_time, start_cpu_time = start_time_measuring()
 
     instancesProcessed = 1
-
-    if not stream.has_more_instances():
-        stream.restart()
 
     if evaluator is None:
         schema = stream.get_schema()
@@ -462,7 +461,9 @@ def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
     """
     # Run test-then-train evaluation, but change the underlying MOA evaluator.
     # This is a workaround to avoid redundant code.
-    evaluator = None
+
+    stream.restart()  # Always restart the stream to avoid undesired side effects
+
     if stream.get_schema().is_classification():
         evaluator = ClassificationWindowedEvaluator(
             schema=stream.get_schema(), window_size=window_size
@@ -502,7 +503,7 @@ def prequential_evaluation(
     Calculates the metrics cumulatively (i.e. test-then-train) and in a window-fashion (i.e. windowed prequential evaluation).
     Returns both evaluators so that the caller has access to metric from both evaluators.
     """
-
+    stream.restart()  # Always restart the stream to avoid undesired side effects
     if _is_fast_mode_compilable(stream, learner, optimise):
         return _prequential_evaluation_fast(stream, learner, max_instances, window_size)
 
@@ -517,9 +518,6 @@ def prequential_evaluation(
     # Start measuring time
     start_wallclock_time, start_cpu_time = start_time_measuring()
     instancesProcessed = 1
-
-    if stream.has_more_instances() == False:
-        stream.restart()
 
     evaluator_cumulative = None
     evaluator_windowed = None
@@ -619,6 +617,9 @@ def test_then_train_SSL_evaluation(
     """
     Test-then-train SSL evaluation. Returns a dictionary with the results.
     """
+
+    stream.restart()  # Always restart the stream to avoid undesired side effects
+
     if _is_fast_mode_compilable(stream, learner, optimise):
         return _test_then_train_ssl_evaluation_fast(
             stream,
@@ -649,8 +650,18 @@ def prequential_ssl_evaluation(
     """
     If the learner is not a SSL learner, then it will just train on labeled instances.
     """
+
+    stream.restart()  # Always restart the stream to avoid undesired side effects
+
     if _is_fast_mode_compilable(stream, learner, optimise):
-        return _prequential_ssl_evaluation_fast(stream, learner, max_instances, window_size)
+        return _prequential_ssl_evaluation_fast(stream,
+                                                learner,
+                                                max_instances,
+                                                window_size,
+                                                initial_window_size,
+                                                delay_length,
+                                                label_probability,
+                                                random_seed)
 
     # IMPORTANT: delay_length and initial_window_size have not been implemented in python yet
     # In MOA it is implemented so _prequential_ssl_evaluation_fast works just fine.
@@ -672,9 +683,6 @@ def prequential_ssl_evaluation(
     # Start measuring time
     start_wallclock_time, start_cpu_time = start_time_measuring()
     instancesProcessed = 1
-
-    if stream.has_more_instances() == False:
-        stream.restart()
 
     evaluator_cumulative = None
     evaluator_windowed = None
@@ -838,7 +846,6 @@ def _prequential_evaluation_fast(stream, learner, max_instances=None, window_siz
     windowed_evaluator = None
     if stream.get_schema().is_classification():
         basic_evaluator = ClassificationEvaluator(schema=stream.get_schema())
-        # Always create the windowed_evaluator, even if window_size is None. TODO: may want to avoid creating it if window_size is None.
         windowed_evaluator = ClassificationWindowedEvaluator(
             schema=stream.get_schema(), window_size=window_size
         )
@@ -864,9 +871,9 @@ def _prequential_evaluation_fast(stream, learner, max_instances=None, window_siz
     )
 
     # Reset the windowed_evaluator result_windows
-    if moa_results != None:
+    if moa_results is not None:
         windowed_evaluator.result_windows = []
-        if moa_results.windowedResults != None:
+        if moa_results.windowedResults is not None:
             for entry_idx in range(len(moa_results.windowedResults)):
                 windowed_evaluator.result_windows.append(
                     moa_results.windowedResults[entry_idx]
@@ -937,9 +944,9 @@ def _test_then_train_ssl_evaluation_fast(
             True,
         )
         # Reset the windowed_evaluator result_windows
-        if moa_results != None:
+        if moa_results is not None:
             evaluator.result_windows = []
-            if moa_results.windowedResults != None:
+            if moa_results.windowedResults is not None:
                 for entry_idx in range(len(moa_results.windowedResults)):
                     evaluator.result_windows.append(
                         moa_results.windowedResults[entry_idx]
@@ -1075,8 +1082,7 @@ def prequential_evaluation_multiple_learners(
     """
     results = {}
 
-    if not stream.has_more_instances():
-        stream.restart()
+    stream.restart()  # Restart the stream
 
     for learner_name, learner in learners.items():
         results[learner_name] = {"learner": str(learner)}
@@ -1119,7 +1125,6 @@ def prequential_evaluation_multiple_learners(
             # Predict for the current learner
             prediction = learner.predict(instance)
 
-            # TODO: The multiple if statements based on the type of stream is ugly.
             if stream.get_schema().is_classification():
                 y = instance.y_index
             else:
@@ -1235,7 +1240,6 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
     def metrics_per_window(self):
         return pd.DataFrame(self.result_windows, columns=self.metrics_header())
 
-
     def coverage(self):
         index = self.metrics_header().index("coverage")
         return self.metrics()[index]
@@ -1247,7 +1251,6 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
     def NMPIW(self):
         index = self.metrics_header().index("NMPIW")
         return self.metrics()[index]
-
 
 
 class PredictionIntervalWindowedEvaluator(PredictionIntervalEvaluator):
