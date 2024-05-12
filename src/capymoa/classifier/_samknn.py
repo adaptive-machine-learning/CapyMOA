@@ -78,4 +78,4 @@ class SAMkNN(MOAClassifier):
         )
 
         # setModelContext needs to be called for SAMkNN to initialise the short and long term memory
-        self.moa_learner.setModelContext(schema.get_moa_header())
+        self.moa_learner.setModelContext(self.schema.get_moa_header())
