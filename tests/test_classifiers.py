@@ -53,9 +53,9 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         (partial(NoChange), 85.95, 81.0, None),
         (partial(OnlineSmoothBoost), 87.85, 90.0, None),
         (partial(StreamingRandomPatches), 90.2, 89.0, None),
+        (partial(HoeffdingAdaptiveTree), 84.15, 92.0, None),
         (partial(SAMkNN), 82.65, 82.0, None),
         (partial(DynamicWeightedMajority), 84.05, 89.0, None),
-        (partial(HoeffdingAdaptiveTree), 84.15, 92.0, None),
     ],
     ids=[
         "OnlineBagging",
