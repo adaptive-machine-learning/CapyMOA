@@ -5,9 +5,10 @@ from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
 class SAMkNN(MOAClassifier):
-    """ Self Adjusted Memory k Nearest Neighbor (SAMkNN) Classifier
+    """Self Adjusted Memory k Nearest Neighbor (SAMkNN) Classifier
 
     Reference:
+
     "KNN Classifier with Self Adjusting Memory for Heterogeneous Concept Drift"
     Viktor Losing, Barbara Hammer and Heiko Wersing
     http://ieeexplore.ieee.org/document/7837853
@@ -35,7 +36,6 @@ class SAMkNN(MOAClassifier):
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
     78.60000000000001
-
     """
 
     def __init__(

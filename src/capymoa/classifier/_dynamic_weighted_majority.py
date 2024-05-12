@@ -5,7 +5,7 @@ from moa.classifiers.meta import DynamicWeightedMajority as _MOA_DWM
 
 
 class DynamicWeightedMajority(MOAClassifier):
-    """ Dynamic Weighted Majority Classifier.
+    """Dynamic Weighted Majority Classifier.
 
     Reference:
 
@@ -25,7 +25,6 @@ class DynamicWeightedMajority(MOAClassifier):
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
     85.7
-
     """
 
     def __init__(
