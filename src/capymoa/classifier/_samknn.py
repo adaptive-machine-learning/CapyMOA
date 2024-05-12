@@ -1,7 +1,6 @@
 from capymoa.base import MOAClassifier
 from moa.classifiers.lazy import SAMkNN as _MOA_SAMkNN
 from capymoa.stream._stream import Schema
-from typing import Optional
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
@@ -38,6 +37,7 @@ class SAMkNN(MOAClassifier):
     78.60000000000001
 
     """
+
     def __init__(
             self,
             schema: Schema | None = None,
@@ -71,10 +71,10 @@ class SAMkNN(MOAClassifier):
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         self.moa_learner = _MOA_SAMkNN()
         super(SAMkNN, self).__init__(
-            moa_learner=self.moa_learner,
             schema=schema,
-            CLI=config_str,
             random_seed=random_seed,
+            CLI=config_str,
+            moa_learner=self.moa_learner,
         )
 
         # setModelContext needs to be called for SAMkNN to initialise the short and long term memory
