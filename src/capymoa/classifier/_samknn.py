@@ -39,14 +39,14 @@ class SAMkNN(MOAClassifier):
     """
 
     def __init__(
-            self,
-            schema: Schema | None = None,
-            random_seed: int = 1,
-            k: int = 5,
-            limit: int = 5000,
-            min_stm_size: int = 50,
-            relative_ltm_size: float = 0.4,
-            recalculate_stm_error: bool = False,
+        self,
+        schema: Schema | None = None,
+        random_seed: int = 1,
+        k: int = 5,
+        limit: int = 5000,
+        min_stm_size: int = 50,
+        relative_ltm_size: float = 0.4,
+        recalculate_stm_error: bool = False,
     ):
         """ Self Adjusted Memory k Nearest Neighbor (SAMkNN) Classifier
 
