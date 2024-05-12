@@ -1,6 +1,6 @@
 from capymoa.base import MOAClassifier
 from moa.classifiers.lazy import SAMkNN as _MOA_SAMkNN
-from capymoa.stream._stream import Schema
+from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
