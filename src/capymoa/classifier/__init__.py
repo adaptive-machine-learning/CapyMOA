@@ -12,6 +12,9 @@ from ._majority_class import MajorityClass
 from ._no_change import NoChange
 from ._online_smooth_boost import OnlineSmoothBoost
 from ._srp import StreamingRandomPatches
+from ._samknn import SAMkNN
+from ._dynamic_weighted_majority import DynamicWeightedMajority
+from ._hoeffding_adaptive_tree import HoeffdingAdaptiveTree
 
 __all__ = [
     "AdaptiveRandomForestClassifier",
@@ -27,5 +30,8 @@ __all__ = [
     "MajorityClass",
     "NoChange",
     "OnlineSmoothBoost",
-    "StreamingRandomPatches"
+    "StreamingRandomPatches",
+    "SAMkNN",
+    "DynamicWeightedMajority",
+    "HoeffdingAdaptiveTree",
 ]
