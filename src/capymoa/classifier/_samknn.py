@@ -40,7 +40,7 @@ class SAMkNN(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         random_seed: int = 1,
         k: int = 5,
         limit: int = 5000,
@@ -78,4 +78,4 @@ class SAMkNN(MOAClassifier):
         )
 
         # setModelContext needs to be called for SAMkNN to initialise the short and long term memory
-        self.moa_learner.setModelContext(self.schema.get_moa_header())
+        self.moa_learner.setModelContext(schema.get_moa_header())
