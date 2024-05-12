@@ -33,7 +33,7 @@ class HoeffdingAdaptiveTree(HoeffdingTree):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         random_seed: int = 0,
         grace_period: int = 200,
         split_criterion: Union[str, SplitCriterion] = "InfoGainSplitCriterion",
