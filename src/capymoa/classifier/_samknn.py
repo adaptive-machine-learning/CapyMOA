@@ -13,7 +13,7 @@ class SAMkNN(MOAClassifier):
     Viktor Losing, Barbara Hammer and Heiko Wersing
     http://ieeexplore.ieee.org/document/7837853
     PDF can be found at https://pub.uni-bielefeld.de/download/2907622/2907623
-     BibTex:
+    BibTex:
     "@INPROCEEDINGS{7837853,
     author={V. Losing and B. Hammer and H. Wersing},
     booktitle={2016 IEEE 16th International Conference on Data Mining (ICDM)},
