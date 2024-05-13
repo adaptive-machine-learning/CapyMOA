@@ -152,6 +152,8 @@ class MOAClassifier(Classifier):
 
         self.moa_learner.prepareForUse()
         self.moa_learner.resetLearningImpl()
+        self.moa_learner.setModelContext(schema.get_moa_header())
+
 
     def __str__(self):
         # Removes the package information from the name of the learner.
