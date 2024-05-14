@@ -130,7 +130,11 @@ major_on_zero = true
 allow_zero_version = true
 tag_format = "v{version}"
 
-version_variables = ["src/capymoa/__about__.py:__version__"]
+# Find and replace version variables in the following files
+version_variables = [
+    "src/capymoa/__about__.py:__version__",
+    "docker/.env:CAPYMOA_VERSION"
+]
 
 [tool.semantic_release.branches.main]
 match = "(main|master)"

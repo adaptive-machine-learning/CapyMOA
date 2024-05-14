@@ -84,6 +84,7 @@ Installation instructions for CapyMOA:
    :maxdepth: 2
 
    installation
+   docker
 
 🎓 Tutorials
 ------------
