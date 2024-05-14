@@ -616,13 +616,13 @@ def plot_prediction_interval(
 
             if not dynamic_switch:
                 # Plot first area
-                plt.plot(instance_numbers, u_first, linewidth=0.1, alpha=0.4,
+                plt.plot(instance_numbers, u_first, linewidth=0.1, alpha=0.2,
                          color=colors[0] if colors is not None else default_colors[0])
-                plt.plot(instance_numbers, l_first, linewidth=0.1, alpha=0.4,
+                plt.plot(instance_numbers, l_first, linewidth=0.1, alpha=0.2,
                          color=colors[0] if colors is not None else default_colors[0])
                 plt.fill_between(instance_numbers, u_first, l_first,
                                  color=colors[0] if colors is not None else default_colors[0],
-                                 alpha=0.4, label=results[0]["learner"] + " interval")
+                                 alpha=0.2, label=results[0]["learner"] + " interval")
 
                 # Plot second area
                 plt.plot(instance_numbers, u_second, linewidth=0.1, alpha=0.5,
@@ -682,17 +682,17 @@ def plot_prediction_interval(
                 for i in range(len(switch_points) - 1):
                     if first_first:
                         if i % 2 == 0:
-                            _plot_first(i, alpha=0.4)
+                            _plot_first(i, alpha=0.2)
                             _plot_second(i, alpha=0.5)
                         else:
-                            _plot_second(i, alpha=0.4)
+                            _plot_second(i, alpha=0.2)
                             _plot_first(i, alpha=0.5)
                     else:
                         if i % 2 == 0:
-                            _plot_second(i, alpha=0.4)
+                            _plot_second(i, alpha=0.2)
                             _plot_first(i, alpha=0.5)
                         else:
-                            _plot_first(i, alpha=0.4)
+                            _plot_first(i, alpha=0.2)
                             _plot_second(i, alpha=0.5)
 
         #  Plot predictions
