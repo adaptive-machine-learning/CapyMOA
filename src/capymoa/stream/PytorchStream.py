@@ -1,20 +1,16 @@
-from jpype import JObject
-
-import numpy as np
 import torch
 
 from capymoa.stream import Stream, Schema
-from .stream import _init_moa_stream_and_create_moa_header, _add_instances_to_moa_stream
-from capymoa.stream.instance import (
-    NpLabeledInstance,
-    NpRegressionInstance,
+from capymoa.stream._stream import _init_moa_stream_and_create_moa_header
+from capymoa.instance import (
+    LabeledInstance,
+    RegressionInstance,
 )
+from torch.utils.data import Dataset
 
 
 class PytorchStream(Stream):
-    """
-    PytorchStream is a Stream that reads instances from a PyTorch dataset and
-    provides them as instances for CapyMOA.
+    """PytorchStream turns a PyTorch dataset into a datastream.
 
     >>> from capymoa.evaluation import ClassificationEvaluator
     ...
@@ -41,9 +37,9 @@ class PytorchStream(Stream):
     <BLANKLINE>
     @data
     >>> pytorch_stream.next_instance()
-    NpLabeledInstance(
+    LabeledInstance(
         Schema(PytorchDataset),
-        x=Tensor(..., 784),
+        x=ndarray(..., 784),
         y_index=9,
         y_label='Ankle boot'
     )
@@ -51,7 +47,12 @@ class PytorchStream(Stream):
     """
 
     # https://pytorch.org/tutorials/beginner/basics/data_tutorial.html
-    def __init__(self, dataset=None, enforce_regression=False):
+    def __init__(self, dataset: Dataset, enforce_regression=False):
+        """Construct PytorchStream from a PyTorch dataset.
+
+        :param dataset: PyTorch containing tuples of `x` and `y`
+        :param enforce_regression: Force the task to be a regression task, default is False
+        """
         self.training_data = dataset
         # self.train_dataloader = DataLoader(self.training_data, batch_size=1, shuffle=False)
         self.current_instance_index = 0
@@ -80,22 +81,26 @@ class PytorchStream(Stream):
         return len(self.training_data) > self.current_instance_index
 
     def next_instance(self):
-        if self.has_more_instances():
-            X, y = self.training_data[self.current_instance_index]
-            self.current_instance_index += 1  # increment counter for next call
-
-            if self.schema.is_classification():
-                return NpLabeledInstance(self.schema, X, y)
-            elif self.schema._regression:
-                return NpRegressionInstance(self.schema, X, y)
-            else:
-                raise ValueError(
-                    "Unknown machine learning task must be a regression or "
-                    "classification task"
-                )
-        else:
-            # Return None if all instances have been read already.
+        if not self.has_more_instances():
             return None
+
+        X, y = self.training_data[self.current_instance_index]
+        self.current_instance_index += 1  # increment counter for next call
+
+        # Tensors on the CPU and NumPy arrays share their underlying memory locations
+        # We should prefer numpy over tensors in instances to improve compatibility
+        # See: https://pytorch.org/tutorials/beginner/blitz/tensor_tutorial.html#bridge-to-np-label
+        X = X.view(-1).numpy()
+
+        if self.schema.is_classification():
+            return LabeledInstance.from_array(self.schema, X, y)
+        elif self.schema.is_regression():
+            return RegressionInstance.from_array(self.schema, X, y)
+        else:
+            raise ValueError(
+                "Unknown machine learning task must be a regression or "
+                "classification task"
+            )
 
     def get_schema(self):
         return self.schema

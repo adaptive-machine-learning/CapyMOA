@@ -9,8 +9,36 @@ build-backend = "hatchling.build"
 
 [project]
 name = "capymoa"
-version = "0.0.1"
+dynamic = ['version']
 description = "Python wrapper for MOA to allow efficient use of existing algorithms with a more modern API."
+readme = "README.md"
+homepage = "https://capymoa.org"
+repository = "https://github.com/adaptive-machine-learning/CapyMOA"
+authors = [
+    {name="Heitor Murilo Gomes", email="hmugomes@gmail.com"},
+    {name="Anton Lee", email="anton.lee@vuw.ac.nz"},
+    {name="Nuwan Gunasekara"},
+    {name="Marco Heyden"},
+    {name="Yibin Sun"},
+    {name="Guilherme Weigert Cassales"}
+]
+keywords = [
+    "MOA",
+    "Machine Learning",
+    "Data Stream",
+    "Online Learning",
+    "Stream Learning",
+    "Data Stream Mining",
+    "Data Mining",
+    "Incremental Learning",
+    "Concept Drift",
+    "Concept Evolution",
+    "Concept Shift",
+    "Big Data",
+    "Data Science",
+]
+
+long_description_content_type = "text/markdown"
 requires-python = ">=3.9"
 # Defines the pip packages that are required by this package. These should be
 # as permissive as possible, since capymoa should collaborate with other
@@ -21,9 +49,10 @@ dependencies = [
     "numpy",
     "pandas",
     "pyarrow",
-    "river",
     "matplotlib",
-    "scikit-learn"
+    "scikit-learn",
+    "click",
+    "seaborn",
 ]
 
 [project.optional-dependencies]
@@ -33,28 +62,43 @@ dev=[
     "jupyter",
     "nbmake",
     "pytest-xdist",
-    "invoke"
+    "invoke",
+    "wget",
+    "commitizen~=3.24.0"
 ]
 
 doc=[
+    # Documentation generator
     "sphinx",
-    "sphinx-book-theme",
+    # Theme for the documentation
+    "pydata-sphinx-theme",
+    # Allows to include Jupyter notebooks in the documentation
     "sphinx-autobuild",
-    "nbsphinx"
+    # Allows to include Jupyter notebooks in the documentation
+    "nbsphinx",
+    # Parses markdown files
+    "myst-parser"
 ]
+
+[project.urls]
+Documentation = "https://capymoa.org"
+Source = "https://github.com/adaptive-machine-learning/CapyMOA"
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
-pythonpath = [
-    "src",
-    "." # Used to import the test_utility module
+pythonpath = ["src"]
+testpaths = ["tests", "src"]
+norecursedirs = [
+    "docs/*"
 ]
 
 [tool.hatch]
+[tool.hatch.version]
+path = "src/capymoa/__about__.py"
 [tool.hatch.build.targets.wheel]
 # Defines the directories included in the wheel package
 packages = ["src/capymoa", "src/moa-stubs", "src/com-stubs"]
-artifacts = ["src/capymoa/jar/moa.jar"]
+artifacts = ["src/capymoa/jar/moa.jar", "src/capymoa/jar/Home.class"]
 
 # src/moa-stubs and src/com-stubs are included in the git ignore file
 # that hatch inherits. To include them anyway we need to set ignore-vcs to true.
@@ -63,7 +107,7 @@ ignore-vcs = true
 [tool.hatch.build.targets.sdist]
 # Defines the directories included in the source distribution package (sdist).
 packages = ["src/capymoa", "src/moa-stubs", "src/com-stubs"]
-artifacts = ["src/capymoa/jar/moa.jar"]
+artifacts = ["src/capymoa/jar/moa.jar", "src/capymoa/jar/Home.class"]
 
 # src/moa-stubs and src/com-stubs are included in the git ignore file
 # that hatch inherits. To include them anyway we need to set ignore-vcs to true.
@@ -76,3 +120,59 @@ commands = [
     "python -m invoke build.stubs"
 ]
 artifacts = []
+
+[tool.semantic_release]
+assets = []
+commit_message = "chore(version): increment version to {version}"
+commit_parser = "angular"
+logging_use_named_masks = false
+major_on_zero = true
+allow_zero_version = true
+tag_format = "v{version}"
+
+version_variables = ["src/capymoa/__about__.py:__version__"]
+
+[tool.semantic_release.branches.main]
+match = "(main|master)"
+prerelease_token = "rc"
+prerelease = false
+
+[tool.semantic_release.changelog]
+template_dir = "templates"
+changelog_file = "CHANGELOG.md"
+exclude_commit_patterns = []
+
+[tool.semantic_release.changelog.environment]
+block_start_string = "{%"
+block_end_string = "%}"
+variable_start_string = "{{"
+variable_end_string = "}}"
+comment_start_string = "{#"
+comment_end_string = "#}"
+trim_blocks = false
+lstrip_blocks = false
+newline_sequence = "\n"
+keep_trailing_newline = false
+extensions = []
+autoescape = true
+
+[tool.semantic_release.commit_author]
+env = "GIT_COMMIT_AUTHOR"
+default = "semantic-release <semantic-release>"
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "style", "refactor", "test"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+default_bump_level = 0
+
+[tool.semantic_release.remote]
+name = "origin"
+type = "github"
+ignore_token_for_push = false
+insecure = false
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
+

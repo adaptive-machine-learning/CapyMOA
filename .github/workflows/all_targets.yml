@@ -3,25 +3,21 @@
 
 # TODO: In the future we ought to perform linting and code coverage checks
 
-name: Unit Tests All Targets
+name: Test and Release
 
 on:
-  schedule:
-    - cron: '0 0 * * 1'
-    # “At 00:00 on Monday.” 
   workflow_dispatch:
-  
 
 jobs:
-  tests:
+  test:
+    name: Unit Test all Targets
     timeout-minutes: 20
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: true
       matrix:
         # Python 3.9->3.11 on Ubuntu, Windows and MacOS
-        # TODO: test timeouts on MacOS for unknown reasons. Skipping for now.
-        operating-system: [ubuntu-latest, windows-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.9', '3.10', '3.11']
     steps:
       - uses: actions/checkout@v3
@@ -38,3 +34,83 @@ jobs:
         run: invoke test.unit
       - name: Notebooks
         run: invoke test.nb
+
+  documentation:
+    name: Build Documentation
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
+        cache: 'pip' # caching pip dependencies
+    - name: Install Dependencies
+      run: |
+        sudo apt-get install -y pandoc
+        python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        python -m pip install ".[dev,doc]"
+    - name: Build Documentation
+      run: invoke docs.build
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: docs/_build
+
+  release:
+    name: Version, Build, Publish, and Release
+    runs-on: ubuntu-latest
+    concurrency: release
+    needs: [test]
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+    
+      - name: Install Hatch
+        run: python3 -m pip install hatch~=1.9.7
+
+      - name: Python Semantic Release
+        id: release
+        uses: python-semantic-release/python-semantic-release@v9.5.0
+        with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Package
+        if: steps.release.outputs.released == 'true'
+        run: python3 -m hatch build
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: steps.release.outputs.released == 'true'
+
+      - name: Publish package distributions to GitHub Releases
+        uses: python-semantic-release/upload-to-gh-release@0f96c02a48278aff14251e9f1a0d73122a8c638b
+        if: steps.release.outputs.released == 'true'
+        with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    name: Deploy to GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    runs-on: ubuntu-latest
+    needs: [release, documentation]
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

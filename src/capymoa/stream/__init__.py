@@ -1,10 +1,4 @@
-from .stream import (
-    Stream,
-    Schema,
-    ARFFStream,
-    RandomTreeGenerator,
-    stream_from_file
-)
+from ._stream import Stream, Schema, ARFFStream, stream_from_file, CSVStream
 from .PytorchStream import PytorchStream
 
 __all__ = [
@@ -12,6 +6,6 @@ __all__ = [
     "Schema",
     "stream_from_file",
     "ARFFStream",
-    "RandomTreeGenerator",
-    "PytorchStream"
+    "PytorchStream",
+    "CSVStream",
 ]

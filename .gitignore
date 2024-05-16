@@ -177,3 +177,8 @@ docs/notebooks
 
 src/moa-stubs
 src/com-stubs
+
+# Nixos files
+shell.nix
+.envrc
+.direnv

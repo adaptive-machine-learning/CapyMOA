@@ -1,25 +1,18 @@
-import gzip
 import shutil
 from abc import ABC, abstractmethod
-from os import environ
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Optional
-import shutil
 
 import wget
 from moa.streams import ArffFileStream
 
-from capymoa.stream.stream import Stream
-
-def get_download_dir():
-    """A default directory to store datasets in. Defaults to `./data` when the
-    environment variable `CAPYMOA_DATASETS_DIR` is not set.
-    """
-    return environ.get("CAPYMOA_DATASETS_DIR", "data")
+from capymoa.stream import Stream
+from capymoa.datasets._utils import extract, get_download_dir
+import os
 
 class DownloadableDataset(ABC, Stream):
-    filename: str = None
+    _filename: str = None
     """Name of the dataset in the capymoa dataset directory"""
 
     def __init__(
@@ -29,7 +22,7 @@ class DownloadableDataset(ABC, Stream):
         CLI: Optional[str] = None,
         schema: Optional[str] = None,
     ):
-        assert self.filename is not None, "Filename must be set in subclass"
+        assert self._filename is not None, "Filename must be set in subclass"
         self._path = self._resolve_dataset(
             auto_download,
             Path(directory).resolve(),
@@ -39,7 +32,7 @@ class DownloadableDataset(ABC, Stream):
 
     def _resolve_dataset(self, auto_download: bool, directory: Path):
         directory.mkdir(parents=True, exist_ok=True)
-        stream = directory / self.filename
+        stream = directory / self._filename
 
         if not stream.exists():
             if auto_download:
@@ -50,11 +43,11 @@ class DownloadableDataset(ABC, Stream):
                     stream = shutil.move(tmp_stream, stream)
             else:
                 raise FileNotFoundError(
-                    f"Dataset {self.filename} not found in {directory}"
+                    f"Dataset {self._filename} not found in {directory}"
                 )
 
         return stream
-    
+
     def get_path(self):
         return self._path
 
@@ -89,30 +82,22 @@ class DownloadableDataset(ABC, Stream):
 
 
 class DownloadARFFGzip(DownloadableDataset):
-    filename = None
-    remote_url = None
+    _remote_url = None
 
     def download(self, working_directory: Path) -> Path:
-        assert self.remote_url is not None, "Remote URL must be set in subclass"
+        assert self._remote_url is not None, "Remote URL must be set in subclass"
 
-        print(f"Downloading {self.filename}")
-
-        archive_filename = self.filename + ".gz"
-        save_path = working_directory / archive_filename
-        remote_path = self.remote_url + archive_filename
-        path = wget.download(remote_path, save_path.as_posix())
+        print(f"Downloading {self._filename}")
+        # wget creates temporary files in the current working directory. We need to
+        # change the working directory to avoid cluttering the current directory.
+        wd = os.getcwd()
+        os.chdir(working_directory)
+        path = wget.download(self._remote_url, working_directory.as_posix())
+        os.chdir(wd)
         return Path(path)
 
     def extract(self, stream_archive: Path) -> Path:
-        # Remove the .gz extension
-        assert stream_archive.suffix == ".gz"
-        stream: Path = stream_archive.with_suffix("")
-
-        # Extract the archive
-        with gzip.open(stream_archive, "rb") as f_in:
-            with open(stream, "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
-        return stream
+        return extract(stream_archive)
 
     def to_stream(self, stream: Path) -> Any:
         return ArffFileStream(stream.as_posix(), -1)
