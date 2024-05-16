@@ -9,17 +9,5 @@ moa_path: "src/capymoa/jar/moa.jar"
 moa_url: "https://www.dropbox.com/scl/fi/kd2pvgqjsc3u148it1i4u/240506_moa.jar?rlkey=af1fsqoftnz1u0captpuwcx9d&st=2s3e210s&dl=1"
 
 # What notebooks to skip when running them as tests.
-test_skip_notebooks:
-  - notebooks/00_getting_started.ipynb
-  - notebooks/01_evaluation.ipynb
-  - notebooks/02_learners_api_examples.ipynb
-  - notebooks/03_0_using_sklearn.ipynb
-  - notebooks/03_1_using_pytorch.ipynb
-  - notebooks/03_2_preprocess_using_MOA.ipynb
-  - notebooks/04_drift_streams.ipynb
-  - notebooks/Basic_Classification_Examples.ipynb
-  - notebooks/Creating_new_classifier.ipynb
-  - notebooks/Data_Reading.ipynb
-  - notebooks/Preprocessing.ipynb
-  - notebooks/SSL_example.ipynb
-  - notebooks/prediction_interval.ipynb
+# test_skip_notebooks:
+  # - notebook/example.ipynb
