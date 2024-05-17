@@ -110,21 +110,34 @@ def build_stubs(ctx: Context):
 @task
 def clean_stubs(ctx: Context):
     """Remove the Java stubs."""
-    ctx.run("rm -r src/moa-stubs src/com-stubs")
+    ctx.run("rm -r src/moa-stubs src/com-stubs || echo 'Nothing to do: Java stubs do not exist.'")
 
-
-@task
+@task(pre=[clean_stubs])
 def clean_moa(ctx: Context):
     """Remove the moa.jar file."""
     moa_path = Path(ctx["moa_path"])
-    moa_path.unlink()
+    if moa_path.exists():
+        moa_path.unlink()
+        print("Removed moa.jar.")
+    else:
+        print("Nothing todo: `moa.jar` does not exist.")
+
+@task(pre=[clean_stubs, clean_moa, download_moa, build_stubs])
+def refresh_moa(ctx: Context):
+    """Replace the moa.jar file with the appropriate version.
+
+    The appropriate version is determined by the `moa_url` variable in the `invoke.yaml` file.
+    This is equivalent to the following steps:
+    1. Remove the moa.jar file `invoke build.clean-moa`.
+    2. Download the moa.jar file `invoke build.download-moa`.
+    3. Build the Java stubs. `invoke build.java-stubs`
+    """
+    ctx.run("python -c 'import capymoa; capymoa.about()'")
 
 
-@task
+@task(pre=[clean_stubs, clean_moa])
 def clean(ctx: Context):
     """Clean all build artifacts."""
-    clean_stubs(ctx)
-    clean_moa(ctx)
 
 
 @task(
@@ -222,3 +235,4 @@ ns.add_collection(docs)
 ns.add_collection(build)
 ns.add_collection(test)
 ns.add_task(commit)
+ns.add_task(refresh_moa)
