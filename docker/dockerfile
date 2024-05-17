@@ -1,4 +1,4 @@
-FROM quay.io/jupyter/base-notebook:x86_64-latest
+FROM quay.io/jupyter/base-notebook:latest
 
 # Install OpenJDK-8. 
 # 
