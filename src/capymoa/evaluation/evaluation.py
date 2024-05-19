@@ -397,7 +397,7 @@ def test_then_train_evaluation(
     Test-then-train evaluation. Returns a dictionary with the results.
     """
 
-    stream.restart()  # Always restart the stream to avoid undesired side effects
+    stream.restart()
 
     if _is_fast_mode_compilable(stream, learner, optimise):
         return _test_then_train_evaluation_fast(
@@ -458,11 +458,11 @@ def test_then_train_evaluation(
 def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
     """
     Windowed evaluation. Returns a dictionary with the results.
-    """
-    # Run test-then-train evaluation, but change the underlying MOA evaluator.
-    # This is a workaround to avoid redundant code.
 
-    stream.restart()  # Always restart the stream to avoid undesired side effects
+    Executes test-then-train evaluation using a windowed evaluator to avoid redundant code
+    """
+
+    stream.restart()
 
     if stream.get_schema().is_classification():
         evaluator = ClassificationWindowedEvaluator(
@@ -503,7 +503,7 @@ def prequential_evaluation(
     Calculates the metrics cumulatively (i.e. test-then-train) and in a window-fashion (i.e. windowed prequential evaluation).
     Returns both evaluators so that the caller has access to metric from both evaluators.
     """
-    stream.restart()  # Always restart the stream to avoid undesired side effects
+    stream.restart()
     if _is_fast_mode_compilable(stream, learner, optimise):
         return _prequential_evaluation_fast(stream, learner, max_instances, window_size)
 
@@ -602,7 +602,7 @@ def prequential_evaluation(
     return results
 
 
-def test_then_train_SSL_evaluation(
+def test_then_train_ssl_evaluation(
     stream,
     learner,
     max_instances=None,
@@ -618,7 +618,7 @@ def test_then_train_SSL_evaluation(
     Test-then-train SSL evaluation. Returns a dictionary with the results.
     """
 
-    stream.restart()  # Always restart the stream to avoid undesired side effects
+    stream.restart()
 
     if _is_fast_mode_compilable(stream, learner, optimise):
         return _test_then_train_ssl_evaluation_fast(
@@ -651,7 +651,7 @@ def prequential_ssl_evaluation(
     If the learner is not a SSL learner, then it will just train on labeled instances.
     """
 
-    stream.restart()  # Always restart the stream to avoid undesired side effects
+    stream.restart()
 
     if _is_fast_mode_compilable(stream, learner, optimise):
         return _prequential_ssl_evaluation_fast(stream,
@@ -1082,7 +1082,7 @@ def prequential_evaluation_multiple_learners(
     """
     results = {}
 
-    stream.restart()  # Restart the stream
+    stream.restart()
 
     for learner_name, learner in learners.items():
         results[learner_name] = {"learner": str(learner)}
@@ -1143,6 +1143,9 @@ def prequential_evaluation_multiple_learners(
         for learner_name, result in results.items():
             if result["windowed"].get_instances_seen() % window_size != 0:
                 result["windowed"].result_windows.append(result["windowed"].metrics())
+
+    results['stream'] = stream
+    results['max_instances'] = max_instances
 
     return results
 
