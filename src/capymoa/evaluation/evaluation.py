@@ -365,7 +365,6 @@ class RegressionWindowedEvaluator(RegressionEvaluator):
         )
 
 
-## Functions to measure runtime
 def start_time_measuring():
     start_wallclock_time = time.time()
     start_cpu_time = time.process_time()
@@ -385,7 +384,7 @@ def stop_time_measuring(start_wallclock_time, start_cpu_time):
     return elapsed_wallclock_time, elapsed_cpu_time
 
 
-def test_then_train_evaluation(
+def cumulative_evaluation(
     stream,
     learner,
     max_instances=None,
@@ -473,7 +472,7 @@ def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
             RegressionWindowedEvaluator(schema=stream.get_schema(), window_size=window_size) if not isinstance(learner, MOAPredictionIntervalLearner)
             else PredictionIntervalWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
                      )
-    results = test_then_train_evaluation(
+    results = cumulative_evaluation(
         stream,
         learner,
         max_instances=max_instances,
@@ -602,7 +601,7 @@ def prequential_evaluation(
     return results
 
 
-def test_then_train_ssl_evaluation(
+def cumulative_ssl_evaluation(
     stream,
     learner,
     max_instances=None,

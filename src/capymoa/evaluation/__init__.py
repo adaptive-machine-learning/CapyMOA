@@ -1,6 +1,6 @@
 from .evaluation import (
-    test_then_train_evaluation,
-    test_then_train_ssl_evaluation,
+    cumulative_evaluation,
+    cumulative_ssl_evaluation,
     prequential_evaluation,
     windowed_evaluation,
     prequential_evaluation_multiple_learners,
@@ -16,8 +16,8 @@ from .evaluation import (
 __all__ = [
     "prequential_evaluation",
     "prequential_ssl_evaluation",
-    "test_then_train_evaluation",
-    "test_then_train_ssl_evaluation",
+    "cumulative_evaluation",
+    "cumulative_ssl_evaluation",
     "windowed_evaluation",
     "prequential_evaluation_multiple_learners",
     "ClassificationEvaluator",

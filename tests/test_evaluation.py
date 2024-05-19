@@ -1,11 +1,11 @@
 from capymoa.stream.generator import SEA
 from capymoa.classifier import NaiveBayes, HoeffdingTree
-from capymoa.evaluation import test_then_train_evaluation, windowed_evaluation, prequential_evaluation, \
-    prequential_evaluation_multiple_learners, test_then_train_ssl_evaluation, prequential_ssl_evaluation
+from capymoa.evaluation import windowed_evaluation, cumulative_evaluation, prequential_evaluation, \
+    prequential_evaluation_multiple_learners, cumulative_ssl_evaluation, prequential_ssl_evaluation
 import pytest
 
 
-def test_test_then_train_evaluation():
+def test_cumulative_evaluation():
     """The stream should be restarted every time we run the evaluation, so the 11th instance should be the same, also
         the accuracy of models from the same learner (but different models) should be the same
     """
@@ -13,9 +13,9 @@ def test_test_then_train_evaluation():
     model1 = NaiveBayes(schema=stream.get_schema())
     model2 = NaiveBayes(schema=stream.get_schema())
 
-    results_1st_run = test_then_train_evaluation(stream=stream, learner=model1, max_instances=10)
+    results_1st_run = cumulative_evaluation(stream=stream, learner=model1, max_instances=10)
     eleventh_instance_1st_run = results_1st_run['stream'].next_instance().x
-    results_2nd_run = test_then_train_evaluation(stream=stream, learner=model2, max_instances=10)
+    results_2nd_run = cumulative_evaluation(stream=stream, learner=model2, max_instances=10)
     eleventh_instance_2nd_run = results_2nd_run['stream'].next_instance().x
 
     assert eleventh_instance_1st_run == pytest.approx(eleventh_instance_2nd_run)
@@ -68,7 +68,7 @@ def test_windowed_evaluation():
        f"{results_1st_run['windowed'].accuracy():0.3f} got {results_2nd_run['windowed'].accuracy(): 0.3f}"
 
 
-def test_prequestional_evaluation_multiple_learners():
+def test_prequential_evaluation_multiple_learners():
     """The stream should be restarted every time we run the evaluation, so the 11th instance should be the same, also
         the accuracy of models from the same learner (but different models) should be the same
     """
@@ -102,7 +102,7 @@ def test_prequestional_evaluation_multiple_learners():
        f"{results_2nd_run['model22']['cumulative'].accuracy(): 0.3f}"
 
 
-def test_test_then_train_ssl_evaluation():
+def test_cumulative_ssl_evaluation():
     """The stream should be restarted every time we run the evaluation, so the 11th instance should be the same, also
         the accuracy of models from the same learner (but different models) should be the same
     """
@@ -110,9 +110,9 @@ def test_test_then_train_ssl_evaluation():
     model1 = NaiveBayes(schema=stream.get_schema())
     model2 = NaiveBayes(schema=stream.get_schema())
 
-    results_1st_run = test_then_train_ssl_evaluation(stream=stream, learner=model1, max_instances=10)
+    results_1st_run = cumulative_ssl_evaluation(stream=stream, learner=model1, max_instances=10)
     eleventh_instance_1st_run = results_1st_run['stream'].next_instance().x
-    results_2nd_run = test_then_train_ssl_evaluation(stream=stream, learner=model2, max_instances=10)
+    results_2nd_run = cumulative_ssl_evaluation(stream=stream, learner=model2, max_instances=10)
     eleventh_instance_2nd_run = results_2nd_run['stream'].next_instance().x
 
     assert eleventh_instance_1st_run == pytest.approx(eleventh_instance_2nd_run)

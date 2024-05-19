@@ -12,7 +12,7 @@ from river.neighbors import KNNClassifier, LazySearch
 from river.forest import ARFClassifier
 
 # Library imports
-from capymoa.evaluation.evaluation import test_then_train_evaluation, start_time_measuring, stop_time_measuring
+from capymoa.evaluation.evaluation import cumulative_evaluation, start_time_measuring, stop_time_measuring
 from capymoa.datasets import RTG_2abrupt
 from capymoa.classifier import NaiveBayes, HoeffdingTree, EFDT, KNN, AdaptiveRandomForestClassifier
 
@@ -50,7 +50,7 @@ def capymoa_experiment(
         print(f"[{date_time_stamp}][capymoa]\trepetition {repetition}")
 
         stream.restart()
-        result = test_then_train_evaluation(
+        result = cumulative_evaluation(
             stream=stream,
             learner=learner(**hyperparameters, schema=stream.get_schema()),
             max_instances=MAX_INSTANCES,
