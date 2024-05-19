@@ -10,7 +10,6 @@ moa_url: "https://www.dropbox.com/scl/fi/kd2pvgqjsc3u148it1i4u/240506_moa.jar?rl
 
 # What notebooks to skip when running them as tests.
 test_skip_notebooks:
-  - notebooks/00_getting_started.ipynb
   - notebooks/01_evaluation.ipynb
   - notebooks/02_sklearn.ipynb
   - notebooks/03_pytorch.ipynb
