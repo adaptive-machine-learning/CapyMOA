@@ -29,6 +29,7 @@ from ._datasets import (
     CovtypeNorm,
     Covtype,
     CovtFD,
+    Bike,
 )
 from .downloader import get_download_dir
 
@@ -44,5 +45,6 @@ __all__ = [
     "CovtypeNorm",
     "Covtype",
     "CovtFD",
+    "Bike",
     "get_download_dir",
 ]
