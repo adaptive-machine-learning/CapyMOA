@@ -11,7 +11,31 @@ from moa.classifiers.trees import SelfOptimisingBaseTree as _MOA_SelfOptimisingB
 
 
 class SOKNLBT(MOARegressor):
-    """The base tree for Self-Optimising K Nearest Leaves as distribed by Sun. at el."""
+    """The base tree for Self-Optimising K Nearest Leaves as distribed by Sun. at el.
+
+    SOKNLBT is a modification to the FIMT-DD that allows FIMT-DD to store necessary information.
+
+    See in reference:
+
+    `Sun, Yibin, Bernhard Pfahringer, Heitor Murilo Gomes, and Albert Bifet.
+    "SOKNL: A novel way of integrating K-nearest neighbours with adaptive random forest regression for data streams."
+    Data Mining and Knowledge Discovery 36, no. 5 (2022): 2006-2032.
+
+    PDF available at:
+    <https://researchcommons.waikato.ac.nz/server/api/core/bitstreams/f91959c0-1515-44c3-bd5f-737135ee3e48/content>`_
+
+    Example usage:
+
+    >>> from capymoa.datasets import Fried
+        >>> from capymoa.regressor import SOKNLBT
+        >>> from capymoa.evaluation import prequential_evaluation
+    >>> stream = Fried()
+    >>> schema = stream.get_schema()
+    >>> learner = SOKNLBT(schema)
+    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
+    >>> results["cumulative"].RMSE()
+    4.950050301515773
+    """
 
     def __init__(
         self,

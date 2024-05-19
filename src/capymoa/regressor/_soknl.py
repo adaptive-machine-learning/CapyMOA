@@ -1,17 +1,42 @@
 # Library imports
-from typing import Optional, Union
+
+from ._soknl_base_tree import SOKNLBT
+from moa.classifiers.meta import SelfOptimisingKNearestLeaves as _MOA_SOKNL
 
 from capymoa.base import (
     MOARegressor, _extract_moa_learner_CLI
 )
 
-from capymoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
-from capymoa.stream._stream import Schema
-from moa.classifiers.meta import SelfOptimisingKNearestLeaves as _MOA_SOKNL
-from ._soknl_base_tree import SOKNLBT
-
 
 class SOKNL(MOARegressor):
+    """Self-Optimising K-Nearest Leaves (SOKNL) Implementation.
+
+    SOKNL is an extension to AdaptiveRandomForestRegressor.
+    SOKNL stores abstract information for all instance seen by the leaves, use them to calculate the distance
+    from the leaf to a certain instance. Then final predictions are yielded by the closest k leaves in the forest.
+
+    Reference:
+
+    `Sun, Yibin, Bernhard Pfahringer, Heitor Murilo Gomes, and Albert Bifet.
+    "SOKNL: A novel way of integrating K-nearest neighbours with adaptive random forest regression for data streams."
+    Data Mining and Knowledge Discovery 36, no. 5 (2022): 2006-2032.
+
+    PDF available at:
+    <https://researchcommons.waikato.ac.nz/server/api/core/bitstreams/f91959c0-1515-44c3-bd5f-737135ee3e48/content>`_
+
+    Example usage:
+
+    >>> from capymoa.datasets import Fried
+        >>> from capymoa.regressor import SOKNL
+        >>> from capymoa.evaluation import prequential_evaluation
+    >>> stream = Fried()
+    >>> schema = stream.get_schema()
+    >>> learner = SOKNL(schema)
+    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
+    >>> results["cumulative"].RMSE()
+    3.3738337530234306
+    """
+
     def __init__(
         self,
         schema=None,

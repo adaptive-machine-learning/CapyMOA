@@ -14,6 +14,8 @@ class SGDRegressor(SKRegressor):
     they are not relevant in the streaming context. Furthermore, the learning rate
     is constant.
 
+    Example Usage:
+
     >>> from capymoa.datasets import Fried
     >>> from capymoa.regressor import PassiveAggressiveRegressor
     >>> from capymoa.evaluation import prequential_evaluation
@@ -22,7 +24,7 @@ class SGDRegressor(SKRegressor):
     >>> learner = SGDRegressor(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].RMSE()
-    4.625...
+    4.625212156832521
     """
 
     sklearner: _SKSGDRegressor
