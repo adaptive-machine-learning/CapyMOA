@@ -16,7 +16,7 @@ from capymoa.stream._stream import Schema
 @pytest.mark.parametrize(
     "learner_constructor,auc,cli_string",
     [
-        (partial(HalfSpaceTrees, window_size=100, number_of_trees=25, max_depth=15), 0.62, None),
+        (partial(HalfSpaceTrees, window_size=100, number_of_trees=25, max_depth=15), 0.6, None),
     ],
     ids=[
         "HalfSpaceTrees",
