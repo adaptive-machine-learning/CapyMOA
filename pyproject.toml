@@ -52,6 +52,7 @@ dependencies = [
     "matplotlib",
     "scikit-learn",
     "click",
+    "seaborn",
 ]
 
 [project.optional-dependencies]
@@ -78,6 +79,10 @@ doc=[
     # Parses markdown files
     "myst-parser"
 ]
+
+[project.urls]
+Documentation = "https://capymoa.org"
+Source = "https://github.com/adaptive-machine-learning/CapyMOA"
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
@@ -125,7 +130,11 @@ major_on_zero = true
 allow_zero_version = true
 tag_format = "v{version}"
 
-version_variables = ["src/capymoa/__about__.py:__version__"]
+# Find and replace version variables in the following files
+version_variables = [
+    "src/capymoa/__about__.py:__version__",
+    "docker/.env:CAPYMOA_VERSION"
+]
 
 [tool.semantic_release.branches.main]
 match = "(main|master)"

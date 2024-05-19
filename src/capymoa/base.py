@@ -152,6 +152,8 @@ class MOAClassifier(Classifier):
 
         self.moa_learner.prepareForUse()
         self.moa_learner.resetLearningImpl()
+        self.moa_learner.setModelContext(schema.get_moa_header())
+
 
     def __str__(self):
         # Removes the package information from the name of the learner.
@@ -323,6 +325,7 @@ class MOARegressor(Regressor):
 
         self.moa_learner.prepareForUse()
         self.moa_learner.resetLearning()
+        self.moa_learner.setModelContext(self.schema.get_moa_header())
 
     def __str__(self):
         full_name = str(self.moa_learner.getClass().getCanonicalName())

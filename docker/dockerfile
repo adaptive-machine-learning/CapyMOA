@@ -1,0 +1,23 @@
+FROM quay.io/jupyter/base-notebook:latest
+
+# Install OpenJDK-8. 
+# 
+# * `apt-get clean` and `rm -rf /var/lib/apt/lists/*` is used to reduce the 
+#   image size by not caching the downloaded index files.
+# * `gcc, g++` is installed to compile dependencies that are not pre-built.
+USER root
+RUN apt-get update --yes && \
+    apt-get install -y --no-install-recommends gcc g++ openjdk-8-jre && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+USER ${NB_UID}
+
+# Install the latest version of the `capymoa` package.
+ARG CAPYMOA_VERSION
+RUN python -m pip install --no-cache-dir torch torchvision \
+        --index-url https://download.pytorch.org/whl/cpu && \
+    python -m pip install --no-cache-dir capymoa==${CAPYMOA_VERSION}
+
+ENV CAPYMOA_DATASETS_DIR=${HOME}/data
+COPY  --chown=${NB_UID} data ${HOME}/sample/data
+COPY  --chown=${NB_UID} notebooks ${HOME}/sample/notebooks
