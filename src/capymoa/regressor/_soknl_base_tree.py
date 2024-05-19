@@ -20,8 +20,6 @@ class SOKNLBT(MOARegressor):
     `Sun, Yibin, Bernhard Pfahringer, Heitor Murilo Gomes, and Albert Bifet.
     "SOKNL: A novel way of integrating K-nearest neighbours with adaptive random forest regression for data streams."
     Data Mining and Knowledge Discovery 36, no. 5 (2022): 2006-2032.
-
-    PDF available at:
     <https://researchcommons.waikato.ac.nz/server/api/core/bitstreams/f91959c0-1515-44c3-bd5f-737135ee3e48/content>`_
 
     Example usage:

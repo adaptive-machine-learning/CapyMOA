@@ -11,8 +11,6 @@ class KNNRegressor(MOARegressor):
 
     `Bifet, Albert, Ricard Gavalda, Geoffrey Holmes, and Bernhard Pfahringer.
     Machine learning for data streams: with practical examples in MOA. MIT press, 2023.
-
-    HTML version of the book available at:
     <https://moa.cms.waikato.ac.nz/book-html/>`_
 
     Example usage:

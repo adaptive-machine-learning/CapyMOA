@@ -21,8 +21,6 @@ class FIMTDD(MOARegressor):
     `Ikonomovska, Elena, João Gama, and Sašo Džeroski.
     Learning model trees from evolving data streams.
     Data mining and knowledge discovery 23.1 (2011): 128-168.
-
-    PDF avaiable at:
     <https://repositorio.inesctec.pt/server/api/core/bitstreams/a0802a15-84a2-493b-885b-a4f9fc4060b7/content>`_
 
     Example usage:
