@@ -12,14 +12,10 @@ moa_url: "https://www.dropbox.com/scl/fi/kd2pvgqjsc3u148it1i4u/240506_moa.jar?rl
 test_skip_notebooks:
   - notebooks/00_getting_started.ipynb
   - notebooks/01_evaluation.ipynb
-  - notebooks/02_learners_api_examples.ipynb
-  - notebooks/03_0_using_sklearn.ipynb
-  - notebooks/03_1_using_pytorch.ipynb
-  - notebooks/03_2_preprocess_using_MOA.ipynb
+  - notebooks/02_sklearn.ipynb
+  - notebooks/03_pytorch.ipynb
   - notebooks/04_drift_streams.ipynb
-  - notebooks/Basic_Classification_Examples.ipynb
-  - notebooks/Creating_new_classifier.ipynb
-  - notebooks/Data_Reading.ipynb
-  - notebooks/Preprocessing.ipynb
+  - notebooks/05_new_learner.ipynb
+  - notebooks/06_advanced_API.ipynb
   - notebooks/SSL_example.ipynb
   - notebooks/prediction_interval.ipynb
