@@ -388,10 +388,8 @@ class NumpyStream(Stream):
         self.current_instance_index = 0
 
 
-## TODO (20/10/2023): Add logic to interpret nominal values (strings) in the class label.
-## TODO: add extra fluffiness like allowing to not have a header for the csv (then we need to create names for each column).
-## TODO: if no name is given for the dataset_name, we can use the file name from the csv.
-## TODO: implement class_index logic when reading from a CSV.
+# TODO (20/10/2023): Add logic to interpret nominal values (strings) in the class label.
+# TODO: implement class_index logic when reading from a CSV.
 # TODO: path_to_csv_or_arff should be a positional argument because it is required.
 def stream_from_file(
     path_to_csv_or_arff: str = None,
