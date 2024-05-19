@@ -15,6 +15,7 @@ from ._srp import StreamingRandomPatches
 from ._hoeffding_adaptive_tree import HoeffdingAdaptiveTree
 from ._samknn import SAMkNN
 from ._dynamic_weighted_majority import DynamicWeightedMajority
+from ._csmote import CSMOTE
 
 __all__ = [
     "AdaptiveRandomForestClassifier",
@@ -34,4 +35,5 @@ __all__ = [
     "HoeffdingAdaptiveTree",
     "SAMkNN",
     "DynamicWeightedMajority",
+    "CSMOTE"
 ]
