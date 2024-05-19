@@ -291,3 +291,22 @@ class Fried(DownloadARFFGzip):
 
     _filename = _get_filename("Fried")
     _remote_url = _get_remote_url("Fried")
+
+class Bike(DownloadARFFGzip):
+    """Bike is a regression dataset for the amount of bike share information.
+
+    * Number of instances: 17,389
+    * Number of attributes: 12
+    * Number of targets: 1
+
+    This dataset contains the hourly and daily count of rental bikes
+    between years 2011 and 2012 in Capital bike share system with the
+    corresponding weather and seasonal information.
+
+    **References:**
+    #.  Fanaee-T, Hadi, and Joao Gama. "Event labeling combining ensemble detectors
+    and background knowledge." Progress in Artificial Intelligence 2 (2014): 113-127.
+    """
+
+    _filename = _get_filename("Bike")
+    _remote_url = _get_remote_url("Bike")
