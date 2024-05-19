@@ -17,8 +17,6 @@ class ORTO(MOARegressor):
     `Ikonomovska, Elena, Joao Gama, Bernard Zenko, and Saso Dzeroski.
     "Speeding-up hoeffding-based regression trees with options."
     In Proceedings of the 28th International Conference on Machine Learning (ICML-11), pp. 537-544. 2011.
-
-    PDF available at:
     <https://icml.cc/2011/papers/349_icmlpaper.pdf>`_
 
     Example usage:
