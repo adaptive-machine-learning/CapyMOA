@@ -17,8 +17,8 @@ class CSMOTE(MOAClassifier):
     generated samples.
 
     Reference:
-    `Alessio Bernardo, Heitor Murilo Gomes, Jacob Montiel, Bernhard Pfharinger,
-    Albert Bifet, Emanuele Della Valle. C-SMOTE: Continuous Synthetic Minority Oversampling for Evolving Data Streams.
+    `Alessio Bernardo, Heitor Murilo Gomes, Jacob Montiel, Bernhard Pfahringer, Albert Bifet, Emanuele Della Valle.
+    C-SMOTE: Continuous Synthetic Minority Oversampling for Evolving Data Streams.
     In BigData, IEEE, 2020. <https://ieeexplore.ieee.org/document/9377768>`_
 
 
