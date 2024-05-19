@@ -1,11 +1,11 @@
-import capymoa
 import jpype
 from pathlib import Path
 from hashlib import sha256
 import warnings
 import os
 
-_MOA_JAR_HASH="7fcff557c1423a5ba35190c24c99af9145cf5dfef97cf4c83dd074adaddaad11"
+_MOA_JAR_HASH = "88455bef67d694c8ff3926ade33fe51ce7fdb3e65e4577838866761a7a079c7d"
+
 
 def test_imports():
     assert jpype.isJVMStarted(), "JVM should be started automatically when importing capymoa"
@@ -25,5 +25,5 @@ def test_imports():
 
     if bool(os.environ.get("CI", False)):
         assert jar_hash == _MOA_JAR_HASH, \
-        """In the CI/CD _MOA_JAR_HASH must match the hash of the MOA jar in the class path."""
+            """In the CI/CD _MOA_JAR_HASH must match the hash of the MOA jar in the class path."""
 
