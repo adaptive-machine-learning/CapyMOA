@@ -619,7 +619,7 @@ def prequential_evaluation(
     """
     stream.restart()
     if _is_fast_mode_compilable(stream, learner, optimise):
-        return _prequential_evaluation_fast(stream, learner, max_instances, window_size)
+        return _prequential_evaluation_fast(stream, learner, max_instances, window_size,store_y=store_y, store_predictions=store_predictions)
 
     predictions = None
     if store_predictions:
@@ -940,10 +940,18 @@ def _test_then_train_evaluation_fast(
     return results
 
 
-def _prequential_evaluation_fast(stream, learner, max_instances=None, window_size=1000):
+def _prequential_evaluation_fast(stream, learner, max_instances=None, window_size=1000, store_y=False, store_predictions=False):
     """
     Prequential evaluation fast.
     """
+
+    predictions = None
+    if store_predictions:
+        predictions = []
+
+    ground_truth_y = None
+    if store_y:
+        ground_truth_y = []
 
     if not _is_fast_mode_compilable(stream, learner):
         raise ValueError(
@@ -982,6 +990,8 @@ def _prequential_evaluation_fast(stream, learner, max_instances=None, window_siz
         windowed_evaluator.moa_evaluator,
         max_instances,
         window_size,
+        store_y,
+        store_predictions,
     )
 
     # Reset the windowed_evaluator result_windows
@@ -998,6 +1008,13 @@ def _prequential_evaluation_fast(stream, learner, max_instances=None, window_siz
         start_wallclock_time, start_cpu_time
     )
 
+    if store_y or store_predictions:
+        for i in range(len(moa_results.targets if len(moa_results.targets) != 0 else moa_results.predictions)):
+            if store_y:
+                ground_truth_y.append(moa_results.targets[i])
+            if store_predictions:
+                predictions.append(moa_results.predictions[i])
+
     results = {
         "learner": str(learner),
         "cumulative": basic_evaluator,
@@ -1006,6 +1023,8 @@ def _prequential_evaluation_fast(stream, learner, max_instances=None, window_siz
         "cpu_time": elapsed_cpu_time,
         "max_instances": max_instances,
         "stream": stream,
+        "ground_truth_y": ground_truth_y,
+        "predictions": predictions,
     }
 
     return results
