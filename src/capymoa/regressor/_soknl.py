@@ -11,9 +11,17 @@ from capymoa.base import (
 class SOKNL(MOARegressor):
     """Self-Optimising K-Nearest Leaves (SOKNL) Implementation.
 
-    SOKNL is an extension to AdaptiveRandomForestRegressor.
-    SOKNL stores abstract information for all instance seen by the leaves, use them to calculate the distance
-    from the leaf to a certain instance. Then final predictions are yielded by the closest k leaves in the forest.
+    SOKNL extends the AdaptiveRandomForestRegressor by limiting the number of base trees involved in predicting
+    a given instance. This approach overrides the aggregation strategy used for voting, leading to more accurate
+    prediction in general.
+
+    Specifically, each leaf in the forest stores the sum of each feature and builds the "centroid" upon request.
+    The centroids then are used to calculate the Euclidean distance between the incoming instance and the leaf.
+    The incoming instance gets the aggregation from k trees with closer leaves as the final prediction.
+    The performances of all possible k value are accessed over time and next prediction takes the best k so far.
+
+    See also :py:class:`capymoa.regressor.AdaptiveRandomForestRegressor`
+    See :py:class:`capymoa.base.MOARegressor` for train and predict.
 
     Reference:
 
