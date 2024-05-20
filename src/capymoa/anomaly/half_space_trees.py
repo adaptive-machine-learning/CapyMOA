@@ -33,8 +33,8 @@ class HalfSpaceTrees(MOAClassifier):
     ...     evaluator.update(instance.y_index, proba)
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
-    >>> print(f"AUC: {auc:.1f}")
-    AUC: 0.5
+    >>> print(f"AUC: {auc:.2f}")
+    AUC: 0.54
     """
     def __init__(
         self, schema=None, CLI=None, random_seed=1, window_size=100, number_of_trees=25, max_depth=15
