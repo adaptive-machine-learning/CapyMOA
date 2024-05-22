@@ -47,7 +47,7 @@ class PytorchStream(Stream):
     """
 
     # https://pytorch.org/tutorials/beginner/basics/data_tutorial.html
-    def __init__(self, dataset: Dataset, enforce_regression=False):
+    def __init__(self, dataset: Dataset, target_type='categorical'):
         """Construct PytorchStream from a PyTorch dataset.
 
         :param dataset: PyTorch containing tuples of `x` and `y`
@@ -70,7 +70,7 @@ class PytorchStream(Stream):
                 values_for_class_label=self.training_data.classes,
                 dataset_name="PytorchDataset",
                 target_attribute_name=None,
-                enforce_regression=enforce_regression,
+                target_type=target_type,
             )
         )
 
