@@ -504,7 +504,7 @@ def _init_moa_stream_and_create_moa_header(
     values_for_class_label: list = None,
     dataset_name="No_Name",
     target_attribute_name=None,
-    target_type: None|str =None,  # 'categorical' or 'numeric'
+    target_type: str =None,  # 'categorical' or 'numeric'
 ):
     """Initialize a moa stream with number_of_instances capacity and create a mao header which contains all the necessary
      attribute information.
