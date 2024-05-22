@@ -921,6 +921,8 @@ def _test_then_train_evaluation_fast(
             None,
             max_instances,
             -1,
+            False,
+            False,
         )
 
     # Stop measuring time
