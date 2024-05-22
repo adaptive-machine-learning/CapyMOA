@@ -902,6 +902,8 @@ def _test_then_train_evaluation_fast(
             evaluator.moa_basic_evaluator,
             max_instances,
             sample_frequency,
+            False,
+            False,
         )
         # Reset the windowed_evaluator result_windows
         if moa_results is not None:
