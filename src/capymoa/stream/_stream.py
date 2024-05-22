@@ -436,7 +436,7 @@ def stream_from_file(
     :param path_to_csv_or_arff: A file path to a CSV or ARFF file.
     :param dataset_name: A descriptive name given to the dataset, defaults to "NoName"
     :param target_type: When working with a CSV file, this parameter
-        allows the user to specify the target values in the data to be interpreted as a categorical or numeri.
+        allows the user to specify the target values in the data to be interpreted as categorical or numeric.
         Defaults to None to detect automatically.
     """
     assert path_to_csv_or_arff is not None, "A file path must be provided."
@@ -447,8 +447,9 @@ def stream_from_file(
         # TODO: Upgrade to CSVStream once its faster and notebook tests don't fail
         x_features = np.genfromtxt(path_to_csv_or_arff, delimiter=",", skip_header=1)
         targets = x_features[:, class_index]
+        if _target_is_categorical(targets, target_type) and type(targets[0]) == np.float64:
+            targets = targets.astype(np.int64)
         x_features = np.delete(x_features, class_index, axis=1)
-        # targets = targets.astype(type(targets[0]))
         return NumpyStream(
             x_features,
             targets,
