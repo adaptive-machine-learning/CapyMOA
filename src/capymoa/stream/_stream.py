@@ -344,7 +344,7 @@ class NumpyStream(Stream):
         dataset_name="No_Name",
         feature_names=None,
         target_name=None,
-        target_type: None | str = None,   # numeric or categorical
+        target_type: str = None,   # numeric or categorical
     ):
         """Construct a NumpyStream object from a numpy array.
 
@@ -417,7 +417,7 @@ def stream_from_file(
     path_to_csv_or_arff: str = None,
     dataset_name: str = "NoName",
     class_index: int = -1,
-    target_type: None | str = None,  # "numeric" or "categorical"
+    target_type: str = None,  # "numeric" or "categorical"
 ) -> Stream:
     """Create a datastream from a csv or arff file.
 
@@ -463,7 +463,7 @@ def _numpy_to_ARFF(
     dataset_name: str ="No_Name",
     feature_names: str =None,
     target_name: str =None,
-    target_type: None | str = None,
+    target_type: str = None,
 ):
     """Converts a numpy X and y into a ARFF format. The code first check if the user has specified the type of the
     target values, if not, the code infers whether it is a categorical or numeric target by _target_is_categorical
@@ -595,7 +595,7 @@ class CSVStream(Stream):
         class_index: int = -1,
         values_for_class_label: list = None,
         target_attribute_name=None,
-        target_type: None | str = None,
+        target_type: str = None,
         skip_header: bool = False,
         delimiter=",",
     ):
