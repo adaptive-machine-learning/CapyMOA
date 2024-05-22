@@ -27,7 +27,7 @@ def _target_is_categorical(targets, target_type):
     if target_type is None:
         if type(targets[0]) == str or type(targets[0]) == bool:
             return True
-        if type(targets[0]) == np.float64:
+        if type(targets[0]) == np.float64 or type(targets[0]) == np.int64:
             num_unique = len(np.unique(targets))
             if num_unique >= 20:
                 warnings.warn(f'target variable includes {num_unique} (≥ 20) unique values, inferred as numeric, '
