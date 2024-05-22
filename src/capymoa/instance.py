@@ -291,7 +291,7 @@ class RegressionInstance(Instance):
         >>> schema = Schema.from_custom(
         ...     ["f1", "f2"],
         ...     dataset_name="CustomDataset",
-        ...     enforce_regression=True
+        ...     target_type='numeric'
         ... )
         >>> x = np.array([0.1, 0.2])
         >>> instance = RegressionInstance.from_array(schema, x, 0.5)
