@@ -178,7 +178,7 @@ class Schema:
         ...     values_for_nominal_features={"attrib_1": ["a", "b"]},
         ...     dataset_name="MyRegression",
         ...     target_attribute_name="target",
-        ...     enforce_numeric_target=True)
+        ...     target_type='numeric')
         @relation MyRegression
         <BLANKLINE>
         @attribute attrib_1 {a,b}
