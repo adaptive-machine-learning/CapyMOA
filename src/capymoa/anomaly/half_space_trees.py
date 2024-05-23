@@ -1,11 +1,11 @@
 from capymoa.base import (
-    MOAClassifier,
+    MOAAnomalyDetector,
 )
 
 from moa.classifiers.oneclass import HSTrees as _MOA_HSTrees
 
 
-class HalfSpaceTrees(MOAClassifier):
+class HalfSpaceTrees(MOAAnomalyDetector):
     """ Half-Space Trees
 
     This class implements the Half-Space Trees (HS-Trees) algorithm, which is
@@ -29,7 +29,7 @@ class HalfSpaceTrees(MOAClassifier):
     >>> evaluator = AUCEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
-    ...     proba = learner.predict_proba(instance)
+    ...     proba = learner.score_instance(instance)
     ...     evaluator.update(instance.y_index, proba)
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
