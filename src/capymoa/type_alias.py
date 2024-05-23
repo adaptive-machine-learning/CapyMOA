@@ -28,3 +28,8 @@ TargetValue = double
 """
 Alias for a dependent variable in a regression task.
 """
+
+AnomalyScore = double
+"""
+Alias for a dependent variable in an anomaly detection task.
+"""
