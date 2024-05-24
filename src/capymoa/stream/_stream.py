@@ -13,14 +13,15 @@ from com.yahoo.labs.samoa.instances import (
 )
 from moa.core import FastVector, InstanceExample
 from moa.streams import ArffFileStream, InstanceStream
+from java.lang import RuntimeException
 
-# MOA/Java imports
 
 from capymoa.instance import (
     Instance,
     LabeledInstance,
     RegressionInstance,
 )
+
 
 # Private functions
 def _target_is_categorical(targets, target_type):
@@ -41,6 +42,8 @@ def _target_is_categorical(targets, target_type):
         raise ValueError('target_type must be either numeric or categorical')
     else:
         return target_type == 'categorical'
+
+
 class Schema:
     """Schema describes the structure of a stream.
 
@@ -66,8 +69,8 @@ class Schema:
         ), "Only one output attribute is supported."
 
         self._moa_header = moa_header
-        # Internally, we store the number of attributes + the class/target. This is because MOA methods expect the numAttributes
-        # to also account for the class/target.
+        # Internally, we store the number of attributes + the class/target.
+        # This is because MOA methods expect the numAttributes to also account for the class/target.
         self._regression = not self._moa_header.outputAttribute(1).isNominal()
         self._label_values: Optional[Sequence[str]] = None
         self._label_index_map: Optional[Dict[str, int]] = None
@@ -79,7 +82,7 @@ class Schema:
                 label: i for i, label in enumerate(self._label_values)
             }
 
-        # TODO: might want to iterate over the other attributes and create a dictionary representation for the nominal attributes.
+        # TODO: iterate over the attributes and create a dictionary representation for the nominal attributes.
         # There should be a way to configure that manually like setting the self.labels instead of using a MOA header.
 
     def _assert_classification(self):
@@ -358,7 +361,7 @@ class NumpyStream(Stream):
         self.current_instance_index = 0
 
         self.arff_instances_data, self.arff_instances_header, class_labels = (
-            _numpy_to_ARFF(
+            _numpy_to_arff(
                 X,
                 y,
                 dataset_name,
@@ -414,7 +417,7 @@ class NumpyStream(Stream):
 # TODO: implement class_index logic when reading from a CSV.
 # TODO: path_to_csv_or_arff should be a positional argument because it is required.
 def stream_from_file(
-    path_to_csv_or_arff: str = None,
+    path_to_csv_or_arff: str,
     dataset_name: str = "NoName",
     class_index: int = -1,
     target_type: str = None,  # "numeric" or "categorical"
@@ -435,16 +438,24 @@ def stream_from_file(
 
     :param path_to_csv_or_arff: A file path to a CSV or ARFF file.
     :param dataset_name: A descriptive name given to the dataset, defaults to "NoName"
+    ::param class_index: The index of the column containing the class label. By default, the algorithm assumes that the
+        class label is located in the column specified by this index. However, if the class label is located in a
+        different column, you can specify its index using this parameter.
     :param target_type: When working with a CSV file, this parameter
         allows the user to specify the target values in the data to be interpreted as categorical or numeric.
         Defaults to None to detect automatically.
     """
     assert path_to_csv_or_arff is not None, "A file path must be provided."
     if path_to_csv_or_arff.endswith(".arff"):
-        # Delegate to the ARFFFileStream object within ARFFStream to actually read the file.
-        return ARFFStream(path=path_to_csv_or_arff, class_index=class_index)
+        try:
+            # Delegate to the ARFFFileStream object within ARFFStream to read the file.
+            return ARFFStream(path=path_to_csv_or_arff, class_index=class_index)
+        except RuntimeException as ex:
+            if 'ArffFileStream restart failed' in str(ex):
+                raise FileNotFoundError("Failed to open ARFF file stream, file could not be found.") from None
+            else:
+                raise
     elif path_to_csv_or_arff.endswith(".csv"):
-        # TODO: Upgrade to CSVStream once its faster and notebook tests don't fail
         x_features = np.genfromtxt(path_to_csv_or_arff, delimiter=",", skip_header=1)
         targets = x_features[:, class_index]
         if _target_is_categorical(targets, target_type) and type(targets[0]) == np.float64:
@@ -458,12 +469,12 @@ def stream_from_file(
         )
 
 
-def _numpy_to_ARFF(
+def _numpy_to_arff(
     X,
     y,
-    dataset_name: str ="No_Name",
-    feature_names: str =None,
-    target_name: str =None,
+    dataset_name: str = "No_Name",
+    feature_names: str = None,
+    target_name: str = None,
     target_type: str = None,
 ):
     """Converts a numpy X and y into a ARFF format. The code first check if the user has specified the type of the
@@ -507,10 +518,10 @@ def _init_moa_stream_and_create_moa_header(
     target_attribute_name=None,
     target_type: str =None,  # 'categorical' or 'numeric'
 ):
-    """Initialize a moa stream with number_of_instances capacity and create a mao header which contains all the necessary
+    """Initialize a moa stream with number_of_instances capacity and create a MOA header containing all the necessary
      attribute information.
 
-     Note: Each instance is not added to the moa_stream.
+     Note: The instances are not added to the moa_stream.
 
     :param number_of_instances: number of instances in the stream
     :param feature_names: a list containing names of features. if none sets a default name
@@ -522,7 +533,8 @@ def _init_moa_stream_and_create_moa_header(
     :param target_type: specifies the type of target as 'categorical' or 'numeric', None to detect automatically
 
     :return moa_stream: initialized moa stream with capacity number_of_instances.
-    :return moa_header: initialized moa header which contain all necessary attribute information for all features and the class label
+    :return moa_header: initialized moa header which contain all necessary attribute information for all features and
+        the class label
 
     Sample code to get relevant information from two Numpy arrays: X[rows][features] and y[rows]
 
@@ -534,7 +546,8 @@ def _init_moa_stream_and_create_moa_header(
 
     """
     attributes = FastVector()
-    # Attribute("name") will create a numeric attribute; Attribute("name", array_of_values) will create a nominal attribute
+    # Attribute("name") will create a numeric attribute;
+    # Attribute("name", array_of_values) will create a nominal attribute
     if feature_names is None:
         raise ValueError("feature_names are None")
 
@@ -725,11 +738,8 @@ class CSVStream(Stream):
             skip_header=self.n_lines_to_skip,
             max_rows=1,
         )
-        # np.genfromtxt() returns a structured https://numpy.org/doc/stable/user/basics.rec.html#structured-arrays
         self.n_lines_to_skip += 1
 
-        # data = np.expand_dims(data, axis=0)
-        # y = data[[data.dtype.names[self.class_index]]].view('i4')
         y = rfn.structured_to_unstructured(data[[data.dtype.names[self.class_index]]])[
             0
         ]
@@ -758,7 +768,7 @@ class CSVStream(Stream):
         return self.schema
 
     def get_moa_stream(self):
-        raise ValueError("Not a moa_stream, a numpy read file")
+        raise ValueError("No moa_stream available, this is a CSV")
 
     def restart(self):
         self.total_number_of_lines = 0
