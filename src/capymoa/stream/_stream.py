@@ -413,9 +413,6 @@ class NumpyStream(Stream):
         self.current_instance_index = 0
 
 
-# TODO (20/10/2023): Add logic to interpret nominal values (strings) in the class label.
-# TODO: implement class_index logic when reading from a CSV.
-# TODO: path_to_csv_or_arff should be a positional argument because it is required.
 def stream_from_file(
     path_to_csv_or_arff: str,
     dataset_name: str = "NoName",
@@ -438,7 +435,7 @@ def stream_from_file(
 
     :param path_to_csv_or_arff: A file path to a CSV or ARFF file.
     :param dataset_name: A descriptive name given to the dataset, defaults to "NoName"
-    ::param class_index: The index of the column containing the class label. By default, the algorithm assumes that the
+    :param class_index: The index of the column containing the class label. By default, the algorithm assumes that the
         class label is located in the column specified by this index. However, if the class label is located in a
         different column, you can specify its index using this parameter.
     :param target_type: When working with a CSV file, this parameter
