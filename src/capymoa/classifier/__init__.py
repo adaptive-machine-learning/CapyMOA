@@ -3,6 +3,9 @@ from ._efdt import EFDT
 from ._hoeffding_tree import HoeffdingTree
 from ._naive_bayes import NaiveBayes
 from ._online_bagging import OnlineBagging
+from ._online_bagging_adwin import OnlineBaggingADWIN
+from ._leveraging_bagging import LeveragingBagging
+from ._streaming_random_patches import StreamingRandomPatches
 from ._passive_aggressive_classifier import PassiveAggressiveClassifier
 from ._sgd_classifier import SGDClassifier
 from ._knn import KNN
@@ -35,5 +38,8 @@ __all__ = [
     "HoeffdingAdaptiveTree",
     "SAMkNN",
     "DynamicWeightedMajority",
-    "CSMOTE"
+    "CSMOTE",
+	"LeveragingBagging",
+	"OnlineBaggingADWIN",
+	"StreamingRandomPatches"
 ]
