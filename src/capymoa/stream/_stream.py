@@ -268,6 +268,8 @@ class Stream:
                 raise ValueError("Must provide a schema if no moa_stream is provided.")
             self.moa_stream.prepareForUse()  # This is necessary to get the header from the stream.
             self.schema = Schema(moa_header=self.moa_stream.getHeader())
+        elif self.moa_stream is not None:
+            self.moa_stream.prepareForUse()
 
     def __str__(self):
         """Return the name of the datastream from the schema."""
