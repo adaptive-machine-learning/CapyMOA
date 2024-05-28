@@ -1,4 +1,5 @@
-from ._soknl import SOKNL, SOKNLBT
+from ._soknl_base_tree import SOKNLBT
+from ._soknl import SOKNL
 from ._orto import ORTO
 from ._knn import KNNRegressor
 from ._fimtdd import FIMTDD

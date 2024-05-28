@@ -8,7 +8,33 @@ from moa.classifiers.trees import FIMTDD as _MOA_FIMTDD
 
 
 class FIMTDD(MOARegressor):
-    """Implementation of the FIMT-DD tree as described by Ikonomovska et al."""
+    """Implementation of the FIMT-DD tree as described by Ikonomovska et al.
+
+    Fast Incremental Model Tree with Drift Detection is the regression version
+    for the famous Hoeffding Tree for data stream learning.
+
+    FIMT-DD is implemented in MOA (Massive Online Analysis) and provides several
+    parameters for customization.
+
+    Reference:
+
+    `Ikonomovska, Elena, João Gama, and Sašo Džeroski.
+    Learning model trees from evolving data streams.
+    Data mining and knowledge discovery 23.1 (2011): 128-168.
+    <https://repositorio.inesctec.pt/server/api/core/bitstreams/a0802a15-84a2-493b-885b-a4f9fc4060b7/content>`_
+
+    Example usage:
+
+    >>> from capymoa.datasets import Fried
+        >>> from capymoa.regressor import FIMTDD
+        >>> from capymoa.evaluation import prequential_evaluation
+    >>> stream = Fried()
+    >>> schema = stream.get_schema()
+    >>> learner = FIMTDD(schema)
+    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
+    >>> results["cumulative"].RMSE()
+    7.363273627701553
+    """
 
     def __init__(
         self,

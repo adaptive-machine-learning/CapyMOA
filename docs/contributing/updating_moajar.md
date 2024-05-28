@@ -1,12 +1,28 @@
 # Updating CapyMOA's `moa.jar` version
 
-> This guide makes the assumption:
->
-> * You have installed CapyMOA as a developer using an editable install. If you
-> have not, please refer to the [installation guide](../installation.md).
->
-> * You must **NOT** have set any environment variables that would
-> override the default `moa.jar` location. `CAPYMOA_MOA_JAR` must be unset.
+This document describes how to change the version of MOA that the CapyMOA
+project uses. **It is only intended for developers who are contributing to
+CapyMOA**. Before you start, make sure you have the following:
+
+* You have installed the development dependencies and have an editable install
+  of CapyMOA. If you have not, follow the instructions in the [installation guide](../installation.md).
+
+* You must **NOT** have set the environment variables that would
+  override the default `moa.jar` location. `CAPYMOA_MOA_JAR` must be unset.
+
+## Refreshing the `moa.jar`
+
+When a developer wants to replace the `moa.jar` in their local CapyMOA as a
+consequence of pulling or rebasing changes, they can run the following command:
+
+```console
+python -m invoke refresh-moa
+```
+
+## Changing Project MOA Version
+
+When a developer needs to update the version of MOA that the capymoa project uses
+they need to follow these steps:
 
 1. **Upload the new version of MOA to the CapyMOA Dropbox.**
 
@@ -17,9 +33,8 @@
    This file tells capymoa where to download the `moa.jar` from during the
    packaging process.
    * Must be the complete URL.
-3. **Remove the old `moa.jar` with `python -m invoke build.clean-moa`.**
-4. **Attempt to download the new `moa.jar` with `python -m invoke build.download-moa`.**
-5. **Update `tests/test_moajar.py` with the updated sha256 hash.**
+3. **Remove the old `moa.jar` with `python -m invoke refresh-moa`.**
+4. **Update `tests/test_moajar.py` with the updated sha256 hash.**
    * macOS: ```shasum -a 256 moa_jar_file.jar```
    * linux: ```sha256sum moa_jar_file.jar```
 
@@ -28,7 +43,7 @@
    does not match the one in the file. The tests on Github Actions will fail
    if the hash does not match the file downloaded from the URL in `invoke.yml`.
 
-6. **Verify that capymoa is pointing to the new version of MOA by running:**
+5. **Verify that capymoa is pointing to the new version of MOA by running:**
 
    ```console
    $ python -c "import capymoa; capymoa.about()"
@@ -46,5 +61,5 @@
    `invoke.yml` and re-run `python -m invoke build.clean-moa` and `python -m
    invoke build.download-moa`.
 
-7. Your pull request should include the changes to `invoke.yml`, and
+6. Your pull request should include the changes to `invoke.yml`, and
    `tests/test_moajar.py`.

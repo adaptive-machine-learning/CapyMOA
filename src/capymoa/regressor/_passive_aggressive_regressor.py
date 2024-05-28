@@ -12,9 +12,13 @@ class PassiveAggressiveRegressor(SKRegressor):
     ease of use in the streaming context. Some options are missing because
     they are not relevant in the streaming context.
 
+    Reference:
+
     `Online Passive-Aggressive Algorithms K. Crammer, O. Dekel, J. Keshat, S.
     Shalev-Shwartz, Y. Singer - JMLR (2006)
     <http://jmlr.csail.mit.edu/papers/volume7/crammer06a/crammer06a.pdf>`_
+
+    Example Usage:
 
     >>> from capymoa.datasets import Fried
     >>> from capymoa.regressor import PassiveAggressiveRegressor
@@ -24,7 +28,7 @@ class PassiveAggressiveRegressor(SKRegressor):
     >>> learner = PassiveAggressiveRegressor(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].RMSE()
-    3.7...
+    3.7004531627005455
     """
 
     sklearner: _SKPassiveAggressiveRegressor

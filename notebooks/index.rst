@@ -23,7 +23,7 @@ These tutorials will show you how to get started with the CapyMOA library.
    :caption: Extra Tutorials:
 
    SSL_example.ipynb
-
+   anomaly_detection.ipynb
 
 
 

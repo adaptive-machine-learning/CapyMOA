@@ -1,17 +1,48 @@
 # Library imports
-from typing import Optional, Union
+
+from ._soknl_base_tree import SOKNLBT
+from moa.classifiers.meta import SelfOptimisingKNearestLeaves as _MOA_SOKNL
 
 from capymoa.base import (
     MOARegressor, _extract_moa_learner_CLI
 )
 
-from capymoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
-from capymoa.stream._stream import Schema
-from moa.classifiers.meta import SelfOptimisingKNearestLeaves as _MOA_SOKNL
-from ._soknl_base_tree import SOKNLBT
-
 
 class SOKNL(MOARegressor):
+    """Self-Optimising K-Nearest Leaves (SOKNL) Implementation.
+
+    SOKNL extends the AdaptiveRandomForestRegressor by limiting the number of base trees involved in predicting
+    a given instance. This approach overrides the aggregation strategy used for voting, leading to more accurate
+    prediction in general.
+
+    Specifically, each leaf in the forest stores the sum of each feature and builds the "centroid" upon request.
+    The centroids then are used to calculate the Euclidean distance between the incoming instance and the leaf.
+    The incoming instance gets the aggregation from k trees with closer leaves as the final prediction.
+    The performances of all possible k value are accessed over time and next prediction takes the best k so far.
+
+    See also :py:class:`capymoa.regressor.AdaptiveRandomForestRegressor`
+    See :py:class:`capymoa.base.MOARegressor` for train and predict.
+
+    Reference:
+
+    `Sun, Yibin, Bernhard Pfahringer, Heitor Murilo Gomes, and Albert Bifet.
+    "SOKNL: A novel way of integrating K-nearest neighbours with adaptive random forest regression for data streams."
+    Data Mining and Knowledge Discovery 36, no. 5 (2022): 2006-2032.
+    <https://researchcommons.waikato.ac.nz/server/api/core/bitstreams/f91959c0-1515-44c3-bd5f-737135ee3e48/content>`_
+
+    Example usage:
+
+    >>> from capymoa.datasets import Fried
+        >>> from capymoa.regressor import SOKNL
+        >>> from capymoa.evaluation import prequential_evaluation
+    >>> stream = Fried()
+    >>> schema = stream.get_schema()
+    >>> learner = SOKNL(schema)
+    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
+    >>> results["cumulative"].RMSE()
+    3.3738337530234306
+    """
+
     def __init__(
         self,
         schema=None,

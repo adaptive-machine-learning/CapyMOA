@@ -8,7 +8,29 @@ from moa.classifiers.trees import ORTO as _MOA_ORTO
 
 
 class ORTO(MOARegressor):
-    """Implementation of the ORTO tree as described by Ikonomovska et al."""
+    """Implementation of the Online Regression Tree with Options (ORTO).
+
+    ORTO is an extension to FIMT-DD that allows options during the tree's growth and splits.
+
+    Reference:
+
+    `Ikonomovska, Elena, Joao Gama, Bernard Zenko, and Saso Dzeroski.
+    "Speeding-up hoeffding-based regression trees with options."
+    In Proceedings of the 28th International Conference on Machine Learning (ICML-11), pp. 537-544. 2011.
+    <https://icml.cc/2011/papers/349_icmlpaper.pdf>`_
+
+    Example usage:
+
+    >>> from capymoa.datasets import Fried
+        >>> from capymoa.regressor import ORTO
+        >>> from capymoa.evaluation import prequential_evaluation
+    >>> stream = Fried()
+    >>> schema = stream.get_schema()
+    >>> learner = ORTO(schema)
+    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
+    >>> results["cumulative"].RMSE()
+    9.228075678265904
+    """
 
     def __init__(
         self,

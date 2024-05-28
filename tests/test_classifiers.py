@@ -15,6 +15,7 @@ from capymoa.classifier import (
     HoeffdingAdaptiveTree,
     SAMkNN,
     DynamicWeightedMajority,
+    CSMOTE
 )
 from capymoa.base import Classifier
 from capymoa.base import MOAClassifier
@@ -56,6 +57,7 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         (partial(HoeffdingAdaptiveTree), 84.15, 92.0, None),
         (partial(SAMkNN), 82.65, 82.0, None),
         (partial(DynamicWeightedMajority), 84.05, 89.0, None),
+        (partial(CSMOTE), 80.55, 79.0, None),
     ],
     ids=[
         "OnlineBagging",
@@ -76,6 +78,7 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         "HoeffdingAdaptiveTree",
         "SAMkNN",
         "DynamicWeightedMajority",
+        "CSMOTE",
     ],
 )
 def test_classifiers(
