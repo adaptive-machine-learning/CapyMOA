@@ -5,7 +5,7 @@ from capymoa.base import (
 
 from moa.classifiers.meta import OzaBagAdwin as _MOA_OzaBagAdwin
 
-class OnlineBaggingADWIN(MOAClassifier):
+class OnlineAdwinBagging(MOAClassifier):
     """Bagging for evolving data streams using ADWIN.
 
     ADWIN is a change detector and estimator that solves in

@@ -3,7 +3,7 @@ from ._efdt import EFDT
 from ._hoeffding_tree import HoeffdingTree
 from ._naive_bayes import NaiveBayes
 from ._online_bagging import OnlineBagging
-from ._online_bagging_adwin import OnlineBaggingADWIN
+from ._online_adwin_bagging import OnlineAdwinBagging
 from ._leveraging_bagging import LeveragingBagging
 from ._passive_aggressive_classifier import PassiveAggressiveClassifier
 from ._sgd_classifier import SGDClassifier
@@ -39,5 +39,5 @@ __all__ = [
     "DynamicWeightedMajority",
     "CSMOTE",
 	"LeveragingBagging",
-	"OnlineBaggingADWIN",
+	"OnlineAdwinBagging"
 ]
