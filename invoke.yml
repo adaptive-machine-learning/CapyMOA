@@ -18,6 +18,7 @@ test_skip_notebooks:
   - notebooks/04_drift_streams.ipynb
   - notebooks/05_new_learner.ipynb
   - notebooks/06_advanced_API.ipynb
+  - notebooks/07_pipelines.ipynb
   - anomaly_detection.ipynb
   - notebooks/SSL_example.ipynb
   - notebooks/prediction_interval.ipynb
