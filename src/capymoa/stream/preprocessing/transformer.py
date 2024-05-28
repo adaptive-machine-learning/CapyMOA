@@ -59,7 +59,10 @@ class MOATransformer(Transformer):
                                       CLI=f"-f ({self.moa_filter.getCLICreationString(self.moa_filter.__class__)})")
 
     def __str__(self):
-        return f"Transformer({str(self.moa_filter.getCLICreationString(self.moa_filter.__class__))})"
+        moa_filter_str = str(self.moa_filter.getCLICreationString(self.moa_filter.__class__))
+        if moa_filter_str.endswith(" "):
+            moa_filter_str = moa_filter_str[:-1]
+        return f"Transformer({moa_filter_str})"
 
     def transform_instance(self, instance) -> Instance:
         # MOA filters are not stateless.
