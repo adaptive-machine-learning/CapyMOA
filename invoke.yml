@@ -6,7 +6,8 @@ moa_path: "src/capymoa/jar/moa.jar"
 # present in the link. This ensures  the file is downloaded directly instead
 # of going to the dropbox page
 #moa_url: "https://www.dropbox.com/scl/fi/f5xz2evjllqk87fjvi06m/240412_moa.jar?rlkey=1nwlfj3awhh3lsnme37k947lb&e=1&st=kdhx1e69&dl=1"
-moa_url: "https://www.dropbox.com/scl/fi/kd2pvgqjsc3u148it1i4u/240506_moa.jar?rlkey=af1fsqoftnz1u0captpuwcx9d&st=2s3e210s&dl=1"
+#moa_url: "https://www.dropbox.com/scl/fi/kd2pvgqjsc3u148it1i4u/240506_moa.jar?rlkey=af1fsqoftnz1u0captpuwcx9d&st=2s3e210s&dl=1"
+moa_url: "https://www.dropbox.com/scl/fi/n8nunw71mmssjuhr2acsk/240528_moa.jar?rlkey=10i5l0odots69pwxrsk6zitwj&st=0lyj99m4&dl=1"
 
 # What notebooks to skip when running them as tests.
 test_skip_notebooks:
