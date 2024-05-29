@@ -16,6 +16,7 @@ These tutorials will show you how to get started with the CapyMOA library.
    04_drift_streams.ipynb
    05_new_learner.ipynb
    06_advanced_API.ipynb
+   07_pipelines.ipynb
    prediction_interval.ipynb
 
 .. toctree::
