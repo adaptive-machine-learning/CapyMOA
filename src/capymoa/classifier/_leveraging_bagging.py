@@ -49,6 +49,8 @@ class LeveragingBagging(MOAClassifier):
             It's recommended to experiment with different values to find the optimal setting based on
             the available hardware resources and the nature of the workload.
         """
+        # This method basically configures the CLI, object creation is delegated to MOAClassifier (the super class, through super().__init___()))
+        # Initialize instance attributes with default values, if the CLI was not set.
         if CLI is None:
             self.base_learner = (
                 "trees.HoeffdingTree"

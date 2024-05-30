@@ -71,6 +71,9 @@ class OnlineAdwinBagging(MOAClassifier):
         :param base_learner: The base learner to use. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
         """
+
+        # This method basically configures the CLI, object creation is delegated to MOAClassifier (the super class, through super().__init___()))
+        # Initialize instance attributes with default values, if the CLI was not set.
         if CLI is None:
             self.base_learner = (
                 "trees.HoeffdingTree"

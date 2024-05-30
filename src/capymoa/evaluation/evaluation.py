@@ -1,4 +1,5 @@
 import typing
+import typing_extensions
 from typing import Optional
 
 import pandas as pd
@@ -377,13 +378,13 @@ class AUCEvaluator:
     def get_instances_seen(self):
         return self.instances_seen
 
-    def update(self, y_target_index: int, y_pred: typing.List[float]):
+    def update(self, y_target_index: int, score: float):
         """Update the evaluator with the ground-truth and the prediction.
 
         :param y_target_index: The ground-truth class index. This is NOT
             the actual class value, but the index of the class value in the
             schema.
-        :param y_pred: The predicted scores.
+        :param score: The predicted scores. Should be in the range [0, 1].
         """
         if not isinstance(y_target_index, (np.integer, int)):
             raise ValueError(
@@ -395,7 +396,7 @@ class AUCEvaluator:
         self._instance.setClassValue(y_target_index)
         example = InstanceExample(self._instance)
 
-        self.moa_basic_evaluator.addResult(example, y_pred)
+        self.moa_basic_evaluator.addResult(example, [score, 1-score])
 
         self.instances_seen += 1
 

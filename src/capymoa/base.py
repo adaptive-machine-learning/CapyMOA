@@ -15,7 +15,7 @@ from moa.core import Utils
 
 from capymoa.instance import Instance, LabeledInstance, RegressionInstance
 from capymoa.stream._stream import Schema
-from capymoa.type_alias import LabelIndex, LabelProbabilities, TargetValue
+from capymoa.type_alias import LabelIndex, LabelProbabilities, TargetValue, AnomalyScore
 
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 from sklearn.base import RegressorMixin as _SKRegressorMixin
@@ -457,3 +457,77 @@ class MOAPredictionIntervalLearner(MOARegressor, PredictionIntervalLearner):
             return [0, 0, 0]
         else:
             return prediction_PI
+
+
+class AnomalyDetector(ABC):
+    """
+    Abstract base class for anomaly detector.
+
+    Attributes:
+    - schema: The schema representing the instances. Defaults to None.
+    - random_seed: The random seed for reproducibility. Defaults to 1.
+    """
+
+    def __init__(self, schema: Schema, random_seed=1):
+        self.random_seed = random_seed
+        self.schema = schema
+        if self.schema is None:
+            raise ValueError("Schema must be initialised")
+
+    def __str__(self):
+        pass
+
+    @abstractmethod
+    def train(self, instance: Instance):
+        pass
+
+    @abstractmethod
+    def predict(self, instance: Instance) -> Optional[LabelIndex]:
+        # Returns the predicted label for the instance.
+        pass
+
+    @abstractmethod
+    def score_instance(self, instance: Instance) -> AnomalyScore:
+        # Returns the anomaly score for the instance. A high score is indicative of a normal instance.
+        pass
+
+
+class MOAAnomalyDetector(AnomalyDetector):
+    def __init__(self, schema=None, CLI=None, random_seed=1, moa_learner=None):
+        super().__init__(schema=schema, random_seed=random_seed)
+        self.CLI = CLI
+        self.moa_learner = moa_learner
+
+        if random_seed is not None:
+            self.moa_learner.setRandomSeed(random_seed)
+
+        if self.schema is not None:
+            self.moa_learner.setModelContext(self.schema.get_moa_header())
+
+        if self.CLI is not None:
+            self.moa_learner.getOptions().setViaCLIString(CLI)
+
+        self.moa_learner.prepareForUse()
+        self.moa_learner.resetLearning()
+        self.moa_learner.setModelContext(self.schema.get_moa_header())
+
+    def __str__(self):
+        full_name = str(self.moa_learner.getClass().getCanonicalName())
+        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+
+    def CLI_help(self):
+        return self.moa_learner.getOptions().getHelpString()
+
+    def train(self, instance):
+        self.moa_learner.trainOnInstance(instance.java_instance)
+
+    def predict(self, instance):
+        return Utils.maxIndex(
+            self.moa_learner.getVotesForInstance(instance.java_instance)
+        )
+
+    def score_instance(self, instance):
+        # We assume that the anomaly score is the first element of the prediction array.
+        # However, if it is not the case for a MOA learner, this method should be overridden.
+        prediction_array = self.moa_learner.getVotesForInstance(instance.java_instance)
+        return prediction_array[0]
