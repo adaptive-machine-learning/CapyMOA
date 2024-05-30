@@ -24,6 +24,7 @@ These tutorials will show you how to get started with the CapyMOA library.
 
    SSL_example.ipynb
    anomaly_detection.ipynb
+   parallel_ensembles.ipynb
 
 
 
