@@ -4,7 +4,8 @@ from capymoa.base import (
 )
 
 from moa.classifiers.meta import AdaptiveRandomForest as _MOA_AdaptiveRandomForest
-
+from moa.classifiers.meta.minibatch import AdaptiveRandomForestMB as _MOA_AdaptiveRandomForestMB
+import os
 
 class AdaptiveRandomForestClassifier(MOAClassifier):
     """Adaptive Random Forest Classifier
@@ -47,6 +48,7 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
         ensemble_size=100,
         max_features=0.6,
         lambda_param=6.0,
+        minibatch_size=None,
         number_of_jobs=1,
         drift_detection_method=None,
         warning_detection_method=None,
@@ -67,8 +69,8 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
             If provided as an integer, it specifies the exact number of features to consider.
             If provided as the string "sqrt", it indicates that the square root of the total number of features.
             If not provided, the default value is 60%.
-        :param lambda_param: The lambda parameter that controls the Poisson distribution for
-            the online bagging simulation.
+        :param lambda_param: The lambda parameter that controls the Poisson distribution for the online bagging simulation.
+        :param minibatch_size: The number of instances that a learner must accumulate before training.
         :param number_of_jobs: The number of parallel jobs to run during the execution of the algorithm.
             By default, the algorithm executes tasks sequentially (i.e., with `number_of_jobs=1`).
             Increasing the `number_of_jobs` can lead to faster execution on multi-core systems.
@@ -113,7 +115,8 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
                                  "square root of total features.")
 
             self.lambda_param = lambda_param
-            self.number_of_jobs = number_of_jobs
+            # old
+            # self.number_of_jobs = number_of_jobs
             self.drift_detection_method = (
                 "(ADWINChangeDetector -a 1.0E-3)"
                 if drift_detection_method is None
@@ -127,13 +130,46 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
             self.disable_weighted_vote = disable_weighted_vote
             self.disable_drift_detection = disable_drift_detection
             self.disable_background_learner = disable_background_learner
-            CLI = f"-l {self.base_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
-                {self.m_features_per_tree_size} -a {self.lambda_param} -j {self.number_of_jobs} -x {self.drift_detection_method} -p \
-                {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
-                {'-q' if self.disable_background_learner else ''}"
+# new
+# ----------
+            if (number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1) and (minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1):
+                #run the sequential version by default or when both parameters are None | 0 | 1
+                self.number_of_jobs = 1
+                self.minibatch_size = 1
+                moa_learner = _MOA_AdaptiveRandomForest()
+                CLI = f"-l {self.base_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
+                    {self.m_features_per_tree_size} -a {self.lambda_param} -j {self.number_of_jobs} -x {self.drift_detection_method} -p \
+                    {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
+                    {'-q' if self.disable_background_learner else ''}"
+            else:
+                #run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
+                if number_of_jobs == 0 or number_of_jobs is None:
+                    self.number_of_jobs = 1
+                elif number_of_jobs < 0:
+                    self.number_of_jobs = os.cpu_count()
+                else:
+                    self.number_of_jobs = int(min(number_of_jobs, os.cpu_count()))
+                if minibatch_size <= 1:
+                    # if the user sets the number of jobs and the minibatch_size less than 1 it is considered that the user wants a parallel execution of a single instance at a time
+                    self.minibatch_size = 1
+                elif minibatch_size is None:
+                    # if the user sets only the number_of_jobs, we assume he wants the parallel minibatch version and initialize minibatch_size to the default 25
+                    self.minibatch_size = 25
+                else:
+                    # if the user sets both parameters to values greater than 1, we initialize the minibatch_size to the user's choice
+                    self.minibatch_size = int(minibatch_size)
+                moa_learner = _MOA_AdaptiveRandomForestMB()
+                CLI = f"-l {self.base_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
+                    {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
+                    {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
+                    {'-q' if self.disable_background_learner else ''}\
+                        -c {self.number_of_jobs} -b {self.minibatch_size}"
+# ----------
+# new end
+
         super().__init__(
             schema=schema,
             CLI=CLI,
             random_seed=random_seed,
-            moa_learner=_MOA_AdaptiveRandomForest(),
+            moa_learner=moa_learner,
         )
