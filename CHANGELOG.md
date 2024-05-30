@@ -2,7 +2,170 @@
 
 
 
+## v0.3.0 (2024-05-30)
+
+### Build
+
+* build: add gcc and g++ to docker for arm support ([`3ede9cd`](https://github.com/adaptive-machine-learning/CapyMOA/commit/3ede9cd07c1c45f5cace514bec16b9c41e5c7182))
+
+* build: `build.clean-moa` now includes `build.clean-stubs` ([`afcc080`](https://github.com/adaptive-machine-learning/CapyMOA/commit/afcc0808266cf2671c2dafc61f208936bf961525))
+
+* build: fix dockerfile base ([`88b7b19`](https://github.com/adaptive-machine-learning/CapyMOA/commit/88b7b196f3b5392192ea4f696e656b8e292d1ddf))
+
+* build: add docker arm64 ([`7f1d25f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/7f1d25fe5ec24d7da7a93678bb31a86a5d18f177))
+
+* build: add docker ([`e07288c`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e07288c177043a9c6a4ccc0b15cf00592e02933c))
+
+### Documentation
+
+* docs: adding documentation for regressors ([`64c7105`](https://github.com/adaptive-machine-learning/CapyMOA/commit/64c71059fecf5a062a5b771e3c220c3f77686fc8))
+
+* docs(Anomaly-Detection): add anomaly detection in the extra tutorials section ([`3bc6f94`](https://github.com/adaptive-machine-learning/CapyMOA/commit/3bc6f94bff1638be08da8de78ce660c1a04ece1c))
+
+* docs: fix benchmarking link ([`06202f8`](https://github.com/adaptive-machine-learning/CapyMOA/commit/06202f8b6067afbe42bc103ad7524f28d078b480))
+
+* docs: update installation.md ([`9324fd4`](https://github.com/adaptive-machine-learning/CapyMOA/commit/9324fd4c7a8c0ef742498bd07894a731153c909e))
+
+### Feature
+
+* feat: parallel ensembles (#132)
+
+Co-authored-by: Heitor Murilo Gomes &lt;heitor_murilo_gomes@yahoo.com.br&gt; ([`1a3e6a3`](https://github.com/adaptive-machine-learning/CapyMOA/commit/1a3e6a3fa182327318f21570536151ce0a9bd7f4))
+
+* feat(Misc): export and import models ([`a1af686`](https://github.com/adaptive-machine-learning/CapyMOA/commit/a1af6864686a2cbb3a883e2c48f2385c2b3be74a))
+
+* feat: adding LeveragingBagging and OnlineAdwinBagging classes ([`25f0f75`](https://github.com/adaptive-machine-learning/CapyMOA/commit/25f0f757773acb7dd892bb3628bbbc7897cfbc80))
+
+* feat(pipelines): updated moa jar and minor changes ([`e71b065`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e71b065fb45409654e6fc26b3b465d7a37efb7f0))
+
+* feat(pipelines): updated notebook introducing the concepts ([`4c787d6`](https://github.com/adaptive-machine-learning/CapyMOA/commit/4c787d6991e099a7b42c5d1772df8b2adc226e4e))
+
+* feat(Anomaly-Detection): add abstract class for anomaly detector algorithms ([`df74b25`](https://github.com/adaptive-machine-learning/CapyMOA/commit/df74b25c415279dba39c42d760422b97c4512460))
+
+* feat(STREAM): change the logic when dealing with csv input ([`2c2a89d`](https://github.com/adaptive-machine-learning/CapyMOA/commit/2c2a89dd2eb00bee4063ab58ca634edd6d0d3319))
+
+* feat(CSMOTE): adding CSMOTE for imbalanced learning ([`e39d006`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e39d00635b4136c0ed57da56ec086f8a23843cdb))
+
+* feat(Anomaly-Detection): add anomaly detection notebook ([`f0b6d4f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/f0b6d4f6e40551f1bca2b75f683145b7818cff51))
+
+* feat(Anomaly-Detection): add Half-Space Trees
+
+Add wrapper for Half-Space Trees for MOA. ([`aa85c0f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/aa85c0f6f1719baa1ea9968217281d379e4b5352))
+
+* feat: evaluation tests and fixes ([`147612b`](https://github.com/adaptive-machine-learning/CapyMOA/commit/147612bd3109d856bdf7c9b12621e783b777bb0f))
+
+* feat: update plotting regression/prediction interval ([`bf3f7ce`](https://github.com/adaptive-machine-learning/CapyMOA/commit/bf3f7cef441f54d1c4d3e72e9c015989cf8c969a))
+
+* feat: add HAT, DWM, and SAMkNN wrappers ([`314db2e`](https://github.com/adaptive-machine-learning/CapyMOA/commit/314db2e79ebba487e677a46fabcf040dbfb58ad2))
+
+* feat: add plot_regression/prediction_interval_results functions ([`fe44e0f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/fe44e0fbbf963cd07d1a0d87c93b929b3e8c903f))
+
+* feat: add wrapper for hyperplane (c and r) generators ([`6cd23af`](https://github.com/adaptive-machine-learning/CapyMOA/commit/6cd23af8251494c675e1ea824d2699e0aaebc5db))
+
+* feat: add prediction interval notebook ([`f64a2e1`](https://github.com/adaptive-machine-learning/CapyMOA/commit/f64a2e19a60d81c0c0413e854d92e78da750c3e1))
+
+### Fix
+
+* fix: updating save_load notebook ([`c4e11b0`](https://github.com/adaptive-machine-learning/CapyMOA/commit/c4e11b00f4d15eede58688ef5b73057183caffe7))
+
+* fix(Misc): add a title for tutorial of save and load model ([`eaad513`](https://github.com/adaptive-machine-learning/CapyMOA/commit/eaad513bdf949b95b8a762050617698277bac82a))
+
+* fix: adding tests for new ensembles ([`7ecd80d`](https://github.com/adaptive-machine-learning/CapyMOA/commit/7ecd80d7e2dbbf1980e007f0502b17cf6a0a59ee))
+
+* fix: expanding example notebook ([`105bf4c`](https://github.com/adaptive-machine-learning/CapyMOA/commit/105bf4cdf5a52d5733a47bb74bad61b88eb4c85a))
+
+* fix: add notebook 07 to toctree ([`d527e29`](https://github.com/adaptive-machine-learning/CapyMOA/commit/d527e291177e734322f7d2e578e70d3a5f003a8b))
+
+* fix: moajar hash ([`e02d8ac`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e02d8ac7ce8d2934d206a0c28fd5d453dbcef5f5))
+
+* fix: add pipelines notebook to invoke.yml ([`800ed73`](https://github.com/adaptive-machine-learning/CapyMOA/commit/800ed73b87173d6877250045cc071a0c9b3bdf26))
+
+* fix: call prepareForUse() in initializer of stream when schema is provided ([`9f29e61`](https://github.com/adaptive-machine-learning/CapyMOA/commit/9f29e61847481c4da36cca60d3fb7054b6479aca))
+
+* fix: corrected docstring for stream_from_file ([`e627f2d`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e627f2d3b4c498841c3891d0c43b24e542491220))
+
+* fix: updated doc and ARFF exception handling ([`187c429`](https://github.com/adaptive-machine-learning/CapyMOA/commit/187c429a8d07c12ffa6d890674b1eb897abe5327))
+
+* fix: fix stream consistency ([`f363788`](https://github.com/adaptive-machine-learning/CapyMOA/commit/f3637882f9ed5d29037179de47d72f9e42a17da7))
+
+* fix: force target as int when categorical ([`bc61941`](https://github.com/adaptive-machine-learning/CapyMOA/commit/bc6194197accb6ba48a6517a9e251eca56878936))
+
+* fix: update from_custom function in _stream.py ([`1bbba9b`](https://github.com/adaptive-machine-learning/CapyMOA/commit/1bbba9b4b812d04437032795500d78779770cb92))
+
+* fix: update PytorchStream.py with target_type ([`d8e9446`](https://github.com/adaptive-machine-learning/CapyMOA/commit/d8e94460a671f4298e10b7fb44165a64119f2a2e))
+
+* fix: update instance.py for target_type ([`e602dc3`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e602dc3e48290b2b6da3f0ed986aad3eb7cc9f08))
+
+* fix: update test_batch to enforce classification in basic test ([`bda30f5`](https://github.com/adaptive-machine-learning/CapyMOA/commit/bda30f530931ab5217b182a17ff3d656752cd480))
+
+* fix: small alteration ([`d8c44d8`](https://github.com/adaptive-machine-learning/CapyMOA/commit/d8c44d8c9045751dd9bb99e2fa745673fb290558))
+
+* fix: remove None| and update test_regressor ([`2cc3ba5`](https://github.com/adaptive-machine-learning/CapyMOA/commit/2cc3ba51030d1cf9676f3a9a9dfd7fed8e046c6d))
+
+* fix: refine documentation for SOKNl and SOKNLBT ([`1c013f0`](https://github.com/adaptive-machine-learning/CapyMOA/commit/1c013f0db2b1054eb33c191333769a1f4c4d5aec))
+
+* fix: fix the end-strings ([`bf114cf`](https://github.com/adaptive-machine-learning/CapyMOA/commit/bf114cf0559371d023c03f8bcaf7d5518bfa71ed))
+
+* fix: update evaluation.py ([`bf62b0e`](https://github.com/adaptive-machine-learning/CapyMOA/commit/bf62b0ed2d9cd6dda03afb683ecfa284cc43df97))
+
+* fix: update evalutation.py ([`6e1e90f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/6e1e90f73d65c33a62c71a3638b203445301b7a1))
+
+* fix: update moa-url and sha256 value ([`491f617`](https://github.com/adaptive-machine-learning/CapyMOA/commit/491f617275446467ab613a0c0eeb693db36fdff0))
+
+* fix: allow _prequential_evaluation_fast to store y and predictions ([`9675615`](https://github.com/adaptive-machine-learning/CapyMOA/commit/9675615b57b5da8c182d3857e2ca4073695ef08c))
+
+* fix: correcting author name in ref ([`991f916`](https://github.com/adaptive-machine-learning/CapyMOA/commit/991f9161e9bd356b32b321a4c8a4729cd21bd294))
+
+* fix(Anomaly-Detection): change expect output of example and test code for Half-Space Trees ([`5c0832a`](https://github.com/adaptive-machine-learning/CapyMOA/commit/5c0832a83a6afff0ddcee5b77a44d837ad919854))
+
+* fix: updating HalfSpaceTrees example usage ([`fa1e236`](https://github.com/adaptive-machine-learning/CapyMOA/commit/fa1e236b38616a3656013d6f0477f1abf1f00d10))
+
+* fix: updating moa jar 24-05-20 ([`3327f6b`](https://github.com/adaptive-machine-learning/CapyMOA/commit/3327f6b0376d995e88c1a38391ce3a58bdba5ba1))
+
+* fix(Anomaly-Detection): change expect output for Half-Space Trees for unit testing ([`6b607c3`](https://github.com/adaptive-machine-learning/CapyMOA/commit/6b607c3da2c9a69d324d40b4ec7638f09bd90130))
+
+* fix(Anomaly-Detection): change expect output for the code example of Half-Space Trees ([`2f7225a`](https://github.com/adaptive-machine-learning/CapyMOA/commit/2f7225aa7bea8d95da09b21a7e40c9bbef618ebb))
+
+* fix: test 00 notebook ([`771d784`](https://github.com/adaptive-machine-learning/CapyMOA/commit/771d7848e03c75fbbb4a08eec82b4eb512a971a3))
+
+* fix: updating ignored notebooks ([`47e174a`](https://github.com/adaptive-machine-learning/CapyMOA/commit/47e174a2cc4fbf1f91a36b31fb1317bd3f7e3d04))
+
+* fix: remove useless code in PI evaluator ([`ea500af`](https://github.com/adaptive-machine-learning/CapyMOA/commit/ea500aff315c20a3f17b81d5ffa2b81026edb46e))
+
+* fix: fine-tune transparency for prediction interval plotting ([`62c19a5`](https://github.com/adaptive-machine-learning/CapyMOA/commit/62c19a51479fbe42f6e766cf0d2ea872a713bbe8))
+
+* fix: add set_context in base and remove it for samknn ([`4baad0f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/4baad0f959ace49b761b1df18249fb8f6fd9d766))
+
+* fix: update importing ([`50f55ce`](https://github.com/adaptive-machine-learning/CapyMOA/commit/50f55ce0d24af33eec5b1977d7fddeb83c6b259e))
+
+* fix: update pyproject.toml to include seaborn ([`f249056`](https://github.com/adaptive-machine-learning/CapyMOA/commit/f249056fa490b25748746fe087431f4ff449b464))
+
+* fix: using build_cli_str_from_mapping_and_locals for hyper generators ([`8bb4189`](https://github.com/adaptive-machine-learning/CapyMOA/commit/8bb41891bc47e43c382e3e650e24efe1632a1531))
+
+* fix: update again ([`7f31925`](https://github.com/adaptive-machine-learning/CapyMOA/commit/7f31925681a7a8ee29f58f554da20fcdedc5166c))
+
+* fix: update hyperplane generator ([`7279abc`](https://github.com/adaptive-machine-learning/CapyMOA/commit/7279abc31d45092cbeb409f3dafa38959484bfd7))
+
+* fix: fixing a small bug for hypergenerator ([`0370553`](https://github.com/adaptive-machine-learning/CapyMOA/commit/037055378a59fe7dcc3c0b0b3fcda9b781e0373c))
+
+* fix: use an actual moa.jar ([`b4a838a`](https://github.com/adaptive-machine-learning/CapyMOA/commit/b4a838ab8b5d34996ff1ffd38adbea0d808f609d))
+
+* fix: update hash moa.jar (again) ([`0b7da99`](https://github.com/adaptive-machine-learning/CapyMOA/commit/0b7da9952a8f4a40044e505d39c27b50123ecb97))
+
+* fix: update hash value for moa.jar ([`063e1e4`](https://github.com/adaptive-machine-learning/CapyMOA/commit/063e1e4e73e3d0fa1a439e8ea77a53ad0fdd9e87))
+
+* fix: update the moa.jar ([`b84086f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/b84086f632ddcff00ed1b263ba95d0a5375360f7))
+
+### Refactor
+
+* refactor(datasets): add Bike dataset into _datasets.py ([`d755e6d`](https://github.com/adaptive-machine-learning/CapyMOA/commit/d755e6dbc5e855672abf8473e560d0a202c88fd7))
+
+
 ## v0.2.1 (2024-05-06)
+
+### Chore
+
+* chore(version): increment version to 0.2.1 ([`7953523`](https://github.com/adaptive-machine-learning/CapyMOA/commit/79535231f5d2e13a9c4b75336cfe0501243eb3d1))
 
 ### Documentation
 
