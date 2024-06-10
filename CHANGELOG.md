@@ -2,6 +2,13 @@
 
 
 
+## v0.3.1 (2024-06-10)
+
+### Fix
+
+* fix: updating tutorials formatting ([`36a0a29`](https://github.com/adaptive-machine-learning/CapyMOA/commit/36a0a29d006036bacbacb1215ec0665b86b9c499))
+
+
 ## v0.3.0 (2024-05-30)
 
 ### Build
@@ -15,6 +22,10 @@
 * build: add docker arm64 ([`7f1d25f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/7f1d25fe5ec24d7da7a93678bb31a86a5d18f177))
 
 * build: add docker ([`e07288c`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e07288c177043a9c6a4ccc0b15cf00592e02933c))
+
+### Chore
+
+* chore(version): increment version to 0.3.0 ([`5029484`](https://github.com/adaptive-machine-learning/CapyMOA/commit/50294840a608f5d065bcadf62899055fc9e13aa2))
 
 ### Documentation
 
