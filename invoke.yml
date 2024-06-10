@@ -16,7 +16,7 @@ test_skip_notebooks:
   - notebooks/05_new_learner.ipynb
   - notebooks/06_advanced_API.ipynb
   - notebooks/07_pipelines.ipynb
+  - notebooks/08_prediction_interval.ipynb
   - notebooks/anomaly_detection.ipynb
   - notebooks/SSL_example.ipynb
-  - notebooks/prediction_interval.ipynb
   - notebooks/save_and_load_model.ipynb
