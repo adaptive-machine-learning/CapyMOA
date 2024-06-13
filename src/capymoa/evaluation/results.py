@@ -8,10 +8,10 @@ import warnings
 
 
 def write_files(
-        path: str | None = None,
+        path: str = None,
         results=None,
-        file_name: str | None = None,
-        directory_name: str | None = None,
+        file_name: str = None,
+        directory_name: str  = None,
 ):
 
     if results is None:
@@ -595,7 +595,7 @@ class PrequentialResults(Results):
     def __str__(self):
         return str(self.dict_results)
 
-    def to_file(self, file_path: str | None = None):
+    def to_file(self, file_path: str = None):
         write_files(path=file_path, results=self)
 
     def learner(self):
