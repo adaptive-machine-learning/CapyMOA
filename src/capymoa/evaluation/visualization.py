@@ -37,7 +37,7 @@ def plot_windowed_results(
         if not isinstance(result, PrequentialResults):
             raise ValueError('only can process PrequantialResults class.')
 
-    num_instances = results[0].max_instances if results[0].max_instances > 0 else len(results[0].get_targets())
+    num_instances = results[0].max_instances
     stream = results[0]["stream"]
 
     if num_instances is not None:
