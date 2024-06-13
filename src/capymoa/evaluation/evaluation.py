@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import typing
 import typing_extensions
 from typing import Optional
@@ -10,7 +11,7 @@ import random
 
 from capymoa.stream import Schema, Stream
 from capymoa.base import ClassifierSSL, MOAPredictionIntervalLearner
-
+from capymoa.evaluation.results import CumulativeResults, WindowedResults, PrequentialResults
 from com.yahoo.labs.samoa.instances import Instances, Attribute, DenseInstance
 from moa.core import InstanceExample
 from moa.evaluation import (
@@ -29,11 +30,17 @@ from moa.streams import InstanceStream
 
 
 def _is_fast_mode_compilable(stream: Stream, learner, optimise=True) -> bool:
+
+    # refuse prediction interval learner
+    if not hasattr(learner, "moa_learner") or isinstance(learner.moa_learner, MOAPredictionIntervalLearner):
+        return False
+
     """Check if the stream is compatible with the efficient loops in MOA."""
     is_moa_stream = stream.moa_stream is not None and isinstance(
         stream.moa_stream, InstanceStream
     )
     is_moa_learner = hasattr(learner, "moa_learner") and learner.moa_learner is not None
+
     return is_moa_stream and is_moa_learner and optimise
 
 
@@ -458,6 +465,18 @@ class ClassificationWindowedEvaluator(ClassificationEvaluator):
             window_size=window_size,
             moa_evaluator=self.moa_evaluator,
         )
+    def accuracy(self):
+        return {'windowed accuracy' : self.metrics_per_window()['classifications correct (percent)'].tolist()}
+
+
+    def kappa(self):
+        return {'windowed kappa' :self.metrics_per_window()['Kappa Statistic (percent)'].tolist()}
+
+    def kappa_temporal(self):
+        return {'windowed kappa_temporal' :self.metrics_per_window()["Kappa Temporal Statistic (percent)"].tolist()}
+
+    def kappa_M(self):
+        return {'windowed kappa_M' :self.metrics_per_window()["Kappa M Statistic (percent)"].tolist()}
 
 
 class RegressionWindowedEvaluator(RegressionEvaluator):
@@ -476,6 +495,20 @@ class RegressionWindowedEvaluator(RegressionEvaluator):
         super().__init__(
             schema=schema, window_size=window_size, moa_evaluator=self.moa_evaluator
         )
+    def MAE(self):
+        return {'windowed MAE' : self.metrics_per_window()['mean absolute error'].tolist()}
+
+    def RMSE(self):
+        return {'windowed RMSE' : self.metrics_per_window()['root mean squared error'].tolist()}
+
+    def RMAE(self):
+        return {'windowed RMAE' : self.metrics_per_window()['relative mean absolute error'].tolist()}
+
+    def R2(self):
+        return {'windowed R2' : self.metrics_per_window()['coefficient of determination'].tolist()}
+
+    def adjusted_R2(self):
+        return {'windowed adjusted_R2' : self.metrics_per_window()['adjusted coefficient of determination'].tolist()}
 
 
 def start_time_measuring():
@@ -566,8 +599,8 @@ def cumulative_evaluation(
         "stream": stream,
     }
 
-    return results
-
+    # return results
+    return CumulativeResults(dict_results=results)
 
 def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
     """
@@ -594,9 +627,10 @@ def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
         max_instances=max_instances,
         sample_frequency=window_size,
         evaluator=evaluator,
-    )
+    ).dict_results
 
     results["windowed"] = results["cumulative"]
+    # results["windowed"] = results["cumulative"]
     # Add the results corresponding to the remainder of the stream in case the number of
     # processed instances is not perfectly divisible by the window_size (if it was, then
     # it is already in the result_windows variable).
@@ -608,7 +642,7 @@ def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
     )  # Remove previous entry with the cumulative results.
 
     # Ignore the last prediction values, because it doesn't matter as we are using a windowed evaluation.
-    return results
+    return WindowedResults(dict_results=results)
 
 
 def prequential_evaluation(
@@ -714,7 +748,8 @@ def prequential_evaluation(
         "ground_truth_y": ground_truth_y
     }
 
-    return results
+    # return results
+    return PrequentialResults(dict_results=results)
 
 
 def cumulative_ssl_evaluation(
@@ -865,7 +900,7 @@ def prequential_ssl_evaluation(
         "unlabeled_ratio": unlabeled_counter / instancesProcessed,
     }
 
-    return results
+    return PrequentialResults(dict_results=results)
 
 
 ##############################################################
@@ -942,7 +977,7 @@ def _test_then_train_evaluation_fast(
         "stream": stream,
     }
 
-    return results
+    return CumulativeResults(dict_results=results)
 
 
 def _prequential_evaluation_fast(stream, learner, max_instances=None, window_size=1000, store_y=False, store_predictions=False):
@@ -1032,8 +1067,8 @@ def _prequential_evaluation_fast(stream, learner, max_instances=None, window_siz
         "predictions": predictions,
     }
 
-    return results
-
+    # return results
+    return PrequentialResults(dict_results=results)
 
 def _test_then_train_ssl_evaluation_fast(
         stream,
@@ -1125,7 +1160,7 @@ def _test_then_train_ssl_evaluation_fast(
             moa_results.otherMeasurements.get(measure)
         )  # Get the Java Double value
 
-    return results
+    return CumulativeResults(dict_results=results)
 
 
 def _prequential_ssl_evaluation_fast(
@@ -1198,7 +1233,7 @@ def _prequential_ssl_evaluation_fast(
         "other_measurements": dict(moa_results.otherMeasurements),
     }
 
-    return results
+    return PrequentialResults(dict_results=results)
 
 
 ########################################################################################
@@ -1396,3 +1431,12 @@ class PredictionIntervalWindowedEvaluator(PredictionIntervalEvaluator):
         super().__init__(
             schema=schema, window_size=window_size, moa_evaluator=self.moa_evaluator
         )
+
+    def coverage(self):
+        return {'windowed coverage' : self.metrics_per_window()['coverage'].tolist()}
+
+    def average_length(self):
+        return {'windowed average length' : self.metrics_per_window()['average length'].tolist()}
+
+    def NMPIW(self):
+        return {'windowed NMPIW' : self.metrics_per_window()['NMPIW'].tolist()}

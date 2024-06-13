@@ -62,8 +62,8 @@ def test_windowed_evaluation():
 
     assert eleventh_instance_1st_run == pytest.approx(eleventh_instance_2nd_run)
 
-    assert results_1st_run['windowed'].accuracy() == pytest.approx(
-        results_2nd_run['windowed'].accuracy(), abs=0.001
+    assert results_1st_run['windowed'].accuracy()['windowed accuracy'][-1] == pytest.approx(
+        results_2nd_run['windowed'].accuracy()['windowed accuracy'][-1], abs=0.001
     ), f"Windowed evaluation same synthetic stream: Expected accuracy of " \
        f"{results_1st_run['windowed'].accuracy():0.3f} got {results_2nd_run['windowed'].accuracy(): 0.3f}"
 
