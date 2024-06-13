@@ -153,6 +153,13 @@ class CumulativeResults(Results):
     def __getitem__(self, key):
         return self.dict_results.get(key, None)
 
+    def __setitem__(self, key, value):
+        self.dict_results[key] = value
+
+    def __delitem__(self, key):
+        if key in self.dict_results:
+            del self.dict_results[key]
+
     def __str__(self):
         return str(self.dict_results)
 
@@ -344,6 +351,13 @@ class WindowedResults(Results):
 
     def __getitem__(self, key):
         return self.dict_results.get(key, None)
+
+    def __setitem__(self, key, value):
+        self.dict_results[key] = value
+
+    def __delitem__(self, key):
+        if key in self.dict_results:
+            del self.dict_results[key]
 
     def __str__(self):
         return str(self.dict_results)
@@ -591,6 +605,13 @@ class PrequentialResults(Results):
 
     def __getitem__(self, key):
         return self.dict_results.get(key, None)
+
+    def __setitem__(self, key, value):
+        self.dict_results[key] = value
+
+    def __delitem__(self, key):
+        if key in self.dict_results:
+            del self.dict_results[key]
 
     def __str__(self):
         return str(self.dict_results)
