@@ -11,9 +11,11 @@ from invoke.collection import Collection
 from invoke.context import Context
 from pathlib import Path
 from typing import List, Optional
+from subprocess import run
 import wget
-from os import cpu_count
+from os import cpu_count, environ
 
+IS_CI = (environ.get("CI", "false").lower() == "true")
 
 def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
     """Check if all files and directories exist."""
@@ -98,13 +100,27 @@ def build_stubs(ctx: Context):
         print("Nothing todo: Java stubs already exist.")
         return
 
-    ctx.run(
-        "python -m stubgenj "
-        f"--classpath {class_path} "
-        "--output-dir src "
-        "--convert-strings --no-jpackage-stubs "
-        "moa com.yahoo.labs.samoa com.github.javacliparser"
+    result = run(
+        [
+            "python", "-m", "stubgenj",
+            f"--classpath={class_path}",
+            "--output-dir=src",
+            # Options
+            "--convert-strings",
+            "--no-jpackage-stubs",
+            # Names of the packages to generate stubs for
+            "moa",
+            "com.yahoo.labs.samoa",
+            "com.github.javacliparser",
+        ]
     )
+
+    if result.returncode != 0:
+        # If we are running in Github action we should be more strict.
+        if IS_CI:
+            raise Exception("Failed to generate Java stubs.")
+        else:
+            print("Optional step `invoke build.stubs` failed. Continuing anyway ...")
 
 
 @task
