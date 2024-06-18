@@ -1,6 +1,7 @@
 from capymoa.evaluation import AUCEvaluator
 from capymoa.anomaly import (
     HalfSpaceTrees,
+    OnlineIForest,
 )
 from capymoa.base import Classifier, AnomalyDetector
 from capymoa.base import MOAClassifier
@@ -17,9 +18,11 @@ from capymoa.stream._stream import Schema
     "learner_constructor,auc,cli_string",
     [
         (partial(HalfSpaceTrees, window_size=100, number_of_trees=25, max_depth=15), 0.54, None),
+        (partial(OnlineIForest.create, num_trees=32, max_leaf_samples=32, window_size=2048), 0.51, None),
     ],
     ids=[
         "HalfSpaceTrees",
+        "OnlineIForest",
     ],
 )
 def test_anomaly_detectors(
