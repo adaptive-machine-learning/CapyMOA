@@ -37,7 +37,8 @@ class HalfSpaceTrees(MOAAnomalyDetector):
     AUC: 0.54
     """
     def __init__(
-        self, schema=None, CLI=None, random_seed=1, window_size=100, number_of_trees=25, max_depth=15
+        self, schema=None, CLI=None, random_seed=1, window_size=100, number_of_trees=25, max_depth=15,
+        anomaly_threshold=0.5, size_limit=0.1
     ):
         """Construct a Half-Space Trees anomaly detector
 
@@ -52,7 +53,10 @@ class HalfSpaceTrees(MOAAnomalyDetector):
             self.window_size = window_size
             self.number_of_trees = number_of_trees
             self.max_depth = max_depth
-            CLI = f"-p {self.window_size} -t {self.number_of_trees} -h {self.max_depth}"
+            self.anomaly_threshold = anomaly_threshold
+            self.size_limit = size_limit
+            CLI = f"-p {self.window_size} -t {self.number_of_trees} -h {self.max_depth} \
+            -a {self.anomaly_threshold} -s {self.size_limit}"
 
         super().__init__(
             schema=schema, CLI=CLI, random_seed=random_seed, moa_learner=_MOA_HSTrees()
