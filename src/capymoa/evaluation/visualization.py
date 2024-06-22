@@ -4,6 +4,7 @@ from capymoa.stream.drift import DriftStream
 from com.yahoo.labs.samoa.instances import InstancesHeader
 import numpy as np
 import seaborn as sns
+from capymoa.evaluation.results import PrequentialResults
 
 
 def plot_windowed_results(
@@ -29,12 +30,17 @@ def plot_windowed_results(
     dfs = []
     labels = []
 
-    num_instances = results[0].get("max_instances", None)
-    stream = results[0].get("stream", None)
+    # check if the results are all prequential
+    for result in results:
+        if not isinstance(result, PrequentialResults):
+            raise ValueError('only can process PrequantialResults class.')
+
+    num_instances = results[0].max_instances
+    stream = results[0]["stream"]
 
     if num_instances is not None:
-        window_size = results[0]["windowed"].window_size
-        num_windows = results[0]["windowed"].metrics_per_window().shape[0]
+        window_size = results[0].windowed.metrics_per_window()['classified instances'][0]
+        num_windows = results[0].windowed.metrics_per_window().shape[0]
         x_values = []
         for i in range(1, num_windows + 1):
             x_values.append(i * window_size)
@@ -42,17 +48,17 @@ def plot_windowed_results(
 
     # Check if the given metric exists in all DataFrames
     for result in results:
-        df = result["windowed"].metrics_per_window()
+        df = result.windowed.metrics_per_window()
         if metric not in df.columns:
             print(
                 f"Column '{metric}' not found in metrics DataFrame for {result['learner']}. Skipping."
             )
         else:
             dfs.append(df)
-            if "experiment_id" in result:
-                labels.append(result["experiment_id"])
-            else:
-                labels.append(result["learner"])
+            # if "experiment_id" in result:
+            #     labels.append(result["experiment_id"])
+            # else:
+            labels.append(result["learner"])
 
     if not dfs:
         print("No valid DataFrames to plot.")
@@ -158,10 +164,16 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
 
     If save_only is True, then a figure will be saved at the specified path
     """
+
+    # check if the results are all prequential
+    for result in results:
+        if not isinstance(result, PrequentialResults):
+            raise ValueError('only can process PrequantialResults class.')
+
     # Determine ground truth y
     if ground_truth is None:
-        if results and "ground_truth_y" in results[0]:
-            ground_truth = results[0]["ground_truth_y"]
+        if results and results[0].get_targets():
+            ground_truth = results[0].get_targets()
 
     # Check if ground truth y is available
     if ground_truth is None:
@@ -175,17 +187,19 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
 
     # Check if predictions have the same length as ground truth
     for i, result in enumerate(results):
-        if "predictions" in result:
-            predictions = result["predictions"][start:end]
+        if result.get_predictions() is not None:
+            predictions = result.get_predictions()[start:end]
             if len(predictions) != len(ground_truth[start:end]):
                 raise ValueError(f"Length of predictions for result {i + 1} does not match ground truth.")
 
     # Plot ground truth y vs. predictions for each result within the specified interval
     instance_numbers = list(range(start, end))
-    for i, result in enumerate(results):
-        if "predictions" in result:
-            predictions = result["predictions"][start:end]
-            plt.plot(instance_numbers, predictions, label=f"{result['learner']} predictions", alpha=0.7)
+    # for i, result in enumerate(results):
+    #     if "predictions" in result:
+    #         predictions = result["predictions"][start:end]
+    for result in results:
+        predictions = result.get_predictions()[start:end]
+        plt.plot(instance_numbers, predictions, label=f"{result['learner']} predictions", alpha=0.7)
 
     # Plot ground truth y
     plt.scatter(instance_numbers, ground_truth[start:end], label="ground truth", marker='*', s=20, color='red')
@@ -257,10 +271,15 @@ def plot_regression_results(
 
         prevent_plotting_drifts=False,
 ):
+    # check if the results are all prequential
+    for result in results:
+        if not isinstance(result, PrequentialResults):
+            raise ValueError('only can process PrequantialResults class.')
+
     # Check if the ground_truth is stored in the first result
     if ground_truth is None:
-        if results and "ground_truth_y" in results[0]:
-            ground_truth = results[0]["ground_truth_y"]
+        if results and results[0].get_targets():
+            ground_truth = results[0].get_targets()
 
     # Check if ground_truth is none
     if ground_truth is None:
@@ -271,7 +290,7 @@ def plot_regression_results(
     end = min(end, len(ground_truth))
 
     # Get stream
-    stream = results[0].get("stream", None)
+    stream = results[0]["stream"]
 
     # Get ground truth
     targets = ground_truth[start:end]
@@ -281,11 +300,11 @@ def plot_regression_results(
     if absolute_residuals:
         absolute_values = []
     for i, result in enumerate(results):
-        if "predictions" in result:
-            predictions.append(np.array(result["predictions"][start:end]))
-            residuals.append(np.array(np.array(result["predictions"][start:end]) - np.array(targets)))
+        if result.get_predictions() is not None:
+            predictions.append(np.array(result.get_predictions()[start:end]))
+            residuals.append(np.array(np.array(result.get_predictions()[start:end]) - np.array(targets)))
             if absolute_residuals:
-                absolute_values.append(np.abs(np.array(np.array(result["predictions"][start:end]) - np.array(targets))))
+                absolute_values.append(np.abs(np.array(np.array(result.get_predictions()[start:end]) - np.array(targets))))
 
     # Create a figure
     plt.figure(figsize=((end - start) / 10, 6))
@@ -455,15 +474,20 @@ def plot_prediction_interval(
         prevent_plotting_drifts=False,
 
 ):
+    # check if the results are all prequential
+    for result in results:
+        if not isinstance(result, PrequentialResults):
+            raise ValueError('only can process PrequantialResults class.')
+
     if len(results) > 2:
-        raise ValueError('This function only supports up to 2 results currently.')
+        raise ValueError('this function only supports up to 2 results currently.')
 
     default_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-    stream = results[0].get("stream", None)
+    stream = results[0]["stream"]
 
     if len(results) == 1:
-        if "ground_truth_y" in results[0]:
-            targets = results[0]["ground_truth_y"]
+        if results[0].get_targets() is not None:
+            targets = results[0].get_targets()
         elif ground_truth is not None:
             targets = ground_truth
         else:
@@ -474,7 +498,7 @@ def plot_prediction_interval(
 
         instance_numbers = list(range(start, end))
         targets = targets[start:end]
-        intervals = results[0]["predictions"][start:end]
+        intervals = results[0].get_predictions()[start:end]
         upper = []
         lower = []
         predictions = []
@@ -575,8 +599,8 @@ def plot_prediction_interval(
 
     # Plots two regions from prediction interval learners for comparison
     elif len(results) == 2:
-        if "ground_truth_y" in results[0]:
-            targets = results[0]["ground_truth_y"]
+        if results[0].get_targets() is not None:
+            targets = results[0].get_targets()
         elif ground_truth is not None:
             targets = ground_truth
         else:
@@ -588,8 +612,8 @@ def plot_prediction_interval(
         instance_numbers = list(range(start, end))
         targets = targets[start:end]
 
-        intervals_first = results[0]["predictions"][start:end]
-        intervals_second = results[1]["predictions"][start:end]
+        intervals_first = results[0].get_predictions()[start:end]
+        intervals_second = results[1].get_predictions()[start:end]
 
         upper_first = []
         lower_first = []

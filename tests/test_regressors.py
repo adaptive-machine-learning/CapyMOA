@@ -58,7 +58,7 @@ def test_regressor(learner_constructor, rmse, win_rmse):
     i = 0
     while stream.has_more_instances():
         i += 1
-        if i >= 1000:
+        if i > 1000:
             break
         instance = stream.next_instance()
         prediction = learner.predict(instance)
@@ -68,7 +68,7 @@ def test_regressor(learner_constructor, rmse, win_rmse):
 
 
     actual_rmse = evaluator.RMSE()
-    actual_win_rmse = win_evaluator.RMSE()
+    actual_win_rmse = win_evaluator.RMSE()['windowed RMSE'][-1]
     assert actual_rmse == pytest.approx(rmse, abs=0.1), \
         f"Basic Eval: Expected {rmse:0.1f} RMSE got {actual_rmse: 0.1f} RMSE"
     assert actual_win_rmse == pytest.approx(win_rmse, abs=0.1), \
