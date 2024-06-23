@@ -1,3 +1,4 @@
+from capymoa.evaluation.evaluation import prequential_evaluation_anomaly
 from capymoa.stream.generator import SEA
 from capymoa.classifier import NaiveBayes, HoeffdingTree
 from capymoa.evaluation import (prequential_evaluation,
@@ -6,6 +7,10 @@ from capymoa.evaluation import (prequential_evaluation,
                                 )
 from capymoa.datasets import ElectricityTiny
 import pytest
+from capymoa.datasets import Electricity
+from capymoa.anomaly import (
+    HalfSpaceTrees,
+)
 
 
 def test_prequential_evaluation():
@@ -150,3 +155,37 @@ def test_evaluation_api():
 
     assert results_ht_errors == [], "Issues with access to PrequentialResults"
     assert cumulative_errors == [], "Issues with access to cumulative"
+
+
+def test_cumulative_evaluation_anomaly():
+    """The stream should be restarted every time we run the evaluation, so the 11th instance should be the same, also
+        the AUC of models from the same learner (but different models) should be the same
+    """
+    stream = Electricity()
+    model1 = HalfSpaceTrees(schema=stream.get_schema())
+    model2 = HalfSpaceTrees(schema=stream.get_schema())
+
+    results_1st_run = cumulative_evaluation_anomaly(stream=stream, learner=model1, optimise=True)
+    results_2nd_run = cumulative_evaluation_anomaly(stream=stream, learner=model2, optimise=False)
+
+    assert results_1st_run['cumulative'].auc() == pytest.approx(
+        results_2nd_run['cumulative'].auc(), abs=0.001
+    ), f"Test_then_train_evaluation_anomaly same synthetic stream: Expected AUC of " \
+       f"{results_1st_run['cumulative'].auc():0.3f} got {results_2nd_run['cumulative'].auc(): 0.3f}"
+
+
+def test_prequential_evaluation_anomaly():
+    """The stream should be restarted every time we run the evaluation, so the 11th instance should be the same, also
+        the AUC of models from the same learner (but different models) should be the same
+    """
+    stream = Electricity()
+    model1 = HalfSpaceTrees(schema=stream.get_schema())
+    model2 = HalfSpaceTrees(schema=stream.get_schema())
+
+    results_1st_run = prequential_evaluation_anomaly(stream=stream, learner=model1, window_size=1000, optimise=True)
+    results_2nd_run = prequential_evaluation_anomaly(stream=stream, learner=model2, window_size=1000, optimise=False)
+
+    assert results_1st_run['windowed'].auc() == pytest.approx(
+        results_2nd_run['windowed'].auc(), abs=0.001
+    ), f"prequential_evaluation_anomaly same synthetic stream: Expected AUC of " \
+       f"{results_1st_run['windowed'].auc():0.3f} got {results_2nd_run['windowed'].auc(): 0.3f}"
