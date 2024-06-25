@@ -4,8 +4,6 @@ from capymoa.stream._stream import Schema
 from concurrent.futures import ThreadPoolExecutor
 from itertools import repeat
 from numpy import asarray, finfo, ndarray
-from sys import stdout
-from tqdm import tqdm
 
 
 class BoundedRandomProjectionOnlineIForest(OnlineIForest):
@@ -35,12 +33,8 @@ class BoundedRandomProjectionOnlineIForest(OnlineIForest):
         learn_funcs: list['function'] = [tree.learn for tree in self.trees]
         # BoundedRandomProjection OnlineITrees learn new data
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
-            self.trees: list[OnlineITree] = list(tqdm(executor.map(lambda f, x: f(x), learn_funcs,
-                                                                   repeat(data, self.num_trees)),
-                                                      total=self.num_trees,
-                                                      desc='     BoundedRandomProjection Online Isolation Forest -> Learn Batch',
-                                                      file=stdout,
-                                                      disable=True))
+            self.trees: list[OnlineITree] = list(executor.map(lambda f, x: f(x), learn_funcs,
+                                                                   repeat(data, self.num_trees)))
         # If the window size is not None, add new data to the window and eventually remove old ones
         if self.window_size:
             # Update the window of data seen so far
@@ -59,12 +53,8 @@ class BoundedRandomProjectionOnlineIForest(OnlineIForest):
                 unlearn_funcs: list['function'] = [tree.unlearn for tree in self.trees]
                 # BoundedRandomProjection OnlineITrees unlearn new data
                 with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
-                    self.trees: list[OnlineITree] = list(tqdm(executor.map(lambda f, x: f(x), unlearn_funcs,
-                                                                           repeat(data, self.num_trees)),
-                                                              total=self.num_trees,
-                                                              desc='     BoundedRandomProjection Online Isolation Forest -> Unlearn Batch',
-                                                              file=stdout,
-                                                              disable=True))
+                    self.trees: list[OnlineITree] = list(executor.map(lambda f, x: f(x), unlearn_funcs,
+                                                                           repeat(data, self.num_trees)))
         return self
 
     def score_batch(self, data: ndarray) -> ndarray[float]:
@@ -72,12 +62,8 @@ class BoundedRandomProjectionOnlineIForest(OnlineIForest):
         predict_funcs: list['function'] = [tree.predict for tree in self.trees]
         # Compute the depths of all samples in each tree
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
-            depths: ndarray[float] = asarray(list(tqdm(executor.map(lambda f, x: f(x), predict_funcs,
-                                                                    repeat(data, self.num_trees)),
-                                                       total=self.num_trees,
-                                                       desc='     BoundedRandomProjection Online Isolation Forest -> Score Batch',
-                                                       file=stdout,
-                                                       disable=True))).T
+            depths: ndarray[float] = asarray(list(executor.map(lambda f, x: f(x), predict_funcs,
+                                                                    repeat(data, self.num_trees)))).T
         # Compute the mean depth of each sample along all trees
         mean_depths: ndarray[float] = depths.mean(axis=1)
         # Compute normalized mean depths
@@ -89,12 +75,8 @@ class BoundedRandomProjectionOnlineIForest(OnlineIForest):
         predict_funcs: list['function'] = [tree.predict for tree in self.trees]
         # Compute the depths of all samples in each tree
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
-            depths: ndarray[float] = asarray(list(tqdm(executor.map(lambda f, x: f(x), predict_funcs,
-                                                                    repeat(data, self.num_trees)),
-                                                       total=self.num_trees,
-                                                       desc='     BoundedRandomProjection Online Isolation Forest -> Score Batch',
-                                                       file=stdout,
-                                                       disable=True))).T
+            depths: ndarray[float] = asarray(list(executor.map(lambda f, x: f(x), predict_funcs,
+                                                                    repeat(data, self.num_trees)))).T
         # Compute the mean depth of each sample along all trees
         mean_depths: ndarray[float] = depths.mean(axis=1)
         return mean_depths
