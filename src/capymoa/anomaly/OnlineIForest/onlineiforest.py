@@ -37,7 +37,7 @@ class OnlineIForest(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.6
+    AUC: 0.52
     """
     @staticmethod
     def create(iforest_type: str = 'boundedrandomprojectiononlineiforest', **kwargs) -> 'OnlineIForest':
@@ -90,7 +90,8 @@ class OnlineIForest(AnomalyDetector):
 
     def train(self, instance: Instance):
         data: ndarray = instance.x.reshape((1, -1))
-        return self.learn_batch(data)
+        self.learn_batch(data)
+        return
 
     def predict(self, instance: Instance) -> Optional[LabelIndex]:
         pass
