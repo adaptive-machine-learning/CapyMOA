@@ -114,6 +114,13 @@ This part of the documentation is for developers and contributors.
 
    contributing/index
 
+About us
+---------
+
+.. toctree::
+   about
+
+
 Indices and tables
 ==================
 
