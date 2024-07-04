@@ -59,6 +59,7 @@ dependencies = [
 # Development dependencies
 dev=[
     "pytest",
+    "pytest-subtests",
     "jupyter",
     "nbmake",
     "pytest-xdist",
