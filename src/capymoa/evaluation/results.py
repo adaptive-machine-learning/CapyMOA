@@ -173,20 +173,8 @@ class CumulativeResults(Results):
     def __getitem__(self, key):
         return self.dict_results.get(key, None)
 
-    # def __setitem__(self, key, value):
-    #     self.dict_results[key] = value
-    #
-    # def __delitem__(self, key):
-    #     if key in self.dict_results:
-    #         del self.dict_results[key]
-
-    # def getattr(self, name):
-    #     if name in self.dict_results:
-    #         return self.dict_results[name]
-    #     if name in self.dict_results['cumulative']:
-    #         return self.dict_results['cumulative'].name()
-    #
-    #     raise AttributeError(f"'{type(self)._name}' object has no attribute '{name}'")
+    def __setitem__(self, key, value):
+        self.dict_results[key] = value
 
     def __str__(self):
         return str(self.dict_results)
@@ -261,12 +249,9 @@ class WindowedResults(Results):
     def __getitem__(self, key):
         return self.dict_results.get(key, None)
 
-    # def __setitem__(self, key, value):
-    #     self.dict_results[key] = value
-    #
-    # def __delitem__(self, key):
-    #     if key in self.dict_results:
-    #         del self.dict_results[key]
+    def __setitem__(self, key, value):
+        self.dict_results[key] = value
+
 
     def __str__(self):
         return str(self.dict_results)
@@ -358,6 +343,9 @@ class PrequentialResults(Results):
     def __getitem__(self, key):
         return self.dict_results.get(key, None)
 
+    def __setitem__(self, key, value):
+        self.dict_results[key] = value
+
     def __str__(self):
         return str(self.dict_results)
 
@@ -431,6 +419,9 @@ class CumulativeSSLResults(Results):
 
     def __getitem__(self, key):
         return self.dict_results.get(key, None)
+
+    def __setitem__(self, key, value):
+        self.dict_results[key] = value
 
     def __str__(self):
         return str(self.dict_results)
@@ -515,6 +506,9 @@ class WindowedSSLResults(Results):
 
     def __getitem__(self, key):
         return self.dict_results.get(key, None)
+
+    def __setitem__(self, key, value):
+        self.dict_results[key] = value
 
     def __str__(self):
         return str(self.dict_results)
@@ -619,6 +613,9 @@ class PrequentialSSLResults(Results):
 
     def __getitem__(self, key):
         return self.dict_results.get(key, None)
+
+    def __setitem__(self, key, value):
+        self.dict_results[key] = value
 
     def __str__(self):
         return str(self.dict_results)
