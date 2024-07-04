@@ -15,7 +15,7 @@ from capymoa.base import (
     MOAPredictionIntervalLearner,
     MOAClassifier,
     MOARegressor,
-    MOAAnomalyDetector,
+    MOAAnomalyDetector, SKClassifier,
 )
 
 from capymoa.evaluation.results import (
@@ -78,18 +78,21 @@ _metric_name_mapping={
 }
 
 _prequential_learner_to_result_class = {
+    SKClassifier: PrequentialClassificationResults,
     MOAClassifier: PrequentialClassificationResults,
     MOAPredictionIntervalLearner: PrequentialPredictionIntervalResults,
     MOARegressor: PrequentialRegressionResults,
     MOAAnomalyDetector: PrequentialAnomalyDetectionResults,
 }
 _cumulative_learner_to_result_class = {
+    SKClassifier: PrequentialClassificationResults,
     MOAClassifier: CumulativeClassificationResults,
     MOAPredictionIntervalLearner: CumulativePredictionIntervalResults,
     MOARegressor: CumulativeRegressionResults,
     MOAAnomalyDetector: CumulativeAnomalyDetectionResults,
 }
 _windowed_learner_to_result_class = {
+    SKClassifier: PrequentialClassificationResults,
     MOAClassifier: WindowedClassificationResults,
     MOAPredictionIntervalLearner: WindowedPredictionIntervalResults,
     MOARegressor: WindowedRegressionResults,
