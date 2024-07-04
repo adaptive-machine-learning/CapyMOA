@@ -1,4 +1,4 @@
-from jpype.pickle import JPickler, JUnpickler
+from capymoa._pickle import JPickler, JUnpickler
 
 
 def save_model(model, filename):
