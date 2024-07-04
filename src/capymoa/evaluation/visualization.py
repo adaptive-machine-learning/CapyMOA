@@ -4,7 +4,7 @@ from capymoa.stream.drift import DriftStream, RecurrentConceptDriftStream
 from com.yahoo.labs.samoa.instances import InstancesHeader
 import numpy as np
 import seaborn as sns
-from capymoa.evaluation.results import PrequentialResults
+from capymoa.evaluation.results import PrequentialPredictionIntervalResults, PrequentialResults, PrequentialRegressionResults
 
 
 def plot_windowed_results(
@@ -190,8 +190,8 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
 
     # check if the results are all prequential
     for result in results:
-        if not isinstance(result, PrequentialResults):
-            raise ValueError('only can process PrequantialResults class.')
+        if not isinstance(result, PrequentialRegressionResults):
+            raise ValueError('only can process PrequentialRegressionResults class.')
 
     # Determine ground truth y
     if ground_truth is None:
@@ -296,7 +296,7 @@ def plot_regression_results(
 ):
     # check if the results are all prequential
     for result in results:
-        if not isinstance(result, PrequentialResults):
+        if not isinstance(result, PrequentialRegressionResults):
             raise ValueError('only can process PrequantialResults class.')
 
     # Check if the ground_truth is stored in the first result
@@ -499,8 +499,8 @@ def plot_prediction_interval(
 ):
     # check if the results are all prequential
     for result in results:
-        if not isinstance(result, PrequentialResults):
-            raise ValueError('only can process PrequantialResults class.')
+        if not isinstance(result, PrequentialPredictionIntervalResults):
+            raise ValueError('only can process PrequentialPredictionIntervalResults class.')
 
     if len(results) > 2:
         raise ValueError('this function only supports up to 2 results currently.')

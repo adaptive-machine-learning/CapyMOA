@@ -10,8 +10,35 @@ import warnings
 import random
 
 from capymoa.stream import Schema, Stream
-from capymoa.base import ClassifierSSL, MOAPredictionIntervalLearner
-from capymoa.evaluation.results import CumulativeResults, WindowedResults, PrequentialResults
+from capymoa.base import (
+    ClassifierSSL,
+    MOAPredictionIntervalLearner,
+    MOAClassifier,
+    MOARegressor,
+    MOAAnomalyDetector,
+)
+
+from capymoa.evaluation.results import (
+    CumulativeResults,
+    WindowedResults,
+    PrequentialResults,
+    PrequentialClassificationResults,
+    PrequentialPredictionIntervalResults,
+    PrequentialAnomalyDetectionResults,
+    PrequentialRegressionResults,
+    WindowedRegressionResults,
+    WindowedClassificationResults,
+    WindowedPredictionIntervalResults,
+    WindowedAnomalyDetectionResults,
+    CumulativeClassificationResults,
+    CumulativePredictionIntervalResults,
+    CumulativeAnomalyDetectionResults,
+    CumulativeRegressionResults,
+    PrequentialClassificationSSLResults,
+    WindowedClassificationSSLResults,
+    CumulativeClassificationSSLResults,
+)
+
 from com.yahoo.labs.samoa.instances import Instances, Attribute, DenseInstance
 from moa.core import InstanceExample
 from moa.evaluation import (
@@ -27,6 +54,47 @@ from moa.evaluation import (
 from java.util import ArrayList
 from moa.evaluation import EfficientEvaluationLoops
 from moa.streams import InstanceStream
+
+
+_metric_name_mapping={
+    'accuracy': 'classifications correct (percent)',
+    'kappa' : 'Kappa Statistic (percent)',
+    'kappa_t' : 'Kappa Temporal Statistic (percent)',
+    'kappa_m' : 'Kappa M Statistic (percent)',
+    'f1_score' : 'F1 Score (percent)',
+    'precision' : 'Precision (percent)',
+    'recall' : 'Recall (percent)',
+
+    'MAE' : 'mean absolute error',
+    'RMSE' : 'root mean squared error',
+    'RMAE' : 'relative mean absolute error',
+    'RRMSE' : 'relative root mean squared error',
+    'R2' : "coefficient of determination",
+    'Adjusted_R2' : 'adjusted coefficient of determination',
+
+    'coverage' : 'coverage',
+    'average_length' : 'average length',
+
+}
+
+_prequential_learner_to_result_class = {
+    MOAClassifier: PrequentialClassificationResults,
+    MOAPredictionIntervalLearner: PrequentialPredictionIntervalResults,
+    MOARegressor: PrequentialRegressionResults,
+    MOAAnomalyDetector: PrequentialAnomalyDetectionResults,
+}
+_cumulative_learner_to_result_class = {
+    MOAClassifier: CumulativeClassificationResults,
+    MOAPredictionIntervalLearner: CumulativePredictionIntervalResults,
+    MOARegressor: CumulativeRegressionResults,
+    MOAAnomalyDetector: CumulativeAnomalyDetectionResults,
+}
+_windowed_learner_to_result_class = {
+    MOAClassifier: WindowedClassificationResults,
+    MOAPredictionIntervalLearner: WindowedPredictionIntervalResults,
+    MOARegressor: WindowedRegressionResults,
+    MOAAnomalyDetector: WindowedAnomalyDetectionResults,
+}
 
 
 def _is_fast_mode_compilable(stream: Stream, learner, optimise=True) -> bool:
@@ -199,6 +267,7 @@ class ClassificationEvaluator:
     def metrics_per_window(self):
         return pd.DataFrame(self.result_windows, columns=self.metrics_header())
 
+
     def accuracy(self):
         index = self.metrics_header().index("classifications correct (percent)")
         return self.metrics()[index]
@@ -214,7 +283,6 @@ class ClassificationEvaluator:
     def kappa_M(self):
         index = self.metrics_header().index("Kappa M Statistic (percent)")
         return self.metrics()[index]
-
 
 class RegressionEvaluator:
     """
@@ -306,7 +374,8 @@ class RegressionEvaluator:
         return {header: value for header, value in zip(self.metrics_header(), self.metrics())}
 
     def metrics_per_window(self):
-        return pd.DataFrame(self.result_windows, columns=self.metrics_header())
+        return pd.DataFrame(self.result_windows, columns=self.metrics_header()).copy()
+
 
     def predictions(self):
         return self.predictions
@@ -442,7 +511,6 @@ class AUCEvaluator:
         index = self.metrics_header().index("sAUC")
         return self.metrics()[index]
 
-
 class ClassificationWindowedEvaluator(ClassificationEvaluator):
     """
     Uses the ClassificationEvaluator to perform a windowed evaluation.
@@ -465,6 +533,7 @@ class ClassificationWindowedEvaluator(ClassificationEvaluator):
             window_size=window_size,
             moa_evaluator=self.moa_evaluator,
         )
+
     def accuracy(self):
         return {'windowed accuracy' : self.metrics_per_window()['classifications correct (percent)'].tolist()}
 
@@ -477,7 +546,6 @@ class ClassificationWindowedEvaluator(ClassificationEvaluator):
 
     def kappa_M(self):
         return {'windowed kappa_M' :self.metrics_per_window()["Kappa M Statistic (percent)"].tolist()}
-
 
 class RegressionWindowedEvaluator(RegressionEvaluator):
     """
@@ -509,7 +577,6 @@ class RegressionWindowedEvaluator(RegressionEvaluator):
 
     def adjusted_R2(self):
         return {'windowed adjusted_R2' : self.metrics_per_window()['adjusted coefficient of determination'].tolist()}
-
 
 def start_time_measuring():
     start_wallclock_time = time.time()
@@ -599,8 +666,15 @@ def cumulative_evaluation(
         "stream": stream,
     }
 
-    # return results
-    return CumulativeResults(dict_results=results)
+    # Iterate over the mapping and check if the learner is an instance of any key
+    for learner_type, result_class_type in _cumulative_learner_to_result_class.items():
+        if isinstance(learner, learner_type):
+            results_class = result_class_type(dict_results=results)
+            break
+    else:
+        raise ValueError(f"Unknown learner type: {type(learner)}")
+
+    return results_class
 
 def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
     """
@@ -642,7 +716,15 @@ def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
     )  # Remove previous entry with the cumulative results.
 
     # Ignore the last prediction values, because it doesn't matter as we are using a windowed evaluation.
-    return WindowedResults(dict_results=results)
+    # Iterate over the mapping and check if the learner is an instance of any key
+    for learner_type, result_class_type in _windowed_learner_to_result_class.items():
+        if isinstance(learner, learner_type):
+            results_class = result_class_type(dict_results=results)
+            break
+    else:
+        raise ValueError(f"Unknown learner type: {type(learner)}")
+
+    return results_class
 
 
 def prequential_evaluation(
@@ -745,11 +827,18 @@ def prequential_evaluation(
         "max_instances": max_instances,
         "stream": stream,
         "predictions": predictions,
-        "ground_truth_y": ground_truth_y
+        "ground_truth_y": ground_truth_y,
     }
 
-    # return results
-    return PrequentialResults(dict_results=results)
+    # Iterate over the mapping and check if the learner is an instance of any key
+    for learner_type, result_class_type in _prequential_learner_to_result_class.items():
+        if isinstance(learner, learner_type):
+            results_class = result_class_type(dict_results=results)
+            break
+    else:
+        raise ValueError(f"Unknown learner type: {type(learner)}")
+
+    return results_class
 
 
 def cumulative_ssl_evaluation(
@@ -900,7 +989,7 @@ def prequential_ssl_evaluation(
         "unlabeled_ratio": unlabeled_counter / instancesProcessed,
     }
 
-    return PrequentialResults(dict_results=results)
+    return PrequentialClassificationSSLResults(dict_results=results)
 
 
 ##############################################################
@@ -977,7 +1066,14 @@ def _test_then_train_evaluation_fast(
         "stream": stream,
     }
 
-    return CumulativeResults(dict_results=results)
+    for learner_type, result_class_type in _cumulative_learner_to_result_class.items():
+        if isinstance(learner, learner_type):
+            results_class = result_class_type(dict_results=results)
+            break
+    else:
+        raise ValueError(f"Unknown learner type: {type(learner)}")
+
+    return results_class
 
 
 def _prequential_evaluation_fast(stream, learner, max_instances=None, window_size=1000, store_y=False, store_predictions=False):
@@ -1068,7 +1164,14 @@ def _prequential_evaluation_fast(stream, learner, max_instances=None, window_siz
     }
 
     # return results
-    return PrequentialResults(dict_results=results)
+    for learner_type, result_class_type in _prequential_learner_to_result_class.items():
+        if isinstance(learner, learner_type):
+            results_class = result_class_type(dict_results=results)
+            break
+    else:
+        raise ValueError(f"Unknown learner type: {type(learner)}")
+
+    return results_class
 
 def _test_then_train_ssl_evaluation_fast(
         stream,
@@ -1160,7 +1263,7 @@ def _test_then_train_ssl_evaluation_fast(
             moa_results.otherMeasurements.get(measure)
         )  # Get the Java Double value
 
-    return CumulativeResults(dict_results=results)
+    return CumulativeClassificationSSLResults(dict_results=results)
 
 
 def _prequential_ssl_evaluation_fast(
@@ -1233,7 +1336,7 @@ def _prequential_ssl_evaluation_fast(
         "other_measurements": dict(moa_results.otherMeasurements),
     }
 
-    return PrequentialResults(dict_results=results)
+    return PrequentialClassificationSSLResults(dict_results=results)
 
 
 ########################################################################################
@@ -1421,7 +1524,6 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
     def NMPIW(self):
         index = self.metrics_header().index("NMPIW")
         return self.metrics()[index]
-
 
 class PredictionIntervalWindowedEvaluator(PredictionIntervalEvaluator):
     def __init__(self, schema=None, window_size=1000):
