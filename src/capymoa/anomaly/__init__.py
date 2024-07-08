@@ -1,7 +1,7 @@
 from .half_space_trees import HalfSpaceTrees
-from .OnlineIForest import OnlineIForest
+from .online_isolation_forest import OnlineIsolationForest
 
 __all__ = [
     "HalfSpaceTrees",
-    "OnlineIForest",
+    "OnlineIsolationForest",
 ]
