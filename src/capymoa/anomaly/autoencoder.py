@@ -11,7 +11,12 @@ class Autoencoder(AnomalyDetector):
     """ Autoencoder anomaly detector
 
         This is a simple autoencoder anomaly detector that uses a single hidden layer.
-        The autoencoder is a duplicated version of MOA's Autoencoder class, but written in PyTorch."""
+
+        Reference:
+
+        Moulton, R. H., Viktor, H. L., Japkowicz, N., & Gama, J. (2019).
+        Contextual One-Class Classification in Data Streams. arXiv preprint
+        arXiv:1907.04233."""
 
     def __init__(self, schema=None, hidden_layer=2, learning_rate=0.5, threshold=0.6, random_seed=1):
         """Construct a Half-Space Trees anomaly detector
