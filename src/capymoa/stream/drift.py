@@ -1,6 +1,9 @@
 """Simulate concept drift in datastreams."""
-
+import copy
+import inspect
 import re
+from collections import OrderedDict
+from itertools import cycle
 
 from capymoa.stream._stream import Stream
 from capymoa._utils import _get_moa_creation_CLI
@@ -135,6 +138,7 @@ class GradualDrift(Drift):
     def __init__(
         self, position=None, width=None, start=None, end=None, alpha=0.0, random_seed=1
     ):
+        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
         # since python doesn't allow overloading functions we need to check if the user hasn't defined position + width and start+end.
         if (
             position is not None
@@ -179,7 +183,9 @@ class GradualDrift(Drift):
 
 
 class AbruptDrift(Drift):
-    def __init__(self, position, random_seed=1):
+    def __init__(self, position: int, random_seed: int = 1):
+        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+
         self.position = position
         self.random_seed = random_seed
 
@@ -192,3 +198,130 @@ class AbruptDrift(Drift):
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"AbruptDrift({', '.join(non_default_attributes)})"
+
+
+class IndexedCycle:
+    """
+    An iterator that cycles through an iterable, returning tuples of (index, item).
+
+    Provides methods for replacing items at specific indices and resetting the cycle.
+    """
+
+    def __init__(self, iterable):
+        self._data = list(iterable)  # Create a copy for modification
+        self._index = -1
+        self._cycle = cycle(self._data)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self._index + 1 < len(self._data):
+            self._index += 1
+        else:
+            self._index = 0
+        item = next(self._cycle)
+
+        return self._index, item
+
+    def replace_and_move_to(self, index, new_item):
+        """
+        Replaces the item at the specified index in the original data and moves it to the new position.
+
+        Raises:
+            ValueError: If the index is out of range.
+        """
+
+        if not 0 <= index < len(self._data):
+            raise ValueError("Index out of range")
+
+        self._data[index] = new_item
+        self._cycle = cycle(self._data)  # Reset the cycle with modified data
+
+        # move to new index
+        while self._index != index:
+            _, _ = self.__next__()
+
+
+def get_class_and_init_attributes_with_values(obj):
+    cls = type(obj)
+    # Get function signature of init
+    function_signature = inspect.signature(cls.__init__)
+    # Access parameter names
+    init_args = OrderedDict(function_signature.parameters)
+    init_args.pop('self') # remove self item
+
+    # get instance's values for __init__
+    # assumes attribute name is same as parameter name
+    # args = {attr: getattr(obj, attr) for attr in init_args}
+    args = {attr: obj.__init_args_kwargs__[attr] for attr in init_args}
+    return cls, args
+
+
+def get_recurrent_concept_drift_stream_list(
+        concept_list: list,
+        max_recurrences_per_concept: int = 3,
+        change_random_seed_for_same_concept: bool = False,
+        transition_type_template: Drift = AbruptDrift(position=5000),
+        concept_name_list: list = None,
+) -> list:
+    recurrent_drift_stream = []
+    recurrent_concept_info = []
+
+    if not isinstance(transition_type_template, AbruptDrift):
+        raise ValueError(f'Unsupported drift transition type: {str(transition_type_template)}')
+
+    concept_cycle = IndexedCycle([k for k in concept_list])
+
+    recurrence_count = {i: 0 for i, v in enumerate(concept_list)}
+
+    drift_cls, original_drift_args = get_class_and_init_attributes_with_values(transition_type_template)
+
+    max_concepts = len(concept_list) * max_recurrences_per_concept
+    start_of_concept = 0
+    for i in range(0, max_concepts * 2, 2): # get even indexes starting from 0
+        next_idx, next_concept = next(concept_cycle) # get next concept and its index
+        drift_args = copy.deepcopy(original_drift_args) # create a copy of drift args
+        position = (int)(drift_args['position'] * ((i + 2) / 2)) # calculate drift position
+        drift_args['position'] = position # set drift position
+        drift = drift_cls(**drift_args) # initialize drift
+
+        end_of_concept = position
+        add_concept = False
+
+        if recurrence_count[next_idx] < max_recurrences_per_concept:
+            stream_cls, strea_args = get_class_and_init_attributes_with_values(next_concept)
+            add_concept = True
+        # else:  # recurrence recurrence_count has exceeded
+
+        if add_concept:
+            recurrent_drift_stream.insert(i, stream_cls(**strea_args))
+            recurrence_count[next_idx] += 1
+            recurrent_drift_stream.insert(i + 1, drift)
+            stream_name = f'concept {next_idx}' if concept_name_list is None else concept_name_list[next_idx]
+            recurrent_concept_info.append({'id': stream_name, 'start': start_of_concept, 'end': end_of_concept})
+            start_of_concept = end_of_concept
+            end_of_concept = None
+
+    recurrent_drift_stream.pop(len(recurrent_drift_stream) - 1) # remove last Drift item
+
+    return recurrent_concept_info, recurrent_drift_stream
+
+
+class RecurrentConceptDriftStream(DriftStream):
+    def __init__(self,
+                 concept_list: list,
+                 max_recurrences_per_concept: int = 3,
+                 change_random_seed_for_same_concept: bool = False,
+                 transition_type_template: Drift = AbruptDrift(position=5000),
+                 concept_name_list: list = None
+                 ):
+        self.recurrent_concept_info, stream_list = get_recurrent_concept_drift_stream_list(
+            concept_list=concept_list,
+            max_recurrences_per_concept=max_recurrences_per_concept,
+            change_random_seed_for_same_concept=change_random_seed_for_same_concept,
+            transition_type_template=transition_type_template,
+            concept_name_list = concept_name_list
+        )
+
+        super().__init__(stream=stream_list)

@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from datetime import datetime
-from capymoa.stream.drift import DriftStream
+from capymoa.stream.drift import DriftStream, RecurrentConceptDriftStream
 from com.yahoo.labs.samoa.instances import InstancesHeader
 import numpy as np
 import seaborn as sns
@@ -94,6 +94,22 @@ def plot_windowed_results(
             if drift_locations:
                 for location in drift_locations:
                     plt.axvline(location, color="red", linestyle="-")
+
+            # Plot the horizontal line (concept width) for each concept
+            if isinstance(stream, RecurrentConceptDriftStream):
+                # Define a colormap for automatic color generation (optional)
+                cmap = plt.cm.tab10  # Choose any colormap from Matplotlib (e.g., 'viridis', 'plasma')
+                colour_idxs = {}
+                colour_idx = 0
+                for c in stream.recurrent_concept_info:
+                    concept_label = None
+                    if c["id"] not in colour_idxs:
+                        colour_idxs[c["id"]] = colour_idx
+                        colour_idx += 1
+                        concept_label = c["id"]
+                    # If the concept_label is None, it is not shown in legend
+                    plt.hlines(y=1, xmin=c['start'], xmax=c['end'], color=cmap(colour_idxs[c["id"]]), linestyle='--', linewidth=2,
+                               label=concept_label)
 
             # Add gradual drift windows as 70% transparent rectangles
             if gradual_drift_window_lengths:
