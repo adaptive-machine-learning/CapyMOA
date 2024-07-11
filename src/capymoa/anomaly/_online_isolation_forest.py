@@ -92,7 +92,7 @@ class OnlineIsolationForest(AnomalyDetector):
         data: ndarray = instance.x.reshape((1, -1))
         return self._score_batch(data)
 
-    def _learn_batch(self, data: ndarray) -> 'OnlineIsolationForest':
+    def _learn_batch(self, data: ndarray) -> OnlineIsolationForest:
         # Update the counter of data seen so far
         self.data_size += data.shape[0]
         # Compute the normalization factor
@@ -184,7 +184,7 @@ class OnlineIsolationTree:
         partition: list[ndarray[int]] = split(sort_indices, projected_data[sort_indices].searchsorted(split_values))
         return partition
 
-    def _learn(self, data: ndarray) -> 'OnlineIsolationTree':
+    def _learn(self, data: ndarray) -> OnlineIsolationTree:
         # Subsample data in order to improve diversity among trees
         data: ndarray = data[self.random_generator.random(data.shape[0]) < self.subsample]
         if data.shape[0] >= 1:
@@ -255,7 +255,7 @@ class OnlineIsolationTree:
                                                        max_values=data.max(axis=0), projection_vector=projection_vector,
                                                        split_values=split_values)
 
-    def _unlearn(self, data: ndarray) -> 'OnlineIsolationTree':
+    def _unlearn(self, data: ndarray) -> OnlineIsolationTree:
         # Subsample data in order to improve diversity among trees
         data: ndarray = data[self.random_generator.random(data.shape[0]) < self.subsample]
         if data.shape[0] >= 1:
@@ -336,7 +336,7 @@ class OnlineIsolationNode:
                  min_values: ndarray, max_values: ndarray, projection_vector: ndarray[float],
                  split_values: ndarray[float]):
         self.data_size: int = data_size
-        self.children: ndarray['OnlineIsolationNode'] = children
+        self.children: ndarray[OnlineIsolationNode] = children
         self.depth: int = depth
         self.node_index: int = node_index
         self.min_values: ndarray = min_values
