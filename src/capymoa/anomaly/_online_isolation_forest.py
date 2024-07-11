@@ -19,12 +19,10 @@ class OnlineIsolationForest(AnomalyDetector):
     an ensemble anomaly detector capable of adapting to concept drift.
 
     Reference:
-    @inproceedings{Leveni2024,
-    title        = {Online Isolation Forest},
-    author       = {Leveni, Filippo and Weigert Cassales, Guilherme and Pfahringer, Bernhard and Bifet, Albert and Boracchi, Giacomo},
-    booktitle    = {International Conference on Machine Learning (ICML)},
-    year         = {2024},
-    organization = {Proceedings of Machine Learning Research (PMLR)}}
+    Filippo Leveni, Guilherme Weigert Cassales, Bernhard Pfahringer, Albert Bifet, and Giacomo Boracchi.
+    2024. Online Isolation Forest.
+    In International Conference on Machine Learning (ICML), Proceedings of Machine Learning Research (PMLR).
+
     Example usage:
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.anomaly import OnlineIsolationForest
