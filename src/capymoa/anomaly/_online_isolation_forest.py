@@ -43,8 +43,8 @@ class OnlineIsolationForest(AnomalyDetector):
     AUC: 0.52
     """
     def __init__(self, schema: Schema = None, random_seed: int = 1, num_trees: int = 32, max_leaf_samples: int = 32,
-                 type: str = 'adaptive', subsample: float = 1.0, window_size: int = 2048, branching_factor: int = 2,
-                 split: str = 'axisparallel', n_jobs: int = 1):
+                 growth_criterion: str = 'adaptive', subsample: float = 1.0, window_size: int = 2048,
+                 branching_factor: int = 2, split: str = 'axisparallel', n_jobs: int = 1):
         """Construct an Online Isolation Forest anomaly detector
 
         :param schema: The schema of the stream. If not provided, it will be inferred from the data.
@@ -53,7 +53,8 @@ class OnlineIsolationForest(AnomalyDetector):
         :param window_size: The size of the window for each tree.
         :param branching_factor: Branching factor of each tree.
         :param max_leaf_samples: Maximum number of samples per leaf. When this number is reached, a split is performed.
-        :param type: Type of split performed. If "adaptive", the max_leaf_samples grows with tree depth.
+        :param growth_criterion: When to perform a split. If 'adaptive', the max_leaf_samples grows with tree depth,
+                                 otherwise 'fixed'.
         :param subsample: Probability of learning a new sample in each tree.
         :param split: Type of split performed at each node. Currently only 'axisparallel' is supported, which is the
                       same type used by the IsolationForest algorithm.
@@ -64,7 +65,7 @@ class OnlineIsolationForest(AnomalyDetector):
         self.window_size: int = window_size
         self.branching_factor: int = branching_factor
         self.max_leaf_samples: int = max_leaf_samples
-        self.type: str = type
+        self.growth_criterion: str = growth_criterion
         self.subsample: float = subsample
         self.trees: list[OnlineIsolationTree] = []
         self.data_window: list[ndarray] = []
@@ -73,7 +74,7 @@ class OnlineIsolationForest(AnomalyDetector):
         self.split: str = split
         self.n_jobs: int = cpu_count() if n_jobs == -1 else min(n_jobs, cpu_count())
         self.trees: list[OnlineIsolationTree] = [OnlineIsolationTree(max_leaf_samples=max_leaf_samples,
-                                                                     type=type,
+                                                                     growth_criterion=growth_criterion,
                                                                      subsample=self.subsample,
                                                                      branching_factor=self.branching_factor,
                                                                      data_size=self.data_size,
@@ -142,10 +143,10 @@ class OnlineIsolationForest(AnomalyDetector):
 
 
 class OnlineIsolationTree:
-    def __init__(self, max_leaf_samples: int, type: str, subsample: float, branching_factor: int, data_size: int,
-                 split: str = 'axisparallel', random_seed: int = 1):
+    def __init__(self, max_leaf_samples: int, growth_criterion: str, subsample: float, branching_factor: int,
+                 data_size: int, split: str = 'axisparallel', random_seed: int = 1):
         self.max_leaf_samples: int = max_leaf_samples
-        self.type: str = type
+        self.growth_criterion: str = growth_criterion
         self.subsample: float = subsample
         self.branching_factor: int = branching_factor
         self.data_size: int = data_size
@@ -164,14 +165,14 @@ class OnlineIsolationTree:
             return log(num_samples / max_leaf_samples) / log(2 * branching_factor)
 
     @staticmethod
-    def _get_multiplier(type: str, depth: int) -> int:
-        # Compute the multiplier according to the type
-        if type == 'fixed':
+    def _get_multiplier(growth_criterion: str, depth: int) -> int:
+        # Compute the multiplier according to the growth criterion
+        if growth_criterion == 'fixed':
             return 1
-        elif type == 'adaptive':
+        elif growth_criterion == 'adaptive':
             return 2 ** depth
         else:
-            raise ValueError('Bad type {}'.format(type))
+            raise ValueError('Bad grow criterion {}'.format(growth_criterion))
 
     @staticmethod
     def _split_data(data: ndarray, projection_vector: ndarray[float], split_values: ndarray[float]) -> list[ndarray[int]]:
@@ -206,7 +207,7 @@ class OnlineIsolationTree:
         if node.children is None:
             # If there are enough samples to be split according to the max leaf samples and the depth limit has not been
             # reached yet, split the node
-            if node.data_size >= self.max_leaf_samples*OnlineIsolationTree._get_multiplier(self.type, node.depth) and node.depth < self.depth_limit:
+            if node.data_size >= self.max_leaf_samples*OnlineIsolationTree._get_multiplier(self.growth_criterion, node.depth) and node.depth < self.depth_limit:
                 # Sample data_size points uniformly at random within the bounding box defined by the vectors of minimum
                 # and maximum values of data seen so far by the current node
                 data_sampled: ndarray = self.random_generator.uniform(node.min_values, node.max_values, size=(node.data_size, data.shape[1]))
@@ -225,7 +226,7 @@ class OnlineIsolationTree:
     def _recursive_build(self, data: ndarray, depth: int = 0, node_index: int = 0) -> (int, OnlineIsolationNode):
         # If there aren't enough samples to be split according to the max leaf samples or the depth limit has been
         # reached, build a leaf node
-        if data.shape[0] < self.max_leaf_samples*OnlineIsolationTree._get_multiplier(self.type, depth) or depth >= self.depth_limit:
+        if data.shape[0] < self.max_leaf_samples*OnlineIsolationTree._get_multiplier(self.growth_criterion, depth) or depth >= self.depth_limit:
             return node_index + 1, OnlineIsolationNode(data_size=data.shape[0], children=None, depth=depth,
                                                        node_index=node_index, min_values=data.min(axis=0, initial=inf),
                                                        max_values=data.max(axis=0, initial=-inf), projection_vector=None,
@@ -276,7 +277,7 @@ class OnlineIsolationTree:
         # If the current node is not a leaf, try to unsplit it
         else:
             # If there are not enough samples according to max leaf samples, unsplit the node
-            if node.data_size < self.max_leaf_samples*OnlineIsolationTree._get_multiplier(self.type, node.depth):
+            if node.data_size < self.max_leaf_samples*OnlineIsolationTree._get_multiplier(self.growth_criterion, node.depth):
                 return self._recursive_unbuild(node)
             # If there are enough samples according to max leaf samples, recursively update all its children
             else:
