@@ -82,7 +82,7 @@ class OnlineIsolationForest(AnomalyDetector):
 
     def train(self, instance: Instance):
         data: ndarray = instance.x.reshape((1, -1))
-        self.learn_batch(data)
+        self._learn_batch(data)
         return
 
     def predict(self, instance: Instance) -> Optional[LabelIndex]:
@@ -90,17 +90,17 @@ class OnlineIsolationForest(AnomalyDetector):
 
     def score_instance(self, instance: Instance) -> AnomalyScore:
         data: ndarray = instance.x.reshape((1, -1))
-        return self.score_batch(data)
+        return self._score_batch(data)
 
-    def learn_batch(self, data: ndarray) -> 'OnlineIsolationForest':
+    def _learn_batch(self, data: ndarray) -> 'OnlineIsolationForest':
         # Update the counter of data seen so far
         self.data_size += data.shape[0]
         # Compute the normalization factor
-        self.normalization_factor: float = OnlineIsolationTree.get_random_path_length(self.branching_factor,
-                                                                                      self.max_leaf_samples,
-                                                                                      self.data_size * self.subsample)
+        self.normalization_factor: float = OnlineIsolationTree._get_random_path_length(self.branching_factor,
+                                                                                       self.max_leaf_samples,
+                                                                                       self.data_size * self.subsample)
         # Instantiate a list of OnlineIsolationTrees' learn functions
-        learn_funcs: list['function'] = [tree.learn for tree in self.trees]
+        learn_funcs: list['function'] = [tree._learn for tree in self.trees]
         # OnlineIsolationTrees learn new data
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
             self.trees: list[OnlineIsolationTree] = list(executor.map(lambda f, x: f(x), learn_funcs,
@@ -116,20 +116,20 @@ class OnlineIsolationForest(AnomalyDetector):
                 # Update the counter of data seen so far
                 self.data_size -= self.data_size-self.window_size
                 # Compute the normalization factor
-                self.normalization_factor: float = OnlineIsolationTree.get_random_path_length(self.branching_factor,
-                                                                                              self.max_leaf_samples,
-                                                                                              self.data_size * self.subsample)
+                self.normalization_factor: float = OnlineIsolationTree._get_random_path_length(self.branching_factor,
+                                                                                               self.max_leaf_samples,
+                                                                                               self.data_size * self.subsample)
                 # Instantiate a list of OnlineIsolationTrees' unlearn functions
-                unlearn_funcs: list['function'] = [tree.unlearn for tree in self.trees]
+                unlearn_funcs: list['function'] = [tree._unlearn for tree in self.trees]
                 # OnlineIsolationTrees unlearn new data
                 with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
                     self.trees: list[OnlineIsolationTree] = list(executor.map(lambda f, x: f(x), unlearn_funcs,
                                                                               repeat(data, self.num_trees)))
         return self
 
-    def score_batch(self, data: ndarray) -> ndarray[float]:
+    def _score_batch(self, data: ndarray) -> ndarray[float]:
         # Collect OnlineIsolationTrees' predict functions
-        predict_funcs: list['function'] = [tree.predict for tree in self.trees]
+        predict_funcs: list['function'] = [tree._predict for tree in self.trees]
         # Compute the depths of all samples in each tree
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
             depths: ndarray[float] = asarray(list(executor.map(lambda f, x: f(x), predict_funcs,
@@ -151,20 +151,20 @@ class OnlineIsolationTree:
         self.data_size: int = data_size
         self.split: str = split
         self.random_generator: Generator = default_rng(seed=random_seed)
-        self.depth_limit: float = OnlineIsolationTree.get_random_path_length(self.branching_factor, self.max_leaf_samples,
-                                                                             self.data_size * self.subsample)
+        self.depth_limit: float = OnlineIsolationTree._get_random_path_length(self.branching_factor, self.max_leaf_samples,
+                                                                              self.data_size * self.subsample)
         self.root: OnlineIsolationNode = None
         self.next_node_index: int = 0
 
     @staticmethod
-    def get_random_path_length(branching_factor: int, max_leaf_samples: int, num_samples: float) -> float:
+    def _get_random_path_length(branching_factor: int, max_leaf_samples: int, num_samples: float) -> float:
         if num_samples < max_leaf_samples:
             return 0
         else:
             return log(num_samples / max_leaf_samples) / log(2 * branching_factor)
 
     @staticmethod
-    def get_multiplier(type: str, depth: int) -> int:
+    def _get_multiplier(type: str, depth: int) -> int:
         # Compute the multiplier according to the type
         if type == 'fixed':
             return 1
@@ -173,20 +173,20 @@ class OnlineIsolationTree:
         else:
             raise ValueError('Bad type {}'.format(type))
 
-    def learn(self, data: ndarray) -> 'OnlineIsolationTree':
+    def _learn(self, data: ndarray) -> 'OnlineIsolationTree':
         # Subsample data in order to improve diversity among trees
         data: ndarray = data[self.random_generator.random(data.shape[0]) < self.subsample]
         if data.shape[0] >= 1:
             # Update the counter of data seen so far
             self.data_size += data.shape[0]
             # Adjust depth limit according to data seen so far and branching factor
-            self.depth_limit: float = OnlineIsolationTree.get_random_path_length(self.branching_factor, self.max_leaf_samples,
-                                                                                 self.data_size)
+            self.depth_limit: float = OnlineIsolationTree._get_random_path_length(self.branching_factor, self.max_leaf_samples,
+                                                                                  self.data_size)
             # Recursively update the tree
-            self.next_node_index, self.root = self.recursive_build(data) if self.root is None else self.recursive_learn(self.root, data, self.next_node_index)
+            self.next_node_index, self.root = self._recursive_build(data) if self.root is None else self._recursive_learn(self.root, data, self.next_node_index)
         return self
 
-    def recursive_learn(self, node: OnlineIsolationNode, data: ndarray, node_index: int) -> (int, OnlineIsolationNode):
+    def _recursive_learn(self, node: OnlineIsolationNode, data: ndarray, node_index: int) -> (int, OnlineIsolationNode):
         # Update the number of data seen so far by the current node
         node.data_size += data.shape[0]
         # Update the vectors of minimum and maximum values seen so far by the current node
@@ -196,26 +196,26 @@ class OnlineIsolationTree:
         if node.children is None:
             # If there are enough samples to be split according to the max leaf samples and the depth limit has not been
             # reached yet, split the node
-            if node.data_size >= self.max_leaf_samples*OnlineIsolationTree.get_multiplier(self.type, node.depth) and node.depth < self.depth_limit:
+            if node.data_size >= self.max_leaf_samples*OnlineIsolationTree._get_multiplier(self.type, node.depth) and node.depth < self.depth_limit:
                 # Sample data_size points uniformly at random within the bounding box defined by the vectors of minimum
                 # and maximum values of data seen so far by the current node
                 data_sampled: ndarray = self.random_generator.uniform(node.min_values, node.max_values, size=(node.data_size, data.shape[1]))
-                return self.recursive_build(data_sampled, depth=node.depth, node_index=node_index)
+                return self._recursive_build(data_sampled, depth=node.depth, node_index=node_index)
             else:
                 return node_index, node
         # If the current node is not a leaf, recursively update all its children
         else:
             # Partition data
-            partition_indices: list[ndarray[int]] = self.split_data(data, node.projection_vector, node.split_values)
+            partition_indices: list[ndarray[int]] = self._split_data(data, node.projection_vector, node.split_values)
             # Recursively update children
             for i, indices in enumerate(partition_indices):
-                node_index, node.children[i] = self.recursive_learn(node.children[i], data[indices], node_index)
+                node_index, node.children[i] = self._recursive_learn(node.children[i], data[indices], node_index)
             return node_index, node
 
-    def recursive_build(self, data: ndarray, depth: int = 0, node_index: int = 0) -> (int, OnlineIsolationNode):
+    def _recursive_build(self, data: ndarray, depth: int = 0, node_index: int = 0) -> (int, OnlineIsolationNode):
         # If there aren't enough samples to be split according to the max leaf samples or the depth limit has been
         # reached, build a leaf node
-        if data.shape[0] < self.max_leaf_samples*OnlineIsolationTree.get_multiplier(self.type, depth) or depth >= self.depth_limit:
+        if data.shape[0] < self.max_leaf_samples*OnlineIsolationTree._get_multiplier(self.type, depth) or depth >= self.depth_limit:
             return node_index + 1, OnlineIsolationNode(data_size=data.shape[0], children=None, depth=depth,
                                                        node_index=node_index, min_values=data.min(axis=0, initial=inf),
                                                        max_values=data.max(axis=0, initial=-inf), projection_vector=None,
@@ -234,30 +234,30 @@ class OnlineIsolationTree:
             split_values: ndarray[float] = sort(self.random_generator.uniform(min(projected_data), max(projected_data),
                                                                               size=self.branching_factor - 1))
             # Partition sampled data
-            partition_indices: list[ndarray[int]] = self.split_data(data, projection_vector, split_values)
+            partition_indices: list[ndarray[int]] = self._split_data(data, projection_vector, split_values)
             # Generate recursively children nodes
             children: ndarray[OnlineIsolationNode] = empty(shape=(self.branching_factor,), dtype=OnlineIsolationNode)
             for i, indices in enumerate(partition_indices):
-                node_index, children[i] = self.recursive_build(data[indices], depth + 1, node_index)
+                node_index, children[i] = self._recursive_build(data[indices], depth + 1, node_index)
             return node_index + 1, OnlineIsolationNode(data_size=data.shape[0], children=children, depth=depth,
                                                        node_index=node_index, min_values=data.min(axis=0),
                                                        max_values=data.max(axis=0), projection_vector=projection_vector,
                                                        split_values=split_values)
 
-    def unlearn(self, data: ndarray) -> 'OnlineIsolationTree':
+    def _unlearn(self, data: ndarray) -> 'OnlineIsolationTree':
         # Subsample data in order to improve diversity among trees
         data: ndarray = data[self.random_generator.random(data.shape[0]) < self.subsample]
         if data.shape[0] >= 1:
             # Update the counter of data seen so far
             self.data_size -= data.shape[0]
             # Adjust depth limit according to data seen so far and branching factor
-            self.depth_limit: float = OnlineIsolationTree.get_random_path_length(self.branching_factor, self.max_leaf_samples,
-                                                                                 self.data_size)
+            self.depth_limit: float = OnlineIsolationTree._get_random_path_length(self.branching_factor, self.max_leaf_samples,
+                                                                                  self.data_size)
             # Recursively update the tree
-            self.root: OnlineIsolationNode = self.recursive_unlearn(self.root, data)
+            self.root: OnlineIsolationNode = self._recursive_unlearn(self.root, data)
         return self
 
-    def recursive_unlearn(self, node: OnlineIsolationNode, data: ndarray) -> OnlineIsolationNode:
+    def _recursive_unlearn(self, node: OnlineIsolationNode, data: ndarray) -> OnlineIsolationNode:
         # Update the number of data seen so far by the current node
         node.data_size -= data.shape[0]
         # If the current node is a leaf, return it
@@ -266,21 +266,21 @@ class OnlineIsolationTree:
         # If the current node is not a leaf, try to unsplit it
         else:
             # If there are not enough samples according to max leaf samples, unsplit the node
-            if node.data_size < self.max_leaf_samples*OnlineIsolationTree.get_multiplier(self.type, node.depth):
-                return self.recursive_unbuild(node)
+            if node.data_size < self.max_leaf_samples*OnlineIsolationTree._get_multiplier(self.type, node.depth):
+                return self._recursive_unbuild(node)
             # If there are enough samples according to max leaf samples, recursively update all its children
             else:
                 # Partition data
-                partition_indices: list[ndarray[int]] = self.split_data(data, node.projection_vector, node.split_values)
+                partition_indices: list[ndarray[int]] = self._split_data(data, node.projection_vector, node.split_values)
                 # Recursively update children
                 for i, indices in enumerate(partition_indices):
-                    node.children[i]: OnlineIsolationNode = self.recursive_unlearn(node.children[i], data[indices])
+                    node.children[i]: OnlineIsolationNode = self._recursive_unlearn(node.children[i], data[indices])
                 # Update the vectors of minimum and maximum values seen so far by the current node
                 node.min_values: ndarray = vstack([node.children[i].min_values for i, _ in enumerate(node.children)]).min(axis=0)
                 node.max_values: ndarray = vstack([node.children[i].max_values for i, _ in enumerate(node.children)]).max(axis=0)
                 return node
 
-    def recursive_unbuild(self, node: OnlineIsolationNode) -> OnlineIsolationNode:
+    def _recursive_unbuild(self, node: OnlineIsolationNode) -> OnlineIsolationNode:
         # If the current node is a leaf, return it
         if node.children is None:
             return node
@@ -288,7 +288,7 @@ class OnlineIsolationTree:
         else:
             # Recursively unbuild children
             for i, _ in enumerate(node.children):
-                node.children[i]: OnlineIsolationNode = self.recursive_unbuild(node.children[i])
+                node.children[i]: OnlineIsolationNode = self._recursive_unbuild(node.children[i])
             # Update the vectors of minimum and maximum values seen so far by the current node
             node.min_values: ndarray = vstack([node.children[i].min_values for i, _ in enumerate(node.children)]).min(axis=0)
             node.max_values: ndarray = vstack([node.children[i].max_values for i, _ in enumerate(node.children)]).max(axis=0)
@@ -298,28 +298,28 @@ class OnlineIsolationTree:
             node.split_values: ndarray[float] = None
             return node
 
-    def predict(self, data: ndarray) -> ndarray[float]:
+    def _predict(self, data: ndarray) -> ndarray[float]:
         # Compute depth of each sample
         if self.root:
-            return self.recursive_depth_search(self.root, data, empty(shape=(data.shape[0],), dtype=float))
+            return self._recursive_depth_search(self.root, data, empty(shape=(data.shape[0],), dtype=float))
         else:
             return zeros(shape=(data.shape[0],), dtype=float)
 
-    def recursive_depth_search(self, node: OnlineIsolationNode, data: ndarray, depths: ndarray[float]) -> ndarray[float]:
+    def _recursive_depth_search(self, node: OnlineIsolationNode, data: ndarray, depths: ndarray[float]) -> ndarray[float]:
         # If the current node is a leaf, fill the depths vector with the current depth plus a normalization factor
         if node.children is None or data.shape[0] == 0:
-            depths[:] = node.depth + OnlineIsolationTree.get_random_path_length(self.branching_factor, self.max_leaf_samples,
-                                                                                node.data_size)
+            depths[:] = node.depth + OnlineIsolationTree._get_random_path_length(self.branching_factor, self.max_leaf_samples,
+                                                                                 node.data_size)
         else:
             # Partition data
-            partition_indices: list[ndarray[int]] = self.split_data(data, node.projection_vector, node.split_values)
+            partition_indices: list[ndarray[int]] = self._split_data(data, node.projection_vector, node.split_values)
             # Fill the vector of depths
             for i, indices in enumerate(partition_indices):
-                depths[indices]: ndarray[float] = self.recursive_depth_search(node.children[i], data[indices],
-                                                                              depths[indices])
+                depths[indices]: ndarray[float] = self._recursive_depth_search(node.children[i], data[indices],
+                                                                               depths[indices])
         return depths
 
-    def split_data(self, data: ndarray, projection_vector: ndarray[float], split_values: ndarray[float]) -> list[ndarray[int]]:
+    def _split_data(self, data: ndarray, projection_vector: ndarray[float], split_values: ndarray[float]) -> list[ndarray[int]]:
         # Project data using projection vector
         projected_data: ndarray = data @ projection_vector
         # Sort projected data and keep sort indices
