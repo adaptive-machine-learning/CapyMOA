@@ -44,7 +44,7 @@ class OnlineIsolationForest(AnomalyDetector):
     """
     def __init__(self, schema: Schema = None, random_seed: int = 1, num_trees: int = 32, max_leaf_samples: int = 32,
                  type: str = 'adaptive', subsample: float = 1.0, window_size: int = 2048, branching_factor: int = 2,
-                 metric: str = 'axisparallel', n_jobs: int = 1):
+                 split: str = 'axisparallel', n_jobs: int = 1):
         """Construct an Online Isolation Forest anomaly detector
 
         :param schema: The schema of the stream. If not provided, it will be inferred from the data.
@@ -55,6 +55,8 @@ class OnlineIsolationForest(AnomalyDetector):
         :param max_leaf_samples: Maximum number of samples per leaf. When this number is reached, a split is performed.
         :param type: Type of split performed. If "adaptive", the max_leaf_samples grows with tree depth.
         :param subsample: Probability of learning a new sample in each tree.
+        :param split: Type of split performed at each node. Currently only 'axisparallel' is supported, which is the
+                      same type used by the IsolationForest algorithm.
         :param n_jobs: Number of parallel jobs.
         """
         super().__init__(schema=schema, random_seed=random_seed)
@@ -68,14 +70,14 @@ class OnlineIsolationForest(AnomalyDetector):
         self.data_window: list[ndarray] = []
         self.data_size: int = 0
         self.normalization_factor: float = 0
-        self.metric: str = metric
+        self.split: str = split
         self.n_jobs: int = cpu_count() if n_jobs == -1 else min(n_jobs, cpu_count())
         self.trees: list[OnlineIsolationTree] = [OnlineIsolationTree(max_leaf_samples=max_leaf_samples,
                                                                      type=type,
                                                                      subsample=self.subsample,
                                                                      branching_factor=self.branching_factor,
                                                                      data_size=self.data_size,
-                                                                     metric=self.metric,
+                                                                     split=self.split,
                                                                      random_seed=self.random_seed) for _ in range(self.num_trees)]
 
     def train(self, instance: Instance):
@@ -141,13 +143,13 @@ class OnlineIsolationForest(AnomalyDetector):
 
 class OnlineIsolationTree:
     def __init__(self, max_leaf_samples: int, type: str, subsample: float, branching_factor: int, data_size: int,
-                 metric: str = 'axisparallel', random_seed: int = 1):
+                 split: str = 'axisparallel', random_seed: int = 1):
         self.max_leaf_samples: int = max_leaf_samples
         self.type: str = type
         self.subsample: float = subsample
         self.branching_factor: int = branching_factor
         self.data_size: int = data_size
-        self.metric: str = metric
+        self.split: str = split
         self.random_generator: Generator = default_rng(seed=random_seed)
         self.depth_limit: float = OnlineIsolationTree.get_random_path_length(self.branching_factor, self.max_leaf_samples,
                                                                              self.data_size * self.subsample)
@@ -220,11 +222,11 @@ class OnlineIsolationTree:
                                                        split_values=None)
         else:
             # Sample projection vector
-            if self.metric == 'axisparallel':
+            if self.split == 'axisparallel':
                 projection_vector: ndarray[float] = zeros(data.shape[1])
                 projection_vector[self.random_generator.choice(projection_vector.shape[0])]: float = 1.0
             else:
-                raise ValueError('Bad metric {}'.format(self.metric))
+                raise ValueError('Bad split {}'.format(self.split))
             projection_vector: ndarray[float] = projection_vector / norm(projection_vector)
             # Project sampled data using projection vector
             projected_data: ndarray = data @ projection_vector
