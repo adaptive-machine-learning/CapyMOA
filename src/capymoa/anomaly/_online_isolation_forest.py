@@ -9,7 +9,7 @@ from multiprocessing import cpu_count
 from numpy import argsort, asarray, empty, finfo, inf, log, ndarray, sort, split, vstack, zeros
 from numpy.linalg import norm
 from numpy.random import default_rng, Generator
-from typing import Literal, Optional
+from typing import Literal, Optional, Tuple
 
 
 class OnlineIsolationForest(AnomalyDetector):
@@ -197,7 +197,7 @@ class OnlineIsolationTree:
             self.next_node_index, self.root = self._recursive_build(data) if self.root is None else self._recursive_learn(self.root, data, self.next_node_index)
         return self
 
-    def _recursive_learn(self, node: OnlineIsolationNode, data: ndarray, node_index: int) -> (int, OnlineIsolationNode):
+    def _recursive_learn(self, node: OnlineIsolationNode, data: ndarray, node_index: int) -> Tuple[int, OnlineIsolationNode]:
         # Update the number of data seen so far by the current node
         node.data_size += data.shape[0]
         # Update the vectors of minimum and maximum values seen so far by the current node
@@ -223,7 +223,7 @@ class OnlineIsolationTree:
                 node_index, node.children[i] = self._recursive_learn(node.children[i], data[indices], node_index)
             return node_index, node
 
-    def _recursive_build(self, data: ndarray, depth: int = 0, node_index: int = 0) -> (int, OnlineIsolationNode):
+    def _recursive_build(self, data: ndarray, depth: int = 0, node_index: int = 0) -> Tuple[int, OnlineIsolationNode]:
         # If there aren't enough samples to be split according to the max leaf samples or the depth limit has been
         # reached, build a leaf node
         if data.shape[0] < self.max_leaf_samples*OnlineIsolationTree._get_multiplier(self.growth_criterion, depth) or depth >= self.depth_limit:
