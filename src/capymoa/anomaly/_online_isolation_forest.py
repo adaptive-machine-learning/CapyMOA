@@ -173,6 +173,16 @@ class OnlineIsolationTree:
         else:
             raise ValueError('Bad type {}'.format(type))
 
+    @staticmethod
+    def _split_data(data: ndarray, projection_vector: ndarray[float], split_values: ndarray[float]) -> list[ndarray[int]]:
+        # Project data using projection vector
+        projected_data: ndarray = data @ projection_vector
+        # Sort projected data and keep sort indices
+        sort_indices: ndarray = argsort(projected_data)
+        # Split data according to their membership
+        partition: list[ndarray[int]] = split(sort_indices, projected_data[sort_indices].searchsorted(split_values))
+        return partition
+
     def _learn(self, data: ndarray) -> 'OnlineIsolationTree':
         # Subsample data in order to improve diversity among trees
         data: ndarray = data[self.random_generator.random(data.shape[0]) < self.subsample]
@@ -318,15 +328,6 @@ class OnlineIsolationTree:
                 depths[indices]: ndarray[float] = self._recursive_depth_search(node.children[i], data[indices],
                                                                                depths[indices])
         return depths
-
-    def _split_data(self, data: ndarray, projection_vector: ndarray[float], split_values: ndarray[float]) -> list[ndarray[int]]:
-        # Project data using projection vector
-        projected_data: ndarray = data @ projection_vector
-        # Sort projected data and keep sort indices
-        sort_indices: ndarray = argsort(projected_data)
-        # Split data according to their membership
-        partition: list[ndarray[int]] = split(sort_indices, projected_data[sort_indices].searchsorted(split_values))
-        return partition
 
 
 class OnlineIsolationNode:
