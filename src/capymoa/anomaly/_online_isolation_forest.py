@@ -4,6 +4,7 @@ from capymoa.instance import Instance, LabelIndex
 from capymoa.stream._stream import Schema
 from capymoa.type_alias import AnomalyScore
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from itertools import repeat
 from multiprocessing import cpu_count
 from numpy import argsort, asarray, empty, finfo, inf, log, ndarray, sort, split, vstack, zeros
@@ -331,6 +332,7 @@ class OnlineIsolationTree:
         return depths
 
 
+@dataclass
 class OnlineIsolationNode:
     def __init__(self, data_size: int, children: ndarray[OnlineIsolationNode], depth: int, node_index: int,
                  min_values: ndarray, max_values: ndarray, projection_vector: ndarray[float],
