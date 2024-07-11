@@ -9,7 +9,7 @@ from multiprocessing import cpu_count
 from numpy import argsort, asarray, empty, finfo, inf, log, ndarray, sort, split, vstack, zeros
 from numpy.linalg import norm
 from numpy.random import default_rng, Generator
-from typing import Optional
+from typing import Literal, Optional
 
 
 class OnlineIsolationForest(AnomalyDetector):
@@ -43,8 +43,9 @@ class OnlineIsolationForest(AnomalyDetector):
     AUC: 0.52
     """
     def __init__(self, schema: Schema = None, random_seed: int = 1, num_trees: int = 32, max_leaf_samples: int = 32,
-                 growth_criterion: str = 'adaptive', subsample: float = 1.0, window_size: int = 2048,
-                 branching_factor: int = 2, split: str = 'axisparallel', n_jobs: int = 1):
+                 growth_criterion: Literal['fixed', 'adaptive'] = 'adaptive', subsample: float = 1.0,
+                 window_size: int = 2048, branching_factor: int = 2, split: Literal['axisparallel'] = 'axisparallel',
+                 n_jobs: int = 1):
         """Construct an Online Isolation Forest anomaly detector
 
         :param schema: The schema of the stream. If not provided, it will be inferred from the data.
@@ -65,13 +66,13 @@ class OnlineIsolationForest(AnomalyDetector):
         self.window_size: int = window_size
         self.branching_factor: int = branching_factor
         self.max_leaf_samples: int = max_leaf_samples
-        self.growth_criterion: str = growth_criterion
+        self.growth_criterion: Literal['fixed', 'adaptive'] = growth_criterion
         self.subsample: float = subsample
         self.trees: list[OnlineIsolationTree] = []
         self.data_window: list[ndarray] = []
         self.data_size: int = 0
         self.normalization_factor: float = 0
-        self.split: str = split
+        self.split: Literal['axisparallel'] = split
         self.n_jobs: int = cpu_count() if n_jobs == -1 else min(n_jobs, cpu_count())
         self.trees: list[OnlineIsolationTree] = [OnlineIsolationTree(max_leaf_samples=max_leaf_samples,
                                                                      growth_criterion=growth_criterion,
@@ -143,14 +144,15 @@ class OnlineIsolationForest(AnomalyDetector):
 
 
 class OnlineIsolationTree:
-    def __init__(self, max_leaf_samples: int, growth_criterion: str, subsample: float, branching_factor: int,
-                 data_size: int, split: str = 'axisparallel', random_seed: int = 1):
+    def __init__(self, max_leaf_samples: int, growth_criterion: Literal['fixed', 'adaptive'], subsample: float,
+                 branching_factor: int, data_size: int, split: Literal['axisparallel'] = 'axisparallel',
+                 random_seed: int = 1):
         self.max_leaf_samples: int = max_leaf_samples
-        self.growth_criterion: str = growth_criterion
+        self.growth_criterion: Literal['fixed', 'adaptive'] = growth_criterion
         self.subsample: float = subsample
         self.branching_factor: int = branching_factor
         self.data_size: int = data_size
-        self.split: str = split
+        self.split: Literal['axisparallel'] = split
         self.random_generator: Generator = default_rng(seed=random_seed)
         self.depth_limit: float = OnlineIsolationTree._get_random_path_length(self.branching_factor, self.max_leaf_samples,
                                                                               self.data_size * self.subsample)
@@ -165,7 +167,7 @@ class OnlineIsolationTree:
             return log(num_samples / max_leaf_samples) / log(2 * branching_factor)
 
     @staticmethod
-    def _get_multiplier(growth_criterion: str, depth: int) -> int:
+    def _get_multiplier(growth_criterion: Literal['fixed', 'adaptive'], depth: int) -> int:
         # Compute the multiplier according to the growth criterion
         if growth_criterion == 'fixed':
             return 1
