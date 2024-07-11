@@ -41,10 +41,10 @@ class OnlineIsolationForest(AnomalyDetector):
     >>> print(f"AUC: {auc:.2f}")
     AUC: 0.52
     """
-    def __init__(self, schema: Schema = None, random_seed: int = 1, num_trees: int = 32, max_leaf_samples: int = 32,
-                 growth_criterion: Literal['fixed', 'adaptive'] = 'adaptive', subsample: float = 1.0,
-                 window_size: int = 2048, branching_factor: int = 2, split: Literal['axisparallel'] = 'axisparallel',
-                 n_jobs: int = 1):
+    def __init__(self, schema: Optional[Schema] = None, random_seed: int = 1, num_trees: int = 32,
+                 max_leaf_samples: int = 32, growth_criterion: Literal['fixed', 'adaptive'] = 'adaptive',
+                 subsample: float = 1.0, window_size: int = 2048, branching_factor: int = 2,
+                 split: Literal['axisparallel'] = 'axisparallel', n_jobs: int = 1):
         """Construct an Online Isolation Forest anomaly detector
 
         :param schema: The schema of the stream. If not provided, it will be inferred from the data.
@@ -155,7 +155,7 @@ class OnlineIsolationTree:
         self.random_generator: Generator = default_rng(seed=random_seed)
         self.depth_limit: float = OnlineIsolationTree._get_random_path_length(self.branching_factor, self.max_leaf_samples,
                                                                               self.data_size * self.subsample)
-        self.root: OnlineIsolationNode = None
+        self.root: Optional[OnlineIsolationNode] = None
         self.next_node_index: int = 0
 
     @staticmethod
@@ -305,9 +305,9 @@ class OnlineIsolationTree:
             node.min_values: ndarray = vstack([node.children[i].min_values for i, _ in enumerate(node.children)]).min(axis=0)
             node.max_values: ndarray = vstack([node.children[i].max_values for i, _ in enumerate(node.children)]).max(axis=0)
             # Delete children nodes, projection vector and split values
-            node.children: ndarray[OnlineIsolationNode] = None
-            node.projection_vector: ndarray[float] = None
-            node.split_values: ndarray[float] = None
+            node.children: Optional[ndarray[OnlineIsolationNode]] = None
+            node.projection_vector: Optional[ndarray[float]] = None
+            node.split_values: Optional[ndarray[float]] = None
             return node
 
     def _predict(self, data: ndarray) -> ndarray[float]:
@@ -334,14 +334,14 @@ class OnlineIsolationTree:
 
 @dataclass
 class OnlineIsolationNode:
-    def __init__(self, data_size: int, children: ndarray[OnlineIsolationNode], depth: int, node_index: int,
-                 min_values: ndarray, max_values: ndarray, projection_vector: ndarray[float],
-                 split_values: ndarray[float]):
+    def __init__(self, data_size: int, children: Optional[ndarray[OnlineIsolationNode]], depth: int, node_index: int,
+                 min_values: ndarray, max_values: ndarray, projection_vector: Optional[ndarray[float]],
+                 split_values: Optional[ndarray[float]]):
         self.data_size: int = data_size
-        self.children: ndarray[OnlineIsolationNode] = children
+        self.children: Optional[ndarray[OnlineIsolationNode]] = children
         self.depth: int = depth
         self.node_index: int = node_index
         self.min_values: ndarray = min_values
         self.max_values: ndarray = max_values
-        self.projection_vector: ndarray[float] = projection_vector
-        self.split_values: ndarray[float] = split_values
+        self.projection_vector: Optional[ndarray[float]] = projection_vector
+        self.split_values: Optional[ndarray[float]] = split_values
