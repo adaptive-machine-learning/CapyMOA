@@ -91,7 +91,7 @@ class OnlineIsolationForest(AnomalyDetector):
 
     def score_instance(self, instance: Instance) -> AnomalyScore:
         data: ndarray = instance.x.reshape((1, -1))
-        return self._score_batch(data)
+        return self._score_batch(data)[0]
 
     def _learn_batch(self, data: ndarray) -> OnlineIsolationForest:
         # Update the counter of data seen so far
