@@ -1,48 +1,81 @@
-.. _api:
+API Reference
+=============
 
-API
-===
+Welcome to the capymoa API reference. This documentation is automatically
+generated from the source code and provides detailed information on the classes
+and functions available in capymoa. 
 
-This part of the documentation describes the interfaces for CapyMOA classes,
-functions, and modules. If you are looking to just use CapyMOA, you should start
-with the :ref:`tutorials<tutorials>`.
+If you are looking to just use CapyMOA, you should start with the
+:ref:`tutorials<tutorials>`.
 
+Types
+-----
 
-..  toctree::
-    :maxdepth: 1
-    :caption: Datastreams
+These module provide interfaces for learners, and other basic types used by
+capymoa.
 
-    stream
-    datasets
-    instance
+..  autosummary::
+    :toctree: modules
+    :recursive:
 
-..  toctree::
-    :maxdepth: 1
-    :caption: Interfaces
+    capymoa.base
+    capymoa.type_alias
+    capymoa.instance
 
-    abl/base
-    abl/moa
-    abl/sklearn
+Datastreams
+-----------
 
-..  toctree::
-    :maxdepth: 1
-    :caption: Learners
+These modules provide classes for handling datastreams.
 
-    classifiers
-    regressor
-    ssl
+..  autosummary::
+    :toctree: modules
+    :recursive:
 
+    capymoa.datasets
+    capymoa.stream
 
-..  toctree::
-    :maxdepth: 1
-    :caption: Evaluation
+Learners
+--------
+
+These modules implement learners for classification, regression, anomaly detection
+and semi-supervised learning.
     
-    evaluation
+..  autosummary::
+    :toctree: modules
+    :recursive:
 
+    capymoa.classifier
+    capymoa.regressor
+    capymoa.anomaly
+    capymoa.ssl
 
-..  toctree::
-    :maxdepth: 1
-    :caption: Other
-    
-    splitcriteria
-    env
+Evaluation
+----------
+
+These modules provide classes for evaluating learners.
+
+..  autosummary::
+    :toctree: modules
+    :recursive:
+
+    capymoa.splitcriteria
+    capymoa.evaluation
+    capymoa.prediction_interval
+
+Miscellaneous
+-------------
+
+These modules provide miscellaneous utilities.
+
+..  autosummary::
+    :toctree: modules
+    :recursive:
+
+    capymoa.misc
+    capymoa.env
+
+Functions
+=========
+
+..  automodule:: capymoa
+    :members:

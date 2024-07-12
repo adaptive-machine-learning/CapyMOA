@@ -7,6 +7,7 @@ another learner to CapyMOA. Before doing this, you should have read the
 You should add your new learner to the appropriate directory:
 - Classifiers go in `src/capymoa/classifier`.
 - Regressors go in `src/capymoa/regressor`.
+- Anomaly detectors go in `src/capymoa/anomaly`.
 - Semi-supervised classifiers go in `src/capymoa/ssl/classifier`.
 
 Each standalone learner should be in its own file, prefixed with `_` to indicate that they are not meant to be imported directly. Instead, they are imported by an `__init__.py` file. The `__init__.py` file is a special file that tells Python to treat the directory as a package.
@@ -30,14 +31,16 @@ from capymoa.classifier import MyNewLearner
 ## What does a learner implement?
 <!-- TODO: Link to capymoa documentation -->
 A learner should implement the appropriate interface:
-* `capymoa.base.Classifier` for classifiers.
-* `capymoa.base.Regressor` for regressors.
-* `capymoa.base.ClassifierSSL` for semi-supervised classifiers.
+* {py:class}`capymoa.base.Classifier` for classifiers.
+* {py:class}`capymoa.base.Regressor` for regressors.
+* {py:class}`capymoa.base.AnomalyDetector` for anomaly detectors.
+* {py:class}`capymoa.base.ClassifierSSL` for semi-supervised classifiers.
 
 If your method is a wrapper around a MOA learner, you should use the appropriate
 base class:
-* `capymoa.base.MOAClassifier` for classifiers.
-* `capymoa.base.MOARegressor` for regressors.
+* {py:class}`capymoa.base.MOAClassifier` for classifiers.
+* {py:class}`capymoa.base.MOARegressor` for regressors.
+* {py:class}`capymoa.base.MOAAnomalyDetector` for anomaly detectors.
 
 ## How do I test my new learner?
 You should add a test to ensure your learner achieves and continues to achieves
@@ -48,6 +51,7 @@ parameters to the appropriate test file:
 - `tests/test_classifiers.py` for classifiers.
 - `tests/test_regressors.py` for regressors.
 - `tests/test_ssl_classifiers.py` for semi-supervised classifiers.
+- `tests/test_anomaly.py` for anomaly detectors.
 
 To run your tests, use the following command:
 ```bash

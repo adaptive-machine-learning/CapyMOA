@@ -1,4 +1,9 @@
-"""Module containing split criteria for decision trees."""
+"""Module containing split criteria for decision trees.
+
+Decision trees are built by splitting the data into groups based on a split
+criterion. The split criterion is a function that measures the quality of a
+split.
+"""
 
 from typing import Optional, Union
 import moa.classifiers.core.splitcriteria as moa_split
