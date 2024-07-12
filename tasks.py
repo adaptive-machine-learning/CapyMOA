@@ -51,11 +51,20 @@ def docs_build(ctx: Context, ignore_warnings: bool = False):
     print("You can copy and paste this URL into your browser.")
     print("-" * 80)
 
+@task
+def docs_coverage(ctx: Context):
+    """Check the coverage of the documentation.
+    
+    Requires the `interrogate` package.
+    """
+    ctx.run("python -m interrogate -vv -c pyproject.toml || true")
 
 @task
 def docs_clean(ctx: Context):
     """Remove the built documentation."""
     ctx.run("rm -r docs/_build")
+    ctx.run("rm docs/api/modules/*")
+
 
 
 @task
@@ -245,6 +254,7 @@ docs = Collection("docs")
 docs.add_task(docs_build, "build")
 docs.add_task(docs_clean, "clean")
 docs.add_task(docs_dev, "dev")
+docs.add_task(docs_coverage, "coverage")
 
 build = Collection("build")
 build.add_task(download_moa)
