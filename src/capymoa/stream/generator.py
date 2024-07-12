@@ -1,4 +1,5 @@
 """Generate artificial data streams."""
+import copy
 
 from capymoa.stream import Stream
 from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
@@ -51,6 +52,7 @@ class RandomTreeGenerator(Stream):
         :param first_leaf_level: The first level of the tree above ``max_tree_depth`` that can have leaves
         :param leaf_fraction: The fraction of leaves per level from first leaf level onwards.
         """
+        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
 
         self.moa_stream = MOA_RandomTreeGenerator()
 
@@ -147,6 +149,8 @@ class SEA(Stream):
         :param balance_classes: Balance the number of instances of each class, defaults to False
         :param noise_percentage: Percentage of noise to add to the data, defaults to 10
         """
+        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+
         self.moa_stream = MOA_SEAGenerator()
 
         self.instance_random_seed = instance_random_seed
@@ -216,6 +220,7 @@ class HyperPlaneClassification(Stream):
         :param noise_percentage: Percentage of noise to add to the data, defaults to 10
         :param sigma_percentage: Percentage of sigma to add to the data, defaults to 10
         """
+        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
 
         mapping = {
             "instance_random_seed": "-i",
@@ -235,46 +240,46 @@ class HyperPlaneClassification(Stream):
             CLI=config_str,
         )
 
-    def __str__(self):
-        attributes = [
-            (
-                f"instance_random_seed={self.instance_random_seed}"
-                if self.instance_random_seed != 1
-                else None
-            ),
-            (
-                f"number_of_classes={self.number_of_classes}"
-                if self.number_of_classes != 2
-                else None
-            ),
-            (
-                f"number_of_attributes={self.number_of_attributes}"
-                if self.number_of_attributes != 10
-                else None
-            ),
-            (
-                f"number_of_drifting_attributes={self.number_of_drifting_attributes}"
-                if self.number_of_drifting_attributes != 2
-                else None
-            ),
-            (
-                f"magnitude_of_change={self.magnitude_of_change}"
-                if self.magnitude_of_change != 0.0
-                else None
-            ),
-            (
-                f"noise_percentage={self.noise_percentage}"
-                if self.noise_percentage != 5
-                else None
-            ),
-            (
-                f"sigma_percentage={self.sigma_percentage}"
-                if self.sigma_percentage != 10
-                else None
-            ),
-        ]
-        non_default_attributes = [attr for attr in attributes if attr is not None]
-        return f"HyperPlaneClassification({', '.join(non_default_attributes)})"
+    # def __str__(self):
+        # attributes = [
+        #     (
+        #         f"instance_random_seed={self.instance_random_seed}"
+        #         if self.instance_random_seed != 1
+        #         else None
+        #     ),
+        #     (
+        #         f"number_of_classes={self.number_of_classes}"
+        #         if self.number_of_classes != 2
+        #         else None
+        #     ),
+        #     (
+        #         f"number_of_attributes={self.number_of_attributes}"
+        #         if self.number_of_attributes != 10
+        #         else None
+        #     ),
+        #     (
+        #         f"number_of_drifting_attributes={self.number_of_drifting_attributes}"
+        #         if self.number_of_drifting_attributes != 2
+        #         else None
+        #     ),
+        #     (
+        #         f"magnitude_of_change={self.magnitude_of_change}"
+        #         if self.magnitude_of_change != 0.0
+        #         else None
+        #     ),
+        #     (
+        #         f"noise_percentage={self.noise_percentage}"
+        #         if self.noise_percentage != 5
+        #         else None
+        #     ),
+        #     (
+        #         f"sigma_percentage={self.sigma_percentage}"
+        #         if self.sigma_percentage != 10
+        #         else None
+        #     ),
+        # ]
+        # non_default_attributes = [attr for attr in attributes if attr is not None]
+        # return f"HyperPlaneClassification({', '.join(non_default_attributes)})"
 
 
 class HyperPlaneRegression(Stream):
@@ -314,6 +319,7 @@ class HyperPlaneRegression(Stream):
         :param noise_percentage: Percentage of noise to add to the data, defaults to 10
         :param sigma_percentage: Percentage of sigma to add to the data, defaults to 10
         """
+        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
 
         mapping = {
             "instance_random_seed": "-i",
@@ -330,43 +336,43 @@ class HyperPlaneRegression(Stream):
 
         super().__init__(CLI=config_str, moa_stream=self.moa_stream)
 
-    def __str__(self):
-        attributes = [
-            (
-                f"instance_random_seed={self.instance_random_seed}"
-                if self.instance_random_seed != 1
-                else None
-            ),
-            (
-                f"number_of_classes={self.number_of_classes}"
-                if self.number_of_classes != 2
-                else None
-            ),
-            (
-                f"number_of_attributes={self.number_of_attributes}"
-                if self.number_of_attributes != 10
-                else None
-            ),
-            (
-                f"number_of_drifting_attributes={self.number_of_drifting_attributes}"
-                if self.number_of_drifting_attributes != 2
-                else None
-            ),
-            (
-                f"magnitude_of_change={self.magnitude_of_change}"
-                if self.magnitude_of_change != 0.0
-                else None
-            ),
-            (
-                f"noise_percentage={self.noise_percentage}"
-                if self.noise_percentage != 5
-                else None
-            ),
-            (
-                f"sigma_percentage={self.sigma_percentage}"
-                if self.sigma_percentage != 10
-                else None
-            ),
-        ]
-        non_default_attributes = [attr for attr in attributes if attr is not None]
-        return f"HyperPlaneRegression({', '.join(non_default_attributes)})"
+    # def __str__(self):
+    #     attributes = [
+    #         (
+    #             f"instance_random_seed={self.instance_random_seed}"
+    #             if self.instance_random_seed != 1
+    #             else None
+    #         ),
+    #         (
+    #             f"number_of_classes={self.number_of_classes}"
+    #             if self.number_of_classes != 2
+    #             else None
+    #         ),
+    #         (
+    #             f"number_of_attributes={self.number_of_attributes}"
+    #             if self.number_of_attributes != 10
+    #             else None
+    #         ),
+    #         (
+    #             f"number_of_drifting_attributes={self.number_of_drifting_attributes}"
+    #             if self.number_of_drifting_attributes != 2
+    #             else None
+    #         ),
+    #         (
+    #             f"magnitude_of_change={self.magnitude_of_change}"
+    #             if self.magnitude_of_change != 0.0
+    #             else None
+    #         ),
+    #         (
+    #             f"noise_percentage={self.noise_percentage}"
+    #             if self.noise_percentage != 5
+    #             else None
+    #         ),
+    #         (
+    #             f"sigma_percentage={self.sigma_percentage}"
+    #             if self.sigma_percentage != 10
+    #             else None
+    #         ),
+    #     ]
+    #     non_default_attributes = [attr for attr in attributes if attr is not None]
+    #     return f"HyperPlaneRegression({', '.join(non_default_attributes)})"
