@@ -79,7 +79,8 @@ doc=[
     # Parses markdown files
     "myst-parser",
     # Adds design elements to the documentation
-    "sphinx_design"
+    "sphinx_design",
+    "interrogate"
 ]
 
 [project.urls]
@@ -182,3 +183,16 @@ insecure = false
 dist_glob_patterns = ["dist/*"]
 upload_to_vcs_release = true
 
+
+[tool.interrogate]
+# Interrogate is used to check the documentation coverage of the codebase.
+# https://interrogate.readthedocs.io/en/latest/
+ignore-semiprivate = true
+ignore-private = true
+ignore-overloaded-functions = true
+ignore-magic = true
+exclude=["docs", "tests", "notebooks"]
+style = "sphinx"
+fail-under = 80
+omit-covered-files = true
+ignore-module = true

@@ -14,9 +14,9 @@ discord_link = "https://discord.gg/spd2gQJGAb"
 contact_email = "heitor.gomes@vuw.ac.nz"
 capymoa_github = "https://github.com/adaptive-machine-learning/CapyMOA"
 
-project = 'CapyMOA'
-copyright = '2024 CapyMOA Developers'
-author = 'Heitor Murilo Gomes, Anton Lee, Nuwan Gunasekara, Marco Heyden, Yibin Sun, Guilherme Weigert Cassales'
+project = "CapyMOA"
+copyright = "2024 CapyMOA Developers"
+author = "Heitor Murilo Gomes, Anton Lee, Nuwan Gunasekara, Marco Heyden, Yibin Sun, Guilherme Weigert Cassales"
 release = __version__
 html_title = f"{project}"
 
@@ -24,44 +24,46 @@ html_title = f"{project}"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    "sphinx.ext.linkcode",
-    "sphinx.ext.autodoc",
-    "sphinx.ext.intersphinx",
-    "nbsphinx",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.extlinks",
-    "sphinx.ext.doctest",
     "myst_parser",
-    "sphinx_design"
+    "nbsphinx",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.doctest",
+    "sphinx.ext.extlinks",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.linkcode",
+    "sphinx.ext.mathjax",
+    "sphinx_design",
 ]
 
 nitpick_ignore_regex = [
-    ('py:class', r'sklearn\..*'),
-    ('py:class', r'numpy\..*'),
-    ('py:class', r'pathlib\..*'),
-    ('py:class', r'abc\..*'),
-    ('py:class', r'moa\..*'),
-    ('py:class', r'com\..*'),
-    ('py:class', r'java\..*'),
-    ('py:class', r'org\..*'),
-    ('py:class', r'torch\..*'),
-
+    ("py:class", r"sklearn\..*"),
+    ("py:class", r"numpy\..*"),
+    ("py:class", r"pathlib\..*"),
+    ("py:class", r"abc\..*"),
+    ("py:class", r"moa\..*"),
+    ("py:class", r"com\..*"),
+    ("py:class", r"java\..*"),
+    ("py:class", r"org\..*"),
+    ("py:class", r"torch\..*"),
 ]
-bibtex_bibfiles = ['references.bib']
+toc_object_entries_show_parents = "hide"
+autosummary_ignore_module_all = False
+autosummary_generate = True
+autodoc_member_order = "bysource"
 
-autoclass_content = 'class'
-autodoc_class_signature = 'separated'
-autodoc_member_order = 'bysource'
-
-templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+templates_path = ["_templates"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 extlinks = {
-    'wiki': ('https://en.wikipedia.org/wiki/%s', ''),
-    'moa-api': ('https://javadoc.io/doc/nz.ac.waikato.cms.moa/moa/latest/%s', ''),
-    'doi': ('https://doi.org/%s', ''),
-    'sklearn': ('https://scikit-learn.org/stable/modules/generated/sklearn.%s.html', 'sklearn.%s'),
-    'github': ('https://github.com/%s', 'GitHub %s'),
+    "wiki": ("https://en.wikipedia.org/wiki/%s", ""),
+    "moa-api": ("https://javadoc.io/doc/nz.ac.waikato.cms.moa/moa/latest/%s", ""),
+    "doi": ("https://doi.org/%s", ""),
+    "sklearn": (
+        "https://scikit-learn.org/stable/modules/generated/sklearn.%s.html",
+        "sklearn.%s",
+    ),
+    "github": ("https://github.com/%s", "GitHub %s"),
 }
 
 # Add refs to the documentation
@@ -75,7 +77,7 @@ rst_epilog = f"""
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "pydata_sphinx_theme"
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 # Setup symbolic links for notebooks
 
@@ -91,7 +93,7 @@ if not notebook_doc_source.exists():
 # tldr: This allows us to link to other projects' documentation
 
 intersphinx_mapping = {
-    'sklearn': ('https://scikit-learn.org/stable/', None),
+    "sklearn": ("https://scikit-learn.org/stable/", None),
 }
 
 """ Options for linkcode extension ------------------------------------------
@@ -111,10 +113,11 @@ linkcode_resolve = make_linkcode_resolve(
 """ Options for the Theme ---------------------------------------------------
 """
 html_theme_options = {
+    "show_toc_level": 3,
     "icon_links": [
         {
             "name": "GitHub",
-            "url": capymoa_github, 
+            "url": capymoa_github,
             "icon": "fa-brands fa-github",
             "type": "fontawesome",
         },
@@ -135,6 +138,6 @@ html_theme_options = {
             "url": f"mailto:{contact_email}",
             "icon": "fa-solid fa-envelope",
             "type": "fontawesome",
-        }
-   ]
+        },
+    ],
 }

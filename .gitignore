@@ -185,3 +185,6 @@ shell.nix
 
 # Pickle files
 *.pkl
+
+# Sphinx auto-generated files
+docs/api/modules
