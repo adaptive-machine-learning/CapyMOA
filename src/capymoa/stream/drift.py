@@ -265,22 +265,27 @@ def get_recurrent_concept_drift_stream_list(
         transition_type_template: Drift = AbruptDrift(position=5000),
         concept_name_list: list = None,
 ) -> list:
-    recurrent_drift_stream = []
-    recurrent_concept_info = []
-
+    # checks
     if not isinstance(transition_type_template, AbruptDrift):
         raise ValueError(f'Unsupported drift transition type: {str(transition_type_template)}')
 
+    # variable initializations
     concept_cycle = IndexedCycle([k for k in concept_list])
+    drift_stream = []
+    concept_info = []
+    recurrent_concept_info = {i: {'count': 0, 'instance_random_seed': None} for i, v in enumerate(concept_list)}
 
-    recurrence_count = {i: 0 for i, v in enumerate(concept_list)}
-
+    # get drift args and class
     drift_cls, original_drift_args = get_class_and_init_attributes_with_values(transition_type_template)
 
     max_concepts = len(concept_list) * max_recurrences_per_concept
     start_of_concept = 0
+
     for i in range(0, max_concepts * 2, 2): # get even indexes starting from 0
-        next_idx, next_concept = next(concept_cycle) # get next concept and its index
+        # get next concept and its index
+        next_concept_idx, next_concept = next(concept_cycle)
+
+        # calculate and set drift position
         drift_args = copy.deepcopy(original_drift_args) # create a copy of drift args
         position = (int)(drift_args['position'] * ((i + 2) / 2)) # calculate drift position
         drift_args['position'] = position # set drift position
@@ -289,37 +294,48 @@ def get_recurrent_concept_drift_stream_list(
         end_of_concept = position
         add_concept = False
 
-        if recurrence_count[next_idx] < max_recurrences_per_concept:
-            stream_cls, strea_args = get_class_and_init_attributes_with_values(next_concept)
+        if recurrent_concept_info[next_concept_idx]['count'] < max_recurrences_per_concept:
+            stream_cls, original_stream_args = get_class_and_init_attributes_with_values(next_concept)
+            stream_args = copy.deepcopy(original_stream_args)  # create a copy of stream args
+            if recurrent_concept_info[next_concept_idx]['instance_random_seed'] is None: # first iteration of this concept
+                if not isinstance(stream_args['instance_random_seed'], int): # probably 'instance_random_seed' not set
+                    stream_args['instance_random_seed'] = 1
+                recurrent_concept_info[next_concept_idx]['instance_random_seed'] = stream_args['instance_random_seed']
+            else: # not the first iteration of this concept
+                recurrent_concept_info[next_concept_idx]['instance_random_seed'] += 1
             add_concept = True
-        # else:  # recurrence recurrence_count has exceeded
+        # else:  # recurrence concept_info has exceeded
 
         if add_concept:
-            recurrent_drift_stream.insert(i, stream_cls(**strea_args))
-            recurrence_count[next_idx] += 1
-            recurrent_drift_stream.insert(i + 1, drift)
-            stream_name = f'concept {next_idx}' if concept_name_list is None else concept_name_list[next_idx]
-            recurrent_concept_info.append({'id': stream_name, 'start': start_of_concept, 'end': end_of_concept})
+            # update internal count and instance_random_seed
+            stream_args['instance_random_seed'] = recurrent_concept_info[next_concept_idx]['instance_random_seed']
+            recurrent_concept_info[next_concept_idx]['count'] += 1
+
+            # add stream and drift to the list
+            drift_stream.insert(i, stream_cls(**stream_args))
+            drift_stream.insert(i + 1, drift)
+
+            # generate concept info for plotting
+            stream_name = f'concept {next_concept_idx}' if concept_name_list is None else concept_name_list[next_concept_idx]
+            concept_info.append({'id': stream_name, 'start': start_of_concept, 'end': end_of_concept})
             start_of_concept = end_of_concept
             end_of_concept = None
 
-    recurrent_drift_stream.pop(len(recurrent_drift_stream) - 1) # remove last Drift item
+    drift_stream.pop(len(drift_stream) - 1) # remove last Drift item
 
-    return recurrent_concept_info, recurrent_drift_stream
+    return concept_info, drift_stream
 
 
 class RecurrentConceptDriftStream(DriftStream):
     def __init__(self,
                  concept_list: list,
                  max_recurrences_per_concept: int = 3,
-                 change_random_seed_for_same_concept: bool = False,
                  transition_type_template: Drift = AbruptDrift(position=5000),
                  concept_name_list: list = None
                  ):
-        self.recurrent_concept_info, stream_list = get_recurrent_concept_drift_stream_list(
+        self.concept_info, stream_list = get_recurrent_concept_drift_stream_list(
             concept_list=concept_list,
             max_recurrences_per_concept=max_recurrences_per_concept,
-            change_random_seed_for_same_concept=change_random_seed_for_same_concept,
             transition_type_template=transition_type_template,
             concept_name_list = concept_name_list
         )

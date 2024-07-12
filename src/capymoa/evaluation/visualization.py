@@ -28,6 +28,8 @@ def plot_windowed_results(
     """
     dfs = []
     labels = []
+    ymin = float('inf')
+    ymax = float('-inf')
 
     num_instances = results[0].get("max_instances", None)
     stream = results[0].get("stream", None)
@@ -82,6 +84,8 @@ def plot_windowed_results(
                 linestyle="-",
                 markersize=5,
             )
+        ymax = max(df[metric].max(), ymax)
+        ymin = min(df[metric].min(), ymin)
 
     if stream is not None and isinstance(stream, DriftStream):
         if not prevent_plotting_drifts:
@@ -101,14 +105,14 @@ def plot_windowed_results(
                 cmap = plt.cm.tab10  # Choose any colormap from Matplotlib (e.g., 'viridis', 'plasma')
                 colour_idxs = {}
                 colour_idx = 0
-                for c in stream.recurrent_concept_info:
+                for c in stream.concept_info:
                     concept_label = None
                     if c["id"] not in colour_idxs:
                         colour_idxs[c["id"]] = colour_idx
                         colour_idx += 1
                         concept_label = c["id"]
                     # If the concept_label is None, it is not shown in legend
-                    plt.hlines(y=1, xmin=c['start'], xmax=c['end'], color=cmap(colour_idxs[c["id"]]), linestyle='--', linewidth=2,
+                    plt.hlines(y=ymin-2, xmin=c['start'], xmax=c['end'], color=cmap(colour_idxs[c["id"]]), linestyle='--', linewidth=2,
                                label=concept_label)
 
             # Add gradual drift windows as 70% transparent rectangles
@@ -136,6 +140,9 @@ def plot_windowed_results(
                         alpha=0.2,
                         color="red",
                     )
+
+    # Set the y-axis limits (bottom, top)
+    plt.ylim(ymin-4, ymax)
 
     # Add labels and title
     xlabel = xlabel if xlabel is not None else "# Instances"
