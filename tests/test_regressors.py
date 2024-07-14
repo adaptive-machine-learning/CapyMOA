@@ -124,6 +124,7 @@ def test_regressor(subtests: SubTests, learner_constructor, rmse, win_rmse):
         subtest_save_and_load(learner, stream, True)
 
 
+
 def test_none_predict():
     """Test that a prediction of None is handled."""
     schema = Schema.from_custom(feature_names=["x"], target_attribute_name="y", target_type='numeric')
