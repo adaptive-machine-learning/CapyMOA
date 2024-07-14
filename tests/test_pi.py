@@ -44,7 +44,7 @@ def test_PI(learner_constructor, coverage, win_coverage):
         learner.train(instance)
 
     actual_coverage = evaluator.coverage()
-    actual_win_coverage = win_evaluator.coverage()['windowed coverage'][-1]
+    actual_win_coverage = win_evaluator.coverage()[-1]
     assert actual_coverage == pytest.approx(coverage, abs=0.1), \
         f"Basic Eval: Expected {coverage:0.1f} coverage got {actual_coverage: 0.1f} coverage"
     assert actual_win_coverage == pytest.approx(win_coverage, abs=0.1), \

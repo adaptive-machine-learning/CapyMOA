@@ -1,8 +1,5 @@
 from .evaluation import (
-    cumulative_evaluation,
-    cumulative_ssl_evaluation,
     prequential_evaluation,
-    windowed_evaluation,
     prequential_evaluation_multiple_learners,
     prequential_ssl_evaluation,
     ClassificationEvaluator,
@@ -11,15 +8,12 @@ from .evaluation import (
     RegressionEvaluator,
     PredictionIntervalEvaluator,
     PredictionIntervalWindowedEvaluator,
-    AUCEvaluator,
+    AnomalyDetectionEvaluator,
 )
 
 __all__ = [
     "prequential_evaluation",
     "prequential_ssl_evaluation",
-    "cumulative_evaluation",
-    "cumulative_ssl_evaluation",
-    "windowed_evaluation",
     "prequential_evaluation_multiple_learners",
     "ClassificationEvaluator",
     "ClassificationWindowedEvaluator",
@@ -27,5 +21,5 @@ __all__ = [
     "RegressionEvaluator",
     "PredictionIntervalEvaluator",
     "PredictionIntervalWindowedEvaluator",
-    "AUCEvaluator",
+    "AnomalyDetectionEvaluator",
 ]

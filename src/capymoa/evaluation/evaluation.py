@@ -1,43 +1,21 @@
-from abc import ABC, abstractmethod
-import typing
-import typing_extensions
 from typing import Optional
 
 import pandas as pd
 import numpy as np
 import time
 import warnings
-import random
+import json
+import csv
+import os
 
 from capymoa.stream import Schema, Stream
 from capymoa.base import (
     ClassifierSSL,
-    MOAPredictionIntervalLearner,
-    MOAClassifier,
-    MOARegressor,
-    MOAAnomalyDetector, SKClassifier, SKRegressor,
+    MOAPredictionIntervalLearner
 )
 
-from capymoa.evaluation.results import (
-    CumulativeResults,
-    WindowedResults,
-    PrequentialResults,
-    PrequentialClassificationResults,
-    PrequentialPredictionIntervalResults,
-    PrequentialAnomalyDetectionResults,
-    PrequentialRegressionResults,
-    WindowedRegressionResults,
-    WindowedClassificationResults,
-    WindowedPredictionIntervalResults,
-    WindowedAnomalyDetectionResults,
-    CumulativeClassificationResults,
-    CumulativePredictionIntervalResults,
-    CumulativeAnomalyDetectionResults,
-    CumulativeRegressionResults,
-    PrequentialClassificationSSLResults,
-    WindowedClassificationSSLResults,
-    CumulativeClassificationSSLResults,
-)
+from capymoa.evaluation.results import PrequentialResults
+from capymoa._utils import _translate_metric_name
 
 from com.yahoo.labs.samoa.instances import Instances, Attribute, DenseInstance
 from moa.core import InstanceExample
@@ -56,53 +34,6 @@ from moa.evaluation import EfficientEvaluationLoops
 from moa.streams import InstanceStream
 
 
-_metric_name_mapping={
-    'accuracy': 'classifications correct (percent)',
-    'kappa' : 'Kappa Statistic (percent)',
-    'kappa_t' : 'Kappa Temporal Statistic (percent)',
-    'kappa_m' : 'Kappa M Statistic (percent)',
-    'f1_score' : 'F1 Score (percent)',
-    'precision' : 'Precision (percent)',
-    'recall' : 'Recall (percent)',
-
-    'MAE' : 'mean absolute error',
-    'RMSE' : 'root mean squared error',
-    'RMAE' : 'relative mean absolute error',
-    'RRMSE' : 'relative root mean squared error',
-    'R2' : "coefficient of determination",
-    'Adjusted_R2' : 'adjusted coefficient of determination',
-
-    'coverage' : 'coverage',
-    'average_length' : 'average length',
-
-}
-
-_prequential_learner_to_result_class = {
-    SKClassifier: PrequentialClassificationResults,
-    MOAClassifier: PrequentialClassificationResults,
-    MOAPredictionIntervalLearner: PrequentialPredictionIntervalResults,
-    SKRegressor: PrequentialRegressionResults,
-    MOARegressor: PrequentialRegressionResults,
-    MOAAnomalyDetector: PrequentialAnomalyDetectionResults,
-}
-_cumulative_learner_to_result_class = {
-    SKClassifier: CumulativeClassificationResults,
-    MOAClassifier: CumulativeClassificationResults,
-    MOAPredictionIntervalLearner: CumulativePredictionIntervalResults,
-    SKRegressor: CumulativeRegressionResults,
-    MOARegressor: CumulativeRegressionResults,
-    MOAAnomalyDetector: CumulativeAnomalyDetectionResults,
-}
-_windowed_learner_to_result_class = {
-    SKClassifier: WindowedClassificationResults,
-    MOAClassifier: WindowedClassificationResults,
-    MOAPredictionIntervalLearner: WindowedPredictionIntervalResults,
-    SKRegressor: WindowedRegressionResults,
-    MOARegressor: WindowedRegressionResults,
-    MOAAnomalyDetector: WindowedAnomalyDetectionResults,
-}
-
-
 def _is_fast_mode_compilable(stream: Stream, learner, optimise=True) -> bool:
 
     # refuse prediction interval learner
@@ -116,10 +47,6 @@ def _is_fast_mode_compilable(stream: Stream, learner, optimise=True) -> bool:
     is_moa_learner = hasattr(learner, "moa_learner") and learner.moa_learner is not None
 
     return is_moa_stream and is_moa_learner and optimise
-
-
-# class Evaluator:
-#
 
 
 class ClassificationEvaluator:
@@ -226,9 +153,8 @@ class ClassificationEvaluator:
         # if y_pred is None, it indicates the learner did not produce a prediction for this instance,
         # count as an error
         if y_pred_index is None:
-            # TODO: I'm not sure what the actual logic should be here, but for
-            # now I'm just setting the prediction to the first class since this
-            # does not break the tests.
+            # TODO: Modify this once the option to abstain from predictions is implemented. Currently, by default it
+            #  sets the prediction to the first class (index zero), which is consistent with MOA.
             y_pred_index = 0
             # Set y_pred_index to any valid prediction that is not y (force an incorrect prediction)
             # This does not affect recall or any other metrics, because the selected value is always
@@ -254,7 +180,8 @@ class ClassificationEvaluator:
     def metrics_header(self):
         performance_measurements = self.moa_basic_evaluator.getPerformanceMeasurements()
         performance_names = [
-            "".join(measurement.getName()) for measurement in performance_measurements
+            _translate_metric_name("".join(measurement.getName()), to='capymoa')
+            for measurement in performance_measurements
         ]
         return performance_names
 
@@ -273,22 +200,51 @@ class ClassificationEvaluator:
     def metrics_per_window(self):
         return pd.DataFrame(self.result_windows, columns=self.metrics_header())
 
+    def __getitem__(self, key):
+        if hasattr(self, key):
+            attr = getattr(self, key)
+            return attr()
+        return self.__getattr__(key)()
+
+    # This allows access to metrics that are generated dynamically like recall_0, f1_score_3, ...
+    def __getattr__(self, metric):
+        if metric in self.metrics_header():
+            index = self.metrics_header().index(metric)
+
+            def metric_value():
+                return float(self.metrics()[index])
+
+            return metric_value
+        return None
 
     def accuracy(self):
-        index = self.metrics_header().index("classifications correct (percent)")
-        return self.metrics()[index]
+        index = self.metrics_header().index("accuracy")
+        return float(self.metrics()[index])
 
     def kappa(self):
-        index = self.metrics_header().index("Kappa Statistic (percent)")
-        return self.metrics()[index]
+        index = self.metrics_header().index("kappa")
+        return float(self.metrics()[index])
 
-    def kappa_temporal(self):
-        index = self.metrics_header().index("Kappa Temporal Statistic (percent)")
-        return self.metrics()[index]
+    def kappa_t(self):
+        index = self.metrics_header().index("kappa_t")
+        return float(self.metrics()[index])
 
-    def kappa_M(self):
-        index = self.metrics_header().index("Kappa M Statistic (percent)")
-        return self.metrics()[index]
+    def kappa_m(self):
+        index = self.metrics_header().index("kappa_m")
+        return float(self.metrics()[index])
+
+    def f1_score(self):
+        index = self.metrics_header().index("f1_score")
+        return float(self.metrics()[index])
+
+    def precision(self):
+        index = self.metrics_header().index("precision")
+        return float(self.metrics()[index])
+
+    def recall(self):
+        index = self.metrics_header().index("recall")
+        return float(self.metrics()[index])
+
 
 class RegressionEvaluator:
     """
@@ -366,7 +322,8 @@ class RegressionEvaluator:
     def metrics_header(self):
         performance_measurements = self.moa_basic_evaluator.getPerformanceMeasurements()
         performance_names = [
-            "".join(measurement.getName()) for measurement in performance_measurements
+            _translate_metric_name("".join(measurement.getName()), to='capymoa')
+            for measurement in performance_measurements
         ]
         return performance_names
 
@@ -382,37 +339,36 @@ class RegressionEvaluator:
     def metrics_per_window(self):
         return pd.DataFrame(self.result_windows, columns=self.metrics_header()).copy()
 
-
     def predictions(self):
         return self.predictions
 
     def ground_truth_y(self):
         return self.gt_y
 
-    def MAE(self):
-        index = self.metrics_header().index("mean absolute error")
+    def mae(self):
+        index = self.metrics_header().index("mae")
         return self.metrics()[index]
 
-    def RMSE(self):
-        index = self.metrics_header().index("root mean squared error")
+    def rmse(self):
+        index = self.metrics_header().index("rmse")
         return self.metrics()[index]
 
-    def RMAE(self):
-        index = self.metrics_header().index("relative mean absolute error")
+    def rmae(self):
+        index = self.metrics_header().index("rmae")
         return self.metrics()[index]
 
-    def R2(self):
-        index = self.metrics_header().index("coefficient of determination")
+    def r2(self):
+        index = self.metrics_header().index("r2")
         return self.metrics()[index]
 
-    def adjusted_R2(self):
-        index = self.metrics_header().index("adjusted coefficient of determination")
+    def adjusted_r2(self):
+        index = self.metrics_header().index("adjusted_r2")
         return self.metrics()[index]
 
 
-class AUCEvaluator:
+class AnomalyDetectionEvaluator:
     """
-    Wrapper for the AUC Performance Evaluator from MOA. By default, it uses the
+    Wrapper for the Anomaly (AUC) Performance Evaluator from MOA. By default, it uses the
     BasicAUCImbalancedPerformanceEvaluator
     """
 
@@ -490,7 +446,8 @@ class AUCEvaluator:
     def metrics_header(self):
         performance_measurements = self.moa_basic_evaluator.getPerformanceMeasurements()
         performance_names = [
-            "".join(measurement.getName()) for measurement in performance_measurements
+            _translate_metric_name("".join(measurement.getName()), to='capymoa')
+            for measurement in performance_measurements
         ]
         return performance_names
 
@@ -510,19 +467,20 @@ class AUCEvaluator:
         return pd.DataFrame(self.result_windows, columns=self.metrics_header())
 
     def auc(self):
-        index = self.metrics_header().index("AUC")
+        index = self.metrics_header().index("auc")
         return self.metrics()[index]
 
     def s_auc(self):
-        index = self.metrics_header().index("sAUC")
+        index = self.metrics_header().index("s_auc")
         return self.metrics()[index]
+
 
 class ClassificationWindowedEvaluator(ClassificationEvaluator):
     """
     Uses the ClassificationEvaluator to perform a windowed evaluation.
 
-    IMPORTANT: The results for the last window are always through ```metrics()```, if the window_size does not
-    perfectly divide the stream, the metrics corresponding to the last remaining instances in the last window can
+    IMPORTANT: The results for the last window are not always available through ```metrics()```, if the window_size does
+    not perfectly divide the stream, the metrics corresponding to the last remaining instances in the last window can
     be obtained by invoking ```metrics()```
     """
 
@@ -540,18 +498,37 @@ class ClassificationWindowedEvaluator(ClassificationEvaluator):
             moa_evaluator=self.moa_evaluator,
         )
 
-    def accuracy(self):
-        return {'windowed accuracy' : self.metrics_per_window()['classifications correct (percent)'].tolist()}
+    # This allows access to metrics that are generated dynamically like recall_0, f1_score_3, ...
+    def __getattr__(self, metric):
+        if metric in self.metrics_header():
 
+            def metric_value():
+                return self.metrics_per_window()[metric].tolist()
+
+            return metric_value
+        return None
+
+    def accuracy(self):
+        return self.metrics_per_window()['accuracy'].tolist()
 
     def kappa(self):
-        return {'windowed kappa' :self.metrics_per_window()['Kappa Statistic (percent)'].tolist()}
+        return self.metrics_per_window()['kappa'].tolist()
 
-    def kappa_temporal(self):
-        return {'windowed kappa_temporal' :self.metrics_per_window()["Kappa Temporal Statistic (percent)"].tolist()}
+    def kappa_t(self):
+        return self.metrics_per_window()["kappa_t"].tolist()
 
-    def kappa_M(self):
-        return {'windowed kappa_M' :self.metrics_per_window()["Kappa M Statistic (percent)"].tolist()}
+    def kappa_m(self):
+        return self.metrics_per_window()["kappa_m"].tolist()
+
+    def f1_score(self):
+        return self.metrics_per_window()["f1_score"].tolist()
+
+    def precision(self):
+        return self.metrics_per_window()["precision"].tolist()
+
+    def recall(self):
+        return self.metrics_per_window()["recall"].tolist()
+
 
 class RegressionWindowedEvaluator(RegressionEvaluator):
     """
@@ -569,20 +546,140 @@ class RegressionWindowedEvaluator(RegressionEvaluator):
         super().__init__(
             schema=schema, window_size=window_size, moa_evaluator=self.moa_evaluator
         )
-    def MAE(self):
-        return {'windowed MAE' : self.metrics_per_window()['mean absolute error'].tolist()}
 
-    def RMSE(self):
-        return {'windowed RMSE' : self.metrics_per_window()['root mean squared error'].tolist()}
+    def mae(self):
+        return self.metrics_per_window()['mae'].tolist()
 
-    def RMAE(self):
-        return {'windowed RMAE' : self.metrics_per_window()['relative mean absolute error'].tolist()}
+    def rmse(self):
+        return self.metrics_per_window()['rmse'].tolist()
 
-    def R2(self):
-        return {'windowed R2' : self.metrics_per_window()['coefficient of determination'].tolist()}
+    def rmae(self):
+        return self.metrics_per_window()['rmae'].tolist()
 
-    def adjusted_R2(self):
-        return {'windowed adjusted_R2' : self.metrics_per_window()['adjusted coefficient of determination'].tolist()}
+    def r2(self):
+        return self.metrics_per_window()['r2'].tolist()
+
+    def adjusted_r2(self):
+        return self.metrics_per_window()['adjusted_r2'].tolist()
+
+
+class PredictionIntervalEvaluator(RegressionEvaluator):
+    def __init__(self, schema=None, window_size=None, moa_evaluator=None):
+        self.instances_seen = 0
+        self.result_windows = []
+        self.window_size = window_size
+
+        self.moa_basic_evaluator = moa_evaluator
+        if self.moa_basic_evaluator is None:
+            self.moa_basic_evaluator = BasicPredictionIntervalEvaluator()
+
+        # self.moa_basic_evaluator.prepareForUse()
+
+        _attributeValues = ArrayList()
+
+        self.schema = schema
+        self._header = None
+        if self.schema is not None:
+            if self.schema.is_regression():
+                attSub = ArrayList()
+                for _ in range(self.schema.get_num_attributes()):
+                    attSub.append(Attribute("Attribute"))
+                _targetAttribute = Attribute("Target")
+
+                attSub.append(_targetAttribute)
+                self._header = Instances("", attSub, 1)
+                self._header.setClassIndex(self.schema.get_num_attributes())
+                # print(self._header)
+            else:
+                raise ValueError("Schema was not set for a regression task")
+        else:
+            raise ValueError("Schema is None, please define a proper Schema.")
+
+        # Prediction Interval has three outputs: lower bound, prediction, upper bound
+        self.pred_template = [0, 0, 0]
+
+        # Create the denseInstance just once and keep reusing it by changing the classValue (more efficient).
+        self._instance = DenseInstance(self.schema.get_num_attributes() + 1)
+        self._instance.setDataset(self._header)
+
+    def update(self, y, y_pred):
+        if y is None:
+            raise ValueError(f"Invalid ground-truth y = {y}")
+
+        self._instance.setClassValue(y)
+        example = InstanceExample(self._instance)
+
+        # if y_pred is None, it indicates the learner did not produce a prediction for this instace
+        if y_pred is None:
+            # if the y_pred is None, give a warning and then assign y_pred with an all zero prediction array
+            warnings.warn("The learner did not produce a prediction interval for this instance")
+            y_pred = [0, 0, 0]
+
+        if len(y_pred) != len(self.pred_template):
+            warnings.warn("The learner did not produce a valid prediction interval for this instance")
+
+        for i in range(len(y_pred)):
+            self.pred_template[i] = y_pred[i]
+
+        self.moa_basic_evaluator.addResult(example, self.pred_template)
+        self.instances_seen += 1
+
+        # If the window_size is set, then check if it should record the intermediary results.
+        if self.window_size is not None and self.instances_seen % self.window_size == 0:
+            performance_values = [
+                measurement.getValue()
+                for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
+            ]
+            self.result_windows.append(performance_values)
+
+    def metrics_header(self):
+        performance_measurements = self.moa_basic_evaluator.getPerformanceMeasurements()
+        performance_names = [
+            _translate_metric_name("".join(measurement.getName()), to='capymoa')
+            for measurement in performance_measurements
+        ]
+        return performance_names
+
+    def metrics(self):
+        return [
+            measurement.getValue()
+            for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
+        ]
+
+    def metrics_per_window(self):
+        return pd.DataFrame(self.result_windows, columns=self.metrics_header())
+
+    def coverage(self):
+        index = self.metrics_header().index("coverage")
+        return self.metrics()[index]
+
+    def average_length(self):
+        index = self.metrics_header().index("average_length")
+        return self.metrics()[index]
+
+    def NMPIW(self):
+        index = self.metrics_header().index("nmpiw")
+        return self.metrics()[index]
+
+
+class PredictionIntervalWindowedEvaluator(PredictionIntervalEvaluator):
+    def __init__(self, schema=None, window_size=1000):
+        self.moa_evaluator = WindowPredictionIntervalEvaluator()
+        self.moa_evaluator.widthOption.setValue(window_size)
+
+        super().__init__(
+            schema=schema, window_size=window_size, moa_evaluator=self.moa_evaluator
+        )
+
+    def coverage(self):
+        return self.metrics_per_window()['coverage'].tolist()
+
+    def average_length(self):
+        return self.metrics_per_window()['average length'].tolist()
+
+    def NMPIW(self):
+        return self.metrics_per_window()['NMPIW'].tolist()
+
 
 def start_time_measuring():
     start_wallclock_time = time.time()
@@ -603,146 +700,20 @@ def stop_time_measuring(start_wallclock_time, start_cpu_time):
     return elapsed_wallclock_time, elapsed_cpu_time
 
 
-
-def cumulative_evaluation(
-    stream,
-    learner,
-    max_instances=None,
-    sample_frequency=None,
-    evaluator=None,
-    optimise=True,
-):
-    """
-    Test-then-train evaluation. Returns a dictionary with the results.
-    """
-
-    stream.restart()
-
-    if _is_fast_mode_compilable(stream, learner, optimise):
-        return _test_then_train_evaluation_fast(
-
-            stream, learner, max_instances, sample_frequency, evaluator
-        )
-
-    # Start measuring time
-    start_wallclock_time, start_cpu_time = start_time_measuring()
-
-    instancesProcessed = 1
-
-    if evaluator is None:
-        schema = stream.get_schema()
-        if schema.is_classification():
-            evaluator = ClassificationEvaluator(
-                schema=schema, window_size=sample_frequency
-            )
-        else:
-            evaluator = (
-                RegressionEvaluator(schema=schema, window_size=sample_frequency) if not isinstance(learner,
-                                                                                                   MOAPredictionIntervalLearner)
-                else PredictionIntervalEvaluator(schema=schema, window_size=sample_frequency)
-            )
-
-    while stream.has_more_instances() and (
-            max_instances is None or instancesProcessed <= max_instances
-    ):
-        instance = stream.next_instance()
-        prediction = learner.predict(instance)
-
-        if stream.get_schema().is_classification():
-            y = instance.y_index
-        else:
-            y = instance.y_value
-
-        evaluator.update(y, prediction)
-        learner.train(instance)
-
-        instancesProcessed += 1
-
-    # Stop measuring time
-    elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(
-        start_wallclock_time, start_cpu_time
-    )
-
-    results = {
-        "learner": str(learner),
-        "cumulative": evaluator,
-        "wallclock": elapsed_wallclock_time,
-        "cpu_time": elapsed_cpu_time,
-        "max_instances": max_instances,
-        "stream": stream,
-    }
-
-    # Iterate over the mapping and check if the learner is an instance of any key
-    for learner_type, result_class_type in _cumulative_learner_to_result_class.items():
-        if isinstance(learner, learner_type):
-            results_class = result_class_type(dict_results=results)
-            break
-    else:
-        raise ValueError(f"Unknown learner type: {type(learner)}")
-
-    return results_class
-
-def windowed_evaluation(stream, learner, max_instances=None, window_size=1000):
-    """
-    Windowed evaluation. Returns a dictionary with the results.
-
-    Executes test-then-train evaluation using a windowed evaluator to avoid redundant code
-    """
-
-    stream.restart()
-
-    if stream.get_schema().is_classification():
-        evaluator = ClassificationWindowedEvaluator(
-            schema=stream.get_schema(), window_size=window_size
-        )
-    else:
-        evaluator = (
-            RegressionWindowedEvaluator(schema=stream.get_schema(), window_size=window_size) if not isinstance(learner,
-                                                                                                               MOAPredictionIntervalLearner)
-            else PredictionIntervalWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
-                     )
-    results = cumulative_evaluation(
-        stream,
-        learner,
-        max_instances=max_instances,
-        sample_frequency=window_size,
-        evaluator=evaluator,
-    ).dict_results
-
-    results["windowed"] = results["cumulative"]
-    # results["windowed"] = results["cumulative"]
-    # Add the results corresponding to the remainder of the stream in case the number of
-    # processed instances is not perfectly divisible by the window_size (if it was, then
-    # it is already in the result_windows variable).
-    if evaluator.get_instances_seen() % window_size != 0:
-        results["windowed"].result_windows.append(results["windowed"].metrics())
-
-    results.pop(
-        "cumulative", None
-    )  # Remove previous entry with the cumulative results.
-
-    # Ignore the last prediction values, because it doesn't matter as we are using a windowed evaluation.
-    # Iterate over the mapping and check if the learner is an instance of any key
-    for learner_type, result_class_type in _windowed_learner_to_result_class.items():
-        if isinstance(learner, learner_type):
-            results_class = result_class_type(dict_results=results)
-            break
-    else:
-        raise ValueError(f"Unknown learner type: {type(learner)}")
-
-    return results_class
-
-
 def prequential_evaluation(
-        stream, learner, max_instances=None, window_size=1000, optimise=True, store_predictions=False, store_y=False
+        stream, learner, max_instances=None, window_size=1000, store_predictions=False, store_y=False, optimise=True
 ):
     """
-    Calculates the metrics cumulatively (i.e. test-then-train) and in a window-fashion (i.e. windowed prequential evaluation).
-    Returns both evaluators so that the caller has access to metric from both evaluators.
+    Calculates the metrics cumulatively (i.e. test-then-train) and in a window-fashion (i.e. windowed prequential
+    evaluation). Returns both evaluators so that the user has access to metrics from both evaluators.
     """
     stream.restart()
     if _is_fast_mode_compilable(stream, learner, optimise):
-        return _prequential_evaluation_fast(stream, learner, max_instances, window_size,store_y=store_y, store_predictions=store_predictions)
+        return _prequential_evaluation_fast(stream, learner,
+                                            max_instances,
+                                            window_size,
+                                            store_y=store_y,
+                                            store_predictions=store_predictions)
 
     predictions = None
     if store_predictions:
@@ -824,63 +795,20 @@ def prequential_evaluation(
     ):
         evaluator_windowed.result_windows.append(evaluator_windowed.metrics())
 
-    results = {
-        "learner": str(learner),
-        "cumulative": evaluator_cumulative,
-        "windowed": evaluator_windowed,
-        "wallclock": elapsed_wallclock_time,
-        "cpu_time": elapsed_cpu_time,
-        "max_instances": max_instances,
-        "stream": stream,
-        "predictions": predictions,
-        "ground_truth_y": ground_truth_y,
-    }
+    results = PrequentialResults(learner=str(learner),
+                                 stream=stream,
+                                 wallclock=elapsed_wallclock_time,
+                                 cpu_time=elapsed_cpu_time,
+                                 max_instances=max_instances,
+                                 cumulative_evaluator=evaluator_cumulative,
+                                 windowed_evaluator=evaluator_windowed,
+                                 ground_truth_y=ground_truth_y,
+                                 predictions=predictions)
 
-    # Iterate over the mapping and check if the learner is an instance of any key
-    for learner_type, result_class_type in _prequential_learner_to_result_class.items():
-        if isinstance(learner, learner_type):
-            results_class = result_class_type(dict_results=results)
-            break
-    else:
-        raise ValueError(f"Unknown learner type: {type(learner)}")
-
-    return results_class
+    return results
 
 
-def cumulative_ssl_evaluation(
-    stream,
-    learner,
-    max_instances=None,
-    sample_frequency=None,
-    initial_window_size=0,
-    delay_length=0,
-    label_probability=0.01,
-    random_seed=1,
-    evaluator=None,
-    optimise=True,
-):
-    """
-    Test-then-train SSL evaluation. Returns a dictionary with the results.
-    """
-
-    stream.restart()
-
-    if _is_fast_mode_compilable(stream, learner, optimise):
-        return _test_then_train_ssl_evaluation_fast(
-            stream,
-            learner,
-            max_instances,
-            sample_frequency,
-            initial_window_size,
-            delay_length,
-            label_probability,
-            random_seed,
-            evaluator,
-        )
-
-    raise ValueError("test_then_train_SSL_evaluation(...) not fully implemented yet!")
-
-
+# TODO: Include store_predictions and store_y logic
 def prequential_ssl_evaluation(
         stream,
         learner,
@@ -890,10 +818,12 @@ def prequential_ssl_evaluation(
         delay_length=0,
         label_probability=0.01,
         random_seed=1,
+        store_predictions=False,
+        store_y=False,
         optimise=True,
 ):
     """
-    If the learner is not a SSL learner, then it will just train on labeled instances.
+    If the learner is not an SSL learner, then it will be trained only on the labeled instances.
     """
 
     stream.restart()
@@ -925,6 +855,14 @@ def prequential_ssl_evaluation(
     mt19937._legacy_seeding(random_seed)
     rand = np.random.Generator(mt19937)
 
+    predictions = None
+    if store_predictions:
+        predictions = []
+
+    ground_truth_y = None
+    if store_y:
+        ground_truth_y = []
+
     # Start measuring time
     start_wallclock_time, start_cpu_time = start_time_measuring()
     instancesProcessed = 1
@@ -952,6 +890,11 @@ def prequential_ssl_evaluation(
 
         prediction = learner.predict(instance)
 
+        if stream.get_schema().is_classification():
+            y = instance.y_index
+        else:
+            y = instance.y_value
+
         evaluator_cumulative.update(instance.y_index, prediction)
         if evaluator_windowed is not None:
             evaluator_windowed.update(instance.y_index, prediction)
@@ -967,6 +910,14 @@ def prequential_ssl_evaluation(
             # Labeled instance
             learner.train(instance)
 
+        # Storing predictions if store_predictions was set to True during initialisation
+        if predictions is not None:
+            predictions.append(prediction)
+
+        # Storing ground-truth if store_y was set to True during initialisation
+        if ground_truth_y is not None:
+            ground_truth_y.append(y)
+
         instancesProcessed += 1
 
     # # Stop measuring time
@@ -974,117 +925,40 @@ def prequential_ssl_evaluation(
         start_wallclock_time, start_cpu_time
     )
 
-    # Add the results corresponding to the remainder of the stream in case the number of processed instances is not perfectly divisible by
-    # the window_size (if it was, then it is already in the result_windows variable).
+    # Add the results corresponding to the remainder of the stream in case the number of processed instances is not
+    # perfectly divisible by the window_size (if it was, then it is already in the result_windows variable).
     if (
             evaluator_windowed is not None
             and evaluator_windowed.get_instances_seen() % window_size != 0
     ):
         evaluator_windowed.result_windows.append(evaluator_windowed.metrics())
 
-    # TODO: create a standard for the otherMeasurements like the PrequentialSSLEvaluation from MOA
-    results = {
-        "learner": str(learner),
-        "cumulative": evaluator_cumulative,
-        "windowed": evaluator_windowed,
-        "wallclock": elapsed_wallclock_time,
-        "cpu_time": elapsed_cpu_time,
-        "max_instances": max_instances,
-        "stream": stream,
-        "unlabeled": unlabeled_counter,
-        "unlabeled_ratio": unlabeled_counter / instancesProcessed,
-    }
+    results = PrequentialResults(learner=str(learner),
+                                 stream=stream,
+                                 wallclock=elapsed_wallclock_time,
+                                 cpu_time=elapsed_cpu_time,
+                                 max_instances=max_instances,
+                                 cumulative_evaluator=evaluator_cumulative,
+                                 windowed_evaluator=evaluator_windowed,
+                                 ground_truth_y=ground_truth_y,
+                                 predictions=predictions,
+                                 other_metrics={"unlabeled": unlabeled_counter,
+                                                "unlabeled_ratio": unlabeled_counter / instancesProcessed})
 
-    return PrequentialClassificationSSLResults(dict_results=results)
-
+    return results
 
 ##############################################################
 ###### OPTIMISED VERSIONS (use experimental MOA method) ######
 ##############################################################
 
 
-def _test_then_train_evaluation_fast(
-        stream, learner, max_instances=None, sample_frequency=None, evaluator=None
-):
+def _prequential_evaluation_fast(stream, learner,
+                                 max_instances=None,
+                                 window_size=1000,
+                                 store_y=False,
+                                 store_predictions=False):
     """
-    Test-then-train evaluation using a MOA learner.
-    """
-    if not _is_fast_mode_compilable(stream, learner):
-        raise ValueError(
-            "`test_then_train_evaluation_fast` requires the stream object to have a`Stream.moa_stream`"
-        )
-
-    if max_instances is None:
-        max_instances = -1
-
-    # Start measuring time
-    start_wallclock_time, start_cpu_time = start_time_measuring()
-
-    if evaluator is None:
-        evaluator = ClassificationEvaluator(
-            schema=stream.get_schema(), window_size=sample_frequency
-        )
-
-    if sample_frequency is not None:
-        moa_results = EfficientEvaluationLoops.PrequentialEvaluation(
-            stream.moa_stream,
-            learner.moa_learner,
-            None,
-            evaluator.moa_basic_evaluator,
-            max_instances,
-            sample_frequency,
-            False,
-            False,
-        )
-        # Reset the windowed_evaluator result_windows
-        if moa_results is not None:
-            evaluator.result_windows = []
-            if moa_results.windowedResults is not None:
-                for entry_idx in range(len(moa_results.windowedResults)):
-                    evaluator.result_windows.append(
-                        moa_results.windowedResults[entry_idx]
-                    )
-    else:
-        # Ignore the moa_results because there is no sample frequency (so no need to obtain the windowed results)
-        # Set sample_frequency to -1 in the function call
-        EfficientEvaluationLoops.PrequentialEvaluation(
-            stream.moa_stream,
-            learner.moa_learner,
-            evaluator.moa_basic_evaluator,
-            None,
-            max_instances,
-            -1,
-            False,
-            False,
-        )
-
-    # Stop measuring time
-    elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(
-        start_wallclock_time, start_cpu_time
-    )
-
-    results = {
-        "learner": str(learner),
-        "cumulative": evaluator,
-        "wallclock": elapsed_wallclock_time,
-        "cpu_time": elapsed_cpu_time,
-        "max_instances": max_instances,
-        "stream": stream,
-    }
-
-    for learner_type, result_class_type in _cumulative_learner_to_result_class.items():
-        if isinstance(learner, learner_type):
-            results_class = result_class_type(dict_results=results)
-            break
-    else:
-        raise ValueError(f"Unknown learner type: {type(learner)}")
-
-    return results_class
-
-
-def _prequential_evaluation_fast(stream, learner, max_instances=None, window_size=1000, store_y=False, store_predictions=False):
-    """
-    Prequential evaluation fast.
+    Prequential evaluation fast. This function should not be used directly, users should use prequential_evaluation.
     """
 
     predictions = None
@@ -1157,119 +1031,17 @@ def _prequential_evaluation_fast(stream, learner, max_instances=None, window_siz
             if store_predictions:
                 predictions.append(moa_results.predictions[i])
 
-    results = {
-        "learner": str(learner),
-        "cumulative": basic_evaluator,
-        "windowed": windowed_evaluator,
-        "wallclock": elapsed_wallclock_time,
-        "cpu_time": elapsed_cpu_time,
-        "max_instances": max_instances,
-        "stream": stream,
-        "ground_truth_y": ground_truth_y,
-        "predictions": predictions,
-    }
+    results = PrequentialResults(learner=str(learner),
+                                 stream=stream,
+                                 wallclock=elapsed_wallclock_time,
+                                 cpu_time=elapsed_cpu_time,
+                                 max_instances=max_instances,
+                                 cumulative_evaluator=basic_evaluator,
+                                 windowed_evaluator=windowed_evaluator,
+                                 ground_truth_y=ground_truth_y,
+                                 predictions=predictions)
 
-    # return results
-    for learner_type, result_class_type in _prequential_learner_to_result_class.items():
-        if isinstance(learner, learner_type):
-            results_class = result_class_type(dict_results=results)
-            break
-    else:
-        raise ValueError(f"Unknown learner type: {type(learner)}")
-
-    return results_class
-
-def _test_then_train_ssl_evaluation_fast(
-        stream,
-        learner,
-        max_instances=None,
-        sample_frequency=None,
-        initial_window_size=0,
-        delay_length=0,
-        label_probability=0.01,
-        random_seed=1,
-        evaluator=None,
-):
-    """
-    Test-then-train SSL evaluation.
-    """
-
-    if not _is_fast_mode_compilable(stream, learner):
-        raise ValueError(
-            "`_test_then_train_ssl_evaluation_fast` requires the stream object to have a`Stream.moa_stream`"
-        )
-
-    if max_instances is None:
-        max_instances = -1
-
-    # Start measuring time
-    start_wallclock_time, start_cpu_time = start_time_measuring()
-
-    if evaluator is None:
-        evaluator = ClassificationEvaluator(
-            schema=stream.get_schema(), window_size=sample_frequency
-        )
-
-    moa_results = None
-    if sample_frequency is not None:
-        moa_results = EfficientEvaluationLoops.PrequentialSSLEvaluation(
-            stream.moa_stream,
-            learner.moa_learner,
-            None,
-            evaluator.moa_basic_evaluator,
-            max_instances,
-            sample_frequency,
-            initial_window_size,
-            delay_length,
-            label_probability,
-            random_seed,
-            True,
-        )
-        # Reset the windowed_evaluator result_windows
-        if moa_results is not None:
-            evaluator.result_windows = []
-            if moa_results.windowedResults is not None:
-                for entry_idx in range(len(moa_results.windowedResults)):
-                    evaluator.result_windows.append(
-                        moa_results.windowedResults[entry_idx]
-                    )
-    else:
-        # Set sample_frequency to -1 in the function call
-        moa_results = EfficientEvaluationLoops.PrequentialSSLEvaluation(
-            stream.moa_stream,
-            learner.moa_learner,
-            evaluator.moa_basic_evaluator,
-            None,
-            max_instances,
-            -1,
-            initial_window_size,
-            delay_length,
-            label_probability,
-            random_seed,
-            True,
-        )
-
-    # Stop measuring time
-    elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(
-        start_wallclock_time, start_cpu_time
-    )
-
-    results = {
-        "learner": str(learner),
-        "cumulative": evaluator,
-        "wallclock": elapsed_wallclock_time,
-        "cpu_time": elapsed_cpu_time,
-        "max_instances": max_instances,
-        "stream": stream,
-    }
-
-    for measure in moa_results.otherMeasurements.keySet():
-        measure_str = str(measure)  # Convert Java key to a Python string
-        results[measure_str] = float(
-            moa_results.otherMeasurements.get(measure)
-        )  # Get the Java Double value
-
-    return CumulativeClassificationSSLResults(dict_results=results)
+    return results
 
 
 def _prequential_ssl_evaluation_fast(
@@ -1281,6 +1053,8 @@ def _prequential_ssl_evaluation_fast(
         delay_length=0,
         label_probability=0.01,
         random_seed=1,
+        store_y=False,
+        store_predictions=False
 ):
     """
     Prequential SSL evaluation fast.
@@ -1289,6 +1063,14 @@ def _prequential_ssl_evaluation_fast(
         raise ValueError(
             "`prequential_evaluation_fast` requires the stream object to have a`Stream.moa_stream`"
         )
+
+    predictions = None
+    if store_predictions:
+        predictions = []
+
+    ground_truth_y = None
+    if store_y:
+        ground_truth_y = []
 
     if max_instances is None:
         max_instances = -1
@@ -1303,6 +1085,7 @@ def _prequential_ssl_evaluation_fast(
         schema=stream.get_schema(), window_size=window_size
     )
 
+    # TODO: requires update to MOA to include store_y and store_predictions
     moa_results = EfficientEvaluationLoops.PrequentialSSLEvaluation(
         stream.moa_stream,
         learner.moa_learner,
@@ -1315,6 +1098,8 @@ def _prequential_ssl_evaluation_fast(
         label_probability,
         random_seed,
         True,
+        # store_y,
+        # store_predictions,
     )
 
     # Reset the windowed_evaluator result_windows
@@ -1331,23 +1116,25 @@ def _prequential_ssl_evaluation_fast(
         start_wallclock_time, start_cpu_time
     )
 
-    results = {
-        "learner": str(learner),
-        "cumulative": basic_evaluator,
-        "windowed": windowed_evaluator,
-        "wallclock": elapsed_wallclock_time,
-        "cpu_time": elapsed_cpu_time,
-        "max_instances": max_instances,
-        "stream": stream,
-        "other_measurements": dict(moa_results.otherMeasurements),
-    }
+    if store_y or store_predictions:
+        for i in range(len(moa_results.targets if len(moa_results.targets) != 0 else moa_results.predictions)):
+            if store_y:
+                ground_truth_y.append(moa_results.targets[i])
+            if store_predictions:
+                predictions.append(moa_results.predictions[i])
 
-    return PrequentialClassificationSSLResults(dict_results=results)
+    results = PrequentialResults(learner=str(learner),
+                                 stream=stream,
+                                 wallclock=elapsed_wallclock_time,
+                                 cpu_time=elapsed_cpu_time,
+                                 max_instances=max_instances,
+                                 cumulative_evaluator=basic_evaluator,
+                                 windowed_evaluator=windowed_evaluator,
+                                 ground_truth_y=ground_truth_y,
+                                 predictions=predictions,
+                                 other_metrics=dict(moa_results.otherMeasurements))
 
-
-########################################################################################
-###### EXPERIMENTAL (optimisation to go over the data once for several learners)  ######
-########################################################################################
+    return results
 
 
 def prequential_evaluation_multiple_learners(
@@ -1432,119 +1219,49 @@ def prequential_evaluation_multiple_learners(
     return results
 
 
-## PI Evaluation
-class PredictionIntervalEvaluator(RegressionEvaluator):
+def write_results_to_files(
+        path: str = None,
+        results=None,
+        file_name: str = None,
+        directory_name: str = None
+):
+    if results is None:
+        raise ValueError('The results object is None')
 
-    def __init__(self, schema=None, window_size=None, moa_evaluator=None):
-        self.instances_seen = 0
-        self.result_windows = []
-        self.window_size = window_size
+    path = path if path.endswith('/') else (path + '/')
 
-        self.moa_basic_evaluator = moa_evaluator
-        if self.moa_basic_evaluator is None:
-            self.moa_basic_evaluator = BasicPredictionIntervalEvaluator()
-
-        # self.moa_basic_evaluator.prepareForUse()
-
-        _attributeValues = ArrayList()
-
-        self.schema = schema
-        self._header = None
-        if self.schema is not None:
-            if self.schema.is_regression():
-                attSub = ArrayList()
-                for _ in range(self.schema.get_num_attributes()):
-                    attSub.append(Attribute("Attribute"))
-                _targetAttribute = Attribute("Target")
-
-                attSub.append(_targetAttribute)
-                self._header = Instances("", attSub, 1)
-                self._header.setClassIndex(self.schema.get_num_attributes())
-                # print(self._header)
-            else:
-                raise ValueError("Schema was not set for a regression task")
+    if isinstance(results, ClassificationWindowedEvaluator) or isinstance(results, RegressionWindowedEvaluator):
+        data = results.metrics_per_window()
+        data.to_csv(('./' if path is None else path) + ('/windowed_results.csv' if file_name is None else file_name),
+                    index=False)
+    elif isinstance(results, ClassificationEvaluator) or isinstance(results, RegressionEvaluator):
+        json_str = json.dumps(results.metrics_dict())
+        data = json.loads(json_str)
+        with open(('./' if path is None else path) + ('/cumulative_results.csv' if file_name is None else file_name),
+                  'w', newline='') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(data.keys())
+            writer.writerow(data.values())
+    elif isinstance(results, PrequentialResults):
+        directory_name = 'prequential_results' if directory_name is None else directory_name
+        if os.path.exists(path + '/' + directory_name):
+            raise ValueError(f'Directory {directory_name} already exists, please use another name')
         else:
-            raise ValueError("Schema is None, please define a proper Schema.")
+            os.makedirs(path + '/' + directory_name)
 
-        # Prediction Interval has three outputs: lower bound, prediction, upper bound
-        self.pred_template = [0, 0, 0]
+        write_results_to_files(path=path + '/' + directory_name, file_name=file_name, results=results.cumulative)
+        write_results_to_files(path=path + '/' + directory_name, file_name=file_name, results=results.windowed)
 
-        # Create the denseInstance just once and keep reusing it by changing the classValue (more efficient).
-        self._instance = DenseInstance(self.schema.get_num_attributes() + 1)
-        self._instance.setDataset(self._header)
+        # If the ground truth and predictions are available, they will be writen to a file
+        if results.get_ground_truth_y() is not None and results.get_predictions() is not None:
+            y_vs_predictions = {'ground_truth_y': results.get_ground_truth_y(),
+                                'predictions': results.get_predictions()}
+            if len(y_vs_predictions) > 0:
+                t_p = pd.DataFrame(y_vs_predictions)
+                t_p.to_csv(('./' if path is None else path) + '/' + directory_name +
+                           '/ground_truth_y_and_predictions.csv',
+                           index=False)
+    else:
+        raise ValueError('Writing results to file is not supported for type ' + str(type(results)) + ' yet')
 
-    def update(self, y, y_pred):
-        if y is None:
-            raise ValueError(f"Invalid ground-truth y = {y}")
 
-        self._instance.setClassValue(y)
-        example = InstanceExample(self._instance)
-
-        # if y_pred is None, it indicates the learner did not produce a prediction for this instace
-        if y_pred is None:
-            # if the y_pred is None, give a warning and then assign y_pred with an all zero prediction array
-            warnings.warn("The learner did not produce a prediction interval for this instance")
-            y_pred = [0, 0, 0]
-
-        if len(y_pred) != len(self.pred_template):
-            warnings.warn("The learner did not produce a valid prediction interval for this instance")
-
-        for i in range(len(y_pred)):
-            self.pred_template[i] = y_pred[i]
-
-        self.moa_basic_evaluator.addResult(example, self.pred_template)
-        self.instances_seen += 1
-
-        # If the window_size is set, then check if it should record the intermediary results.
-        if self.window_size is not None and self.instances_seen % self.window_size == 0:
-            performance_values = [
-                measurement.getValue()
-                for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
-            ]
-            self.result_windows.append(performance_values)
-
-    def metrics_header(self):
-        performance_measurements = self.moa_basic_evaluator.getPerformanceMeasurements()
-        performance_names = [
-            "".join(measurement.getName()) for measurement in performance_measurements
-        ]
-        return performance_names
-
-    def metrics(self):
-        return [
-            measurement.getValue()
-            for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
-        ]
-
-    def metrics_per_window(self):
-        return pd.DataFrame(self.result_windows, columns=self.metrics_header())
-
-    def coverage(self):
-        index = self.metrics_header().index("coverage")
-        return self.metrics()[index]
-
-    def average_length(self):
-        index = self.metrics_header().index("average length")
-        return self.metrics()[index]
-
-    def NMPIW(self):
-        index = self.metrics_header().index("NMPIW")
-        return self.metrics()[index]
-
-class PredictionIntervalWindowedEvaluator(PredictionIntervalEvaluator):
-    def __init__(self, schema=None, window_size=1000):
-        self.moa_evaluator = WindowPredictionIntervalEvaluator()
-        self.moa_evaluator.widthOption.setValue(window_size)
-
-        super().__init__(
-            schema=schema, window_size=window_size, moa_evaluator=self.moa_evaluator
-        )
-
-    def coverage(self):
-        return {'windowed coverage' : self.metrics_per_window()['coverage'].tolist()}
-
-    def average_length(self):
-        return {'windowed average length' : self.metrics_per_window()['average length'].tolist()}
-
-    def NMPIW(self):
-        return {'windowed NMPIW' : self.metrics_per_window()['NMPIW'].tolist()}

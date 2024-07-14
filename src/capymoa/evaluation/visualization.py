@@ -4,21 +4,24 @@ from capymoa.stream.drift import DriftStream, RecurrentConceptDriftStream
 from com.yahoo.labs.samoa.instances import InstancesHeader
 import numpy as np
 import seaborn as sns
-from capymoa.evaluation.results import PrequentialPredictionIntervalResults, PrequentialResults, PrequentialRegressionResults
+from capymoa._utils import _translate_metric_name
+from capymoa.evaluation.results import (
+    # PrequentialPredictionIntervalResults,
+    PrequentialResults,
+    # PrequentialRegressionResults
+)
 
 
 def plot_windowed_results(
         *results,
-        metric="classifications correct (percent)",
-        plot_title=None,
-        xlabel=None,
-        ylabel=None,
-        figure_path="./",
-        figure_name=None,
-        save_only=True,
-        prevent_plotting_drifts=False,
-        # ,
-        # drift_locations=None, gradual_drift_window_lengths=None
+        metric: str,
+        plot_title: str = None,
+        xlabel: str = None,
+        ylabel: str = None,
+        figure_path: str = "./",
+        figure_name: str = None,
+        save_only: bool = True,
+        prevent_plotting_drifts: bool = False,
 ):
     """
     Plot a comparison of values from multiple evaluators based on a selected column using line plots.
@@ -29,21 +32,21 @@ def plot_windowed_results(
     """
     dfs = []
     labels = []
+    x_values = []
     ymin = float('inf')
     ymax = float('-inf')
 
     # check if the results are all prequential
     for result in results:
         if not isinstance(result, PrequentialResults):
-            raise ValueError('only can process PrequantialResults class.')
+            raise ValueError('Only PrequentialResults class are valid')
 
     num_instances = results[0].max_instances
     stream = results[0]["stream"]
 
     if num_instances is not None:
-        window_size = results[0].windowed.metrics_per_window()['classified instances'][0]
+        window_size = results[0].windowed.metrics_per_window()['instances'][0]
         num_windows = results[0].windowed.metrics_per_window().shape[0]
-        x_values = []
         for i in range(1, num_windows + 1):
             x_values.append(i * window_size)
         # print(f'x_values: {x_values}')
@@ -52,9 +55,7 @@ def plot_windowed_results(
     for result in results:
         df = result.windowed.metrics_per_window()
         if metric not in df.columns:
-            print(
-                f"Column '{metric}' not found in metrics DataFrame for {result['learner']}. Skipping."
-            )
+            print(f"Column '{metric}' not found in metrics DataFrame for {result['learner']}. Skipping.")
         else:
             dfs.append(df)
             # if "experiment_id" in result:
@@ -71,7 +72,6 @@ def plot_windowed_results(
 
     # Plot data from each DataFrame
     for i, df in enumerate(dfs):
-        # print(f'df.index: {df.index}')
         if num_instances is not None:
             plt.plot(
                 x_values,
@@ -163,11 +163,12 @@ def plot_windowed_results(
     plt.grid(True)
 
     # Show the plot or save it to the specified path
-    if save_only == False:
+    if not save_only:
         plt.show()
     elif figure_path is not None:
         if figure_name is None:
-            figure_name = result["learner"] + "_" + ylabel.replace(" ", "")
+            learner_names = "_".join(result["learner"] for result in results)
+            figure_name = ylabel.replace(" ", "") + "_" + learner_names
         plt.savefig(figure_path + figure_name)
 
 
@@ -188,15 +189,15 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
     If save_only is True, then a figure will be saved at the specified path
     """
 
-    # check if the results are all prequential
+    # check if the results are prequential prediction interval results
     for result in results:
-        if not isinstance(result, PrequentialRegressionResults):
-            raise ValueError('only can process PrequentialRegressionResults class.')
+        if not hasattr(result.windowed, 'coverage'):
+            raise ValueError('Cannot process results that do not include prediction interval results.')
 
     # Determine ground truth y
     if ground_truth is None:
-        if results and results[0].get_targets():
-            ground_truth = results[0].get_targets()
+        if results and results[0].ground_truth_y():
+            ground_truth = results[0].ground_truth_y()
 
     # Check if ground truth y is available
     if ground_truth is None:
@@ -294,15 +295,15 @@ def plot_regression_results(
 
         prevent_plotting_drifts=False,
 ):
-    # check if the results are all prequential
+    # check if the results are prequential regression results
     for result in results:
-        if not isinstance(result, PrequentialRegressionResults):
-            raise ValueError('only can process PrequantialResults class.')
+        if not hasattr(result.windowed, 'rmse'):
+            raise ValueError('Cannot process results that do not include regression results.')
 
     # Check if the ground_truth is stored in the first result
     if ground_truth is None:
-        if results and results[0].get_targets():
-            ground_truth = results[0].get_targets()
+        if results and results[0].ground_truth_y():
+            ground_truth = results[0].ground_truth_y()
 
     # Check if ground_truth is none
     if ground_truth is None:
@@ -499,8 +500,8 @@ def plot_prediction_interval(
 ):
     # check if the results are all prequential
     for result in results:
-        if not isinstance(result, PrequentialPredictionIntervalResults):
-            raise ValueError('only can process PrequentialPredictionIntervalResults class.')
+        if not hasattr(result, 'coverage'):
+            raise ValueError('Cannot process results that do not include prediction interval results.')
 
     if len(results) > 2:
         raise ValueError('this function only supports up to 2 results currently.')
@@ -509,8 +510,8 @@ def plot_prediction_interval(
     stream = results[0]["stream"]
 
     if len(results) == 1:
-        if results[0].get_targets() is not None:
-            targets = results[0].get_targets()
+        if results[0].ground_truth_y() is not None:
+            targets = results[0].ground_truth_y()
         elif ground_truth is not None:
             targets = ground_truth
         else:
@@ -622,8 +623,8 @@ def plot_prediction_interval(
 
     # Plots two regions from prediction interval learners for comparison
     elif len(results) == 2:
-        if results[0].get_targets() is not None:
-            targets = results[0].get_targets()
+        if results[0].ground_truth_y() is not None:
+            targets = results[0].ground_truth_y()
         elif ground_truth is not None:
             targets = ground_truth
         else:

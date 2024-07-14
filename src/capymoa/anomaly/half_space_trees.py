@@ -26,11 +26,11 @@ class HalfSpaceTrees(MOAAnomalyDetector):
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.anomaly import HalfSpaceTrees
-    >>> from capymoa.evaluation import AUCEvaluator
+    >>> from capymoa.evaluation import AnomalyDetectionEvaluator
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
     >>> learner = HalfSpaceTrees(schema)
-    >>> evaluator = AUCEvaluator(schema)
+    >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
     ...     proba = learner.score_instance(instance)

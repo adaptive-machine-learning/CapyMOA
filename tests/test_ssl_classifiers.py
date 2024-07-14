@@ -23,7 +23,7 @@ def assert_ssl_evaluation(
         max_instances=max_instances,
     )
 
-    assert results["cumulative"].accuracy() == pytest.approx(expectation), (
+    assert results['cumulative'].accuracy() == pytest.approx(expectation), (
         f"Expected accuracy of {expectation} but got {results['cumulative'].accuracy()}"
         + f" for learner {learner} on stream {stream}"
     )
