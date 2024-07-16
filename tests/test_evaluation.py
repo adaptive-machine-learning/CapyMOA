@@ -1,7 +1,10 @@
 from capymoa.stream.generator import SEA
 from capymoa.classifier import NaiveBayes, HoeffdingTree
-from capymoa.evaluation import prequential_evaluation, \
-    prequential_evaluation_multiple_learners, prequential_ssl_evaluation
+from capymoa.evaluation import (prequential_evaluation,
+                                prequential_evaluation_multiple_learners,
+                                prequential_ssl_evaluation
+                                )
+from capymoa.datasets import ElectricityTiny
 import pytest
 
 
@@ -79,3 +82,72 @@ def test_prequential_ssl_evaluation():
         results_2nd_run['cumulative'].accuracy(), abs=0.001
     ), f"Prequential_ssl_evaluation same synthetic stream: Expected accuracy of " \
        f"{results_1st_run['cumulative'].accuracy():0.3f} got {results_2nd_run['cumulative'].accuracy(): 0.3f}"
+
+
+def _test_accessibility(obj, function_names):
+        errors = []
+        for func_name in function_names:
+            try:
+                # Check if the function is directly accessible
+                if not hasattr(obj, func_name):
+                    raise AttributeError(f"Function {func_name} is not directly accessible.")
+
+                # Attempt to call the function if it's callable
+                func = getattr(obj, func_name)
+                if callable(func):
+                    func()
+                else:
+                    raise AttributeError(f"{func_name} is not callable.")
+
+                # Check if the function is accessible via __getitem__
+                if obj[func_name] is None:  # func_name in obj.metrics_header():
+                    raise KeyError(f"{func_name} is not accessible via __getitem__.")
+
+            except Exception as e:
+                errors.append((func_name, str(e)))
+
+        return errors
+
+
+def test_evaluation_api():
+    """Test whether the API is functioning as expected, the access to result objects and so on.
+    """
+
+    # Define the list of function names that should be accessible through results_ht
+    prequential_results_function_names = [
+        'learner',
+        'stream',
+        'wallclock',
+        'cpu_time',
+        'max_instances',
+        'ground_truth_y',
+        'predictions'
+    ]
+
+    stream = ElectricityTiny()
+    ht = HoeffdingTree(schema=stream.get_schema(), grace_period=50)
+
+    results_ht = prequential_evaluation(stream=stream, learner=ht, window_size=50, optimise=True,
+                                        store_predictions=True, store_y=True)
+
+    # Test accessibility of PrequentialResults attributes through PrequentialResults object. This is relevant
+    # as the function tests access via __getitem__ (i.e. []), like results['wallclock']
+    results_ht_errors = _test_accessibility(results_ht, prequential_results_function_names)
+    if results_ht_errors:
+        print("Errors accessing PrequentialResults attributes through PrequentialResults object: ")
+        for func_name, error in results_ht_errors:
+            print(f"{func_name}: {error}")
+    else:
+        print("PrequentialResults attributes are accessible.")
+
+    # Test accessibility of cumulative functions through prequential results object
+    cumulative_errors = _test_accessibility(results_ht, results_ht.cumulative.metrics_header())
+    if cumulative_errors:
+        print("Errors accessing cumulative metrics through prequential results object: ")
+        for func_name, error in cumulative_errors:
+            print(f"{func_name}: {error}")
+    else:
+        print("Cumulative metrics are accessible through PrequentialResults object.")
+
+    assert results_ht_errors == [], "Issues with access to PrequentialResults"
+    assert cumulative_errors == [], "Issues with access to cumulative"

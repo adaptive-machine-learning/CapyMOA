@@ -105,6 +105,9 @@ class ClassificationEvaluator:
         self._instance = DenseInstance(1)
         self._instance.setDataset(self._header)
 
+    def __repr__(self):
+        return str(self)
+
     def __str__(self):
         return str(self.metrics_dict())
 
@@ -497,6 +500,12 @@ class ClassificationWindowedEvaluator(ClassificationEvaluator):
             window_size=window_size,
             moa_evaluator=self.moa_evaluator,
         )
+
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        pass
 
     # This allows access to metrics that are generated dynamically like recall_0, f1_score_3, ...
     def __getattr__(self, metric):
