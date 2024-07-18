@@ -20,6 +20,8 @@ from capymoa.type_alias import LabelIndex, LabelProbabilities, TargetValue, Anom
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 from sklearn.base import RegressorMixin as _SKRegressorMixin
 
+import matplotlib.pyplot as plt
+
 ##############################################################
 ##################### INTERNAL FUNCTIONS #####################
 ##############################################################
@@ -531,3 +533,143 @@ class MOAAnomalyDetector(AnomalyDetector):
         # However, if it is not the case for a MOA learner, this method should be overridden.
         prediction_array = self.moa_learner.getVotesForInstance(instance.java_instance)
         return prediction_array[0]
+
+##############################################################
+######################### Clustering #########################
+##############################################################
+class Clusterer(ABC):
+    def __init__(self, schema: Schema, random_seed=1):
+        self.random_seed = random_seed
+        self.schema = schema
+        if self.schema is None:
+            raise ValueError("Schema must be initialised")
+
+    @abstractmethod
+    def __str__(self):
+        pass
+
+    @abstractmethod
+    def train(self, instance: Instance):
+        pass
+
+    # @abstractmethod
+    # def predict(self, instance: Instance) -> Optional[LabelIndex]:
+    #     pass
+
+    # @abstractmethod
+    # def predict_proba(self, instance: Instance) -> LabelProbabilities:
+    #     pass
+
+class MOAClusterer(Clusterer):
+    """
+    A wrapper class for using MOA (Massive Online Analysis) clusterers in CapyMOA.
+
+    Attributes:
+    - schema: The schema representing the instances. Defaults to None.
+    - CLI: The command-line interface (CLI) configuration for the MOA learner.
+    - random_seed: The random seed for reproducibility. Defaults to 1.
+    - moa_learner: The MOA learner object or class identifier.
+    """
+
+    def __init__(self, moa_learner, schema=None, CLI=None):
+        super().__init__(schema=schema)
+        self.CLI = CLI
+        # If moa_learner is a class identifier instead of an object
+        if isinstance(moa_learner, type):
+            if type(moa_learner) == _jpype._JClass:
+                moa_learner = moa_learner()
+            else:  # this is not a Java object, thus it certainly isn't a MOA learner
+                raise ValueError("Invalid MOA clusterer provided.")
+        self.moa_learner = moa_learner
+
+        # self.moa_learner.setRandomSeed(self.random_seed)
+        
+        if self.schema is not None:
+            self.moa_learner.setModelContext(self.schema.get_moa_header())
+
+        # If the CLI is None, we assume the object has already been configured
+        # or that default values should be used.
+        if self.CLI is not None:
+            self.moa_learner.getOptions().setViaCLIString(CLI)
+
+        self.moa_learner.prepareForUse()
+        self.moa_learner.resetLearningImpl()
+        self.moa_learner.setModelContext(schema.get_moa_header())
+
+    def __str__(self):
+        # Removes the package information from the name of the learner.
+        full_name = str(self.moa_learner.getClass().getCanonicalName())
+        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+
+    def CLI_help(self):
+        return str(self.moa_learner.getOptions().getHelpString())
+
+    def train(self, instance):
+        self.moa_learner.trainOnInstance(instance.java_instance.getData())
+
+    def get_clusters_centers(self):
+        ret = []
+        for c in self.moa_learner.getMicroClusteringResult().getClustering():
+            ret.append(c.getCenter()[:-1])
+        return ret
+    
+    def get_clusters_radius(self):
+        ret = []
+        for c in self.moa_learner.getMicroClusteringResult().getClustering():
+            ret.append(c.getRadius())
+        return ret
+    
+    def get_clusters_weights(self):
+        ret = []
+        for c in self.moa_learner.getMicroClusteringResult().getClustering():
+            ret.append(c.getWeight())
+        return ret
+
+    def plot_clusters(self):
+        centers = self.get_clusters_centers()
+        radii = self.get_clusters_radius()
+        weights = self.get_clusters_weights()
+        fig, ax = plt.subplots()
+        # scatter + circles
+        x, y = zip(*centers)
+        plt.scatter(x, y, c='blue', label='Centers')
+        # Add circles representing the radius of each center
+        for (x, y), radius in zip(centers, radii):
+            circle = plt.Circle((x, y), radius, color='red', fill=False)
+            plt.gca().add_patch(circle)
+        # Add labels and legend
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.title('Centers with radius')
+        plt.legend()
+        # Show plot
+        plt.axis('equal')  # Ensure that the circles are not distorted
+        plt.show()
+
+        # scatter + weights
+        # Scatter plot with point sizes based on weights
+        # scatter = ax.scatter(
+        #     [center[0] for center in centers],  # x coordinates
+        #     [center[1] for center in centers],  # y coordinates
+        #     s=[weight * 100 for weight in weights],  # point sizes scaled by weights
+        #     c='blue',  # point color
+        #     alpha=0.5  # transparency
+        # )
+        # # Add circles to represent the radii
+        # for center, radius in zip(centers, radii):
+        #     circle = plt.Circle(center, radius, color='red', fill=False, linestyle='--', linewidth=1.5)
+        #     ax.add_artist(circle)
+        # # Add labels and title
+        # ax.set_xlabel('X Coordinate')
+        # ax.set_ylabel('Y Coordinate')
+        # ax.set_title('Scatter Plot with Centers and Radii')
+        # # Show the plot
+        # plt.show()
+
+    # def predict(self, instance):
+    #     return Utils.maxIndex(
+    #         self.moa_learner.getVotesForInstance(instance.java_instance)
+    #     )
+
+    # def predict_proba(self, instance):
+    #     return self.moa_learner.getVotesForInstance(instance.java_instance)
