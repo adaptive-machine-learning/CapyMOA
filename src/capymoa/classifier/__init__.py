@@ -12,13 +12,13 @@ from ._sgbt import StreamingGradientBoostedTrees
 from ._oza_boost import OzaBoost
 from ._majority_class import MajorityClass
 from ._no_change import NoChange
-from ._online_accuracy_updated_ensemble import OnlineAccuracyUpdatedEnsemble
 from ._online_smooth_boost import OnlineSmoothBoost
 from ._srp import StreamingRandomPatches
 from ._hoeffding_adaptive_tree import HoeffdingAdaptiveTree
 from ._samknn import SAMkNN
 from ._dynamic_weighted_majority import DynamicWeightedMajority
 from ._csmote import CSMOTE
+from ._online_accuracy_updated_ensemble import OnlineAccuracyUpdatedEnsemble
 
 __all__ = [
     "AdaptiveRandomForestClassifier",
@@ -35,11 +35,11 @@ __all__ = [
     "OzaBoost",
     "MajorityClass",
     "NoChange",
-    "OnlineAccuracyUpdatedEnsemble",
     "OnlineSmoothBoost",
     "StreamingRandomPatches",
     "HoeffdingAdaptiveTree",
     "SAMkNN",
     "DynamicWeightedMajority",
-    "CSMOTE"
+    "CSMOTE",
+    "OnlineAccuracyUpdatedEnsemble"
 ]

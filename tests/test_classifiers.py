@@ -77,6 +77,7 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         "OzaBoost",
         "MajorityClass",
         "NoChange",
+        "OnlineAccuracyUpdatedEnsemble",
         "OnlineSmoothBoost",
         "StreamingRandomPatches",
         "HoeffdingAdaptiveTree",
