@@ -18,7 +18,8 @@ from capymoa.classifier import (
     CSMOTE,
     LeveragingBagging,
     OnlineAdwinBagging,
-    OnlineAccuracyUpdatedEnsemble
+    OnlineAccuracyUpdatedEnsemble,
+    RWkNN
 )
 
 from capymoa.base import Classifier
@@ -65,6 +66,7 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         (partial(LeveragingBagging), 86.7, 91.0, None),
         (partial(OnlineAdwinBagging), 85.25, 92.0, None),
         (partial(OnlineAccuracyUpdatedEnsemble), 85.25, 92.0, None),
+        (partial(RWkNN), 85.25, 92.0, None),
     ],
     ids=[
         "OnlineBagging",
@@ -89,6 +91,7 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         "CSMOTE",
         "LeveragingBagging",
         "OnlineAdwinBagging",
+        "RWkNN"
     ],
 )
 def test_classifiers(
