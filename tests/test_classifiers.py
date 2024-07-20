@@ -63,7 +63,7 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         (partial(CSMOTE), 80.55, 79.0, None),
         (partial(LeveragingBagging), 86.7, 91.0, None),
         (partial(OnlineAdwinBagging), 85.25, 92.0, None),
-        (partial(WeightedkNN), 85.25, 92.0, None),
+        (partial(WeightedkNN), 85.25, 92.0, None)
     ],
     ids=[
         "OnlineBagging",
