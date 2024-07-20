@@ -18,7 +18,12 @@ from ._hoeffding_adaptive_tree import HoeffdingAdaptiveTree
 from ._samknn import SAMkNN
 from ._dynamic_weighted_majority import DynamicWeightedMajority
 from ._csmote import CSMOTE
+<<<<<<< HEAD
 from ._rwknn import RWkNN
+=======
+from ._online_accuracy_updated_ensemble import OnlineAccuracyUpdatedEnsemble
+from ._rw_knn import RWkNN
+>>>>>>> 563cfc23b74b6745e31d3d27351b831642d090a2
 
 __all__ = [
     "AdaptiveRandomForestClassifier",
@@ -41,5 +46,11 @@ __all__ = [
     "SAMkNN",
     "DynamicWeightedMajority",
     "CSMOTE",
+<<<<<<< HEAD
     "RWkNN"
 ]
+=======
+    "OnlineAccuracyUpdatedEnsemble"
+    "RWkNN"
+]
+>>>>>>> 563cfc23b74b6745e31d3d27351b831642d090a2

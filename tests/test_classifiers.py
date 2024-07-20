@@ -18,8 +18,13 @@ from capymoa.classifier import (
     CSMOTE,
     LeveragingBagging,
     OnlineAdwinBagging,
+<<<<<<< HEAD
+=======
+    OnlineAccuracyUpdatedEnsemble,
+>>>>>>> 563cfc23b74b6745e31d3d27351b831642d090a2
     RWkNN
 )
+
 from capymoa.base import Classifier
 from capymoa.base import MOAClassifier
 from capymoa.datasets import ElectricityTiny
@@ -63,6 +68,10 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         (partial(CSMOTE), 80.55, 79.0, None),
         (partial(LeveragingBagging), 86.7, 91.0, None),
         (partial(OnlineAdwinBagging), 85.25, 92.0, None),
+<<<<<<< HEAD
+=======
+        (partial(OnlineAccuracyUpdatedEnsemble), 85.25, 92.0, None),
+>>>>>>> 563cfc23b74b6745e31d3d27351b831642d090a2
         (partial(RWkNN), 85.25, 92.0, None),
     ],
     ids=[
@@ -79,6 +88,7 @@ from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
         "OzaBoost",
         "MajorityClass",
         "NoChange",
+        "OnlineAccuracyUpdatedEnsemble",
         "OnlineSmoothBoost",
         "StreamingRandomPatches",
         "HoeffdingAdaptiveTree",
