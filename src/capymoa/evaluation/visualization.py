@@ -5,6 +5,10 @@ from capymoa.base import Clusterer
 from com.yahoo.labs.samoa.instances import InstancesHeader
 import numpy as np
 import seaborn as sns
+import os
+import shutil
+from PIL import Image
+import glob
 
 
 def plot_windowed_results(
@@ -790,6 +794,62 @@ def plot_prediction_interval(
             figure_name = figure_name if figure_name else f"prediction_interval_over_time_comparison_{current_time}.pdf"
             plt.savefig(figure_path + figure_name)
 
+def _plot_clustering_state(
+        clusterer_name,
+        centers,
+        weights=None, 
+        radii=None,
+        cluster_ids=None,
+        figure_path="./",
+        figure_name=None,
+        show_fig=True,
+        save_fig=False,
+        make_gif=False,
+):
+    fig, ax = plt.subplots()
+    # Use a colormap to represent weights 
+    if weights is not None:
+        scatter = ax.scatter(*zip(*centers), c=weights, cmap='copper', label='Centers', s=100, edgecolor='k')
+        cbar = fig.colorbar(scatter)
+        cbar.set_label('Weights')
+    
+    # Add circles representing the radius of each center
+    if radii is not None:
+        for (x, y), radius in zip(centers, radii):
+            circle = plt.Circle((x, y), radius, color='red', fill=False)
+            ax.add_patch(circle)
+    
+    # Annotate the centers with cluster IDs
+    if cluster_ids is not None:
+        for (x, y), cluster_id in zip(centers, cluster_ids):
+            ax.text(x, y, str(cluster_id), fontsize=7, ha='center', va='center', color='white')
+    else:
+        for (x, y), cluster_id in zip(centers, range(len(centers))):
+            ax.text(x, y, str(cluster_id), fontsize=7, ha='center', va='center', color='white')
+
+    # Add labels and title
+    output_name = f'Clustering from {clusterer_name}'
+    ax.set_xlabel('F1')
+    ax.set_ylabel('F2')
+    ax.set_title(output_name)
+    ax.legend()
+    ax.axis('equal')  # Ensure that the circles are not distorted
+    # Show the plot or save it to the specified path
+    if show_fig:
+        fig.show()
+    else:
+        plt.close(fig) 
+    if make_gif:
+        ax.set_title(output_name + f'_{figure_name}')
+        # print(ax.get_xlim(), ax.get_ylim())
+        minx, maxx, miny, maxy = ax.get_xlim()[0], ax.get_xlim()[1], ax.get_ylim()[0], ax.get_ylim()[1]
+        return fig, minx, maxx, miny, maxy
+    else:
+        # not a gif, use timestamp
+        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        figure_name = figure_name if figure_name else f"clustering_result_{current_time}"
+        fig.savefig(figure_path + figure_name + '.png', dpi=300)
+
 def plot_clustering_state(
         clusterer: Clusterer, 
         plot_radii=True,
@@ -797,48 +857,55 @@ def plot_clustering_state(
         plot_IDs=True,
         figure_path="./",
         figure_name=None,
-        save_only=False,
+        show_fig=True,
+        save_fig=False,
+        make_gif=False,
 ):
-    fig, ax = plt.subplots()
     centers = clusterer.get_clusters_centers()
+    weights = clusterer.get_clusters_weights() if plot_weights else None
+    radii = clusterer.get_clusters_radii() if plot_radii else None
+    # Assuming cluster IDs are 0, 1, 2, ..., N-1  
+    cluster_ids = range(len(centers)) if plot_IDs else None
+    _plot_clustering_state(str(clusterer), centers, weights, radii, cluster_ids, figure_path, figure_name, show_fig, save_fig, make_gif)
 
-    # Use a colormap to represent weights 
-    if plot_weights:
-        weights = clusterer.get_clusters_weights()
-        scatter = plt.scatter(*zip(*centers), c=weights, cmap='copper', label='Centers', s=100, edgecolor='k')
-        cbar = plt.colorbar(scatter)
-        cbar.set_label('Weights')
-    
-    # Add circles representing the radius of each center
-    if plot_radii:
-        radii = clusterer.get_clusters_radius()
-        for (x, y), radius in zip(centers, radii):
-            circle = plt.Circle((x, y), radius, color='red', fill=False)
-            ax.add_patch(circle)
-    
-    # Annotate the centers with cluster IDs
-    if plot_IDs:
-        cluster_ids = range(len(centers))  # Assuming cluster IDs are 0, 1, 2, ..., N-1
-        for (x, y), cluster_id in zip(centers, cluster_ids):
-            plt.text(x, y, str(cluster_id), fontsize=7, ha='center', va='center', color='white')
+def plot_clustering_evolution(clusteringResults, clean_up=True):
+    centers = clusteringResults.get_measurements()['m_centers']
+    weights = clusteringResults.get_measurements()['m_weights']
+    radii = clusteringResults.get_measurements()['m_radii']
+    gif_path = './gifmaker/'
+    os.makedirs(gif_path, exist_ok=True)
+    figs = []
 
-    # Add labels and title
-    # output_name = str(InstancesHeader.getClassNameString(results[0]['stream'].get_schema().get_moa_header()))
-    # output_name = output_name[output_name.find(":") + 1:-1]
-    output_name = f'Clustering from {str(clusterer)}'
-    plt.xlabel('F1')
-    plt.ylabel('F2')
-    plt.title(output_name)
-    plt.legend()
-    plt.axis('equal')  # Ensure that the circles are not distorted
-    # Show the plot or save it to the specified path
-    if not save_only:
-        plt.show()
-    else:
-        pass
-    # elif figure_path:
-    #     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    #     figure_name = figure_name if figure_name else f"prediction_interval_over_time_comparison_{current_time}.pdf"
-    #     plt.savefig(figure_path + figure_name)
-    # else:
-    #     pass
+    maxx, maxy, minx, miny = -np.inf, -np.inf, np.inf, np.inf
+    for i in range(len(centers)):
+        fig, e_minx, e_maxx, e_miny, e_maxy = _plot_clustering_state(clusteringResults.clusterer_name, centers[i], weights[i], radii[i], figure_path=gif_path, figure_name=f'{i:05}', show_fig=False, save_fig=True, make_gif=True)
+        if e_minx < minx:
+            minx = e_minx
+        if e_maxx > maxx:
+            maxx = e_maxx
+        if e_miny < miny:
+            miny = e_miny
+        if e_maxy > maxy:
+            maxy = e_maxy
+        figs.append(fig)
+
+    # make the images with shared x and y lim
+    for f in figs:
+        f.gca().set_xlim([minx, maxx])
+        f.gca().set_ylim([miny, maxy])
+        f.savefig(f'{gif_path}{f.gca().get_title()}.png', dpi=300)
+        plt.close(f)
+
+    # Open images and store them in a list
+    images = [Image.open(img) for img in sorted(glob.glob(gif_path + '*.png'))]
+    # Create a GIF from the images
+    images[0].save(
+        'output.gif',
+        save_all=True,
+        append_images=images[1:],
+        duration=500,  # Duration of each frame in milliseconds
+        loop=1         # 0 means loop forever; set to 1 for single loop
+    )
+    # clean up after making the gif
+    if clean_up:
+        shutil.rmtree(gif_path)

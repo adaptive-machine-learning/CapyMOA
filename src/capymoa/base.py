@@ -613,7 +613,7 @@ class MOAClusterer(Clusterer):
             ret.append(c.getCenter()[:-1])
         return ret
     
-    def get_clusters_radius(self):
+    def get_clusters_radii(self):
         ret = []
         for c in self.moa_learner.getMicroClusteringResult().getClustering():
             ret.append(c.getRadius())

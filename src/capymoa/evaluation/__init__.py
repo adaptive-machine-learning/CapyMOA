@@ -12,6 +12,7 @@ from .evaluation import (
     PredictionIntervalEvaluator,
     PredictionIntervalWindowedEvaluator,
     AUCEvaluator,
+	ClusteringEvaluator,
 )
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "PredictionIntervalEvaluator",
     "PredictionIntervalWindowedEvaluator",
     "AUCEvaluator",
+	"ClusteringEvaluator",
 ]
