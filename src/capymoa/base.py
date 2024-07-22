@@ -625,47 +625,6 @@ class MOAClusterer(Clusterer):
             ret.append(c.getWeight())
         return ret
 
-    def plot_clusters(self):
-        centers = self.get_clusters_centers()
-        radii = self.get_clusters_radius()
-        weights = self.get_clusters_weights()
-        fig, ax = plt.subplots()
-        # scatter + circles
-        x, y = zip(*centers)
-        plt.scatter(x, y, c='blue', label='Centers')
-        # Add circles representing the radius of each center
-        for (x, y), radius in zip(centers, radii):
-            circle = plt.Circle((x, y), radius, color='red', fill=False)
-            plt.gca().add_patch(circle)
-        # Add labels and legend
-        plt.xlabel('X')
-        plt.ylabel('Y')
-        plt.title('Centers with radius')
-        plt.legend()
-        # Show plot
-        plt.axis('equal')  # Ensure that the circles are not distorted
-        plt.show()
-
-        # scatter + weights
-        # Scatter plot with point sizes based on weights
-        # scatter = ax.scatter(
-        #     [center[0] for center in centers],  # x coordinates
-        #     [center[1] for center in centers],  # y coordinates
-        #     s=[weight * 100 for weight in weights],  # point sizes scaled by weights
-        #     c='blue',  # point color
-        #     alpha=0.5  # transparency
-        # )
-        # # Add circles to represent the radii
-        # for center, radius in zip(centers, radii):
-        #     circle = plt.Circle(center, radius, color='red', fill=False, linestyle='--', linewidth=1.5)
-        #     ax.add_artist(circle)
-        # # Add labels and title
-        # ax.set_xlabel('X Coordinate')
-        # ax.set_ylabel('Y Coordinate')
-        # ax.set_title('Scatter Plot with Centers and Radii')
-        # # Show the plot
-        # plt.show()
-
     # def predict(self, instance):
     #     return Utils.maxIndex(
     #         self.moa_learner.getVotesForInstance(instance.java_instance)

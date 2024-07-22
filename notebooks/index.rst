@@ -27,6 +27,7 @@ These tutorials will show you how to get started with the CapyMOA library.
    anomaly_detection.ipynb
    parallel_ensembles.ipynb
    save_and_load_model.ipynb
+   clustering.ipynb
 
 
 

@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from datetime import datetime
 from capymoa.stream.drift import DriftStream
+from capymoa.base import Clusterer
 from com.yahoo.labs.samoa.instances import InstancesHeader
 import numpy as np
 import seaborn as sns
@@ -788,3 +789,56 @@ def plot_prediction_interval(
             current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             figure_name = figure_name if figure_name else f"prediction_interval_over_time_comparison_{current_time}.pdf"
             plt.savefig(figure_path + figure_name)
+
+def plot_clustering_state(
+        clusterer: Clusterer, 
+        plot_radii=True,
+        plot_weights=True,
+        plot_IDs=True,
+        figure_path="./",
+        figure_name=None,
+        save_only=False,
+):
+    fig, ax = plt.subplots()
+    centers = clusterer.get_clusters_centers()
+
+    # Use a colormap to represent weights 
+    if plot_weights:
+        weights = clusterer.get_clusters_weights()
+        scatter = plt.scatter(*zip(*centers), c=weights, cmap='copper', label='Centers', s=100, edgecolor='k')
+        cbar = plt.colorbar(scatter)
+        cbar.set_label('Weights')
+    
+    # Add circles representing the radius of each center
+    if plot_radii:
+        radii = clusterer.get_clusters_radius()
+        for (x, y), radius in zip(centers, radii):
+            circle = plt.Circle((x, y), radius, color='red', fill=False)
+            ax.add_patch(circle)
+    
+    # Annotate the centers with cluster IDs
+    if plot_IDs:
+        cluster_ids = range(len(centers))  # Assuming cluster IDs are 0, 1, 2, ..., N-1
+        for (x, y), cluster_id in zip(centers, cluster_ids):
+            plt.text(x, y, str(cluster_id), fontsize=7, ha='center', va='center', color='white')
+
+    # Add labels and title
+    # output_name = str(InstancesHeader.getClassNameString(results[0]['stream'].get_schema().get_moa_header()))
+    # output_name = output_name[output_name.find(":") + 1:-1]
+    output_name = f'Clustering from {str(clusterer)}'
+    plt.xlabel('F1')
+    plt.ylabel('F2')
+    plt.title(output_name)
+    plt.legend()
+    plt.axis('equal')  # Ensure that the circles are not distorted
+    # Show the plot or save it to the specified path
+    if not save_only:
+        plt.show()
+    else:
+        pass
+    # elif figure_path:
+    #     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    #     figure_name = figure_name if figure_name else f"prediction_interval_over_time_comparison_{current_time}.pdf"
+    #     plt.savefig(figure_path + figure_name)
+    # else:
+    #     pass
