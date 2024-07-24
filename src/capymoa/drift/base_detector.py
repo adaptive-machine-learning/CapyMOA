@@ -13,7 +13,6 @@ class BaseDriftDetector(ABC):
 
         self.in_concept_change = None
         self.in_warning_zone = None
-        self.estimation = None
         self.detection_index = []
         self.warning_index = []
         self.data = []
@@ -43,7 +42,6 @@ class BaseDriftDetector(ABC):
         """
         self.in_concept_change = False
         self.in_warning_zone = False
-        self.estimation = 0.0
 
         if clean_history:
             self.detection_index = []
@@ -97,19 +95,6 @@ class BaseDriftDetector(ABC):
         """
         return self.in_warning_zone
 
-    def get_estimation(self):
-        """ get_estimation
-
-        Returns the detector estimation.
-
-        Returns
-        -------
-        float
-            estimated value by the detector
-
-        """
-        return self.estimation
-
 
 class MOADriftDetector(BaseDriftDetector):
     """
@@ -153,7 +138,6 @@ class MOADriftDetector(BaseDriftDetector):
         self.data.append(element)
         self.idx += 1
 
-        self.estimation = self.moa_detector.getEstimation()
         self.in_concept_change = self.moa_detector.getChange()
         self.in_warning_zone = self.moa_detector.getWarningZone()
 
@@ -162,9 +146,6 @@ class MOADriftDetector(BaseDriftDetector):
 
         if self.in_concept_change:
             self.detection_index.append(self.idx)
-
-    def get_estimation(self):
-        return self.estimation
 
     def detected_change(self):
         return self.in_concept_change
@@ -180,7 +161,6 @@ class MOADriftDetector(BaseDriftDetector):
     def reset(self, clean_history: bool = False):
         self.in_concept_change = False
         self.in_warning_zone = False
-        self.estimation = 0.0
         self.moa_detector.resetLearning()
 
         if clean_history:
