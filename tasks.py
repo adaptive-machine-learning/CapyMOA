@@ -161,6 +161,11 @@ def clean(ctx: Context):
         "parallel": "Run the notebooks in parallel.",
         "overwrite": "Overwrite the notebooks with the executed output.",
         "pattern": "Run only the notebooks that match the pattern. Same as `pytest -k`",
+        "fast": (
+            "Run the notebooks in fast mode by setting the environment variable "
+            "`NB_FAST` to `true`. You cannot use this option with `--overwrite`."
+        ),
+        "no_skip": "Do not skip any notebooks.",
     }
 )
 def test_notebooks(
@@ -168,6 +173,8 @@ def test_notebooks(
     parallel: bool = True,
     overwrite: bool = False,
     pattern: Optional[str] = None,
+    fast: bool = True,
+    no_skip: bool = False,
 ):
     """Run the notebooks and check for errors.
 
@@ -176,9 +183,14 @@ def test_notebooks(
     with the executed output.
 
     """
+    assert not (fast and overwrite), "You cannot use `--overwrite` with `--fast`."
+
+    # Set the environment variable to run the notebooks in fast mode.
+    if fast:
+        environ["NB_FAST"] = "true"
 
     skip_notebooks = ctx["test_skip_notebooks"]
-    if skip_notebooks is None:
+    if skip_notebooks is None or no_skip:
         skip_notebooks = []
     print(f"Skipping notebooks: {skip_notebooks}")
     cmd = [
