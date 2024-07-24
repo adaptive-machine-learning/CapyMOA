@@ -186,7 +186,7 @@ Experts in their respective fields, these individuals provide invaluable
 research support in stream and online learning.
 
 * `Albert Bifet (University of Waikato / Télécom Paris) <https://albertbifet.com/>`__
-* `Bernhard Pfahringer (University of Waikato) <http://old-www.cms.waikato.ac.nz/~bernhard/>`__
+* `Bernhard Pfahringer (University of Waikato) <https://profiles.waikato.ac.nz/bernhard.pfahringer>`__
 * `Yun Sing Koh (University of Auckland) <https://sites.google.com/view/yunsingkoh/home>`__
 * `Jesse Read (École Polytechnique) <https://jmread.github.io/>`__
 * `Maroua Bahri (INRIA Paris) <https://sites.google.com/site/bahrimarouaa/home>`__
