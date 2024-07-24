@@ -65,6 +65,7 @@ be found on the `CapyMOA GitHub`_.
             * :fab:`linkedin` `Linkedin <https://www.linkedin.com/in/anton-lee-0666471a5>`__
             * :fab:`orcid` `ORCID <https://orcid.org/0009-0008-6566-7785>`__
 
+
 .. card:: Guilherme Weigert Cassales
 
 
@@ -154,6 +155,29 @@ be found on the `CapyMOA GitHub`_.
 
             * :fas:`house` `Home Page <https://bio.link/vcerq>`__
 
+
+.. card:: Marco Heyden
+
+    ..  grid:: 2
+
+        ..  grid-item::
+            :columns: 4
+
+            ..  image:: images/profiles/marco_heyden.jpg
+                :alt: Marco Heyden
+            
+        ..  grid-item::
+            :columns: 8
+
+            I am a research scientist and PhD student in the field of machine
+            learning and data mining at Karlsruhe Institute of Technology. I
+            focus on learning from sequential data, specifically the
+            intersection between data stream mining and decision making under
+            uncertainty. I am interested in everything that concerns data
+            streams and online learning and I have mainly worked on change
+            detection, incremental decision trees and multi-armed bandits.
+
+            * :fas:`house` `Home Page <https://heymarco.github.io/>`__
 
 
 Research Advisors
