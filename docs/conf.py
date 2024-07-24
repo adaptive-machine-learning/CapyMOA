@@ -10,6 +10,10 @@ from pathlib import Path
 from capymoa.__about__ import __version__
 from docs.util.github_link import make_linkcode_resolve
 
+discord_link = "https://discord.gg/spd2gQJGAb"
+contact_email = "heitor.gomes@vuw.ac.nz"
+capymoa_github = "https://github.com/adaptive-machine-learning/CapyMOA"
+
 project = 'CapyMOA'
 copyright = '2024 CapyMOA Developers'
 author = 'Heitor Murilo Gomes, Anton Lee, Nuwan Gunasekara, Marco Heyden, Yibin Sun, Guilherme Weigert Cassales'
@@ -28,6 +32,7 @@ extensions = [
     "sphinx.ext.extlinks",
     "sphinx.ext.doctest",
     "myst_parser",
+    "sphinx_design"
 ]
 
 nitpick_ignore_regex = [
@@ -56,8 +61,15 @@ extlinks = {
     'moa-api': ('https://javadoc.io/doc/nz.ac.waikato.cms.moa/moa/latest/%s', ''),
     'doi': ('https://doi.org/%s', ''),
     'sklearn': ('https://scikit-learn.org/stable/modules/generated/sklearn.%s.html', 'sklearn.%s'),
+    'github': ('https://github.com/%s', 'GitHub %s'),
 }
 
+# Add refs to the documentation
+rst_epilog = f"""
+.. _Discord: {discord_link}
+.. _Email: mailto:{contact_email}
+.. _CapyMOA GitHub: {capymoa_github}
+"""
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -102,7 +114,7 @@ html_theme_options = {
     "icon_links": [
         {
             "name": "GitHub",
-            "url": "https://github.com/adaptive-machine-learning/CapyMOA",  # required
+            "url": capymoa_github, 
             "icon": "fa-brands fa-github",
             "type": "fontawesome",
         },
@@ -114,8 +126,14 @@ html_theme_options = {
         },
         {
             "name": "Discord",
-            "url": "https://discord.gg/spd2gQJGAb",
+            "url": discord_link,
             "icon": "fa-brands fa-discord",
+            "type": "fontawesome",
+        },
+        {
+            "name": "Email",
+            "url": f"mailto:{contact_email}",
+            "icon": "fa-solid fa-envelope",
             "type": "fontawesome",
         }
    ]
