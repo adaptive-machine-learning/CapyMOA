@@ -28,18 +28,21 @@ class EvaluateDetector:
     >>>
     >>> data_stream = np.random.randint(2, size=2000)
     >>> for i in range(999, 2000):
-    >>>     data_stream[i] = np.random.randint(4, high=8)
+    ...     data_stream[i] = np.random.randint(4, high=8)
     >>>
     >>> for i in range(2000):
-    >>>     detector.add_element(data_stream[i])
+    ...     detector.add_element(data_stream[i])
     >>>
     >>> trues = np.array([1000])
     >>> preds = detector.detection_index
     >>>
     >>> eval = EvaluateDetector(max_delay=200)
-    >>> eval.calc_performance(preds, trues)
-    >>>
-    >>> print(eval.results)
+    >>> print(eval.calc_performance(preds, trues))
+    mean_time_to_detect           24.0
+    missed_detection_ratio         0.0
+    mean_time_btw_false_alarms     NaN
+    no_alarms_per_episode          0.0
+    dtype: float64
 
     """
 
