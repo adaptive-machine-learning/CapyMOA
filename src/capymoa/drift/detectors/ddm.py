@@ -9,7 +9,7 @@ class DDM(MOADriftDetector):
     """Drift-Detection-Method (DDM) Drift Detector
 
     Example:
-    -------
+    --------
 
     >>> import numpy as np
     >>> from capymoa.drift.detectors import DDM

@@ -37,14 +37,15 @@ extensions = [
 ]
 
 nitpick_ignore_regex = [
-    ("py:class", r"sklearn\..*"),
-    ("py:class", r"numpy\..*"),
-    ("py:class", r"pathlib\..*"),
     ("py:class", r"abc\..*"),
-    ("py:class", r"moa\..*"),
     ("py:class", r"com\..*"),
     ("py:class", r"java\..*"),
+    ("py:class", r"moa\..*"),
+    ("py:class", r"numpy\..*"),
     ("py:class", r"org\..*"),
+    ("py:class", r"pandas\..*"),
+    ("py:class", r"pathlib\..*"),
+    ("py:class", r"sklearn\..*"),
     ("py:class", r"torch\..*"),
 ]
 toc_object_entries_show_parents = "hide"
