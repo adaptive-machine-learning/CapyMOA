@@ -65,6 +65,30 @@ be found on the `CapyMOA GitHub`_.
             * :fab:`linkedin` `Linkedin <https://www.linkedin.com/in/anton-lee-0666471a5>`__
             * :fab:`orcid` `ORCID <https://orcid.org/0009-0008-6566-7785>`__
 
+.. card:: Justin Liu
+
+    ..  grid:: 2
+
+        ..  grid-item::
+            :columns: 4
+
+            ..  image:: images/profiles/justin_liu.jpg
+                :alt: Justin Liu
+            
+        ..  grid-item::
+            :columns: 8
+
+            Jia (Justin) Liu is currently pursuing a Ph.D. in Artificial
+            Intelligence at The University of Waikato, focusing on anomaly
+            detection in streaming data. His research addresses the challenges
+            of detecting unusual patterns in dynamic and evolving data streams.
+            Jia's work explores innovative algorithms and techniques to improve
+            the accuracy and efficiency of real-time anomaly detection, adapting
+            to concept drift and evolving data distributions.
+
+            * :fab:`github` :github:`justinuliu`
+            * :fab:`linkedin` `Linkedin <http://linkedin.com/in/jia-liu-9427b193>`__
+            * :fab:`orcid` `ORCID <https://orcid.org/0000-0001-6315-3854>`__
 
 .. card:: Guilherme Weigert Cassales
 
