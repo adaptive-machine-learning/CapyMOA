@@ -1,4 +1,4 @@
-from capymoa.evaluation import AUCEvaluator
+from capymoa.evaluation import AnomalyDetectionEvaluator
 from capymoa.anomaly import (
     HalfSpaceTrees,
     OnlineIsolationForest,
@@ -42,7 +42,7 @@ def test_anomaly_detectors(
     :param cli_string: Expected CLI string for the learner or None
     """
     stream = ElectricityTiny()
-    evaluator = AUCEvaluator(schema=stream.get_schema())
+    evaluator = AnomalyDetectionEvaluator(schema=stream.get_schema())
 
     learner: AnomalyDetector = learner_constructor(schema=stream.get_schema())
 
