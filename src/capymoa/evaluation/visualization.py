@@ -61,7 +61,7 @@ def plot_windowed_results(
             # if "experiment_id" in result:
             #     labels.append(result["experiment_id"])
             # else:
-            labels.append(result["learner"])
+            labels.append(result.learner)
 
     if not dfs:
         print("No valid DataFrames to plot.")
@@ -167,8 +167,8 @@ def plot_windowed_results(
         plt.show()
     elif figure_path is not None:
         if figure_name is None:
-            learner_names = "_".join(result["learner"] for result in results)
-            figure_name = ylabel.replace(" ", "") + "_" + learner_names
+            learner_names = "_".join(result.learner for result in results)
+            figure_name = ylabel.replace(" ", "") + "_" + learner_names + ".pdf"
         plt.savefig(figure_path + figure_name)
 
 
@@ -541,11 +541,11 @@ def plot_prediction_interval(
             plt.plot(instance_numbers, l, linewidth=0.1, alpha=0.2,
                      color=colors[0] if colors is not None else default_colors[0])
             plt.fill_between(instance_numbers, u, l, color=colors[0] if colors is not None else default_colors[0],
-                             alpha=0.5, label=results[0]["learner"] + " interval")
+                             alpha=0.5, label=results[0].learner + " interval")
         if plot_predictions:
             plt.plot(instance_numbers, np.array(predictions), linewidth=1, linestyle='-',
                      color=colors[0] if colors is not None else default_colors[0],
-                     label=results[0]["learner"] + " predictions")
+                     label=results[0].learner + " predictions")
         if plot_truth:
             insideX = []
             insideY = []
@@ -670,7 +670,7 @@ def plot_prediction_interval(
                          color=colors[0] if colors is not None else default_colors[0])
                 plt.fill_between(instance_numbers, u_first, l_first,
                                  color=colors[0] if colors is not None else default_colors[0],
-                                 alpha=0.2, label=results[0]["learner"] + " interval")
+                                 alpha=0.2, label=results[0].learner + " interval")
 
                 # Plot second area
                 plt.plot(instance_numbers, u_second, linewidth=0.1, alpha=0.5,
@@ -679,7 +679,7 @@ def plot_prediction_interval(
                          color=colors[1] if colors is not None else default_colors[1])
                 plt.fill_between(instance_numbers, u_second, l_second,
                                  color=colors[1] if colors is not None else default_colors[1],
-                                 alpha=0.5, label=results[1]["learner"] + " interval")
+                                 alpha=0.5, label=results[1].learner + " interval")
             else:
                 # define function for further dynamic plot
                 def _plot_first(i, alpha):
@@ -694,7 +694,7 @@ def plot_prediction_interval(
                                      u_first[switch_points[i]:switch_points[i + 1]+1],
                                      l_first[switch_points[i]:switch_points[i + 1]+1],
                                      color=colors[0] if colors is not None else default_colors[0],
-                                     alpha=alpha, label=results[0]["learner"] + " interval" if i == 0 else "")
+                                     alpha=alpha, label=results[0].learner + " interval" if i == 0 else "")
 
                 def _plot_second(i, alpha):
                     plt.plot(instance_numbers[switch_points[i]:switch_points[i + 1]+1],
@@ -708,7 +708,7 @@ def plot_prediction_interval(
                                      u_second[switch_points[i]:switch_points[i + 1]+1],
                                      l_second[switch_points[i]:switch_points[i + 1]+1],
                                      color=colors[1] if colors is not None else default_colors[1],
-                                     alpha=alpha, label=results[1]["learner"] + " interval" if i == 0 else "")
+                                     alpha=alpha, label=results[1].learner + " interval" if i == 0 else "")
 
                 # determine which on top first
                 first_first = l_first[0] > l_second[0]
@@ -747,10 +747,10 @@ def plot_prediction_interval(
         if plot_predictions:
             plt.plot(instance_numbers, np.array(predictions_first), linewidth=1, linestyle='-',
                      color=colors[0] if colors is not None else default_colors[0],
-                     label=results[0]["learner"] + " predictions")
+                     label=results[0].learner + " predictions")
             plt.plot(instance_numbers, np.array(predictions_second), linewidth=1, linestyle='-',
                      color=colors[1] if colors is not None else default_colors[1],
-                     label=results[1]["learner"] + " predictions")
+                     label=results[1].learner + " predictions")
 
         if plot_truth:
             insideX = []

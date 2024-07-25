@@ -76,8 +76,8 @@ class PrequentialResults(Results):
         self.cumulative = cumulative_evaluator
         self.windowed = windowed_evaluator
 
+        # learner has been removed from the dictionary, so that it can be set outside for plotting
         self.dict_results = {
-            "learner": learner,
             "stream": stream,
             "wallclock": wallclock,
             "cpu_time": cpu_time,
