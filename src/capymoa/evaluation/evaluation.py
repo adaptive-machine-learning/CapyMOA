@@ -479,7 +479,8 @@ class AnomalyDetectionEvaluator:
         index = self.metrics_header().index("s_auc")
         return self.metrics()[index]
 
-class AUCWindowedEvaluator:
+
+class AnomalyDetectionWindowedEvaluator:
     """
     Wrapper for the AUC Performance Evaluator from MOA. By default, it uses the
     WindowAUCImbalancedPerformanceEvaluator
@@ -819,7 +820,13 @@ def stop_time_measuring(start_wallclock_time, start_cpu_time):
 
 
 def prequential_evaluation(
-        stream, learner, max_instances=None, window_size=1000, store_predictions=False, store_y=False, optimise=True
+        stream,
+        learner,
+        max_instances=None,
+        window_size=1000,
+        store_predictions=False,
+        store_y=False,
+        optimise=True
 ):
     """
     Calculates the metrics cumulatively (i.e. test-then-train) and in a window-fashion (i.e. windowed prequential
@@ -1065,6 +1072,95 @@ def prequential_ssl_evaluation(
 
     return results
 
+
+def prequential_evaluation_anomaly(
+        stream,
+        learner,
+        max_instances=None,
+        window_size=1000,
+        optimise=True,
+        store_predictions=False,
+        store_y=False
+):
+    """
+    Calculates the metrics cumulatively (i.e. test-then-train) and in a window-fashion (i.e. windowed prequential
+    evaluation). Returns both evaluators so that the user has access to metrics from both evaluators.
+    """
+    stream.restart()
+    if _is_fast_mode_compilable(stream, learner, optimise):
+        return _prequential_evaluation_anomaly_fast(stream,
+                                                    learner,
+                                                    max_instances,
+                                                    window_size,
+                                                    store_y,
+                                                    store_predictions)
+
+    predictions = None
+    if store_predictions:
+        predictions = []
+
+    ground_truth_y = None
+    if store_y:
+        ground_truth_y = []
+
+    # Start measuring time
+    start_wallclock_time, start_cpu_time = start_time_measuring()
+    instances_processed = 1
+
+    evaluator_cumulative = AnomalyDetectionEvaluator(schema=stream.get_schema(), window_size=window_size)
+    evaluator_windowed = None
+    if window_size is not None:
+        evaluator_windowed = AnomalyDetectionWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
+
+    while stream.has_more_instances() and (
+            max_instances is None or instances_processed <= max_instances
+    ):
+        instance = stream.next_instance()
+        prediction = learner.score_instance(instance)
+        y = instance.y_index
+        evaluator_cumulative.update(y, prediction)
+        if window_size is not None:
+            evaluator_windowed.update(y, prediction)
+        learner.train(instance)
+
+        # Storing predictions if store_predictions was set to True during initialisation
+        if predictions is not None:
+            predictions.append(prediction)
+
+        # Storing ground-truth if store_y was set to True during initialisation
+        if ground_truth_y is not None:
+            ground_truth_y.append(y)
+
+        instances_processed += 1
+
+    # Stop measuring time
+    elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(
+        start_wallclock_time, start_cpu_time
+    )
+
+    # Add the results corresponding to the remainder of the stream in case the number of processed
+    # instances is not perfectly divisible by the window_size (if it was, then it is already be in
+    # the result_windows variable). The evaluator_windowed will be None if the window_size is None.
+    if (
+            evaluator_windowed is not None
+            and evaluator_windowed.get_instances_seen() % window_size != 0
+    ):
+        evaluator_windowed.result_windows.append(evaluator_windowed.metrics())
+
+    results = PrequentialResults(learner=str(learner),
+                                 stream=stream,
+                                 wallclock=elapsed_wallclock_time,
+                                 cpu_time=elapsed_cpu_time,
+                                 max_instances=max_instances,
+                                 cumulative_evaluator=evaluator_cumulative,
+                                 windowed_evaluator=evaluator_windowed,
+                                 ground_truth_y=ground_truth_y,
+                                 predictions=predictions)
+
+    return results
+
+
+
 ##############################################################
 ###### OPTIMISED VERSIONS (use experimental MOA method) ######
 ##############################################################
@@ -1255,79 +1351,13 @@ def _prequential_ssl_evaluation_fast(
     return results
 
 
-def _test_then_train_evaluation_anomaly_fast(stream, learner, max_instances, sample_frequency, evaluator):
-    """
-    Fast test-then-train evaluation for Anomaly Detectors.
-    """
-
-    if not _is_fast_mode_compilable(stream, learner):
-        raise ValueError(
-            "`_test_then_train_ssl_evaluation_fast` requires the stream object to have a`Stream.moa_stream`"
-        )
-
-    if max_instances is None:
-        max_instances = -1
-
-    # Start measuring time
-    start_wallclock_time, start_cpu_time = start_time_measuring()
-
-    if evaluator is None:
-        evaluator = AUCEvaluator(
-            schema=stream.get_schema(), window_size=sample_frequency
-        )
-
-    if sample_frequency is not None:
-        moa_results = EfficientEvaluationLoops.PrequentialEvaluation(
-            stream.moa_stream,
-            learner.moa_learner,
-            None,
-            evaluator.moa_basic_evaluator,
-            max_instances,
-            sample_frequency,
-            False,
-            False,
-        )
-        # Reset the windowed_evaluator result_windows
-        if moa_results is not None:
-            evaluator.result_windows = []
-            if moa_results.windowedResults is not None:
-                for entry_idx in range(len(moa_results.windowedResults)):
-                    evaluator.result_windows.append(
-                        moa_results.windowedResults[entry_idx]
-                    )
-    else:
-        # Ignore the moa_results because there is no sample frequency (so no need to obtain the windowed results)
-        # Set sample_frequency to -1 in the function call
-        EfficientEvaluationLoops.PrequentialEvaluation(
-            stream.moa_stream,
-            learner.moa_learner,
-            evaluator.moa_basic_evaluator,
-            None,
-            max_instances,
-            -1,
-            False,
-            False,
-        )
-
-    # Stop measuring time
-    elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(
-        start_wallclock_time, start_cpu_time
-    )
-
-    results = {
-        "learner": str(learner),
-        "cumulative": evaluator,
-        "wallclock": elapsed_wallclock_time,
-        "cpu_time": elapsed_cpu_time,
-        "max_instances": max_instances,
-        "stream": stream,
-    }
-
-    return results
-
-
-
-def _prequential_evaluation_anomaly_fast(stream, learner, max_instances=None, window_size=1000, store_y=False, store_predictions=False):
+def _prequential_evaluation_anomaly_fast(
+        stream,
+        learner,
+        max_instances=None,
+        window_size=1000,
+        store_y=False,
+        store_predictions=False):
     """
     Fast prequential evaluation for Anomaly Detectors.
     """
@@ -1355,8 +1385,8 @@ def _prequential_evaluation_anomaly_fast(stream, learner, max_instances=None, wi
     windowed_evaluator = None
     if not isinstance(learner, AnomalyDetector):
         raise ValueError("The learner is not an AnomalyDetector")
-    basic_evaluator = AUCEvaluator(schema=stream.get_schema())
-    windowed_evaluator = AUCWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
+    basic_evaluator = AnomalyDetectionEvaluator(schema=stream.get_schema())
+    windowed_evaluator = AnomalyDetectionWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
 
     moa_results = EfficientEvaluationLoops.PrequentialEvaluation(
         stream.moa_stream,
@@ -1390,19 +1420,18 @@ def _prequential_evaluation_anomaly_fast(stream, learner, max_instances=None, wi
             if store_predictions:
                 predictions.append(moa_results.predictions[i])
 
-    results = {
-        "learner": str(learner),
-        "cumulative": basic_evaluator,
-        "windowed": windowed_evaluator,
-        "wallclock": elapsed_wallclock_time,
-        "cpu_time": elapsed_cpu_time,
-        "max_instances": max_instances,
-        "stream": stream,
-        "ground_truth_y": ground_truth_y,
-        "predictions": predictions,
-    }
+    results = PrequentialResults(learner=str(learner),
+                                 stream=stream,
+                                 wallclock=elapsed_wallclock_time,
+                                 cpu_time=elapsed_cpu_time,
+                                 max_instances=max_instances,
+                                 cumulative_evaluator=basic_evaluator,
+                                 windowed_evaluator=windowed_evaluator,
+                                 ground_truth_y=ground_truth_y,
+                                 predictions=predictions)
 
     return results
+
 
 
 
