@@ -29,7 +29,7 @@ class DDM(MOADriftDetector):
 
     Reference:
     ----------
-    
+
     Gama, Joao, et al. "Learning with drift detection." Advances in Artificial
     Intelligence–SBIA 2004: 17th Brazilian Symposium on Artificial Intelligence,
     Sao Luis, Maranhao, Brazil, September 29-Ocotber 1, 2004.

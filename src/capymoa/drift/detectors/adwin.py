@@ -31,6 +31,7 @@ class ADWIN(MOADriftDetector):
 
     Reference:
     ----------
+
     Bifet, Albert, and Ricard Gavalda. "Learning from time-changing data with adaptive windowing."
     Proceedings of the 2007 SIAM international conference on data mining.
     Society for Industrial and Applied Mathematics, 2007.
