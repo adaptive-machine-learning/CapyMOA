@@ -1146,87 +1146,6 @@ def _prequential_ssl_evaluation_fast(
     return results
 
 
-# def prequential_evaluation_multiple_learners(
-#         stream, learners, max_instances=None, window_size=1000
-# ):
-#     """
-#     Calculates the metrics cumulatively (i.e., test-then-train) and in a windowed-fashion for multiple streams and
-#     learners. It behaves as if we invoked prequential_evaluation() multiple times, but we only iterate through the
-#     stream once.
-#     This function is useful in situations where iterating through the stream is costly, but we still want to assess
-#     several learners on it.
-#     Returns the results in a dictionary format. Infers whether it is a Classification or Regression problem based on the
-#     stream schema.
-#     """
-#     results = {}
-#
-#     stream.restart()
-#
-#     for learner_name, learner in learners.items():
-#         results[learner_name] = {"learner": str(learner)}
-#
-#     for learner_name, learner in learners.items():
-#         if stream.get_schema().is_classification():
-#             results[learner_name]["cumulative"] = ClassificationEvaluator(
-#                 schema=stream.get_schema(), window_size=window_size
-#             )
-#             if window_size is not None:
-#                 results[learner_name]["windowed"] = ClassificationWindowedEvaluator(
-#                     schema=stream.get_schema(), window_size=window_size
-#                 )
-#         else:
-#             if not isinstance(learner, MOAPredictionIntervalLearner):
-#                 results[learner_name]["cumulative"] = RegressionEvaluator(
-#                     schema=stream.get_schema(), window_size=window_size
-#                 )
-#                 if window_size is not None:
-#                     results[learner_name]["windowed"] = RegressionWindowedEvaluator(
-#                         schema=stream.get_schema(), window_size=window_size
-#                     )
-#             else:
-#                 results[learner_name]["cumulative"] = PredictionIntervalEvaluator(
-#                     schema=stream.get_schema(), window_size=window_size
-#                 )
-#                 if window_size is not None:
-#                     results[learner_name]["windowed"] = PredictionIntervalWindowedEvaluator(
-#                         schema=stream.get_schema(), window_size=window_size
-#                     )
-#         results[learner_name]['learner'] = learner_name
-#     instancesProcessed = 1
-#
-#     while stream.has_more_instances() and (
-#             max_instances is None or instancesProcessed <= max_instances
-#     ):
-#         instance = stream.next_instance()
-#
-#         for learner_name, learner in learners.items():
-#             # Predict for the current learner
-#             prediction = learner.predict(instance)
-#
-#             if stream.get_schema().is_classification():
-#                 y = instance.y_index
-#             else:
-#                 y = instance.y_value
-#
-#             results[learner_name]["cumulative"].update(y, prediction)
-#             if window_size is not None:
-#                 results[learner_name]["windowed"].update(y, prediction)
-#
-#             learner.train(instance)
-#
-#         instancesProcessed += 1
-#
-#     # Iterate through the results of each learner and add (if needed) the last window of results to it.
-#     if window_size is not None:
-#         for learner_name, result in results.items():
-#             if result["windowed"].get_instances_seen() % window_size != 0:
-#                 result["windowed"].result_windows.append(result["windowed"].metrics())
-#
-#     results['stream'] = stream
-#     results['max_instances'] = max_instances
-#
-#     return results
-
 def prequential_evaluation_multiple_learners(
         stream, learners, max_instances=None, window_size=1000, store_predictions=False, store_y=False
 ):
@@ -1337,7 +1256,6 @@ def prequential_evaluation_multiple_learners(
         )
 
     return final_results
-
 
 
 def write_results_to_files(

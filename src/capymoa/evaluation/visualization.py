@@ -12,6 +12,9 @@ from capymoa.evaluation.results import (
 )
 
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 def plot_windowed_results(
         *results,
         metric: str,
@@ -22,6 +25,8 @@ def plot_windowed_results(
         figure_name: str = None,
         save_only: bool = True,
         prevent_plotting_drifts: bool = False,
+        ymin: float = None,
+        ymax: float = None,
 ):
     """
     Plot a comparison of values from multiple evaluators based on a selected column using line plots.
@@ -33,8 +38,6 @@ def plot_windowed_results(
     dfs = []
     labels = []
     x_values = []
-    ymin = float('inf')
-    ymax = float('-inf')
 
     # check if the results are all prequential
     for result in results:
@@ -49,7 +52,6 @@ def plot_windowed_results(
         num_windows = results[0].windowed.metrics_per_window().shape[0]
         for i in range(1, num_windows + 1):
             x_values.append(i * window_size)
-        # print(f'x_values: {x_values}')
 
     # Check if the given metric exists in all DataFrames
     for result in results:
@@ -58,14 +60,24 @@ def plot_windowed_results(
             print(f"Column '{metric}' not found in metrics DataFrame for {result['learner']}. Skipping.")
         else:
             dfs.append(df)
-            # if "experiment_id" in result:
-            #     labels.append(result["experiment_id"])
-            # else:
             labels.append(result.learner)
 
     if not dfs:
         print("No valid DataFrames to plot.")
         return
+
+    # Calculate ymin and ymax if not provided
+    if ymin is None or ymax is None:
+        all_values = np.concatenate([df[metric].values for df in dfs])
+        if ymin is None:
+            ymin = all_values.min()
+        if ymax is None:
+            ymax = all_values.max()
+
+    # Add padding to ymin and ymax to prevent clipping
+    padding = 0.05 * (ymax - ymin)
+    ymin -= padding
+    ymax += padding
 
     # Create a figure
     plt.figure(figsize=(12, 5))
@@ -90,8 +102,6 @@ def plot_windowed_results(
                 linestyle="-",
                 markersize=5,
             )
-        ymax = max(df[metric].max(), ymax)
-        ymin = min(df[metric].min(), ymin)
 
     if stream is not None and isinstance(stream, DriftStream):
         if not prevent_plotting_drifts:
@@ -107,8 +117,7 @@ def plot_windowed_results(
 
             # Plot the horizontal line (concept width) for each concept
             if isinstance(stream, RecurrentConceptDriftStream):
-                # Define a colormap for automatic color generation (optional)
-                cmap = plt.cm.tab10  # Choose any colormap from Matplotlib (e.g., 'viridis', 'plasma')
+                cmap = plt.cm.tab10
                 colour_idxs = {}
                 colour_idx = 0
                 for c in stream.concept_info:
@@ -117,38 +126,26 @@ def plot_windowed_results(
                         colour_idxs[c["id"]] = colour_idx
                         colour_idx += 1
                         concept_label = c["id"]
-                    # If the concept_label is None, it is not shown in legend
                     plt.hlines(y=ymin-2, xmin=c['start'], xmax=c['end'], color=cmap(colour_idxs[c["id"]]), linestyle='--', linewidth=2,
                                label=concept_label)
 
             # Add gradual drift windows as 70% transparent rectangles
             if gradual_drift_window_lengths:
                 if not drift_locations:
-                    print(
-                        "Error: gradual_drift_window_lengths is provided, but drift_locations is not."
-                    )
+                    print("Error: gradual_drift_window_lengths is provided, but drift_locations is not.")
                     return
 
                 if len(drift_locations) != len(gradual_drift_window_lengths):
-                    print(
-                        "Error: drift_locations and gradual_drift_window_lengths must have the same length."
-                    )
+                    print("Error: drift_locations and gradual_drift_window_lengths must have the same length.")
                     return
 
                 for i in range(len(drift_locations)):
                     location = drift_locations[i]
                     window_length = gradual_drift_window_lengths[i]
+                    plt.axvspan(location - window_length / 2, location + window_length / 2, alpha=0.2, color="red")
 
-                    # Plot the 70% transparent rectangle
-                    plt.axvspan(
-                        location - window_length / 2,
-                        location + window_length / 2,
-                        alpha=0.2,
-                        color="red",
-                    )
-
-    # Set the y-axis limits (bottom, top)
-    plt.ylim(ymin-4, ymax)
+    # Set the y-axis limits
+    plt.ylim(ymin, ymax)
 
     # Add labels and title
     xlabel = xlabel if xlabel is not None else "# Instances"

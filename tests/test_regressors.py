@@ -37,7 +37,7 @@ def _score(classifier: Regressor, stream: Stream, limit=100) -> float:
         if i > limit:
             break
 
-    return evaluator.MAE()
+    return evaluator.mae()
 
 
 def subtest_save_and_load(

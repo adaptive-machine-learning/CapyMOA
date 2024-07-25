@@ -42,25 +42,26 @@ def test_prequential_evaluation_multiple_learners():
     results_1st_run = prequential_evaluation_multiple_learners(stream=stream,
                                                                learners={'model11': model11, 'model12': model12},
                                                                max_instances=100)
-    hundredth_first_instance_1st_run = results_1st_run.stream.next_instance().x
+    # print(results_1st_run['model11'].stream)
+    hundredth_first_instance_1st_run = results_1st_run['model11'].stream.next_instance().x
     results_2nd_run = prequential_evaluation_multiple_learners(stream=stream,
                                                                learners={'model21': model21, 'model22': model22},
                                                                max_instances=100)
-    hundredth_first_instance_2nd_run = results_2nd_run.stream.next_instance().x
+    hundredth_first_instance_2nd_run = results_2nd_run['model21'].stream.next_instance().x
 
     assert hundredth_first_instance_1st_run == pytest.approx(hundredth_first_instance_2nd_run)
 
-    assert results_1st_run['model11']['cumulative'].accuracy() == pytest.approx(
-        results_2nd_run['model21']['cumulative'].accuracy(), abs=0.001
+    assert results_1st_run['model11'].cumulative.accuracy() == pytest.approx(
+        results_2nd_run['model21'].cumulative.accuracy(), abs=0.001
     ), f"Prequential evaluation multiple learners same synthetic stream: Expected accuracy of " \
-       f"{results_1st_run['model11']['cumulative'].accuracy():0.3f} got " \
-       f"{results_2nd_run['model21']['cumulative'].accuracy(): 0.3f}"
+       f"{results_1st_run['model11'].cumulative.accuracy():0.3f} got " \
+       f"{results_2nd_run['model21'].cumulative.accuracy(): 0.3f}"
 
-    assert results_1st_run['model12']['cumulative'].accuracy() == pytest.approx(
-        results_2nd_run['model22']['cumulative'].accuracy(), abs=0.001
+    assert results_1st_run['model12'].cumulative.accuracy() == pytest.approx(
+        results_2nd_run['model22'].cumulative.accuracy(), abs=0.001
     ), f"Prequential evaluation multiple learners same synthetic stream: Expected accuracy of " \
-       f"{results_1st_run['model12']['cumulative'].accuracy():0.3f} got " \
-       f"{results_2nd_run['model22']['cumulative'].accuracy(): 0.3f}"
+       f"{results_1st_run['model12'].cumulative.accuracy():0.3f} got " \
+       f"{results_2nd_run['model22'].cumulative.accuracy(): 0.3f}"
 
 
 def test_prequential_ssl_evaluation():
@@ -115,8 +116,6 @@ def test_evaluation_api():
 
     # Define the list of function names that should be accessible through results_ht
     prequential_results_function_names = [
-        'learner',
-        'stream',
         'wallclock',
         'cpu_time',
         'max_instances',
