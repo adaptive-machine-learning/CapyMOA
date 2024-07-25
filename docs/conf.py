@@ -52,6 +52,7 @@ toc_object_entries_show_parents = "hide"
 autosummary_ignore_module_all = False
 autosummary_generate = True
 autodoc_member_order = "bysource"
+autodoc_class_signature = "separated"
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
