@@ -37,7 +37,7 @@ def _score(classifier: Regressor, stream: Stream, limit=100) -> float:
         if i > limit:
             break
 
-    return evaluator.MAE()
+    return evaluator.mae()
 
 
 def subtest_save_and_load(
@@ -105,7 +105,7 @@ def test_regressor(subtests: SubTests, learner_constructor, rmse, win_rmse):
     i = 0
     while stream.has_more_instances():
         i += 1
-        if i >= 1000:
+        if i > 1000:
             break
         instance = stream.next_instance()
         prediction = learner.predict(instance)
@@ -113,9 +113,8 @@ def test_regressor(subtests: SubTests, learner_constructor, rmse, win_rmse):
         win_evaluator.update(instance.y_value, prediction)
         learner.train(instance)
 
-
-    actual_rmse = evaluator.RMSE()
-    actual_win_rmse = win_evaluator.RMSE()
+    actual_rmse = evaluator.rmse()
+    actual_win_rmse = win_evaluator.rmse()[-1]
     assert actual_rmse == pytest.approx(rmse, abs=0.1), \
         f"Basic Eval: Expected {rmse:0.1f} RMSE got {actual_rmse: 0.1f} RMSE"
     assert actual_win_rmse == pytest.approx(win_rmse, abs=0.1), \
@@ -123,6 +122,8 @@ def test_regressor(subtests: SubTests, learner_constructor, rmse, win_rmse):
     
     with subtests.test(msg="save_and_load"):
         subtest_save_and_load(learner, stream, True)
+
+
 
 def test_none_predict():
     """Test that a prediction of None is handled."""

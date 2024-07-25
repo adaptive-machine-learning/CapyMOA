@@ -23,7 +23,7 @@ class SGDRegressor(SKRegressor):
     >>> schema = stream.get_schema()
     >>> learner = SGDRegressor(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].RMSE()
+    >>> results["cumulative"].rmse()
     4.625212156832521
     """
 

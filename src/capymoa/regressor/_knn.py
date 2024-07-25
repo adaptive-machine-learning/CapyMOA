@@ -22,7 +22,7 @@ class KNNRegressor(MOARegressor):
     >>> schema = stream.get_schema()
     >>> learner = KNNRegressor(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].RMSE()
+    >>> results["cumulative"].rmse()
     2.9811398077838542
     """
 

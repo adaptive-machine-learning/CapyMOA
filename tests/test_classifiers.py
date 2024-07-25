@@ -270,7 +270,7 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
 
     # Check if the accuracy matches the expected value for both evaluator types
     actual_acc = evaluator.accuracy()
-    actual_win_acc = win_evaluator.accuracy()
+    actual_win_acc = win_evaluator.accuracy()[-1]
     assert actual_acc == pytest.approx(
         test_case.accuracy, abs=0.1
     ), f"Basic Eval: Expected accuracy of {test_case.accuracy:0.1f} got {actual_acc: 0.1f}"
