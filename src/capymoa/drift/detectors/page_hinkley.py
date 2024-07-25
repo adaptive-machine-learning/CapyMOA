@@ -31,7 +31,7 @@ class PageHinkley(MOADriftDetector):
     Reference:
     ----------
 
-        Page. 1954. Continuous Inspection Schemes. Biometrika 41, 1/2 (1954),
+    Page. 1954. Continuous Inspection Schemes. Biometrika 41, 1/2 (1954),
     100-115.
 
     """
