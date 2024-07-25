@@ -17,9 +17,9 @@ def test_prequential_evaluation():
     model2 = NaiveBayes(schema=stream.get_schema())
 
     results_1st_run = prequential_evaluation(stream=stream, learner=model1, max_instances=10)
-    eleventh_instance_1st_run = results_1st_run['stream'].next_instance().x
+    eleventh_instance_1st_run = results_1st_run.stream.next_instance().x
     results_2nd_run = prequential_evaluation(stream=stream, learner=model2, max_instances=10)
-    eleventh_instance_2nd_run = results_2nd_run['stream'].next_instance().x
+    eleventh_instance_2nd_run = results_2nd_run.stream.next_instance().x
 
     assert eleventh_instance_1st_run == pytest.approx(eleventh_instance_2nd_run)
 
@@ -42,11 +42,11 @@ def test_prequential_evaluation_multiple_learners():
     results_1st_run = prequential_evaluation_multiple_learners(stream=stream,
                                                                learners={'model11': model11, 'model12': model12},
                                                                max_instances=100)
-    hundredth_first_instance_1st_run = results_1st_run['stream'].next_instance().x
+    hundredth_first_instance_1st_run = results_1st_run.stream.next_instance().x
     results_2nd_run = prequential_evaluation_multiple_learners(stream=stream,
                                                                learners={'model21': model21, 'model22': model22},
                                                                max_instances=100)
-    hundredth_first_instance_2nd_run = results_2nd_run['stream'].next_instance().x
+    hundredth_first_instance_2nd_run = results_2nd_run.stream.next_instance().x
 
     assert hundredth_first_instance_1st_run == pytest.approx(hundredth_first_instance_2nd_run)
 
@@ -72,16 +72,16 @@ def test_prequential_ssl_evaluation():
     model2 = NaiveBayes(schema=stream.get_schema())
 
     results_1st_run = prequential_ssl_evaluation(stream=stream, learner=model1, max_instances=10)
-    eleventh_instance_1st_run = results_1st_run['stream'].next_instance().x
+    eleventh_instance_1st_run = results_1st_run.stream.next_instance().x
     results_2nd_run = prequential_ssl_evaluation(stream=stream, learner=model2, max_instances=10)
-    eleventh_instance_2nd_run = results_2nd_run['stream'].next_instance().x
+    eleventh_instance_2nd_run = results_2nd_run.stream.next_instance().x
 
     assert eleventh_instance_1st_run == pytest.approx(eleventh_instance_2nd_run)
 
-    assert results_1st_run['cumulative'].accuracy() == pytest.approx(
-        results_2nd_run['cumulative'].accuracy(), abs=0.001
+    assert results_1st_run.cumulative.accuracy() == pytest.approx(
+        results_2nd_run.cumulative.accuracy(), abs=0.001
     ), f"Prequential_ssl_evaluation same synthetic stream: Expected accuracy of " \
-       f"{results_1st_run['cumulative'].accuracy():0.3f} got {results_2nd_run['cumulative'].accuracy(): 0.3f}"
+       f"{results_1st_run.cumulative.accuracy():0.3f} got {results_2nd_run.cumulative.accuracy(): 0.3f}"
 
 
 def _test_accessibility(obj, function_names):
