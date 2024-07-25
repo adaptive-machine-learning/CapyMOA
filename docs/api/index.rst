@@ -16,19 +16,22 @@ capymoa.
 
 ..  autosummary::
     :toctree: modules
+    :caption: Types
     :recursive:
 
     capymoa.base
     capymoa.type_alias
     capymoa.instance
 
-Datastreams
------------
+Data Streams
+------------
 
-These modules provide classes for handling datastreams.
+These modules provide classes for loading, and simulating data streams. It also
+includes utilities for simulating concept drifts.
 
 ..  autosummary::
     :toctree: modules
+    :caption: Data Streams
     :recursive:
 
     capymoa.datasets
@@ -42,12 +45,25 @@ and semi-supervised learning.
     
 ..  autosummary::
     :toctree: modules
+    :caption: Learners
     :recursive:
 
     capymoa.classifier
     capymoa.regressor
     capymoa.anomaly
     capymoa.ssl
+
+Drift Detection
+---------------
+
+These modules provide classes for detecting concept drifts.
+
+..  autosummary::
+    :toctree: modules
+    :caption: Drift Detection
+    :recursive:
+
+    capymoa.drift
 
 Evaluation
 ----------
@@ -56,6 +72,7 @@ These modules provide classes for evaluating learners.
 
 ..  autosummary::
     :toctree: modules
+    :caption: Evaluation
     :recursive:
 
     capymoa.splitcriteria
@@ -69,6 +86,7 @@ These modules provide miscellaneous utilities.
 
 ..  autosummary::
     :toctree: modules
+    :caption: Miscellaneous
     :recursive:
 
     capymoa.misc

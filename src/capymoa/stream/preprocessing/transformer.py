@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from capymoa.stream import Schema, Stream
 from capymoa.instance import Instance
 from moa.streams import FilteredQueueStream
-from moa.streams.filters import StreamFilter
+import moa.streams.filters 
 
 
 class Transformer(ABC):
@@ -23,7 +23,13 @@ class Transformer(ABC):
 
 
 class MOATransformer(Transformer):
-    def __init__(self, schema=None, moa_filter: StreamFilter | None = None, CLI=None):
+
+    def __init__(
+        self,
+        schema=None,
+        moa_filter: moa.streams.filters.StreamFilter | None = None,
+        CLI=None,
+    ):
         self.schema = schema
         self.CLI = CLI
         self.moa_filter = moa_filter

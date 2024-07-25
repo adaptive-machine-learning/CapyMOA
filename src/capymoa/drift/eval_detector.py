@@ -50,7 +50,7 @@ class EvaluateDetector:
         """
 
         :param max_delay: Maximum number of instances to wait for a detection
-        [after which the drift becomes obvious and the detector is considered to have missed the change]
+            [after which the drift becomes obvious and the detector is considered to have missed the change]
         """
 
         self.max_delay = max_delay
@@ -71,8 +71,7 @@ class EvaluateDetector:
 
         :param preds: (array): detection location (index) values
         :param trues: (array): actual location (index) of drift. For drifts based on an interval (e.g gradual drifts),
-        the current approach is to define it using the starting location and the max_delay parameter
-
+            the current approach is to define it using the starting location and the max_delay parameter
         :return: pd.Series with a performance summary
         """
 
