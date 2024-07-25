@@ -190,9 +190,9 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
     """
 
     # check if the results are prequential prediction interval results
-    for result in results:
-        if not hasattr(result.windowed, 'coverage'):
-            raise ValueError('Cannot process results that do not include prediction interval results.')
+    # for result in results:
+        # if not hasattr(result.windowed, 'coverage'):
+        #     raise ValueError('Cannot process results that do not include prediction interval results.')
 
     # Determine ground truth y
     if ground_truth is None:
@@ -211,8 +211,8 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
 
     # Check if predictions have the same length as ground truth
     for i, result in enumerate(results):
-        if result.get_predictions() is not None:
-            predictions = result.get_predictions()[start:end]
+        if result.predictions() is not None:
+            predictions = result.predictions()[start:end]
             if len(predictions) != len(ground_truth[start:end]):
                 raise ValueError(f"Length of predictions for result {i + 1} does not match ground truth.")
 
@@ -222,7 +222,7 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
     #     if "predictions" in result:
     #         predictions = result["predictions"][start:end]
     for result in results:
-        predictions = result.get_predictions()[start:end]
+        predictions = result.predictions()[start:end]
         plt.plot(instance_numbers, predictions, label=f"{result['learner']} predictions", alpha=0.7)
 
     # Plot ground truth y
@@ -324,11 +324,11 @@ def plot_regression_results(
     if absolute_residuals:
         absolute_values = []
     for i, result in enumerate(results):
-        if result.get_predictions() is not None:
-            predictions.append(np.array(result.get_predictions()[start:end]))
-            residuals.append(np.array(np.array(result.get_predictions()[start:end]) - np.array(targets)))
+        if result.predictions() is not None:
+            predictions.append(np.array(result.predictions()[start:end]))
+            residuals.append(np.array(np.array(result.predictions()[start:end]) - np.array(targets)))
             if absolute_residuals:
-                absolute_values.append(np.abs(np.array(np.array(result.get_predictions()[start:end]) - np.array(targets))))
+                absolute_values.append(np.abs(np.array(np.array(result.predictions()[start:end]) - np.array(targets))))
 
     # Create a figure
     plt.figure(figsize=((end - start) / 10, 6))
@@ -522,7 +522,7 @@ def plot_prediction_interval(
 
         instance_numbers = list(range(start, end))
         targets = targets[start:end]
-        intervals = results[0].get_predictions()[start:end]
+        intervals = results[0].predictions()[start:end]
         upper = []
         lower = []
         predictions = []
@@ -636,8 +636,8 @@ def plot_prediction_interval(
         instance_numbers = list(range(start, end))
         targets = targets[start:end]
 
-        intervals_first = results[0].get_predictions()[start:end]
-        intervals_second = results[1].get_predictions()[start:end]
+        intervals_first = results[0].predictions()[start:end]
+        intervals_second = results[1].predictions()[start:end]
 
         upper_first = []
         lower_first = []

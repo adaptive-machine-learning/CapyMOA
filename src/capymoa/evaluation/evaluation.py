@@ -666,7 +666,7 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
         index = self.metrics_header().index("average_length")
         return self.metrics()[index]
 
-    def NMPIW(self):
+    def nmpiw(self):
         index = self.metrics_header().index("nmpiw")
         return self.metrics()[index]
 
@@ -686,8 +686,8 @@ class PredictionIntervalWindowedEvaluator(PredictionIntervalEvaluator):
     def average_length(self):
         return self.metrics_per_window()['average length'].tolist()
 
-    def NMPIW(self):
-        return self.metrics_per_window()['NMPIW'].tolist()
+    def nmpiw(self):
+        return self.metrics_per_window()['nmpiw'].tolist()
 
 
 def start_time_measuring():
@@ -1146,8 +1146,89 @@ def _prequential_ssl_evaluation_fast(
     return results
 
 
+# def prequential_evaluation_multiple_learners(
+#         stream, learners, max_instances=None, window_size=1000
+# ):
+#     """
+#     Calculates the metrics cumulatively (i.e., test-then-train) and in a windowed-fashion for multiple streams and
+#     learners. It behaves as if we invoked prequential_evaluation() multiple times, but we only iterate through the
+#     stream once.
+#     This function is useful in situations where iterating through the stream is costly, but we still want to assess
+#     several learners on it.
+#     Returns the results in a dictionary format. Infers whether it is a Classification or Regression problem based on the
+#     stream schema.
+#     """
+#     results = {}
+#
+#     stream.restart()
+#
+#     for learner_name, learner in learners.items():
+#         results[learner_name] = {"learner": str(learner)}
+#
+#     for learner_name, learner in learners.items():
+#         if stream.get_schema().is_classification():
+#             results[learner_name]["cumulative"] = ClassificationEvaluator(
+#                 schema=stream.get_schema(), window_size=window_size
+#             )
+#             if window_size is not None:
+#                 results[learner_name]["windowed"] = ClassificationWindowedEvaluator(
+#                     schema=stream.get_schema(), window_size=window_size
+#                 )
+#         else:
+#             if not isinstance(learner, MOAPredictionIntervalLearner):
+#                 results[learner_name]["cumulative"] = RegressionEvaluator(
+#                     schema=stream.get_schema(), window_size=window_size
+#                 )
+#                 if window_size is not None:
+#                     results[learner_name]["windowed"] = RegressionWindowedEvaluator(
+#                         schema=stream.get_schema(), window_size=window_size
+#                     )
+#             else:
+#                 results[learner_name]["cumulative"] = PredictionIntervalEvaluator(
+#                     schema=stream.get_schema(), window_size=window_size
+#                 )
+#                 if window_size is not None:
+#                     results[learner_name]["windowed"] = PredictionIntervalWindowedEvaluator(
+#                         schema=stream.get_schema(), window_size=window_size
+#                     )
+#         results[learner_name]['learner'] = learner_name
+#     instancesProcessed = 1
+#
+#     while stream.has_more_instances() and (
+#             max_instances is None or instancesProcessed <= max_instances
+#     ):
+#         instance = stream.next_instance()
+#
+#         for learner_name, learner in learners.items():
+#             # Predict for the current learner
+#             prediction = learner.predict(instance)
+#
+#             if stream.get_schema().is_classification():
+#                 y = instance.y_index
+#             else:
+#                 y = instance.y_value
+#
+#             results[learner_name]["cumulative"].update(y, prediction)
+#             if window_size is not None:
+#                 results[learner_name]["windowed"].update(y, prediction)
+#
+#             learner.train(instance)
+#
+#         instancesProcessed += 1
+#
+#     # Iterate through the results of each learner and add (if needed) the last window of results to it.
+#     if window_size is not None:
+#         for learner_name, result in results.items():
+#             if result["windowed"].get_instances_seen() % window_size != 0:
+#                 result["windowed"].result_windows.append(result["windowed"].metrics())
+#
+#     results['stream'] = stream
+#     results['max_instances'] = max_instances
+#
+#     return results
+
 def prequential_evaluation_multiple_learners(
-        stream, learners, max_instances=None, window_size=1000
+        stream, learners, max_instances=None, window_size=1000, store_predictions=False, store_y=False
 ):
     """
     Calculates the metrics cumulatively (i.e., test-then-train) and in a windowed-fashion for multiple streams and
@@ -1163,35 +1244,42 @@ def prequential_evaluation_multiple_learners(
     stream.restart()
 
     for learner_name, learner in learners.items():
-        results[learner_name] = {"learner": str(learner)}
+        predictions = [] if store_predictions else None
+        ground_truth_y = [] if store_y else None
 
-    for learner_name, learner in learners.items():
         if stream.get_schema().is_classification():
-            results[learner_name]["cumulative"] = ClassificationEvaluator(
+            cumulative_evaluator = ClassificationEvaluator(
                 schema=stream.get_schema(), window_size=window_size
             )
-            if window_size is not None:
-                results[learner_name]["windowed"] = ClassificationWindowedEvaluator(
-                    schema=stream.get_schema(), window_size=window_size
-                )
+            windowed_evaluator = ClassificationWindowedEvaluator(
+                schema=stream.get_schema(), window_size=window_size
+            ) if window_size is not None else None
         else:
             if not isinstance(learner, MOAPredictionIntervalLearner):
-                results[learner_name]["cumulative"] = RegressionEvaluator(
+                cumulative_evaluator = RegressionEvaluator(
                     schema=stream.get_schema(), window_size=window_size
                 )
-                if window_size is not None:
-                    results[learner_name]["windowed"] = RegressionWindowedEvaluator(
-                        schema=stream.get_schema(), window_size=window_size
-                    )
+                windowed_evaluator = RegressionWindowedEvaluator(
+                    schema=stream.get_schema(), window_size=window_size
+                ) if window_size is not None else None
             else:
-                results[learner_name]["cumulative"] = PredictionIntervalEvaluator(
+                cumulative_evaluator = PredictionIntervalEvaluator(
                     schema=stream.get_schema(), window_size=window_size
                 )
-                if window_size is not None:
-                    results[learner_name]["windowed"] = PredictionIntervalWindowedEvaluator(
-                        schema=stream.get_schema(), window_size=window_size
-                    )
-        results[learner_name]['learner'] = learner_name
+                windowed_evaluator = PredictionIntervalWindowedEvaluator(
+                    schema=stream.get_schema(), window_size=window_size
+                ) if window_size is not None else None
+
+        results[learner_name] = {
+            "learner": learner,
+            "cumulative_evaluator": cumulative_evaluator,
+            "windowed_evaluator": windowed_evaluator,
+            "predictions": predictions,
+            "ground_truth_y": ground_truth_y,
+            "start_wallclock_time": start_time_measuring()[0],
+            "start_cpu_time": start_time_measuring()[1],
+        }
+
     instancesProcessed = 1
 
     while stream.has_more_instances() and (
@@ -1208,24 +1296,48 @@ def prequential_evaluation_multiple_learners(
             else:
                 y = instance.y_value
 
-            results[learner_name]["cumulative"].update(y, prediction)
+            results[learner_name]["cumulative_evaluator"].update(y, prediction)
             if window_size is not None:
-                results[learner_name]["windowed"].update(y, prediction)
+                results[learner_name]["windowed_evaluator"].update(y, prediction)
 
             learner.train(instance)
+
+            # Storing predictions if store_predictions was set to True during initialization
+            if results[learner_name]["predictions"] is not None:
+                results[learner_name]["predictions"].append(prediction)
+
+            # Storing ground-truth if store_y was set to True during initialization
+            if results[learner_name]["ground_truth_y"] is not None:
+                results[learner_name]["ground_truth_y"].append(y)
 
         instancesProcessed += 1
 
     # Iterate through the results of each learner and add (if needed) the last window of results to it.
     if window_size is not None:
         for learner_name, result in results.items():
-            if result["windowed"].get_instances_seen() % window_size != 0:
-                result["windowed"].result_windows.append(result["windowed"].metrics())
+            if result["windowed_evaluator"] is not None and result["windowed_evaluator"].get_instances_seen() % window_size != 0:
+                result["windowed_evaluator"].result_windows.append(result["windowed_evaluator"].metrics())
 
-    results['stream'] = stream
-    results['max_instances'] = max_instances
+    # Creating PrequentialResults instances for each learner
+    final_results = {}
+    for learner_name, result in results.items():
+        elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(
+            result["start_wallclock_time"], result["start_cpu_time"]
+        )
+        final_results[learner_name] = PrequentialResults(
+            learner=str(result["learner"]),
+            stream=stream,
+            wallclock=elapsed_wallclock_time,
+            cpu_time=elapsed_cpu_time,
+            max_instances=max_instances,
+            cumulative_evaluator=result["cumulative_evaluator"],
+            windowed_evaluator=result["windowed_evaluator"],
+            ground_truth_y=result["ground_truth_y"],
+            predictions=result["predictions"]
+        )
 
-    return results
+    return final_results
+
 
 
 def write_results_to_files(
