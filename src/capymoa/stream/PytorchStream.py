@@ -1,3 +1,5 @@
+import copy
+
 import torch
 
 from capymoa.stream import Stream, Schema
@@ -53,6 +55,8 @@ class PytorchStream(Stream):
         :param dataset: PyTorch containing tuples of `x` and `y`
         :param enforce_regression: Force the task to be a regression task, default is False
         """
+        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+
         self.training_data = dataset
         # self.train_dataloader = DataLoader(self.training_data, batch_size=1, shuffle=False)
         self.current_instance_index = 0
