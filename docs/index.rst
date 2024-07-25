@@ -93,7 +93,7 @@ Tutorials to help you get started with CapyMOA.
 .. toctree::
    :maxdepth: 2
 
-   notebooks/index
+   tutorials
 
 📚 Reference Manual
 -------------------
