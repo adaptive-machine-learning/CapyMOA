@@ -868,7 +868,7 @@ def plot_clustering_state(
     cluster_ids = range(len(centers)) if plot_IDs else None
     _plot_clustering_state(str(clusterer), centers, weights, radii, cluster_ids, figure_path, figure_name, show_fig, save_fig, make_gif)
 
-def plot_clustering_evolution(clusteringResults, clean_up=True):
+def plot_clustering_evolution(clusteringResults, clean_up=True, dpi=300):
     centers = clusteringResults.get_measurements()['m_centers']
     weights = clusteringResults.get_measurements()['m_weights']
     radii = clusteringResults.get_measurements()['m_radii']
@@ -893,7 +893,7 @@ def plot_clustering_evolution(clusteringResults, clean_up=True):
     for f in figs:
         f.gca().set_xlim([minx, maxx])
         f.gca().set_ylim([miny, maxy])
-        f.savefig(f'{gif_path}{f.gca().get_title()}.png', dpi=300)
+        f.savefig(f'{gif_path}{f.gca().get_title()}.png', dpi=dpi)
         plt.close(f)
 
     # Open images and store them in a list

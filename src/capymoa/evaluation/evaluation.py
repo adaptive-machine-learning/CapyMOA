@@ -480,7 +480,9 @@ class ClusteringEvaluator:
         # self.measurements["m_IDs"].append(clusterer.get_clusters_ids())
 
         # calculate silhouette score
-        # TODO: implement silhouette score calculation
+        # TODO: delegate silhouette to moa
+        # Check how it is done among different clusterers
+
 
     def metrics_header(self):
         performance_names = ["m_centers", "m_weights", "m_radii"]
