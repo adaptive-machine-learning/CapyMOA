@@ -76,8 +76,8 @@ def plot_windowed_results(
 
     # Add padding to ymin and ymax to prevent clipping
     padding = 0.05 * (ymax - ymin)
-    ymin -= padding
-    ymax += padding
+    ymin -= (2 * padding)
+    ymax += (2 * padding)
 
     # Create a figure
     plt.figure(figsize=(12, 5))
@@ -126,7 +126,7 @@ def plot_windowed_results(
                         colour_idxs[c["id"]] = colour_idx
                         colour_idx += 1
                         concept_label = c["id"]
-                    plt.hlines(y=ymin-2, xmin=c['start'], xmax=c['end'], color=cmap(colour_idxs[c["id"]]), linestyle='--', linewidth=2,
+                    plt.hlines(y=ymin + padding, xmin=c['start'], xmax=c['end'], color=cmap(colour_idxs[c["id"]]), linestyle='--', linewidth=2,
                                label=concept_label)
 
             # Add gradual drift windows as 70% transparent rectangles
