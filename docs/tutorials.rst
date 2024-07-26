@@ -28,6 +28,7 @@ These tutorials will show you how to get started with the CapyMOA library.
    notebooks/drift_detection.ipynb
    notebooks/parallel_ensembles.ipynb
    notebooks/save_and_load_model.ipynb
+   notebooks/clustering.ipynb
 
 Talks
 =====
