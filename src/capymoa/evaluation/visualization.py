@@ -1,28 +1,37 @@
 import matplotlib.pyplot as plt
 from datetime import datetime
-from capymoa.stream.drift import DriftStream
-from capymoa.base import Clusterer
+from capymoa.stream.drift import DriftStream, RecurrentConceptDriftStream
 from com.yahoo.labs.samoa.instances import InstancesHeader
 import numpy as np
 import seaborn as sns
+from capymoa._utils import _translate_metric_name
+from capymoa.base import Clusterer
+from capymoa.evaluation.results import (
+    # PrequentialPredictionIntervalResults,
+    PrequentialResults,
+    # PrequentialRegressionResults
+)
 import os
 import shutil
 from PIL import Image
 import glob
 
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 def plot_windowed_results(
         *results,
-        metric="classifications correct (percent)",
-        plot_title=None,
-        xlabel=None,
-        ylabel=None,
-        figure_path="./",
-        figure_name=None,
-        save_only=True,
-        prevent_plotting_drifts=False,
-        # ,
-        # drift_locations=None, gradual_drift_window_lengths=None
+        metric: str,
+        plot_title: str = None,
+        xlabel: str = None,
+        ylabel: str = None,
+        figure_path: str = "./",
+        figure_name: str = None,
+        save_only: bool = True,
+        prevent_plotting_drifts: bool = False,
+        ymin: float = None,
+        ymax: float = None,
 ):
     """
     Plot a comparison of values from multiple evaluators based on a selected column using line plots.
@@ -33,42 +42,53 @@ def plot_windowed_results(
     """
     dfs = []
     labels = []
+    x_values = []
 
-    num_instances = results[0].get("max_instances", None)
-    stream = results[0].get("stream", None)
+    # check if the results are all prequential
+    for result in results:
+        if not isinstance(result, PrequentialResults):
+            raise ValueError('Only PrequentialResults class are valid')
+
+    num_instances = results[0].max_instances
+    stream = results[0]["stream"]
 
     if num_instances is not None:
-        window_size = results[0]["windowed"].window_size
-        num_windows = results[0]["windowed"].metrics_per_window().shape[0]
-        x_values = []
+        window_size = results[0].windowed.metrics_per_window()['instances'][0]
+        num_windows = results[0].windowed.metrics_per_window().shape[0]
         for i in range(1, num_windows + 1):
             x_values.append(i * window_size)
-        # print(f'x_values: {x_values}')
 
     # Check if the given metric exists in all DataFrames
     for result in results:
-        df = result["windowed"].metrics_per_window()
+        df = result.windowed.metrics_per_window()
         if metric not in df.columns:
-            print(
-                f"Column '{metric}' not found in metrics DataFrame for {result['learner']}. Skipping."
-            )
+            print(f"Column '{metric}' not found in metrics DataFrame for {result['learner']}. Skipping.")
         else:
             dfs.append(df)
-            if "experiment_id" in result:
-                labels.append(result["experiment_id"])
-            else:
-                labels.append(result["learner"])
+            labels.append(result.learner)
 
     if not dfs:
         print("No valid DataFrames to plot.")
         return
+
+    # Calculate ymin and ymax if not provided
+    if ymin is None or ymax is None:
+        all_values = np.concatenate([df[metric].values for df in dfs])
+        if ymin is None:
+            ymin = all_values.min()
+        if ymax is None:
+            ymax = all_values.max()
+
+    # Add padding to ymin and ymax to prevent clipping
+    padding = 0.05 * (ymax - ymin)
+    ymin -= padding
+    ymax += padding
 
     # Create a figure
     plt.figure(figsize=(12, 5))
 
     # Plot data from each DataFrame
     for i, df in enumerate(dfs):
-        # print(f'df.index: {df.index}')
         if num_instances is not None:
             plt.plot(
                 x_values,
@@ -100,31 +120,37 @@ def plot_windowed_results(
                 for location in drift_locations:
                     plt.axvline(location, color="red", linestyle="-")
 
+            # Plot the horizontal line (concept width) for each concept
+            if isinstance(stream, RecurrentConceptDriftStream):
+                cmap = plt.cm.tab10
+                colour_idxs = {}
+                colour_idx = 0
+                for c in stream.concept_info:
+                    concept_label = None
+                    if c["id"] not in colour_idxs:
+                        colour_idxs[c["id"]] = colour_idx
+                        colour_idx += 1
+                        concept_label = c["id"]
+                    plt.hlines(y=ymin-2, xmin=c['start'], xmax=c['end'], color=cmap(colour_idxs[c["id"]]), linestyle='--', linewidth=2,
+                               label=concept_label)
+
             # Add gradual drift windows as 70% transparent rectangles
             if gradual_drift_window_lengths:
                 if not drift_locations:
-                    print(
-                        "Error: gradual_drift_window_lengths is provided, but drift_locations is not."
-                    )
+                    print("Error: gradual_drift_window_lengths is provided, but drift_locations is not.")
                     return
 
                 if len(drift_locations) != len(gradual_drift_window_lengths):
-                    print(
-                        "Error: drift_locations and gradual_drift_window_lengths must have the same length."
-                    )
+                    print("Error: drift_locations and gradual_drift_window_lengths must have the same length.")
                     return
 
                 for i in range(len(drift_locations)):
                     location = drift_locations[i]
                     window_length = gradual_drift_window_lengths[i]
+                    plt.axvspan(location - window_length / 2, location + window_length / 2, alpha=0.2, color="red")
 
-                    # Plot the 70% transparent rectangle
-                    plt.axvspan(
-                        location - window_length / 2,
-                        location + window_length / 2,
-                        alpha=0.2,
-                        color="red",
-                    )
+    # Set the y-axis limits
+    plt.ylim(ymin, ymax)
 
     # Add labels and title
     xlabel = xlabel if xlabel is not None else "# Instances"
@@ -139,11 +165,12 @@ def plot_windowed_results(
     plt.grid(True)
 
     # Show the plot or save it to the specified path
-    if save_only == False:
+    if not save_only:
         plt.show()
     elif figure_path is not None:
         if figure_name is None:
-            figure_name = result["learner"] + "_" + ylabel.replace(" ", "")
+            learner_names = "_".join(result.learner for result in results)
+            figure_name = ylabel.replace(" ", "") + "_" + learner_names + ".pdf"
         plt.savefig(figure_path + figure_name)
 
 
@@ -163,10 +190,16 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
 
     If save_only is True, then a figure will be saved at the specified path
     """
+
+    # check if the results are prequential prediction interval results
+    # for result in results:
+        # if not hasattr(result.windowed, 'coverage'):
+        #     raise ValueError('Cannot process results that do not include prediction interval results.')
+
     # Determine ground truth y
     if ground_truth is None:
-        if results and "ground_truth_y" in results[0]:
-            ground_truth = results[0]["ground_truth_y"]
+        if results and results[0].ground_truth_y():
+            ground_truth = results[0].ground_truth_y()
 
     # Check if ground truth y is available
     if ground_truth is None:
@@ -180,17 +213,19 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
 
     # Check if predictions have the same length as ground truth
     for i, result in enumerate(results):
-        if "predictions" in result:
-            predictions = result["predictions"][start:end]
+        if result.predictions() is not None:
+            predictions = result.predictions()[start:end]
             if len(predictions) != len(ground_truth[start:end]):
                 raise ValueError(f"Length of predictions for result {i + 1} does not match ground truth.")
 
     # Plot ground truth y vs. predictions for each result within the specified interval
     instance_numbers = list(range(start, end))
-    for i, result in enumerate(results):
-        if "predictions" in result:
-            predictions = result["predictions"][start:end]
-            plt.plot(instance_numbers, predictions, label=f"{result['learner']} predictions", alpha=0.7)
+    # for i, result in enumerate(results):
+    #     if "predictions" in result:
+    #         predictions = result["predictions"][start:end]
+    for result in results:
+        predictions = result.predictions()[start:end]
+        plt.plot(instance_numbers, predictions, label=f"{result['learner']} predictions", alpha=0.7)
 
     # Plot ground truth y
     plt.scatter(instance_numbers, ground_truth[start:end], label="ground truth", marker='*', s=20, color='red')
@@ -262,10 +297,15 @@ def plot_regression_results(
 
         prevent_plotting_drifts=False,
 ):
+    # check if the results are prequential regression results
+    for result in results:
+        if not hasattr(result.windowed, 'rmse'):
+            raise ValueError('Cannot process results that do not include regression results.')
+
     # Check if the ground_truth is stored in the first result
     if ground_truth is None:
-        if results and "ground_truth_y" in results[0]:
-            ground_truth = results[0]["ground_truth_y"]
+        if results and results[0].ground_truth_y():
+            ground_truth = results[0].ground_truth_y()
 
     # Check if ground_truth is none
     if ground_truth is None:
@@ -276,7 +316,7 @@ def plot_regression_results(
     end = min(end, len(ground_truth))
 
     # Get stream
-    stream = results[0].get("stream", None)
+    stream = results[0]["stream"]
 
     # Get ground truth
     targets = ground_truth[start:end]
@@ -286,11 +326,11 @@ def plot_regression_results(
     if absolute_residuals:
         absolute_values = []
     for i, result in enumerate(results):
-        if "predictions" in result:
-            predictions.append(np.array(result["predictions"][start:end]))
-            residuals.append(np.array(np.array(result["predictions"][start:end]) - np.array(targets)))
+        if result.predictions() is not None:
+            predictions.append(np.array(result.predictions()[start:end]))
+            residuals.append(np.array(np.array(result.predictions()[start:end]) - np.array(targets)))
             if absolute_residuals:
-                absolute_values.append(np.abs(np.array(np.array(result["predictions"][start:end]) - np.array(targets))))
+                absolute_values.append(np.abs(np.array(np.array(result.predictions()[start:end]) - np.array(targets))))
 
     # Create a figure
     plt.figure(figsize=((end - start) / 10, 6))
@@ -460,6 +500,11 @@ def plot_prediction_interval(
         prevent_plotting_drifts=False,
 
 ):
+    # check if the results are all prequential
+    for result in results:
+        if not hasattr(result, 'coverage'):
+            raise ValueError('Cannot process results that do not include prediction interval results.')
+
     if len(results) > 2:
         raise ValueError('This function only supports up to 2 results currently.')
 
@@ -467,8 +512,8 @@ def plot_prediction_interval(
     stream = results[0].get("stream", None)
 
     if len(results) == 1:
-        if "ground_truth_y" in results[0]:
-            targets = results[0]["ground_truth_y"]
+        if results[0].ground_truth_y() is not None:
+            targets = results[0].ground_truth_y()
         elif ground_truth is not None:
             targets = ground_truth
         else:
@@ -479,7 +524,7 @@ def plot_prediction_interval(
 
         instance_numbers = list(range(start, end))
         targets = targets[start:end]
-        intervals = results[0]["predictions"][start:end]
+        intervals = results[0].predictions()[start:end]
         upper = []
         lower = []
         predictions = []
@@ -498,11 +543,11 @@ def plot_prediction_interval(
             plt.plot(instance_numbers, l, linewidth=0.1, alpha=0.2,
                      color=colors[0] if colors is not None else default_colors[0])
             plt.fill_between(instance_numbers, u, l, color=colors[0] if colors is not None else default_colors[0],
-                             alpha=0.5, label=results[0]["learner"] + " interval")
+                             alpha=0.5, label=results[0].learner + " interval")
         if plot_predictions:
             plt.plot(instance_numbers, np.array(predictions), linewidth=1, linestyle='-',
                      color=colors[0] if colors is not None else default_colors[0],
-                     label=results[0]["learner"] + " predictions")
+                     label=results[0].learner + " predictions")
         if plot_truth:
             insideX = []
             insideY = []
@@ -580,8 +625,8 @@ def plot_prediction_interval(
 
     # Plots two regions from prediction interval learners for comparison
     elif len(results) == 2:
-        if "ground_truth_y" in results[0]:
-            targets = results[0]["ground_truth_y"]
+        if results[0].ground_truth_y() is not None:
+            targets = results[0].ground_truth_y()
         elif ground_truth is not None:
             targets = ground_truth
         else:
@@ -593,8 +638,8 @@ def plot_prediction_interval(
         instance_numbers = list(range(start, end))
         targets = targets[start:end]
 
-        intervals_first = results[0]["predictions"][start:end]
-        intervals_second = results[1]["predictions"][start:end]
+        intervals_first = results[0].predictions()[start:end]
+        intervals_second = results[1].predictions()[start:end]
 
         upper_first = []
         lower_first = []
@@ -627,7 +672,7 @@ def plot_prediction_interval(
                          color=colors[0] if colors is not None else default_colors[0])
                 plt.fill_between(instance_numbers, u_first, l_first,
                                  color=colors[0] if colors is not None else default_colors[0],
-                                 alpha=0.2, label=results[0]["learner"] + " interval")
+                                 alpha=0.2, label=results[0].learner + " interval")
 
                 # Plot second area
                 plt.plot(instance_numbers, u_second, linewidth=0.1, alpha=0.5,
@@ -636,7 +681,7 @@ def plot_prediction_interval(
                          color=colors[1] if colors is not None else default_colors[1])
                 plt.fill_between(instance_numbers, u_second, l_second,
                                  color=colors[1] if colors is not None else default_colors[1],
-                                 alpha=0.5, label=results[1]["learner"] + " interval")
+                                 alpha=0.5, label=results[1].learner + " interval")
             else:
                 # define function for further dynamic plot
                 def _plot_first(i, alpha):
@@ -651,7 +696,7 @@ def plot_prediction_interval(
                                      u_first[switch_points[i]:switch_points[i + 1]+1],
                                      l_first[switch_points[i]:switch_points[i + 1]+1],
                                      color=colors[0] if colors is not None else default_colors[0],
-                                     alpha=alpha, label=results[0]["learner"] + " interval" if i == 0 else "")
+                                     alpha=alpha, label=results[0].learner + " interval" if i == 0 else "")
 
                 def _plot_second(i, alpha):
                     plt.plot(instance_numbers[switch_points[i]:switch_points[i + 1]+1],
@@ -665,7 +710,7 @@ def plot_prediction_interval(
                                      u_second[switch_points[i]:switch_points[i + 1]+1],
                                      l_second[switch_points[i]:switch_points[i + 1]+1],
                                      color=colors[1] if colors is not None else default_colors[1],
-                                     alpha=alpha, label=results[1]["learner"] + " interval" if i == 0 else "")
+                                     alpha=alpha, label=results[1].learner + " interval" if i == 0 else "")
 
                 # determine which on top first
                 first_first = l_first[0] > l_second[0]
@@ -704,10 +749,10 @@ def plot_prediction_interval(
         if plot_predictions:
             plt.plot(instance_numbers, np.array(predictions_first), linewidth=1, linestyle='-',
                      color=colors[0] if colors is not None else default_colors[0],
-                     label=results[0]["learner"] + " predictions")
+                     label=results[0].learner + " predictions")
             plt.plot(instance_numbers, np.array(predictions_second), linewidth=1, linestyle='-',
                      color=colors[1] if colors is not None else default_colors[1],
-                     label=results[1]["learner"] + " predictions")
+                     label=results[1].learner + " predictions")
 
         if plot_truth:
             insideX = []

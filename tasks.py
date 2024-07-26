@@ -51,11 +51,20 @@ def docs_build(ctx: Context, ignore_warnings: bool = False):
     print("You can copy and paste this URL into your browser.")
     print("-" * 80)
 
+@task
+def docs_coverage(ctx: Context):
+    """Check the coverage of the documentation.
+    
+    Requires the `interrogate` package.
+    """
+    ctx.run("python -m interrogate -vv -c pyproject.toml || true")
 
 @task
 def docs_clean(ctx: Context):
     """Remove the built documentation."""
     ctx.run("rm -r docs/_build")
+    ctx.run("rm docs/api/modules/*")
+
 
 
 @task
@@ -161,6 +170,11 @@ def clean(ctx: Context):
         "parallel": "Run the notebooks in parallel.",
         "overwrite": "Overwrite the notebooks with the executed output.",
         "pattern": "Run only the notebooks that match the pattern. Same as `pytest -k`",
+        "fast": (
+            "Run the notebooks in fast mode by setting the environment variable "
+            "`NB_FAST` to `true`. You cannot use this option with `--overwrite`."
+        ),
+        "no_skip": "Do not skip any notebooks.",
     }
 )
 def test_notebooks(
@@ -168,6 +182,8 @@ def test_notebooks(
     parallel: bool = True,
     overwrite: bool = False,
     pattern: Optional[str] = None,
+    fast: bool = True,
+    no_skip: bool = False,
 ):
     """Run the notebooks and check for errors.
 
@@ -176,9 +192,14 @@ def test_notebooks(
     with the executed output.
 
     """
+    assert not (fast and overwrite), "You cannot use `--overwrite` with `--fast`."
+
+    # Set the environment variable to run the notebooks in fast mode.
+    if fast:
+        environ["NB_FAST"] = "true"
 
     skip_notebooks = ctx["test_skip_notebooks"]
-    if skip_notebooks is None:
+    if skip_notebooks is None or no_skip:
         skip_notebooks = []
     print(f"Skipping notebooks: {skip_notebooks}")
     cmd = [
@@ -233,6 +254,7 @@ docs = Collection("docs")
 docs.add_task(docs_build, "build")
 docs.add_task(docs_clean, "clean")
 docs.add_task(docs_dev, "dev")
+docs.add_task(docs_coverage, "coverage")
 
 build = Collection("build")
 build.add_task(download_moa)

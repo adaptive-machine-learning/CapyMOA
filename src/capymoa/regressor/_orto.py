@@ -28,7 +28,7 @@ class ORTO(MOARegressor):
     >>> schema = stream.get_schema()
     >>> learner = ORTO(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].RMSE()
+    >>> results["cumulative"].rmse()
     9.228075678265904
     """
 

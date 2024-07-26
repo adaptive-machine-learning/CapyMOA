@@ -20,18 +20,23 @@ class OnlineIsolationForest(AnomalyDetector):
     an ensemble anomaly detector capable of adapting to concept drift.
 
     Reference:
-    Filippo Leveni, Guilherme Weigert Cassales, Bernhard Pfahringer, Albert Bifet, and Giacomo Boracchi.
-    2024. Online Isolation Forest.
-    In International Conference on Machine Learning (ICML), Proceedings of Machine Learning Research (PMLR).
+    ----------
 
-    Example usage:
+    1.  Filippo Leveni, Guilherme Weigert Cassales, Bernhard Pfahringer, Albert
+        Bifet, and Giacomo Boracchi. 2024. Online Isolation Forest. In
+        International Conference on Machine Learning (ICML), Proceedings of
+        Machine Learning Research (PMLR).
+
+    Example:
+    --------
+
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.anomaly import OnlineIsolationForest
-    >>> from capymoa.evaluation import AUCEvaluator
+    >>> from capymoa.evaluation import AnomalyDetectionEvaluator
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
     >>> learner = OnlineIsolationForest(schema=schema)
-    >>> evaluator = AUCEvaluator(schema)
+    >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
     ...     proba = learner.score_instance(instance)
@@ -40,6 +45,7 @@ class OnlineIsolationForest(AnomalyDetector):
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
     AUC: 0.52
+
     """
     def __init__(self, schema: Optional[Schema] = None, random_seed: int = 1, num_trees: int = 32,
                  max_leaf_samples: int = 32, growth_criterion: Literal['fixed', 'adaptive'] = 'adaptive',

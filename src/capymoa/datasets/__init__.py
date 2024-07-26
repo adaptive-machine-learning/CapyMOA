@@ -31,7 +31,8 @@ from ._datasets import (
     CovtFD,
     Bike,
 )
-from .downloader import get_download_dir
+from ._utils import get_download_dir
+from . import downloader
 
 __all__ = [
     "Sensor",
@@ -47,4 +48,5 @@ __all__ = [
     "CovtFD",
     "Bike",
     "get_download_dir",
+    "downloader"
 ]

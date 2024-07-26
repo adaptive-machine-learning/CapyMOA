@@ -1,48 +1,99 @@
-.. _api:
+API Reference
+=============
 
-API
-===
+Welcome to the capymoa API reference. This documentation is automatically
+generated from the source code and provides detailed information on the classes
+and functions available in capymoa. 
 
-This part of the documentation describes the interfaces for CapyMOA classes,
-functions, and modules. If you are looking to just use CapyMOA, you should start
-with the :ref:`tutorials<tutorials>`.
+If you are looking to just use CapyMOA, you should start with the
+:ref:`tutorials<tutorials>`.
 
+Types
+-----
 
-..  toctree::
-    :maxdepth: 1
-    :caption: Datastreams
+These module provide interfaces for learners, and other basic types used by
+capymoa.
 
-    stream
-    datasets
-    instance
+..  autosummary::
+    :toctree: modules
+    :caption: Types
+    :recursive:
 
-..  toctree::
-    :maxdepth: 1
-    :caption: Interfaces
+    capymoa.base
+    capymoa.type_alias
+    capymoa.instance
 
-    abl/base
-    abl/moa
-    abl/sklearn
+Data Streams
+------------
 
-..  toctree::
-    :maxdepth: 1
+These modules provide classes for loading, and simulating data streams. It also
+includes utilities for simulating concept drifts.
+
+..  autosummary::
+    :toctree: modules
+    :caption: Data Streams
+    :recursive:
+
+    capymoa.datasets
+    capymoa.stream
+
+Learners
+--------
+
+These modules implement learners for classification, regression, anomaly detection
+and semi-supervised learning.
+    
+..  autosummary::
+    :toctree: modules
     :caption: Learners
+    :recursive:
 
-    classifiers
-    regressor
-    ssl
+    capymoa.classifier
+    capymoa.regressor
+    capymoa.anomaly
+    capymoa.ssl
 
+Drift Detection
+---------------
 
-..  toctree::
-    :maxdepth: 1
+These modules provide classes for detecting concept drifts.
+
+..  autosummary::
+    :toctree: modules
+    :caption: Drift Detection
+    :recursive:
+
+    capymoa.drift
+
+Evaluation
+----------
+
+These modules provide classes for evaluating learners.
+
+..  autosummary::
+    :toctree: modules
     :caption: Evaluation
-    
-    evaluation
+    :recursive:
 
+    capymoa.splitcriteria
+    capymoa.evaluation
+    capymoa.prediction_interval
 
-..  toctree::
-    :maxdepth: 1
-    :caption: Other
-    
-    splitcriteria
-    env
+Miscellaneous
+-------------
+
+These modules provide miscellaneous utilities.
+
+..  autosummary::
+    :toctree: modules
+    :caption: Miscellaneous
+    :recursive:
+
+    capymoa.misc
+    capymoa.env
+
+Functions
+=========
+
+..  automodule:: capymoa
+    :members:

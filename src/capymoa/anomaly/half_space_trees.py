@@ -6,7 +6,7 @@ from moa.classifiers.oneclass import HSTrees as _MOA_HSTrees
 
 
 class HalfSpaceTrees(MOAAnomalyDetector):
-    """ Half-Space Trees
+    """Half-Space Trees
 
     This class implements the Half-Space Trees (HS-Trees) algorithm, which is
     an ensemble anomaly detector capable of adapting to concept drift.
@@ -14,19 +14,23 @@ class HalfSpaceTrees(MOAAnomalyDetector):
     HS-Trees is implemented in MOA (Massive Online Analysis) and provides several
     parameters for customization.
 
-    Reference:
-    Tan, S. C., Ting, K. M., & Liu, T. F. (2011, June). Fast anomaly detection for streaming data.
-    In Twenty-second international joint conference on artificial intelligence.
-    <https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=73b6b7d9e7e225719ad86234927a3b60a4a873c0>
+    References:
+    -----------
 
-    Example usage:
+    1. Tan, S. C., Ting, K. M., & Liu, T. F. (2011, June). Fast anomaly detection
+       for streaming data. In Twenty-second international joint conference on
+       artificial intelligence.
+
+    Example:
+    --------
+
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.anomaly import HalfSpaceTrees
-    >>> from capymoa.evaluation import AUCEvaluator
+    >>> from capymoa.evaluation import AnomalyDetectionEvaluator
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
     >>> learner = HalfSpaceTrees(schema)
-    >>> evaluator = AUCEvaluator(schema)
+    >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
     ...     proba = learner.score_instance(instance)
@@ -35,6 +39,7 @@ class HalfSpaceTrees(MOAAnomalyDetector):
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
     AUC: 0.54
+
     """
     def __init__(
         self, schema=None, CLI=None, random_seed=1, window_size=100, number_of_trees=25, max_depth=15,

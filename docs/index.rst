@@ -93,7 +93,7 @@ Tutorials to help you get started with CapyMOA.
 .. toctree::
    :maxdepth: 2
 
-   notebooks/index
+   tutorials
 
 📚 Reference Manual
 -------------------
@@ -105,6 +105,12 @@ and modules.
 
    api/index
 
+About us
+---------
+
+.. toctree::
+   about
+
 🏗️ Contributing
 ---------------
 This part of the documentation is for developers and contributors.
@@ -113,6 +119,7 @@ This part of the documentation is for developers and contributors.
    :maxdepth: 2
 
    contributing/index
+
 
 Indices and tables
 ==================

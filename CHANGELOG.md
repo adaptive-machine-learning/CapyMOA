@@ -2,7 +2,65 @@
 
 
 
+## v0.4.0 (2024-07-25)
+
+### Build
+
+* build: ignore the stub build issue in editable installs ([`347ed74`](https://github.com/adaptive-machine-learning/CapyMOA/commit/347ed74dbe4ef2c523a5ed784273b2d5831adc27))
+
+### Documentation
+
+* docs(tutorial.rst): add talks section ([`c5a339b`](https://github.com/adaptive-machine-learning/CapyMOA/commit/c5a339b9b8188bceea46bb5393a337e55d03539a))
+
+* docs(drift): update drift detector docs ([`4c69478`](https://github.com/adaptive-machine-learning/CapyMOA/commit/4c6947875c31979fe7f04e592ebeb31e6951d63d))
+
+* docs: rebase ([`748cc94`](https://github.com/adaptive-machine-learning/CapyMOA/commit/748cc9433dc48dd2d99fdab834cac1632594ee45))
+
+* docs: use ``sphinx.ext.autosummary`` to generate more complete api docs ([`01d270f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/01d270f25c69a37917b8a184758d60e338754b08))
+
+* docs: add about us page ([`f3af4d5`](https://github.com/adaptive-machine-learning/CapyMOA/commit/f3af4d5ce08caa2c04a05901ebc4f644334ea16b))
+
+### Feature
+
+* feat(Anomaly-Detection): add cumulative and prequential evaluation for anomaly ([`a8124bc`](https://github.com/adaptive-machine-learning/CapyMOA/commit/a8124bc5d2ce4abe0191a714ab5f5199d04f8a55))
+
+* feat: updated evaluation
+
+Co-authored-by: Spencer Sun &lt;spencer@Spencers-MacBook-Pro.local&gt;
+Co-authored-by: Heitor Murilo Gomes &lt;heitor_murilo_gomes@yahoo.com.br&gt; ([`cc13390`](https://github.com/adaptive-machine-learning/CapyMOA/commit/cc133900b2553fd3bdc1afac3a3961ddd5594259))
+
+* feat: add recurrent concept drift API ([`24327fc`](https://github.com/adaptive-machine-learning/CapyMOA/commit/24327fcb0f9df15fa9b90f1a8234561a57d6d3a6))
+
+* feat: drift detection API
+
+Co-authored-by: Vitor Cerqueira &lt;cerqueira.vitormanuel@gmail.com&gt; ([`50d76ad`](https://github.com/adaptive-machine-learning/CapyMOA/commit/50d76ad9b9ae8dd6b4725b8cbc28f5367d498a8b))
+
+* feat(anomaly): add ``OnlineIsolationForest`` anomaly detector ([`5a57bb0`](https://github.com/adaptive-machine-learning/CapyMOA/commit/5a57bb024e5213bcbb5ca25f73b681c84d856d0f))
+
+* feat: add anomaly_threshold and size_limit parameters to HalfSpaceTree (#135)
+
+Co-authored-by: Heitor Murilo Gomes &lt;heitor_murilo_gomes@yahoo.com.br&gt; ([`21804d0`](https://github.com/adaptive-machine-learning/CapyMOA/commit/21804d093661f5d628d5869716d8d9a15f72d20d))
+
+* feat(Misc): add unit tests for model save and load functionality ([`739f8af`](https://github.com/adaptive-machine-learning/CapyMOA/commit/739f8af3ac9044896b3f6b7307bd120004c59ae8))
+
+### Fix
+
+* fix: updating evaluation to use prequential results ([`2b6abab`](https://github.com/adaptive-machine-learning/CapyMOA/commit/2b6abab0278215700ae6f7fdcc2f850b39cb2a19))
+
+* fix: fix issue saving and loading models ([`04d9207`](https://github.com/adaptive-machine-learning/CapyMOA/commit/04d9207b6cdda17a190117057335a662a189ec93))
+
+### Test
+
+* test: speed up ``parallel_ensembles.ipynb`` ([`e9a6bb0`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e9a6bb0ad634537fa96a21fa5f681292db39080e))
+
+* test: rename name of unit test ([`4dbecb3`](https://github.com/adaptive-machine-learning/CapyMOA/commit/4dbecb3ed47573b34ca2411b3ea74ca427f5df68))
+
+
 ## v0.3.1 (2024-06-10)
+
+### Chore
+
+* chore(version): increment version to 0.3.1 ([`c065d18`](https://github.com/adaptive-machine-learning/CapyMOA/commit/c065d183695944793243475bb88a6ed8caf8b43a))
 
 ### Fix
 

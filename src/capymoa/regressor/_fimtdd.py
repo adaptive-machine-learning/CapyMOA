@@ -32,7 +32,7 @@ class FIMTDD(MOARegressor):
     >>> schema = stream.get_schema()
     >>> learner = FIMTDD(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].RMSE()
+    >>> results["cumulative"].rmse()
     7.363273627701553
     """
 
