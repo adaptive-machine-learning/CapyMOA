@@ -12,7 +12,8 @@ from capymoa.stream import Schema, Stream
 from capymoa.base import (
     AnomalyDetector,
     ClassifierSSL,
-    MOAPredictionIntervalLearner
+    MOAPredictionIntervalLearner,
+    Clusterer
 )
 
 from capymoa.evaluation.results import PrequentialResults
@@ -587,6 +588,65 @@ class AnomalyDetectionWindowedEvaluator:
         index = self.metrics_header().index("s_auc")
         return self.metrics()[index]
 
+class ClusteringEvaluator:
+    # TODO improve documentation of ClusteringEvaluator
+    """
+    Abstract clustering evaluator for CapyMOA.
+    It is slightly different from the other evaluators because it does not have a moa_evaluator object.
+    Clustering evaluation at this point is very simple and only uses the unsupervised metrics.
+    """
+    def __init__(self, update_interval=1000):
+        """
+        Only the update_interval is set here.
+        """
+        self.instances_seen = 0
+        self.update_interval = update_interval
+        self.measurements = {name: [] for name in self.metrics_header()}
+        # self.clusterer = None
+        self.clusterer_name = None
+
+    def __str__(self):
+        return str(self.metrics_dict())
+
+    def get_instances_seen(self):
+        return self.instances_seen
+
+    def get_update_interval(self):
+        return self.update_interval
+
+    def get_clusterer_name(self):
+        return self.clusterer_name
+
+    def update(self, clusterer: Clusterer):
+        if self.clusterer_name is None:
+            self.clusterer_name = str(clusterer)
+        self.instances_seen += 1
+        if self.instances_seen % self.update_interval == 0:
+            self._update_measurements(clusterer)
+
+    def _update_measurements(self, clusterer: Clusterer):
+        # update centers, weights, sizes, and radii
+        self.measurements["m_centers"].append(clusterer.get_clusters_centers())
+        self.measurements["m_weights"].append(clusterer.get_clusters_weights())
+        self.measurements["m_radii"].append(clusterer.get_clusters_radii())
+        # if there is a way to get cluster IDs, add it below
+        # self.measurements["m_IDs"].append(clusterer.get_clusters_ids())
+
+        # calculate silhouette score
+        # TODO: delegate silhouette to moa
+        # Check how it is done among different clusterers
+
+
+    def metrics_header(self):
+        performance_names = ["m_centers", "m_weights", "m_radii"]
+        return performance_names
+
+    def metrics(self):
+        # using the static list to keep the order of the metrics
+        return [self.measurements[key] for key in self.metrics_header()]
+
+    def get_measurements(self):
+        return self.measurements
 
 class ClassificationWindowedEvaluator(ClassificationEvaluator):
     """

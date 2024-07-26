@@ -10,6 +10,7 @@ from .evaluation import (
     PredictionIntervalEvaluator,
     PredictionIntervalWindowedEvaluator,
     AnomalyDetectionEvaluator,
+	ClusteringEvaluator,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "PredictionIntervalEvaluator",
     "PredictionIntervalWindowedEvaluator",
     "AnomalyDetectionEvaluator",
+	"ClusteringEvaluator",
 ]
