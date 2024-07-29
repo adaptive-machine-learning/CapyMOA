@@ -10,20 +10,41 @@ import torch.optim as optim
 class Autoencoder(AnomalyDetector):
     """ Autoencoder anomaly detector
 
-        This is a simple autoencoder anomaly detector that uses a single hidden layer.
+    This is a simple autoencoder anomaly detector that uses a single hidden layer.
 
-        Reference:
+    Reference:
 
-        Moulton, R. H., Viktor, H. L., Japkowicz, N., & Gama, J. (2019).
-        Contextual One-Class Classification in Data Streams. arXiv preprint
-        arXiv:1907.04233."""
+    `Contextual One-Class Classification in Data Streams.
+    Richard Hugh Moulton, Herna L. Viktor, Nathalie Japkowicz, and João Gama.
+    arXiv:1907.04233, 2019.
+    <https://arxiv.org/pdf/1907.04233>`_
 
+    Example:
+
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.anomaly import Autoencoder
+    >>> from capymoa.evaluation import AnomalyDetectionEvaluator
+    >>> stream = ElectricityTiny()
+    >>> schema = stream.get_schema()
+    >>> learner = Autoencoder(schema=schema)
+    >>> evaluator = AnomalyDetectionEvaluator(schema)
+    >>> while stream.has_more_instances():
+    ...     instance = stream.next_instance()
+    ...     proba = learner.score_instance(instance)
+    ...     evaluator.update(instance.y_index, proba)
+    ...     learner.train(instance)
+    >>> auc = evaluator.auc()
+    >>> print(f"AUC: {auc:.2f}")
+    AUC: 0.42
+
+    """
     def __init__(self, schema=None, hidden_layer=2, learning_rate=0.5, threshold=0.6, random_seed=1):
-        """Construct a Half-Space Trees anomaly detector
+        """Construct an Autoencoder anomaly detector
 
         Parameters
         :param schema: The schema of the input data
-        :param hidden_layer: Number of neurons in the hidden layer. The number should less than the number of input features.
+        :param hidden_layer: Number of neurons in the hidden layer. The number should less than the number of input
+        features.
         :param learning_rate: Learning rate
         :param threshold: Anomaly threshold
         :param random_seed: Random seed
