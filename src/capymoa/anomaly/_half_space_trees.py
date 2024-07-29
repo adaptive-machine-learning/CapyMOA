@@ -15,14 +15,13 @@ class HalfSpaceTrees(MOAAnomalyDetector):
     parameters for customization.
 
     References:
-    -----------
 
-    1. Tan, S. C., Ting, K. M., & Liu, T. F. (2011, June). Fast anomaly detection
-       for streaming data. In Twenty-second international joint conference on
-       artificial intelligence.
+    `Fast anomaly detection for streaming data.
+    Swee Chuan Tan, Kai Ming Ting and Tony Fei Liu.
+    International joint conference on artificial intelligence (IJCAI), 106, 1469-1495, 2017.
+    <https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=73b6b7d9e7e225719ad86234927a3b60a4a873c0>`_
 
     Example:
-    --------
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.anomaly import HalfSpaceTrees
