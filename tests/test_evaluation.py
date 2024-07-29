@@ -1,5 +1,8 @@
-from capymoa.evaluation.evaluation import prequential_evaluation_anomaly
-from capymoa.stream.generator import SEA
+from contextlib import nullcontext
+from itertools import product
+from capymoa.evaluation.evaluation import _is_fast_mode_compilable, prequential_evaluation_anomaly
+from capymoa.regressor import KNNRegressor
+from capymoa.stream.generator import SEA, HyperPlaneRegression, RandomTreeGenerator
 from capymoa.classifier import NaiveBayes, HoeffdingTree
 from capymoa.evaluation import (prequential_evaluation,
                                 prequential_evaluation_multiple_learners,
@@ -172,3 +175,76 @@ def test_prequential_evaluation_anomaly():
         results_2nd_run['windowed'].auc(), abs=0.001
     ), f"prequential_evaluation_anomaly same synthetic stream: Expected AUC of " \
        f"{results_1st_run['windowed'].auc():0.3f} got {results_2nd_run['windowed'].auc(): 0.3f}"
+    
+
+
+
+@pytest.mark.parametrize(
+    ["restart_stream", "optimise", "regression", "evaluation"],
+    list(
+        product(
+            [True, False],
+            [True, False],
+            [True, False],
+            [
+                prequential_evaluation,
+                prequential_ssl_evaluation,
+            ],
+        )
+    ),
+)
+def test_restart_stream_flag(restart_stream, optimise, regression, evaluation):
+    """Ensure that the stream is restarted when the restart_stream flag is set to True"""
+    expect_error = False
+    # Some configurations are not supported by some evaluation methods. 
+    # When these are eventually supported, this test will need to be updated.
+
+    # Create a stream and learner
+    stream = (
+        HyperPlaneRegression() if regression else RandomTreeGenerator(num_classes=10)
+    )
+
+    # This evaluation function does not yet support regression
+    if evaluation == prequential_ssl_evaluation and regression:
+        expect_error = True
+
+    if not regression:
+        learner = NaiveBayes(
+            schema=stream.get_schema()
+        )  # The type of model is not important
+    else:
+        learner = KNNRegressor(schema=stream.get_schema())
+    assert _is_fast_mode_compilable(
+        stream, learner, True
+    ), "Fast mode should always be compilable for this test"
+
+    def _take_y(num_instances):
+        if regression:
+            return [stream.next_instance().y_value for _ in range(num_instances)]
+        else:
+            return [stream.next_instance().y_index for _ in range(num_instances)]
+
+    # Store targets from the stream for use in assertions later.
+    y_stream = _take_y(20)
+    stream.restart()  # Must restart the stream to get the same instances again
+
+    # Consume the first 10 instances
+    _take_y(10)
+    with pytest.raises((RuntimeError, ValueError)) if expect_error else nullcontext():
+        # Consume either the next 5 instances or the same 5 instances again
+        # depending on the ``restart_stream`` flag
+        evaluation(
+            stream=stream,
+            learner=learner,
+            max_instances=5,
+            optimise=optimise,
+            restart_stream=restart_stream,
+        )
+
+        # If the stream is restarted, the next 5 instances should be the same as those
+        # we remembered. Otherwise, they should be different.
+        y_remaining = _take_y(5)
+        if restart_stream == True:
+            assert y_remaining == y_stream[5:10]
+        else:
+            assert y_remaining == y_stream[15:20]
