@@ -11,6 +11,7 @@ on:
 jobs:
   test:
     name: Unit Test all Targets
+    if: github.event.inputs.docs_only == 'false'
     timeout-minutes: 20
     runs-on: ${{ matrix.operating-system }}
     strategy:
@@ -61,13 +62,15 @@ jobs:
 
   release:
     name: Version, Build, Publish, and Release
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency: release
     needs: [test]
-    if: github.ref == 'refs/heads/main'
     permissions:
       id-token: write
       contents: write
+    outputs:
+      released: ${{ steps.release.outputs.released }}
     steps:
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -102,6 +105,7 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
+    if: github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -114,3 +118,9 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  docker:
+    name: "Trigger Docker Build"
+    if: github.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
+    needs: [release]
+    uses: ./.github/workflows/docker.yml
