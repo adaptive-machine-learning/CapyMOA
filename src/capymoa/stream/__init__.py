@@ -1,4 +1,4 @@
-from ._stream import Stream, Schema, ARFFStream, stream_from_file, CSVStream
+from ._stream import Stream, Schema, ARFFStream, stream_from_file, CSVStream, NumpyStream
 from .PytorchStream import PytorchStream
 from . import drift, generator, preprocessing
 
@@ -12,4 +12,5 @@ __all__ = [
     "drift",
     "generator",
     "preprocessing",
+    "NumpyStream"
 ]

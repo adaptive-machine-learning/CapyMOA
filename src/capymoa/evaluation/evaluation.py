@@ -1,4 +1,5 @@
 from typing import Optional
+from typing import Any, Dict, Union
 
 import pandas as pd
 import numpy as np
@@ -9,14 +10,11 @@ import csv
 import os
 
 from capymoa.stream import Schema, Stream
-from capymoa.base import (
-    AnomalyDetector,
-    ClassifierSSL,
-    MOAPredictionIntervalLearner
-)
+from capymoa.base import AnomalyDetector, ClassifierSSL, MOAPredictionIntervalLearner
 
 from capymoa.evaluation.results import PrequentialResults
 from capymoa._utils import _translate_metric_name
+from capymoa.base import Classifier, Regressor
 
 from com.yahoo.labs.samoa.instances import Instances, Attribute, DenseInstance
 from moa.core import InstanceExample
@@ -820,25 +818,51 @@ def stop_time_measuring(start_wallclock_time, start_cpu_time):
 
 
 def prequential_evaluation(
-        stream,
-        learner,
-        max_instances=None,
-        window_size=1000,
-        store_predictions=False,
-        store_y=False,
-        optimise=True
-):
+    stream: Stream,
+    learner: Union[Classifier, Regressor],
+    max_instances: Optional[int] = None,
+    window_size: int = 1000,
+    store_predictions: bool = False,
+    store_y: bool = False,
+    optimise: bool = True,
+    restart_stream: bool = True,
+) -> PrequentialResults:
+    """Run and evaluate a learner on a stream using prequential evaluation.
+
+    Calculates the metrics cumulatively (i.e. test-then-train) and in a
+    window-fashion (i.e. windowed prequential evaluation). Returns both
+    evaluators so that the user has access to metrics from both evaluators.
+
+    :param stream: A data stream to evaluate the learner on. Will be restarted if
+        ``restart_stream`` is True.
+    :param learner: The learner to evaluate.
+    :param max_instances: The number of instances to evaluate before exiting. If
+        None, the evaluation will continue until the stream is empty.
+    :param window_size: The size of the window used for windowed evaluation,
+        defaults to 1000
+    :param store_predictions: Store the learner's prediction in a list, defaults
+        to False
+    :param store_y: Store the ground truth targets in a list, defaults to False
+    :param optimise: If True and the learner is compatible, the evaluator will
+        use a Java native evaluation loop, defaults to True.
+    :param restart_stream: If False, evaluation will continue from the current
+        position in the stream, defaults to True. Not restarting the stream is
+        useful for switching between learners or evaluators, without starting
+        from the beginning of the stream.
+    :return: An object containing the results of the evaluation windowed metrics,
+        cumulative metrics, ground truth targets, and predictions.
     """
-    Calculates the metrics cumulatively (i.e. test-then-train) and in a window-fashion (i.e. windowed prequential
-    evaluation). Returns both evaluators so that the user has access to metrics from both evaluators.
-    """
-    stream.restart()
+    if restart_stream:
+        stream.restart()
     if _is_fast_mode_compilable(stream, learner, optimise):
-        return _prequential_evaluation_fast(stream, learner,
-                                            max_instances,
-                                            window_size,
-                                            store_y=store_y,
-                                            store_predictions=store_predictions)
+        return _prequential_evaluation_fast(
+            stream,
+            learner,
+            max_instances,
+            window_size,
+            store_y=store_y,
+            store_predictions=store_predictions,
+        )
 
     predictions = None
     if store_predictions:
@@ -880,7 +904,7 @@ def prequential_evaluation(
                     schema=stream.get_schema(), window_size=window_size
                 )
     while stream.has_more_instances() and (
-            max_instances is None or instancesProcessed <= max_instances
+        max_instances is None or instancesProcessed <= max_instances
     ):
         instance = stream.next_instance()
 
@@ -933,25 +957,55 @@ def prequential_evaluation(
     return results
 
 
-# TODO: Include store_predictions and store_y logic
 def prequential_ssl_evaluation(
-        stream,
-        learner,
-        max_instances=None,
-        window_size=1000,
-        initial_window_size=0,
-        delay_length=0,
-        label_probability=0.01,
-        random_seed=1,
-        store_predictions=False,
-        store_y=False,
-        optimise=True,
+    stream: Stream,
+    learner: Union[ClassifierSSL, Classifier],
+    max_instances: Optional[int] = None,
+    window_size: int = 1000,
+    initial_window_size: int = 0,
+    delay_length: int = 0,
+    label_probability: float = 0.01,
+    random_seed: int = 1,
+    store_predictions: bool = False,
+    store_y: bool = False,
+    optimise: bool = True,
+    restart_stream: bool = True,
 ):
-    """
-    If the learner is not an SSL learner, then it will be trained only on the labeled instances.
+    """Run and evaluate a learner on a semi-supervised stream using prequential evaluation.
+
+    :param stream: A data stream to evaluate the learner on. Will be restarted if
+        ``restart_stream`` is True.
+    :param learner: The learner to evaluate. If the learner is an SSL learner,
+        it will be trained on both labeled and unlabeled instances. If the
+        learner is not an SSL learner, then it will be trained only on the
+        labeled instances.
+    :param max_instances: The number of instances to evaluate before exiting.
+        If None, the evaluation will continue until the stream is empty.
+    :param window_size: The size of the window used for windowed evaluation,
+        defaults to 1000
+    :param initial_window_size: Not implemented yet
+    :param delay_length: If greater than zero the labeled (``label_probability``%)
+        instances will appear as unlabeled before reappearing as labeled after
+        ``delay_length`` instances, defaults to 0
+    :param label_probability: The proportion of instances that will be labeled,
+        must be in the range [0, 1], defaults to 0.01
+    :param random_seed: A random seed to define the random state that decides
+        which instances are labeled and which are not, defaults to 1.
+    :param store_predictions: Store the learner's prediction in a list, defaults
+        to False
+    :param store_y: Store the ground truth targets in a list, defaults to False
+    :param optimise: If True and the learner is compatible, the evaluator will
+        use a Java native evaluation loop, defaults to True.
+    :param restart_stream: If False, evaluation will continue from the current
+        position in the stream, defaults to True. Not restarting the stream is
+        useful for switching between learners or evaluators, without starting
+        from the beginning of the stream.
+    :return: An object containing the results of the evaluation windowed metrics,
+        cumulative metrics, ground truth targets, and predictions.
     """
 
-    stream.restart()
+    if restart_stream:
+        stream.restart()
 
     if _is_fast_mode_compilable(stream, learner, optimise):
         return _prequential_ssl_evaluation_fast(stream,
