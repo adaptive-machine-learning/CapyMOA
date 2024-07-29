@@ -559,7 +559,8 @@ class AnomalyDetectionWindowedEvaluator:
     def metrics_header(self):
         performance_measurements = self.moa_evaluator.getPerformanceMeasurements()
         performance_names = [
-            "".join(measurement.getName()) for measurement in performance_measurements
+            _translate_metric_name("".join(measurement.getName()), to='capymoa')
+            for measurement in performance_measurements
         ]
         return performance_names
 
@@ -579,13 +580,12 @@ class AnomalyDetectionWindowedEvaluator:
         return pd.DataFrame(self.result_windows, columns=self.metrics_header())
 
     def auc(self):
-        index = self.metrics_header().index("AUC")
+        index = self.metrics_header().index("auc")
         return self.metrics()[index]
 
     def s_auc(self):
-        index = self.metrics_header().index("sAUC")
+        index = self.metrics_header().index("s_auc")
         return self.metrics()[index]
-
 
 
 class ClassificationWindowedEvaluator(ClassificationEvaluator):

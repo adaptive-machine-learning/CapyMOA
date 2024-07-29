@@ -92,6 +92,9 @@ class OnlineIsolationForest(AnomalyDetector):
         self._learn_batch(data)
         return
 
+    def __str__(self):
+        return "Online Isolation Forest"
+
     def predict(self, instance: Instance) -> Optional[LabelIndex]:
         pass
 
