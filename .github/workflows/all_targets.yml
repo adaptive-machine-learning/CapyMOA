@@ -7,10 +7,32 @@ name: Test and Release
 
 on:
   workflow_dispatch:
+    inputs:
+      force_update_docker:
+        description: 'Run docker build and push even if there is no new release'
+        required: false
+        default: false
+        type: boolean
+      skip_test:
+        description: 'Skip the tests'
+        required: false
+        default: false
+        type: boolean
+      skip_release:
+        description: 'Skip the release to PyPI and GitHub'
+        required: false
+        default: false
+        type: boolean
+      skip_docs:
+        description: 'Skip building documentation and deploying it to GitHub Pages'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   test:
     name: Unit Test all Targets
+    if: github.event.inputs.skip_test == 'false'
     timeout-minutes: 20
     runs-on: ${{ matrix.operating-system }}
     strategy:
@@ -37,6 +59,7 @@ jobs:
 
   documentation:
     name: Build Documentation
+    if: github.event.inputs.skip_docs == 'false'
     timeout-minutes: 10
     runs-on: ubuntu-latest
     needs: [test]
@@ -61,13 +84,15 @@ jobs:
 
   release:
     name: Version, Build, Publish, and Release
+    if: github.ref == 'refs/heads/main' && github.event.inputs.skip_release == 'false'
     runs-on: ubuntu-latest
     concurrency: release
     needs: [test]
-    if: github.ref == 'refs/heads/main'
     permissions:
       id-token: write
       contents: write
+    outputs:
+      released: ${{ steps.release.outputs.released }}
     steps:
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -102,6 +127,7 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
+    if: github.ref == 'refs/heads/main' && github.event.inputs.skip_docs == 'false'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -114,3 +140,11 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  docker:
+    name: "Trigger Docker Build"
+    if: |
+      needs.release.outputs.released == 'true' ||
+      github.event.inputs.force_update_docker == 'true'
+    needs: [release]
+    uses: ./.github/workflows/docker.yml
