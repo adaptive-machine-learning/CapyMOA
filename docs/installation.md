@@ -73,7 +73,13 @@ If you want to contribute to CapyMOA, you should clone the repository, install
 development dependencies, and install CapyMOA in editable mode:
 
 ```bash
-git clone git@github.com:adaptive-machine-learning/CapyMOA.git # or your fork
+git clone https://github.com/adaptive-machine-learning/CapyMOA.git
+# or clone via the SSH protocol (often preferred if you use SSH keys for git):
+#   ``git clone with git@github.com:adaptive-machine-learning/CapyMOA.git``
 cd CapyMOA
 pip install --editable ".[dev]"
 ```
+
+> If you are intending to contribute to CapyMOA, consider making a [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) of the
+> repository and cloning your fork instead of the main repository. This way, you
+> can push changes to your fork and create pull requests to the main repository.
