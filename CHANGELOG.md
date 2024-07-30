@@ -2,11 +2,44 @@
 
 
 
+## v0.5.0 (2024-07-30)
+
+### Ci
+
+* ci: fix bad condition ([`b096339`](https://github.com/adaptive-machine-learning/CapyMOA/commit/b0963396e749d714e57dd0aa56c57b6807f167f2))
+
+* ci: trigger docker builds on release ([`1ef2ad6`](https://github.com/adaptive-machine-learning/CapyMOA/commit/1ef2ad6ba1c9efd83c84882f8608040fae333330))
+
+### Documentation
+
+* docs: recommend https git clone ([`5c9715a`](https://github.com/adaptive-machine-learning/CapyMOA/commit/5c9715ad6ffb33a1d85cb80e41220166f306bdd7))
+
+* docs: fix ``__init__`` documentation ([`29c516a`](https://github.com/adaptive-machine-learning/CapyMOA/commit/29c516a5ae1d48b37ac506b006ff3a78e9900179))
+
+* docs(about.rst): add Justin Liu ([`4d97ead`](https://github.com/adaptive-machine-learning/CapyMOA/commit/4d97ead6012c659d3c8eed1f6c9af78b2e413019))
+
+### Feature
+
+* feat: add reference to Autoencoder anomaly detector ([`d8787e8`](https://github.com/adaptive-machine-learning/CapyMOA/commit/d8787e80d4d1dc5527ca5c47c88743751760d6f9))
+
+* feat(Anomaly-Detection): add Autoencoder anomaly detector ([`e27cbe9`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e27cbe98c8736d161304e6bb77e8c6918b3bbb91))
+
+### Fix
+
+* fix: updating AD docs and notebook ([`47ee056`](https://github.com/adaptive-machine-learning/CapyMOA/commit/47ee056ae7d2c8f18c2be30f7942b2bec63936d8))
+
+* fix: corrections to anomaly evaluation ([`57b93c3`](https://github.com/adaptive-machine-learning/CapyMOA/commit/57b93c3d599a0c6a16a0f822b1060b63456648fd))
+
+
 ## v0.4.0 (2024-07-25)
 
 ### Build
 
 * build: ignore the stub build issue in editable installs ([`347ed74`](https://github.com/adaptive-machine-learning/CapyMOA/commit/347ed74dbe4ef2c523a5ed784273b2d5831adc27))
+
+### Chore
+
+* chore(version): increment version to 0.4.0 ([`6e423cc`](https://github.com/adaptive-machine-learning/CapyMOA/commit/6e423cccf7bf30c295fa18608e7d2540bb88648b))
 
 ### Documentation
 
