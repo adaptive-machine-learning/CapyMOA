@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Union
 
-# from jpype import _jpype
+from jpype import _jpype
 import jpype
 from moa.classifiers import (
     Classifier as MOA_Classifier_Interface,
@@ -135,7 +135,7 @@ class MOAClassifier(Classifier):
         self.CLI = CLI
         # If moa_learner is a class identifier instead of an object
         if isinstance(moa_learner, type):
-            if type(moa_learner) == jpype._jpype._JClass:
+            if type(moa_learner) == _jpype._JClass:
                 moa_learner = moa_learner()
             else:  # this is not a Java object, thus it certainly isn't a MOA learner
                 raise ValueError("Invalid MOA classifier provided.")
@@ -575,7 +575,7 @@ class MOAClusterer(Clusterer):
         self.CLI = CLI
         # If moa_learner is a class identifier instead of an object
         if isinstance(moa_learner, type):
-            if type(moa_learner) == jpype._jpype._JClass:
+            if type(moa_learner) == _jpype._JClass:
                 moa_learner = moa_learner()
             else:  # this is not a Java object, thus it certainly isn't a MOA learner
                 raise ValueError("Invalid MOA clusterer provided.")
