@@ -1,6 +1,6 @@
 import typing
 import warnings
-from typing import Dict, Optional, Sequence
+from typing import Dict, Optional, Sequence, Union
 
 import numpy as np
 from numpy.lib import recfunctions as rfn
@@ -380,7 +380,7 @@ class NumpyStream(Stream):
     def has_more_instances(self):
         return self.arff_instances_data.numInstances() > self.current_instance_index
 
-    def next_instance(self) -> Instance:
+    def next_instance(self) -> Union[LabeledInstance, RegressionInstance]:
         # Return None if all instances have been read already.
         if not self.has_more_instances():
             return None
