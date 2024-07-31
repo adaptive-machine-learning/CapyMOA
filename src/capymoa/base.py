@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Union
 
-from jpype import _jpype
+# from jpype import _jpype
+import jpype
 from moa.classifiers import (
     Classifier as MOA_Classifier_Interface,
     Regressor as MOA_Regressor_Interface,
@@ -134,7 +135,7 @@ class MOAClassifier(Classifier):
         self.CLI = CLI
         # If moa_learner is a class identifier instead of an object
         if isinstance(moa_learner, type):
-            if type(moa_learner) == _jpype._JClass:
+            if type(moa_learner) == jpype._jpype._JClass:
                 moa_learner = moa_learner()
             else:  # this is not a Java object, thus it certainly isn't a MOA learner
                 raise ValueError("Invalid MOA classifier provided.")
@@ -574,7 +575,7 @@ class MOAClusterer(Clusterer):
         self.CLI = CLI
         # If moa_learner is a class identifier instead of an object
         if isinstance(moa_learner, type):
-            if type(moa_learner) == _jpype._JClass:
+            if type(moa_learner) == jpype._jpype._JClass:
                 moa_learner = moa_learner()
             else:  # this is not a Java object, thus it certainly isn't a MOA learner
                 raise ValueError("Invalid MOA clusterer provided.")
@@ -605,23 +606,46 @@ class MOAClusterer(Clusterer):
     def train(self, instance):
         self.moa_learner.trainOnInstance(instance.java_instance.getData())
 
-    def get_clusters_centers(self):
+    def get_micro_clusters_centers(self):
         ret = []
         for c in self.moa_learner.getMicroClusteringResult().getClustering():
-            ret.append(c.getCenter()[:-1])
+            java_array = c.getCenter()[:-1]
+            python_array = [java_array[i] for i in range(len(java_array))]  # Convert to Python list
+            ret.append(python_array)
         return ret
-    
-    def get_clusters_radii(self):
+
+    def get_micro_clusters_radii(self):
         ret = []
         for c in self.moa_learner.getMicroClusteringResult().getClustering():
             ret.append(c.getRadius())
         return ret
     
-    def get_clusters_weights(self):
+    def get_micro_clusters_weights(self):
         ret = []
         for c in self.moa_learner.getMicroClusteringResult().getClustering():
             ret.append(c.getWeight())
         return ret
+
+    def get_clusters_centers(self):
+        ret = []
+        for c in self.moa_learner.getClusteringResult().getClustering():
+            java_array = c.getCenter()[:-1]
+            python_array = [java_array[i] for i in range(len(java_array))]  # Convert to Python list
+            ret.append(python_array)
+        return ret
+
+    def get_clusters_radii(self):
+        ret = []
+        for c in self.moa_learner.getClusteringResult().getClustering():
+            ret.append(c.getRadius())
+        return ret
+
+    def get_clusters_weights(self):
+        ret = []
+        for c in self.moa_learner.getClusteringResult().getClustering():
+            ret.append(c.getWeight())
+        return ret
+
 
     # def predict(self, instance):
     #     return Utils.maxIndex(

@@ -626,16 +626,15 @@ class ClusteringEvaluator:
 
     def _update_measurements(self, clusterer: Clusterer):
         # update centers, weights, sizes, and radii
-        self.measurements["m_centers"].append(clusterer.get_clusters_centers())
-        self.measurements["m_weights"].append(clusterer.get_clusters_weights())
-        self.measurements["m_radii"].append(clusterer.get_clusters_radii())
+        self.measurements["m_centers"].append(clusterer.get_micro_clusters_centers())
+        self.measurements["m_weights"].append(clusterer.get_micro_clusters_weights())
+        self.measurements["m_radii"].append(clusterer.get_micro_clusters_radii())
         # if there is a way to get cluster IDs, add it below
         # self.measurements["m_IDs"].append(clusterer.get_clusters_ids())
 
         # calculate silhouette score
         # TODO: delegate silhouette to moa
         # Check how it is done among different clusterers
-
 
     def metrics_header(self):
         performance_names = ["m_centers", "m_weights", "m_radii"]
@@ -647,6 +646,7 @@ class ClusteringEvaluator:
 
     def get_measurements(self):
         return self.measurements
+
 
 class ClassificationWindowedEvaluator(ClassificationEvaluator):
     """
