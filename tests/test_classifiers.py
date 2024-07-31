@@ -20,6 +20,7 @@ from capymoa.classifier import (
     CSMOTE,
     LeveragingBagging,
     OnlineAdwinBagging,
+    OnlineAccuracyUpdatedEnsemble
 )
 from capymoa.base import Classifier
 from capymoa.base import MOAClassifier
@@ -195,6 +196,12 @@ test_cases = [
         "OnlineAdwinBagging",
         partial(OnlineAdwinBagging),
         85.25,
+        92.0,
+    ),
+    ClassifierTestCase(
+        "OnlineAccuracyUpdatedEnsemble",
+        partial(OnlineAccuracyUpdatedEnsemble),
+        87.0,
         92.0,
     ),
 ]
