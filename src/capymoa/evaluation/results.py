@@ -30,9 +30,13 @@ class PrequentialResults:
         self._predictions = predictions
         self._other_metrics = other_metrics
         # attributes
-        self.learner = learner
-        self.stream = stream
+        #: The name of the learner
+        self.learner: str = learner
+        #: The stream used to evaluate the learner
+        self.stream: Stream = stream
+        #: The cumulative evaluator
         self.cumulative = cumulative_evaluator
+        #: The windowed evaluator
         self.windowed = windowed_evaluator
 
     def __getitem__(self, key):
