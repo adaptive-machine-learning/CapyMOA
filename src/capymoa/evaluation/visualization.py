@@ -880,7 +880,7 @@ def _plot_clustering_state(
     ax.axis('equal')  # Ensure that the circles are not distorted
     # Show the plot or save it to the specified path
     if show_fig:
-        fig.show()
+        plt.show()
     else:
         plt.close(fig) 
     if make_gif:
@@ -905,9 +905,9 @@ def plot_clustering_state(
         save_fig=False,
         make_gif=False,
 ):
-    centers = clusterer.get_clusters_centers()
-    weights = clusterer.get_clusters_weights() if plot_weights else None
-    radii = clusterer.get_clusters_radii() if plot_radii else None
+    centers = clusterer.get_micro_clusters_centers()
+    weights = clusterer.get_micro_clusters_weights() if plot_weights else None
+    radii = clusterer.get_micro_clusters_radii() if plot_radii else None
     # Assuming cluster IDs are 0, 1, 2, ..., N-1  
     cluster_ids = range(len(centers)) if plot_IDs else None
     _plot_clustering_state(str(clusterer), centers, weights, radii, cluster_ids, figure_path, figure_name, show_fig, save_fig, make_gif)
