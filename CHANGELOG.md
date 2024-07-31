@@ -2,7 +2,32 @@
 
 
 
+## v0.6.0 (2024-07-31)
+
+### Ci
+
+* ci: fix workflow trigger of docker build ([`d8fdd55`](https://github.com/adaptive-machine-learning/CapyMOA/commit/d8fdd557e2c2a39c2bfefdf6be03c2e77d63e209))
+
+### Feature
+
+* feat: add ``restart_stream=False`` as an option in evaluators ([`a965dc4`](https://github.com/adaptive-machine-learning/CapyMOA/commit/a965dc45c4d2edf796c76064ba2c880824c477d1))
+
+* feat: add clustering and ssl ([`ae8b592`](https://github.com/adaptive-machine-learning/CapyMOA/commit/ae8b592ae658a7dcbf6c314e0764bb51e36afc5d))
+
+* feat: add IJCAI 2024 tutorial ([`cac7900`](https://github.com/adaptive-machine-learning/CapyMOA/commit/cac790098f6eb62dd83e787b788a105afef1b094))
+
+### Fix
+
+* fix: remove tutorial notebook ([`d82e05d`](https://github.com/adaptive-machine-learning/CapyMOA/commit/d82e05d2c9a5cf2b5e757636b3642cf3bbf10c00))
+
+* fix: add overwritten changes in commit cc13390 for recurrent concept drifts ([`472a597`](https://github.com/adaptive-machine-learning/CapyMOA/commit/472a597cd4c18b7cb84884bc1acd9821a3ae24ca))
+
+
 ## v0.5.0 (2024-07-30)
+
+### Chore
+
+* chore(version): increment version to 0.5.0 ([`dc69780`](https://github.com/adaptive-machine-learning/CapyMOA/commit/dc69780b189ed468adefde9924f3d12745220bd0))
 
 ### Ci
 
