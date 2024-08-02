@@ -504,7 +504,7 @@ def plot_prediction_interval(
         raise ValueError('This function only supports up to 2 results currently.')
 
     default_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-    stream = results[0].get("stream", None)
+    stream = results[0]["stream"]
 
     if len(results) == 1:
         if results[0].ground_truth_y() is not None:
