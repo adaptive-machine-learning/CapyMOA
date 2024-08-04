@@ -188,3 +188,7 @@ shell.nix
 
 # Sphinx auto-generated files
 docs/api/modules
+
+
+notebooks/.ipynb_checkpoints
+*.pdf
