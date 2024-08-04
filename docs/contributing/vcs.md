@@ -4,7 +4,7 @@ This document outlines the version control practices used in the CapyMOA project
 
 ## Commit Messages
 
-**tldr; Run `python -m invoke commit` (or `invoke commit`, `python -m commitizen commit`) to commit changes.** (Requires that you've [installed the optional development dependencies](../installation.md).)
+**tldr; Run `python -m invoke commit` (or `invoke commit`, `python -m commitizen commit`) to commit changes.** (Requires that you've [installed the optional development dependencies](../installation.rst).)
 
 CapyMOA uses conventional commit messages to streamline the release process.
 
