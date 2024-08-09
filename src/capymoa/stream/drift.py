@@ -12,13 +12,34 @@ from moa.streams import ConceptDriftStream as MOA_ConceptDriftStream
 
 class DriftStream(Stream):
     def __init__(self, schema=None, CLI=None, moa_stream=None, stream=None):
-        # If moa_stream is specified, just instantiate it directly. We can check whether it is a ConceptDriftStream object or not.
-        # if composite_stream is set, then the ConceptDriftStream object is build according to the list of Concepts and Drifts specified in composite_stream
-        # ```moa_stream``` and ```CLI``` allow the user to specify the stream using a ConceptDriftStream from MOA alongside its CLI. However, in the future we might remove that functionality to make the code simpler.
+        """
+        Initialize the stream with the specified parameters.
 
+        :param schema: The schema that defines the structure of the stream. Default is None.
+        :param CLI: Command Line Interface string used to define the stream configuration
+            for the MOA (Massive Online Analysis) framework. Default is None.
+        :param moa_stream: A pre-configured ConceptDriftStream object from MOA. If specified,
+            the stream will be instantiated directly using this object. This is useful
+            for integrating with MOA-based streams. Default is None.
+        :param stream: A list that defines a composite stream consisting of various concepts
+            and drifts. If this is set, the ConceptDriftStream object will be built according
+            to the list of concepts and drifts specified. Default is None.
+
+        Notes:
+        ------
+        - If `moa_stream` is specified, it takes precedence, and the stream will be
+          instantiated directly from the provided ConceptDriftStream object.
+
+        - The `CLI` and `moa_stream` parameters allow users to specify the stream
+          using a ConceptDriftStream from MOA alongside its CLI. This provides
+          flexibility for users familiar with MOA's configuration style.
+
+        - In the future, we might remove the functionality associated with `CLI`
+          and `moa_stream` to simplify the code, focusing on other methods of stream
+          configuration.
+        """
         self.stream = stream
         self.drifts = []
-        moa_concept_drift_stream = MOA_ConceptDriftStream()
 
         if CLI is None:
             stream1 = None
@@ -37,12 +58,13 @@ class DriftStream(Stream):
                                 "A Drift object must be specified between two Stream objects."
                             )
 
-                        CLI += f" -d {_get_moa_creation_CLI(stream2.moa_stream)} -w {drift.width} -p {drift.position} -r {drift.random_seed} -a {drift.alpha}"
+                        CLI += f" -d {_get_moa_creation_CLI(stream2.moa_stream)} -w {drift.width} -p " \
+                               f"{drift.position} -r {drift.random_seed} -a {drift.alpha}"
                         CLI = CLI.replace(
                             "streams.", ""
                         )  # got to remove package name from streams.ConceptDriftStream
 
-                        stream1 = Stream(moa_stream=moa_concept_drift_stream, CLI=CLI)
+                        stream1 = Stream(moa_stream=MOA_ConceptDriftStream(), CLI=CLI)
                         stream2 = None
 
                 elif isinstance(component, Drift):
@@ -51,18 +73,18 @@ class DriftStream(Stream):
                     self.drifts.append(drift)
                     CLI = f" -s {_get_moa_creation_CLI(stream1.moa_stream)} "
 
-            # print(CLI)
-            # CLI = command_line
-            moa_stream = moa_concept_drift_stream
+            moa_stream = MOA_ConceptDriftStream()
         else:
             # [EXPERIMENTAL]
-            # If the user is attempting to create a DriftStream using a MOA CLI, we need to derive the Drift meta-data through the CLI.
-            # The number of ConceptDriftStream occurrences corresponds to the number of Drifts.
-            # +1 because we expect at least one drift from an implit ConceptDriftStream (i.e. not shown in the CLI because it is the moa_stream object)
+            # If the user is attempting to create a DriftStream using a MOA CLI, we need to derive the Drift meta-data
+            # through the CLI. The number of ConceptDriftStream occurrences corresponds to the number of Drifts.
+            # +1 because we expect at least one drift from an implicit ConceptDriftStream (i.e. not shown in the CLI
+            # because it is the moa_stream object)
             num_drifts = CLI.count("ConceptDriftStream") + 1
 
             # This is a best effort in obtaining the meta-data from a MOA CLI.
-            # Notice that if the width (-w) or position (-p) are not explicitly shown in the CLI it is difficult to infer them.
+            # Notice that if the width (-w) or position (-p) are not explicitly shown in the CLI it is difficult to
+            # infer them.
             pattern_position = r"-p (\d+)"
             pattern_width = r"-w (\d+)"
             matches_position = re.findall(pattern_position, CLI)
@@ -77,7 +99,8 @@ class DriftStream(Stream):
                         )
                     )
                 else:
-                    # Assuming the width of the drifts (or at least one) are not show, implies that the default value (1000) was used.
+                    # Assuming the width of the drifts (or at least one) are not show, implies that the default
+                    # value (1000) was used.
                     self.drifts.append(
                         Drift(position=int(matches_position[i]), width=1000)
                     )
@@ -93,7 +116,8 @@ class DriftStream(Stream):
     def __str__(self):
         if self.stream is not None:
             return ",".join(str(component) for component in self.stream)
-        # If the stream was defined using the backward compatility (MOA object + CLI) then there are no Stream objects in stream.
+        # If the stream was defined using the backward compatility (MOA object + CLI) then there are no Stream
+        # objects in stream.
         # Best we can do is return the CLI directly.
         return f"ConceptDriftStream {self._CLI}"
 
@@ -340,3 +364,4 @@ class RecurrentConceptDriftStream(DriftStream):
         )
 
         super().__init__(stream=stream_list)
+
