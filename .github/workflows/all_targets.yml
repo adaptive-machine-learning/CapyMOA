@@ -70,6 +70,7 @@ jobs:
       contents: write
     outputs:
       released: ${{ steps.release.outputs.released }}
+      tag: ${{ steps.release.outputs.tag }}
     steps:
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -117,10 +118,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-  docker:
-    name: "Trigger Docker Build"
-    if: github.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
-    needs: [release]
-    uses: ./.github/workflows/docker.yml
-    secrets: "inherit"
