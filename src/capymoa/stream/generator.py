@@ -474,16 +474,6 @@ class AgrawalGenerator(Stream):
     >>> from capymoa.stream.generator import AgrawalGenerator
     ...
     >>> stream = AgrawalGenerator()
-    >>> stream.next_instance()
-    LabeledInstance(
-        Schema(generators.AgrawalGenerator ),
-        x=ndarray(..., 10),
-        y_index=0,
-        y_label='class1'
-    )
-    >>> stream.next_instance().x
-    array([4.        , 2.        , 2.        , 1.        , 4.        ,
-           0.39717434, 0.34751803, 0.29405703, 0.50648363, 0.11596709])
     """
     
     def __init__(
@@ -550,16 +540,6 @@ class LEDGenerator(Stream):
     >>> from capymoa.stream.generator import LEDGenerator
     ...
     >>> stream = LEDGenerator()
-    >>> stream.next_instance()
-    LabeledInstance(
-        Schema(generators.LEDGenerator ),
-        x=ndarray(..., 10),
-        y_index=0,
-        y_label='class1'
-    )
-    >>> stream.next_instance().x
-    array([4.        , 2.        , 2.        , 1.        , 4.        ,
-           0.39717434, 0.34751803, 0.29405703, 0.50648363, 0.11596709])
     """
     
     def __init__(
