@@ -2,15 +2,11 @@
 import copy
 
 from capymoa.stream import Stream
-from capymoa.stream._stream import Schema
-from moa.streams import InstanceStream
 from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
 from moa.streams.generators import SEAGenerator as MOA_SEAGenerator
 from moa.streams.generators import HyperplaneGenerator as MOA_HyperplaneGenerator
 from moa.streams.generators import HyperplaneGeneratorForRegression as MOA_HyperplaneGeneratorForRegression
 from moa.streams.generators import RandomRBFGeneratorDrift as MOA_RandomRBFGeneratorDrift
-from moa.streams.generators import AgrawalGenerator as MOA_AgrawalGenerator
-from moa.streams.generators import LEDGenerator as MOA_LEDGenerator
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
@@ -474,6 +470,16 @@ class AgrawalGenerator(Stream):
     >>> from capymoa.stream.generator import AgrawalGenerator
     ...
     >>> stream = AgrawalGenerator()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.AgrawalGenerator ),
+        x=ndarray(..., 10),
+        y_index=0,
+        y_label='class1'
+    )
+    >>> stream.next_instance().x
+    array([4.        , 2.        , 2.        , 1.        , 4.        ,
+           0.39717434, 0.34751803, 0.29405703, 0.50648363, 0.11596709])
     """
     
     def __init__(
@@ -540,6 +546,16 @@ class LEDGenerator(Stream):
     >>> from capymoa.stream.generator import LEDGenerator
     ...
     >>> stream = LEDGenerator()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.LEDGenerator ),
+        x=ndarray(..., 10),
+        y_index=0,
+        y_label='class1'
+    )
+    >>> stream.next_instance().x
+    array([4.        , 2.        , 2.        , 1.        , 4.        ,
+           0.39717434, 0.34751803, 0.29405703, 0.50648363, 0.11596709])
     """
     
     def __init__(
