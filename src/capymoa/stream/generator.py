@@ -2,11 +2,15 @@
 import copy
 
 from capymoa.stream import Stream
+from capymoa.stream._stream import Schema
+from moa.streams import InstanceStream
 from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
 from moa.streams.generators import SEAGenerator as MOA_SEAGenerator
 from moa.streams.generators import HyperplaneGenerator as MOA_HyperplaneGenerator
 from moa.streams.generators import HyperplaneGeneratorForRegression as MOA_HyperplaneGeneratorForRegression
 from moa.streams.generators import RandomRBFGeneratorDrift as MOA_RandomRBFGeneratorDrift
+from moa.streams.generators import AgrawalGenerator as MOA_AgrawalGenerator
+from moa.streams.generators import LEDGenerator as MOA_LEDGenerator
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
@@ -485,7 +489,7 @@ class AgrawalGenerator(Stream):
     def __init__(
             self,
             instance_random_seed: int = 1,
-            classification_function: int = 1,
+            classification_function: int = 20,
             peturbation: int = 1,
             balance: int = 1
     ):
@@ -605,3 +609,4 @@ class LEDGenerator(Stream):
 
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"LEDGenerator({', '.join(non_default_attributes)})"
+        return f"RandomRBFGeneratorDrift({', '.join(non_default_attributes)})"
