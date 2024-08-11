@@ -524,7 +524,7 @@ class AgrawalGenerator(Stream):
             ),
             (
                 f"classification_function={self.classification_function}"
-                if self.classification_function != 1
+                if self.classification_function != 20
                 else None
             ),
             (
