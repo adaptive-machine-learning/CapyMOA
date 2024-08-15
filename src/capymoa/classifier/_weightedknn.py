@@ -52,4 +52,3 @@ class WeightedkNN(MOAClassifier):
             CLI=config_str,
             moa_learner=self.moa_learner,
         )
-

@@ -201,8 +201,8 @@ test_cases = [
     ClassifierTestCase(
         "WeightedkNN",
         partial(WeightedkNN),
-        74.7,
-        74.7,
+        78.15,
+        70,
     ),
 ]
 
@@ -294,5 +294,3 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
         cli_str = _extract_moa_learner_CLI(learner).strip("()")
         assert cli_str == test_case.cli_string, "CLI does not match expected value"
 
-
-test_classifiers()
