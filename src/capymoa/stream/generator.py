@@ -489,9 +489,9 @@ class AgrawalGenerator(Stream):
     def __init__(
             self,
             instance_random_seed: int = 1,
-            classification_function: int = 20,
-            peturbation: int = 1,
-            balance: int = 1
+            classification_function: int = 1,
+            peturbation: float = 0.05,
+            balance: bool = True
     ):
         """ Construct an Agrawal Generator
 
@@ -524,17 +524,17 @@ class AgrawalGenerator(Stream):
             ),
             (
                 f"classification_function={self.classification_function}"
-                if self.classification_function != 20
+                if self.classification_function != 1
                 else None
             ),
             (
                 f"peturbation={self.peturbation}"
-                if self.peturbation != 1
+                if self.peturbation != 0.05
                 else None
             ),
             (
                 f"balance={self.balance}"
-                if self.balance != 1
+                if self.balance != True
                 else None
             )
         ]
@@ -565,8 +565,8 @@ class LEDGenerator(Stream):
     def __init__(
             self,
             instance_random_seed: int = 1,
-            percentage: int = 1,
-            reduce_data: bool = False,
+            percentage: float = 0.1,
+            reduce_data: bool = True,
     ):
         """ Construct an LED Generator
 
@@ -574,15 +574,17 @@ class LEDGenerator(Stream):
         :param percentage: Percentage of noise to add to the data
         :param reduce_data: Reduce the data to only contain 7 relevant binary attributes
          """
-        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+        self.__init_args_kwargs__ = copy.copy(locals())
+        # save init args for recreation. not a deep copy to avoid unnecessary use of memory
         
         self.moa_stream = MOA_LEDGenerator()
 
         self.instance_random_seed = instance_random_seed
-        self.percentage = percentage
+        self.percentage = percentage 
         self.reduce_data = reduce_data
         
-        self.CLI = f"-i {self.instance_random_seed} -n {self.percentage} \
+        # In Moa it is an int, In CapyMoa it is a float
+        self.CLI = f"-i {self.instance_random_seed} -n {self.percentage * 100} \
             -s {self.reduce_data}"
     
         super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
@@ -597,12 +599,12 @@ class LEDGenerator(Stream):
             ),
             (
                 f"percentage={self.percentage}"
-                if self.percentage != 1
+                if self.percentage != 0.1
                 else None
             ),
             (
                 f"reduce_data={self.reduce_data}"
-                if self.reduce_data != False
+                if self.reduce_data != True
                 else None
             )
         ]
