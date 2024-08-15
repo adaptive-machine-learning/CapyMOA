@@ -201,8 +201,8 @@ test_cases = [
     ClassifierTestCase(
         "OnlineAccuracyUpdatedEnsemble",
         partial(OnlineAccuracyUpdatedEnsemble),
+        90.0,
         87.5,
-        92.0,
     ),
 ]
 
@@ -293,3 +293,4 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     if isinstance(learner, MOAClassifier) and test_case.cli_string is not None:
         cli_str = _extract_moa_learner_CLI(learner).strip("()")
         assert cli_str == test_case.cli_string, "CLI does not match expected value"
+

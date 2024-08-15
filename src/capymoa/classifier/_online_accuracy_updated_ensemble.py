@@ -80,3 +80,38 @@ class OnlineAccuracyUpdatedEnsemble(MOAClassifier):
             moa_learner=self.moa_learner,
         )
 
+
+
+
+stream = ElectricityTiny()
+evaluator = ClassificationEvaluator(schema=stream.get_schema())
+win_evaluator = ClassificationWindowedEvaluator(
+    schema=stream.get_schema(), window_size=100
+)
+learner: Classifier = test_case.learner_constructor(schema=stream.get_schema())
+
+while stream.has_more_instances():
+    instance = stream.next_instance()
+    prediction = learner.predict(instance)
+    evaluator.update(instance.y_index, prediction)
+    win_evaluator.update(instance.y_index, prediction)
+    learner.train(instance)
+
+# Check if the accuracy matches the expected value for both evaluator types
+actual_acc = evaluator.accuracy()
+actual_win_acc = win_evaluator.accuracy()[-1]
+assert actual_acc == pytest.approx(
+    test_case.accuracy, abs=0.1
+), f"Basic Eval: Expected accuracy of {test_case.accuracy:0.1f} got {actual_acc: 0.1f}"
+assert actual_win_acc == pytest.approx(
+    test_case.win_accuracy, abs=0.1
+), f"Windowed Eval: Expected accuracy of {test_case.win_accuracy:0.1f} got {actual_win_acc:0.1f}"
+
+# Check if the classifier can be saved and loaded
+with subtests.test(msg="save_and_load"):
+    subtest_save_and_load(learner, stream, test_case.is_serializable)
+
+# Optionally check the CLI string if it was provided
+if isinstance(learner, MOAClassifier) and test_case.cli_string is not None:
+    cli_str = _extract_moa_learner_CLI(learner).strip("()")
+    assert cli_str == test_case.cli_string, "CLI does not match expected value"
