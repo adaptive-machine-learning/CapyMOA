@@ -17,7 +17,7 @@ field of data streams.
 To setup CapyMOA, simply install it via pip. If you have any issues with the
 installation (like not having Java installed) or if you want GPU support, please
 refer to the [installation guide](https://capymoa.org/installation). Once installed take a
-look at the [tutorials](https://capymoa.org/notebooks/) to get started.
+look at the [tutorials](https://capymoa.org/tutorials.html) to get started.
 
 ```bash
 # CapyMOA requires Java. This checks if you have it installed
