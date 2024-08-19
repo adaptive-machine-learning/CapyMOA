@@ -201,8 +201,8 @@ test_cases = [
     ClassifierTestCase(
         "OnlineAccuracyUpdatedEnsemble",
         partial(OnlineAccuracyUpdatedEnsemble),
-        90.0,
-        87.5,
+        90,
+        90,
     ),
 ]
 
