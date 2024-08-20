@@ -491,7 +491,7 @@ class AgrawalGenerator(Stream):
             instance_random_seed: int = 1,
             classification_function: int = 1,
             peturbation: float = 0.05,
-            balance: bool = True
+            balance: bool = False
     ):
         """ Construct an Agrawal Generator
 
@@ -524,8 +524,6 @@ class AgrawalGenerator(Stream):
             ),
             (
                 f"classification_function={self.classification_function}"
-                if self.classification_function != 1
-                else None
             ),
             (
                 f"peturbation={self.peturbation}"
@@ -534,7 +532,7 @@ class AgrawalGenerator(Stream):
             ),
             (
                 f"balance={self.balance}"
-                if self.balance != True
+                if self.balance
                 else None
             )
         ]
@@ -566,7 +564,7 @@ class LEDGenerator(Stream):
             self,
             instance_random_seed: int = 1,
             percentage: float = 0.1,
-            reduce_data: bool = True,
+            reduce_data: bool = False,
     ):
         """ Construct an LED Generator
 
@@ -604,11 +602,10 @@ class LEDGenerator(Stream):
             ),
             (
                 f"reduce_data={self.reduce_data}"
-                if self.reduce_data != True
+                if self.reduce_data
                 else None
             )
         ]
 
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"LEDGenerator({', '.join(non_default_attributes)})"
-        return f"RandomRBFGeneratorDrift({', '.join(non_default_attributes)})"
