@@ -5,7 +5,7 @@ from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
 class WeightedkNN(MOAClassifier):
-    """RwkNN
+    """WeightedKNN
     Reference:
     
     'Effective Weighted k-Nearest Neighbors for Dynamic Data Streams'
