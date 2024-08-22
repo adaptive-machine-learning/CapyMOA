@@ -20,6 +20,7 @@ from capymoa.classifier import (
     CSMOTE,
     LeveragingBagging,
     OnlineAdwinBagging,
+    WeightedkNN
 )
 from capymoa.base import Classifier
 from capymoa.base import MOAClassifier
@@ -197,6 +198,12 @@ test_cases = [
         85.25,
         92.0,
     ),
+    ClassifierTestCase(
+        "WeightedkNN",
+        partial(WeightedkNN),
+        78.15,
+        70,
+    ),
 ]
 
 
@@ -286,3 +293,4 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     if isinstance(learner, MOAClassifier) and test_case.cli_string is not None:
         cli_str = _extract_moa_learner_CLI(learner).strip("()")
         assert cli_str == test_case.cli_string, "CLI does not match expected value"
+
