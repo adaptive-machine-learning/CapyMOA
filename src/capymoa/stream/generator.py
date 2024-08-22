@@ -477,13 +477,14 @@ class AgrawalGenerator(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.AgrawalGenerator ),
-        x=ndarray(..., 10),
-        y_index=0,
-        y_label='class1'
+        x=ndarray(..., 9),
+        y_index=1,
+        y_label='groupB'
     )
     >>> stream.next_instance().x
-    array([4.        , 2.        , 2.        , 1.        , 4.        ,
-           0.39717434, 0.34751803, 0.29405703, 0.50648363, 0.11596709])
+    array([1.40893779e+05, 0.00000000e+00, 4.40000000e+01, 4.00000000e+00,
+           1.90000000e+01, 7.00000000e+00, 1.35000000e+05, 2.00000000e+00,
+           3.95015339e+05])
     """
     
     def __init__(
@@ -491,7 +492,7 @@ class AgrawalGenerator(Stream):
             instance_random_seed: int = 1,
             classification_function: int = 1,
             peturbation: float = 0.05,
-            balance: bool = False
+            balance_classes: bool = False
     ):
         """ Construct an Agrawal Generator
 
@@ -507,10 +508,10 @@ class AgrawalGenerator(Stream):
         self.instance_random_seed = instance_random_seed
         self.classification_function = classification_function
         self.peturbation = peturbation
-        self.balance = balance
+        self.balance_classes = balance_classes
 
         self.CLI = f"-i {self.instance_random_seed} -f {self.classification_function} \
-            -p {self.peturbation} -b {self.balance}"
+            -p {self.peturbation} {'-b' if self.balance_classes else ''}"
     
         super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
 
@@ -551,19 +552,19 @@ class LEDGenerator(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.LEDGenerator ),
-        x=ndarray(..., 10),
-        y_index=0,
-        y_label='class1'
+        x=ndarray(..., 24),
+        y_index=5,
+        y_label='5'
     )
     >>> stream.next_instance().x
-    array([4.        , 2.        , 2.        , 1.        , 4.        ,
-           0.39717434, 0.34751803, 0.29405703, 0.50648363, 0.11596709])
+    array([1., 1., 1., 0., 1., 1., 0., 0., 0., 1., 0., 1., 0., 1., 1., 0., 1.,
+           0., 0., 1., 1., 0., 1., 1.])
     """
     
     def __init__(
             self,
             instance_random_seed: int = 1,
-            percentage: float = 0.1,
+            percentage: int = 10,
             reduce_data: bool = False,
     ):
         """ Construct an LED Generator
@@ -582,8 +583,8 @@ class LEDGenerator(Stream):
         self.reduce_data = reduce_data
         
         # In Moa it is an int, In CapyMoa it is a float
-        self.CLI = f"-i {self.instance_random_seed} -n {self.percentage * 100} \
-            -s {self.reduce_data}"
+        self.CLI = f"-i {self.instance_random_seed} -n {self.percentage} \
+            {'-s' if self.reduce_data else ''}"
     
         super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
 
@@ -597,7 +598,7 @@ class LEDGenerator(Stream):
             ),
             (
                 f"percentage={self.percentage}"
-                if self.percentage != 0.1
+                if self.percentage != 10
                 else None
             ),
             (
