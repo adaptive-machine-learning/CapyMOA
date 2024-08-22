@@ -2,7 +2,32 @@
 
 
 
+## v0.7.0 (2024-08-03)
+
+### Ci
+
+* ci: fix docker versioning ([`bbfc8b5`](https://github.com/adaptive-machine-learning/CapyMOA/commit/bbfc8b5f693e920c72e67e75d69133a28eb074b7))
+
+### Documentation
+
+* docs: update plotting to prediction interval notebook ([`f33c3d1`](https://github.com/adaptive-machine-learning/CapyMOA/commit/f33c3d13ea8b3f7c4c01df4a1692432614e8094d))
+
+### Feature
+
+* feat: clustering base classes with simple visualization
+
+Co-authored-by: Heitor Murilo Gomes &lt;heitor_murilo_gomes@yahoo.com.br&gt; ([`09b3a60`](https://github.com/adaptive-machine-learning/CapyMOA/commit/09b3a60f5a8c1146efd69e654a2211b5928c30ed))
+
+### Fix
+
+* fix: update visualization for compatibility ([`e25f6b6`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e25f6b6eddee42666c54d4f39fff823d085b6409))
+
+
 ## v0.6.0 (2024-07-31)
+
+### Chore
+
+* chore(version): increment version to 0.6.0 ([`bed6fe0`](https://github.com/adaptive-machine-learning/CapyMOA/commit/bed6fe066f8a80a732a745b9393b8efd91f2ed1c))
 
 ### Ci
 

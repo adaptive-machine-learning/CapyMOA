@@ -536,6 +536,32 @@ class MOAAnomalyDetector(AnomalyDetector):
 ##############################################################
 ######################### Clustering #########################
 ##############################################################
+class ClusteringResult:
+    """Abstract clustering result class that has the structure of clusters: centers, weights, radii, and ids.
+    
+    IDs might not be available for most MOA implementations."""
+
+    def __init__(self, centers, weights, radii, ids):
+        self._centers = centers
+        self._weights = weights
+        self._radii = radii
+        self._ids = ids
+
+    def get_centers(self):
+        return self._centers
+
+    def get_weights(self):
+        return self._weights
+    
+    def get_radii(self):
+        return self._radii
+    
+    def get_ids(self):
+        return self._ids
+    
+    def __str__(self) -> str:
+        return f"Centers: {self._centers}, Weights: {self._weights}, Radii: {self._radii}, IDs: {self._ids}"
+
 class Clusterer(ABC):
     def __init__(self, schema: Schema, random_seed=1):
         self.random_seed = random_seed
@@ -551,6 +577,46 @@ class Clusterer(ABC):
     def train(self, instance: Instance):
         pass
 
+    @abstractmethod
+    def implements_micro_clusters(self) -> bool:
+        pass
+
+    @abstractmethod
+    def implements_macro_clusters(self) -> bool:
+        pass
+
+    @abstractmethod
+    def _get_micro_clusters_centers(self):
+        pass
+
+    @abstractmethod
+    def _get_micro_clusters_radii(self):
+        pass
+    
+    @abstractmethod
+    def _get_micro_clusters_weights(self):
+        pass
+
+    @abstractmethod
+    def _get_clusters_centers(self):
+        pass
+
+    @abstractmethod
+    def _get_clusters_radii(self):
+        pass
+
+    @abstractmethod
+    def _get_clusters_weights(self):
+        pass
+
+    @abstractmethod
+    def get_clustering_result(self):
+        pass
+    
+    @abstractmethod
+    def get_micro_clustering_result(self):
+        pass
+    
     # @abstractmethod
     # def predict(self, instance: Instance) -> Optional[LabelIndex]:
     #     pass
@@ -606,7 +672,7 @@ class MOAClusterer(Clusterer):
     def train(self, instance):
         self.moa_learner.trainOnInstance(instance.java_instance.getData())
 
-    def get_micro_clusters_centers(self):
+    def _get_micro_clusters_centers(self):
         ret = []
         for c in self.moa_learner.getMicroClusteringResult().getClustering():
             java_array = c.getCenter()[:-1]
@@ -614,19 +680,19 @@ class MOAClusterer(Clusterer):
             ret.append(python_array)
         return ret
 
-    def get_micro_clusters_radii(self):
+    def _get_micro_clusters_radii(self):
         ret = []
         for c in self.moa_learner.getMicroClusteringResult().getClustering():
             ret.append(c.getRadius())
         return ret
     
-    def get_micro_clusters_weights(self):
+    def _get_micro_clusters_weights(self):
         ret = []
         for c in self.moa_learner.getMicroClusteringResult().getClustering():
             ret.append(c.getWeight())
         return ret
 
-    def get_clusters_centers(self):
+    def _get_clusters_centers(self):
         ret = []
         for c in self.moa_learner.getClusteringResult().getClustering():
             java_array = c.getCenter()[:-1]
@@ -634,17 +700,30 @@ class MOAClusterer(Clusterer):
             ret.append(python_array)
         return ret
 
-    def get_clusters_radii(self):
+    def _get_clusters_radii(self):
         ret = []
         for c in self.moa_learner.getClusteringResult().getClustering():
             ret.append(c.getRadius())
         return ret
 
-    def get_clusters_weights(self):
+    def _get_clusters_weights(self):
         ret = []
         for c in self.moa_learner.getClusteringResult().getClustering():
             ret.append(c.getWeight())
         return ret
+
+    def get_clustering_result(self):
+        if self.implements_macro_clusters():
+            # raise ValueError("This clusterer does not implement macro-clusters.")
+            return ClusteringResult(self._get_clusters_centers(), self._get_clusters_weights(), self._get_clusters_radii(), [])
+        else:
+            return ClusteringResult([], [], [], [])
+    
+    def get_micro_clustering_result(self):
+        if self.implements_micro_clusters():
+            return ClusteringResult(self._get_micro_clusters_centers(), self._get_micro_clusters_weights(), self._get_micro_clusters_radii(), [])
+        else:
+            return ClusteringResult([], [], [], [])
 
 
     # def predict(self, instance):
