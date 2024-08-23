@@ -26,6 +26,31 @@ from sklearn.base import RegressorMixin as _SKRegressorMixin
 ##############################################################
 
 
+def _extract_moa_drift_detector_CLI(drift_detector):
+    """
+    Auxiliary function to retrieve the command-line interface (CLI)
+    creation command for a MOA Drift Detector.
+
+    Parameters:
+    - drift_detector: The drift detector class for which the CLI command is needed
+
+    Returns:
+    A string representing the CLI command for creating a Drift Detector.
+    """
+
+    CLI = drift_detector.CLI
+
+    moa_detector = drift_detector.moa_detector
+    moa_detector_class_id = str(moa_detector.getClass().getName())
+    moa_detector_class_id_parts = moa_detector_class_id.split(".")
+
+    moa_detector_str = (
+        f"{moa_detector_class_id_parts[-1]}"
+    )
+    moa_detector_str = f"({moa_detector_str} {CLI})"
+
+    return moa_detector_str
+
 def _get_moa_creation_CLI(moa_learner):
     """
     Auxiliary function to retrieve the command-line interface (CLI)
