@@ -592,7 +592,6 @@ class AnomalyDetectionWindowedEvaluator:
         return self.metrics()[index]
 
 class ClusteringEvaluator:
-    # TODO improve documentation of ClusteringEvaluator
     """
     Abstract clustering evaluator for CapyMOA.
     It is slightly different from the other evaluators because it does not have a moa_evaluator object.
@@ -601,11 +600,11 @@ class ClusteringEvaluator:
     def __init__(self, update_interval=1000):
         """
         Only the update_interval is set here.
+        :param update_interval: The interval at which the evaluator should update the measurements
         """
         self.instances_seen = 0
         self.update_interval = update_interval
         self.measurements = {name: [] for name in self.metrics_header()}
-        # self.clusterer = None
         self.clusterer_name = None
 
     def __str__(self):
@@ -629,18 +628,22 @@ class ClusteringEvaluator:
 
     def _update_measurements(self, clusterer: Clusterer):
         # update centers, weights, sizes, and radii
-        self.measurements["m_centers"].append(clusterer.get_micro_clusters_centers())
-        self.measurements["m_weights"].append(clusterer.get_micro_clusters_weights())
-        self.measurements["m_radii"].append(clusterer.get_micro_clusters_radii())
-        # if there is a way to get cluster IDs, add it below
-        # self.measurements["m_IDs"].append(clusterer.get_clusters_ids())
+        if clusterer.implements_macro_clusters():
+            macro = clusterer.get_clustering_result()
+            if len(macro.get_centers()) > 0:
+                self.measurements["macro"].append(macro)
+                
+        if clusterer.implements_micro_clusters():
+            micro = clusterer.get_micro_clustering_result()
+            if len(micro.get_centers()) > 0:
+                self.measurements["micro"].append(micro)
 
         # calculate silhouette score
         # TODO: delegate silhouette to moa
         # Check how it is done among different clusterers
 
     def metrics_header(self):
-        performance_names = ["m_centers", "m_weights", "m_radii"]
+        performance_names = ["macro", "micro"]
         return performance_names
 
     def metrics(self):

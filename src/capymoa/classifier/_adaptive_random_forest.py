@@ -1,7 +1,14 @@
 from capymoa.base import (
     MOAClassifier,
     _extract_moa_learner_CLI,
+    _extract_moa_drift_detector_CLI
 )
+
+
+from capymoa.drift.detectors import (
+    ADWIN,
+)
+
 
 from moa.classifiers.meta import AdaptiveRandomForest as _MOA_AdaptiveRandomForest
 from moa.classifiers.meta.minibatch import AdaptiveRandomForestMB as _MOA_AdaptiveRandomForestMB
@@ -118,14 +125,14 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
             # old
             # self.number_of_jobs = number_of_jobs
             self.drift_detection_method = (
-                "(ADWINChangeDetector -a 1.0E-3)"
+                _extract_moa_drift_detector_CLI(ADWIN(delta=0.001))
                 if drift_detection_method is None
-                else drift_detection_method
+                else _extract_moa_drift_detector_CLI(drift_detection_method)
             )
             self.warning_detection_method = (
-                "(ADWINChangeDetector -a 1.0E-2)"
+                _extract_moa_drift_detector_CLI(ADWIN(delta=0.01))
                 if warning_detection_method is None
-                else warning_detection_method
+                else _extract_moa_drift_detector_CLI(warning_detection_method)
             )
             self.disable_weighted_vote = disable_weighted_vote
             self.disable_drift_detection = disable_drift_detection
