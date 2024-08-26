@@ -12,6 +12,7 @@ from moa.streams.generators import RandomRBFGeneratorDrift as MOA_RandomRBFGener
 from moa.streams.generators import AgrawalGenerator as MOA_AgrawalGenerator
 from moa.streams.generators import LEDGenerator as MOA_LEDGenerator
 from moa.streams.generators import RandomRBFGenerator as MOA_RandomRBFGenerator
+from moa.streams.generators import WaveformGenerator as MOA_WaveformGenerator
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
@@ -622,14 +623,14 @@ class RandomRBFGenerator(Stream):
     >>> stream = RandomRBFGenerator()
     >>> stream.next_instance()
     LabeledInstance(
-        Schema(generators.LEDGenerator ),
-        x=ndarray(..., 24),
-        y_index=5,
-        y_label='5'
+        Schema(generators.RandomRBFGenerator ),
+        x=ndarray(..., 10),
+        y_index=1,
+        y_label='class2'
     )
     >>> stream.next_instance().x
-    array([1., 1., 1., 0., 1., 1., 0., 0., 0., 1., 0., 1., 0., 1., 1., 0., 1.,
-           0., 0., 1., 1., 0., 1., 1.])
+    array([0.68807095, 0.62508298, 0.36161375, 0.29484898, 0.46067958,
+           0.83491016, 0.69794979, 0.75702471, 0.79436834, 0.7605141 ])
     """
     
     def __init__(
@@ -695,3 +696,67 @@ class RandomRBFGenerator(Stream):
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"RandomRBFGenerator({', '.join(non_default_attributes)})"
+    
+
+class WaveformGenerator(Stream):
+    """
+    An Waveform Generator
+
+    >>> from capymoa.stream.generator import WaveformGenerator
+    ...
+    >>> stream = WaveformGenerator()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.WaveformGenerator ),
+        x=ndarray(..., 21),
+        y_index=0,
+        y_label='class1'
+    )
+    >>> stream.next_instance().x
+    array([-0.35222814, -0.65631772,  1.66984311,  1.3552564 ,  1.95122954,
+            3.34644007,  4.75457662,  2.72801084,  3.40907743,  2.41282297,
+            3.34658027,  2.42282518,  2.08432716,  0.78783527,  0.94201874,
+            0.75833533, -0.82178614, -1.23317608, -0.52710197, -0.44639196,
+           -2.026593  ])
+    """
+    
+    def __init__(
+            self,
+            instance_random_seed: int = 1,
+            noise: bool = False,
+    ):
+        """Construct a RBF Generator .
+
+        :param instance_random_seed: Seed for random generation of instances, defaults to 1
+        :param noise: Adds noise for a total of 40 attributes
+        """
+
+        mapping = {
+            "instance_random_seed": "-i",
+            "noise": "-n",
+        }
+        self.moa_stream = MOA_WaveformGenerator()
+        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
+
+
+        super().__init__(
+            moa_stream=self.moa_stream,
+            CLI=config_str
+        )
+
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"noise={self.noise}"
+                if self.noise
+                else None
+            )
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"WaveformGenerator({', '.join(non_default_attributes)})"
