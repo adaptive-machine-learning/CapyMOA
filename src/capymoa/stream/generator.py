@@ -13,6 +13,7 @@ from moa.streams.generators import AgrawalGenerator as MOA_AgrawalGenerator
 from moa.streams.generators import LEDGenerator as MOA_LEDGenerator
 from moa.streams.generators import RandomRBFGenerator as MOA_RandomRBFGenerator
 from moa.streams.generators import WaveformGenerator as MOA_WaveformGenerator
+from moa.streams.generators import WaveformGeneratorDrift as MOA_WaveformGeneratorDrift
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
@@ -641,7 +642,7 @@ class RandomRBFGenerator(Stream):
             number_of_attributes: int = 10,
             number_of_centroids: int = 50
     ):
-        """Construct a RBF Generator .
+        """Construct a Random RBF Generator .
 
         :param instance_random_seed: Seed for random generation of instances, defaults to 1
         :param number_of_classes: The number of classes of the generated instances, defaults to 2
@@ -725,7 +726,7 @@ class WaveformGenerator(Stream):
             instance_random_seed: int = 1,
             noise: bool = False,
     ):
-        """Construct a RBF Generator .
+        """Construct a WaveForm Generator .
 
         :param instance_random_seed: Seed for random generation of instances, defaults to 1
         :param noise: Adds noise for a total of 40 attributes
@@ -760,3 +761,75 @@ class WaveformGenerator(Stream):
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"WaveformGenerator({', '.join(non_default_attributes)})"
+    
+
+class WaveformGeneratorDrift(Stream):
+    """
+    An Waveform Generator Drift
+
+    >>> from capymoa.stream.generator import WaveformGeneratorDrift
+    ...
+    >>> stream = WaveformGeneratorDrift()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.WaveformGeneratorDrift -d 10),
+        x=ndarray(..., 21),
+        y_index=1,
+        y_label='class2'
+    )
+    >>> stream.next_instance().x
+    array([ 0.54985074,  2.17089406,  0.6142235 ,  3.18809944, -1.81293483,
+           -0.11717947, -1.77198821, -0.14927903, -0.49779111, -1.33272998,
+           -0.38139892, -1.49682927,  1.49204371,  2.65344343,  4.25116434,
+            3.39751393,  2.90259886,  4.21403878,  1.98411715,  3.33956917,
+            4.08153654])
+    """
+    
+    def __init__(
+            self,
+            instance_random_seed: int = 1,
+            noise: bool = False,
+            number_of_attributes_with_drift: int = 10,
+
+    ):
+        """Construct a WaveformGeneratorDrift Generator .
+
+        :param instance_random_seed: Seed for random generation of instances, defaults to 1
+        :param noise: Adds noise for a total of 40 attributes
+        """
+
+        mapping = {
+            "instance_random_seed": "-i",
+            "noise": "-n",
+            "number_of_attributes_with_drift": "-d",
+        }
+        self.moa_stream = MOA_WaveformGeneratorDrift()
+        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
+
+
+        super().__init__(
+            moa_stream=self.moa_stream,
+            CLI=config_str
+        )
+
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"noise={self.noise}"
+                if self.noise
+                else None
+            ),
+            (
+                f"number_of_attributes_with_drift={self.number_of_attributes_with_drift}"
+                if self.number_of_attributes_with_drift != 10
+                else None
+            ),
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"WaveformGeneratorDrift({', '.join(non_default_attributes)})"
