@@ -16,6 +16,7 @@ from moa.streams.generators import LEDGeneratorDrift as MOA_LEDGeneratorDrift
 from moa.streams.generators import WaveformGenerator as MOA_WaveformGenerator
 from moa.streams.generators import WaveformGeneratorDrift as MOA_WaveformGeneratorDrift
 from moa.streams.generators import STAGGERGenerator as MOA_STAGGERGenerator
+from moa.streams.generators import SineGenerator as MOA_SineGenerator
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
@@ -980,3 +981,79 @@ class STAGGERGenerator(Stream):
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"STAGGERGenerator({', '.join(non_default_attributes)})"
+    
+
+class SineGenerator(Stream):
+    """
+    An SineGenerator
+
+    >>> from capymoa.stream.generator import SineGenerator
+    ...
+    >>> stream = SineGenerator()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.SineGenerator ),
+        x=ndarray(..., 4),
+        y_index=0,
+        y_label='positive'
+    )
+    >>> stream.next_instance().x
+    array([0.96775591, 0.00611718, 0.9637048 , 0.93986539])
+    """
+    
+    def __init__(
+            self,
+            instance_random_seed: int = 1,
+            classification_function: int = 1,
+            suppress_irrelevant_attributes: bool = False,
+            balance_classes: bool = False
+    ):
+        """Construct a SineGenerator .
+
+        :param instance_random_seed: Seed for random generation of instances, defaults to 1
+        :param classification_function: Classification function used, as defined in the original paper.
+        :param suppress_irrelevant_attributes: Reduce the data to only contain 2 relevant numeric attributes
+        :param balance: Balance the number of instances of each class.
+        """
+
+        mapping = {
+            "instance_random_seed": "-i",
+            "classification_function": "-f",
+            "suppress_irrelevant_attributes": "-s",
+            "balance_classes": "-b",
+        }
+        self.moa_stream = MOA_SineGenerator()
+        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
+
+
+        super().__init__(
+            moa_stream=self.moa_stream,
+            CLI=config_str
+        )
+
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"classification_function={self.classification_function}"
+                if self.classification_function != 1
+                else None
+            ),
+            (
+                f"suppress_irrelevant_attributes={self.suppress_irrelevant_attributes}"
+                if self.suppress_irrelevant_attributes
+                else None
+            ),
+            (
+                f"balance_classes={self.balance_classes}"
+                if self.balance_classes
+                else None
+            )
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"SineGenerator({', '.join(non_default_attributes)})"
