@@ -2,22 +2,26 @@ from capymoa.base import (
     MOAClassifier,
     _extract_moa_learner_CLI,
 )
-import os
-from moa.classifiers.meta import OzaBag as _MOA_OzaBag
-from moa.classifiers.meta.minibatch import OzaBagMB as _MOA_OzaBagMB
 
-class OnlineBagging(MOAClassifier):
-    """Incremental on-line bagging of Oza and Russell
+from moa.classifiers.meta import LeveragingBag as _MOA_LeveragingBag
+from moa.classifiers.meta.minibatch import LeveragingBagMB as _MOA_LeveragingBagMB
+import os
+
+class LeveragingBagging(MOAClassifier):
+    """Leveraging Bagging for evolving data streams using ADWIN. 
     
-    Oza and Russell developed online versions of bagging and boosting for Data Streams. 
-    
-    They show how the process of sampling bootstrap replicates from training data can be simulated in a data stream context. 
-    
-    They observe that the probability that any individual example will be chosen for a replicate tends to a Poisson(1) distribution.
-    
+    Leveraging Bagging and Leveraging Bagging MC using Random Output Codes ( -o option).
+
     Reference:
-    `[OR] N. Oza and S. Russell. Online bagging and boosting. In Artiﬁcial Intelligence and Statistics 2001, pages 105–112. Morgan Kaufmann, 2001.`
- """
+
+    `Albert Bifet, Geoffrey Holmes, Bernhard Pfahringer.
+    Leveraging Bagging for Evolving Data Streams Machine Learning and Knowledge
+    Discovery in Databases, European Conference, ECML PKDD}, 2010.`
+
+    See :py:class:`capymoa.base.MOAClassifier` for train, predict and predict_proba.
+
+    """
+
     def __init__(
         self, 
         schema=None, 
@@ -28,7 +32,7 @@ class OnlineBagging(MOAClassifier):
         minibatch_size=None,
         number_of_jobs=None
     ):
-        """Construct an Online bagging classifier using online bootstrap sampling.
+        """Construct a Leveraging Bagging classifier.
 
         :param schema: The schema of the stream. If not provided, it will be inferred from the data.
         :param CLI: Command Line Interface (CLI) options for configuring the ARF algorithm.
@@ -43,8 +47,19 @@ class OnlineBagging(MOAClassifier):
             However, setting it to a high value may consume more system resources and memory.
             This implementation focuses more on performance, therefore the predictive performance is modified.
             It's recommended to experiment with different values to find the optimal setting based on
+            the available hardware resources and the nature of the workload.
         """
+        # This method basically configures the CLI, object creation is delegated to MOAClassifier (the super class, through super().__init___()))
+        # Initialize instance attributes with default values, if the CLI was not set.
         if CLI is None:
+            self.base_learner = (
+                "trees.HoeffdingTree"
+                if base_learner is None
+                else _extract_moa_learner_CLI(base_learner)
+            )
+            self.ensemble_size = ensemble_size
+            CLI = f"-l {self.base_learner} -s {self.ensemble_size}"
+
             self.base_learner = (
                 "trees.HoeffdingTree"
                 if base_learner is None
@@ -56,7 +71,7 @@ class OnlineBagging(MOAClassifier):
                 #run the sequential version by default or when both parameters are None | 0 | 1
                 self.number_of_jobs = 1
                 self.minibatch_size = 1
-                moa_learner = _MOA_OzaBag()
+                moa_learner = _MOA_LeveragingBag()
                 CLI = f"-l {self.base_learner} -s {self.ensemble_size}"
             else:
                 #run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
@@ -75,14 +90,14 @@ class OnlineBagging(MOAClassifier):
                 else:
                     # if the user sets both parameters to values greater than 1, we initialize the minibatch_size to the user's choice
                     self.minibatch_size = int(minibatch_size)
-                moa_learner = _MOA_OzaBagMB()
+                moa_learner = _MOA_LeveragingBagMB()
                 CLI = f"-l {self.base_learner} -s {self.ensemble_size} -c {self.number_of_jobs} -b {self.minibatch_size} "
-            # print(CLI)            
+
 
         super().__init__(
             schema=schema, CLI=CLI, random_seed=random_seed, moa_learner=moa_learner
         )
 
     def __str__(self):
-        # Overrides the default class name from MOA (OzaBag)
-        return "OnlineBagging"
+        # Overrides the default class name from MOA (LeveragingBag)
+        return "Leveraging OnlineBagging"
