@@ -8,10 +8,6 @@ from .transformer import (
 )
 
 __all__ = [
-    "BasePipeline",
-    "ClassifierPipeline",
-    "RegressorPipeline",
-    "Transformer",
     "MOATransformer",
     "PipelineElement",
     "ClassifierPipelineElement",
