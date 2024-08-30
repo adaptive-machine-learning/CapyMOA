@@ -22,7 +22,7 @@ class PytorchStream(Stream):
     ...     root=get_download_dir(),
     ...     train=True,
     ...     download=True,
-    ...     transform=ToTensor()
+    ...     transform_instance=ToTensor()
     ... )
     Using PyTorch Dataset...
     >>> pytorch_stream = PytorchStream(dataset=pytorchDataset)

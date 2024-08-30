@@ -8,7 +8,7 @@ moa_path: "src/capymoa/jar/moa.jar"
 #moa_url: "https://www.dropbox.com/scl/fi/f5xz2evjllqk87fjvi06m/240412_moa.jar?rlkey=1nwlfj3awhh3lsnme37k947lb&e=1&st=kdhx1e69&dl=1"
 #moa_url: "https://www.dropbox.com/scl/fi/kd2pvgqjsc3u148it1i4u/240506_moa.jar?rlkey=af1fsqoftnz1u0captpuwcx9d&st=2s3e210s&dl=1"
 #moa_url: "https://www.dropbox.com/scl/fi/88tlv50fdkn7js0hpfgvw/240522_moa.jar?rlkey=a06ap3utady3l4fz6xh85cb0n&st=m31fee1u&dl=1"
-moa_url: "https://www.dropbox.com/scl/fi/n8nunw71mmssjuhr2acsk/240528_moa.jar?rlkey=10i5l0odots69pwxrsk6zitwj&st=0lyj99m4&dl=1"
+moa_url: "https://www.dropbox.com/scl/fi/fcht56z65vxe3mqpo7iq5/240530_moa.jar?rlkey=ugnasij42wwlwtfns0nr02fpk&dl=1"
 
 # What notebooks to skip when running them as tests.
 test_skip_notebooks:
@@ -19,6 +19,7 @@ test_skip_notebooks:
   - notebooks/05_new_learner.ipynb
   - notebooks/06_advanced_API.ipynb
   - notebooks/07_pipelines.ipynb
-  - anomaly_detection.ipynb
+  - notebooks/08_prediction_interval.ipynb
+  - notebooks/anomaly_detection.ipynb
   - notebooks/SSL_example.ipynb
-  - notebooks/prediction_interval.ipynb
+  - notebooks/save_and_load_model.ipynb

@@ -4,7 +4,7 @@ from hashlib import sha256
 import warnings
 import os
 
-_MOA_JAR_HASH = "a95e1f3bff079f431a75a7275e0e299a7ed5ce78751904d33a07cc30bfa59f61"
+_MOA_JAR_HASH = "c420777b4add2358f35b8a7ab4bc392f573b7f823443bb55d4e19235096e5fe7"
 
 
 def test_imports():

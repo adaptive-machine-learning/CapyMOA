@@ -2,7 +2,7 @@ from capymoa.evaluation import AUCEvaluator
 from capymoa.anomaly import (
     HalfSpaceTrees,
 )
-from capymoa.base import Classifier
+from capymoa.base import Classifier, AnomalyDetector
 from capymoa.base import MOAClassifier
 from capymoa.datasets import ElectricityTiny
 import pytest
@@ -23,7 +23,7 @@ from capymoa.stream._stream import Schema
     ],
 )
 def test_anomaly_detectors(
-    learner_constructor: Callable[[Schema], Classifier],
+    learner_constructor: Callable[[Schema], AnomalyDetector],
     auc: float,
     cli_string: Optional[str],
 ):
@@ -41,12 +41,12 @@ def test_anomaly_detectors(
     stream = ElectricityTiny()
     evaluator = AUCEvaluator(schema=stream.get_schema())
 
-    learner: Classifier = learner_constructor(schema=stream.get_schema())
+    learner: AnomalyDetector = learner_constructor(schema=stream.get_schema())
 
     while stream.has_more_instances():
         instance = stream.next_instance()
-        proba = learner.predict_proba(instance)
-        evaluator.update(instance.y_index, proba)
+        score = learner.score_instance(instance)
+        evaluator.update(instance.y_index, score)
         learner.train(instance)
 
     # Check if the AUC score matches the expected value for both evaluator types
