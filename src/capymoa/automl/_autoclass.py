@@ -22,6 +22,7 @@ class AutoClass(MOAClassifier):
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.automl import AutoClass
+    >>> from capymoa.classifier import KNN, HoeffdingTree, HoeffdingAdaptiveTree
     >>> from capymoa.evaluation import prequential_evaluation
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
