@@ -12,8 +12,6 @@ import os
 class AutoClass(MOAClassifier):
     """AutoClass
 
-" 2023 IEEE International Conference on Big Data (BigData). IEEE, 2023.
-
     Reference:
     `Maroua Bahri, Nikolaos Georgantas.
     Autoclass: Automl for data stream classification.
@@ -27,7 +25,9 @@ class AutoClass(MOAClassifier):
     >>> from capymoa.evaluation import prequential_evaluation
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
-    >>> learner = AutoClass(schema)
+    >>> learner = AutoClass(schema,
+    >>>                     configuration_json='./settings_autoclass.json',
+    >>>                     base_classifiers= [HoeffdingTree, HoeffdingAdaptiveTree])
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
     83.1
