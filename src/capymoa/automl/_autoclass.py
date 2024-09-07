@@ -17,19 +17,6 @@ class AutoClass(MOAClassifier):
     Autoclass: Automl for data stream classification.
     In BigData, IEEE, 2023. <https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=10386362>`_
 
-
-    Example usages:
-
-    >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.automl import AutoClass
-    >>> from capymoa.classifier import KNN, HoeffdingTree, HoeffdingAdaptiveTree
-    >>> from capymoa.evaluation import prequential_evaluation
-    >>> stream = ElectricityTiny()
-    >>> schema = stream.get_schema()
-    >>> learner = AutoClass(schema, configuration_json='./settings_autoclass.json', base_classifiers= [HoeffdingTree, HoeffdingAdaptiveTree])
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
-    83.1
     """
 
     def __init__(
