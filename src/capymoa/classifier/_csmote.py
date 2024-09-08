@@ -45,7 +45,7 @@ class CSMOTE(MOAClassifier):
         min_size_allowed: int = 100,
         disable_drift_detection: bool = False
     ):
-        """Incremental on-line boosting classifier of Oza and Russell.
+        """C-SMOTE for data streams by Bernardo et al.
 
         :param schema: The schema of the stream.
         :param random_seed: The random seed passed to the MOA learner.
