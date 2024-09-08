@@ -2,11 +2,15 @@
 import copy
 
 from capymoa.stream import Stream
+from capymoa.stream._stream import Schema
+from moa.streams import InstanceStream
 from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
 from moa.streams.generators import SEAGenerator as MOA_SEAGenerator
 from moa.streams.generators import HyperplaneGenerator as MOA_HyperplaneGenerator
 from moa.streams.generators import HyperplaneGeneratorForRegression as MOA_HyperplaneGeneratorForRegression
 from moa.streams.generators import RandomRBFGeneratorDrift as MOA_RandomRBFGeneratorDrift
+from moa.streams.generators import AgrawalGenerator as MOA_AgrawalGenerator
+from moa.streams.generators import LEDGenerator as MOA_LEDGenerator
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
@@ -461,3 +465,148 @@ class RandomRBFGeneratorDrift(Stream):
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"RandomRBFGeneratorDrift({', '.join(non_default_attributes)})"
+    
+
+class AgrawalGenerator(Stream):
+    """
+    An Agrawal Generator
+
+    >>> from capymoa.stream.generator import AgrawalGenerator
+    ...
+    >>> stream = AgrawalGenerator()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.AgrawalGenerator ),
+        x=ndarray(..., 9),
+        y_index=1,
+        y_label='groupB'
+    )
+    >>> stream.next_instance().x
+    array([1.40893779e+05, 0.00000000e+00, 4.40000000e+01, 4.00000000e+00,
+           1.90000000e+01, 7.00000000e+00, 1.35000000e+05, 2.00000000e+00,
+           3.95015339e+05])
+    """
+    
+    def __init__(
+            self,
+            instance_random_seed: int = 1,
+            classification_function: int = 1,
+            peturbation: float = 0.05,
+            balance_classes: bool = False
+    ):
+        """ Construct an Agrawal Generator
+
+        :param instance_random_seed: Seed for random generation of instances.
+        :param classification_function: Classification function used, as defined in the original paper.
+        :param peturbation: The amount of peturbation (noise) introduced to numeric values
+        :param balance: Balance the number of instances of each class.
+        """
+        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+        
+        self.moa_stream = MOA_AgrawalGenerator()
+
+        self.instance_random_seed = instance_random_seed
+        self.classification_function = classification_function
+        self.peturbation = peturbation
+        self.balance_classes = balance_classes
+
+        self.CLI = f"-i {self.instance_random_seed} -f {self.classification_function} \
+            -p {self.peturbation} {'-b' if self.balance_classes else ''}"
+    
+        super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
+
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"classification_function={self.classification_function}"
+            ),
+            (
+                f"peturbation={self.peturbation}"
+                if self.peturbation != 0.05
+                else None
+            ),
+            (
+                f"balance={self.balance}"
+                if self.balance
+                else None
+            )
+        ]
+
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"AgrawalGenerator({', '.join(non_default_attributes)})"
+    
+
+class LEDGenerator(Stream):
+    """
+    An LED Generator
+
+    >>> from capymoa.stream.generator import LEDGenerator
+    ...
+    >>> stream = LEDGenerator()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.LEDGenerator ),
+        x=ndarray(..., 24),
+        y_index=5,
+        y_label='5'
+    )
+    >>> stream.next_instance().x
+    array([1., 1., 1., 0., 1., 1., 0., 0., 0., 1., 0., 1., 0., 1., 1., 0., 1.,
+           0., 0., 1., 1., 0., 1., 1.])
+    """
+    
+    def __init__(
+            self,
+            instance_random_seed: int = 1,
+            percentage: int = 10,
+            reduce_data: bool = False,
+    ):
+        """ Construct an LED Generator
+
+        :param instance_random_seed: Seed for random generation of instances.
+        :param percentage: Percentage of noise to add to the data
+        :param reduce_data: Reduce the data to only contain 7 relevant binary attributes
+         """
+        self.__init_args_kwargs__ = copy.copy(locals())
+        # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+        
+        self.moa_stream = MOA_LEDGenerator()
+
+        self.instance_random_seed = instance_random_seed
+        self.percentage = percentage 
+        self.reduce_data = reduce_data
+        
+        # In Moa it is an int, In CapyMoa it is a float
+        self.CLI = f"-i {self.instance_random_seed} -n {self.percentage} \
+            {'-s' if self.reduce_data else ''}"
+    
+        super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
+
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"percentage={self.percentage}"
+                if self.percentage != 10
+                else None
+            ),
+            (
+                f"reduce_data={self.reduce_data}"
+                if self.reduce_data
+                else None
+            )
+        ]
+
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"LEDGenerator({', '.join(non_default_attributes)})"
