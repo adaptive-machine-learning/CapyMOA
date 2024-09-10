@@ -1,4 +1,4 @@
-from classifier import (
+from capymoa.classifier import (
     KNN, HoeffdingTree, EFDT,
     NaiveBayes as NB,
     AdaptiveRandomForestClassifier as ARF,
