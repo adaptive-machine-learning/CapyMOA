@@ -77,7 +77,7 @@ class Stream:
 Juptyer notebooks in the `/notebooks` directory are converted to markdown
 files and included in the documentation with `nbsphinx`. See this [link](https://nbsphinx.readthedocs.io) for more information.
 
-To add a notebook to the documentation, add the notebook to the `/notebooks` directory and add the filename to the `toctree` in `notebooks/index.rst`.
+To add a notebook to the documentation, add the notebook to the `/notebooks` directory and add the filename to the `toctree` in `docs/tutorials.rst`.
 
 ### Manual Documentation
 
