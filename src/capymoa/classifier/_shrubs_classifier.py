@@ -11,7 +11,34 @@ from capymoa.classifier._shrubensembles import ShrubEnsembles
 
 
 class ShrubsClassifier(ShrubEnsembles, Classifier):
+    """ShrubsClassifier
 
+    This class implements the ShrubEnsembles algorithm for classification, which is
+    an ensemble classifier that continously adds decision trees to the ensemble by training 
+    decision trees over a sliding window while pruning unnecessary drees away using proximal (stoachstic) gradient descent, 
+    hence allowing for adaptation to concept drift.
+
+    Reference:
+
+    `Shrub Ensembles for Online Classification
+     Sebastian Buschjäger, Sibylle Hess, and Katharina Morik
+     In Proceedings of the Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22), Jan 2022 
+    <https://aaai.org/papers/06123-shrub-ensembles-for-online-classification/>`_
+
+    See also :py:class:`capymoa.regressor.AdaptiveRandomForestRegressor`
+    See :py:class:`capymoa.base.MOAClassifier` for train, predict and predict_proba.
+
+    Example usage:
+
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.classifier import ShrubsClassifier
+    >>> from capymoa.evaluation import prequential_evaluation
+    >>> stream = ElectricityTiny()
+    >>> schema = stream.get_schema()
+    >>> learner = ShrubsClassifier(schema)
+    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
+    >>> results["cumulative"].accuracy()
+    """
     def __init__(self,
                 schema: Schema, 
                 loss = "ce",
@@ -29,6 +56,39 @@ class ShrubsClassifier(ShrubEnsembles, Classifier):
                     "max_depth": None
                 }
         ):
+
+        """
+        Initializes the ShrubsClassifier classifier with the given parameters.
+        Parameters:
+        -----------
+        schema : Schema
+            The schema of the dataset, containing information about attributes and target.
+        loss : str, optional (default="ce")
+            The loss function to be used. Supported values are "mse", "ce", and "h2".
+        step_size : float or str, optional (default=1e-1)
+            The step size (i.e. learning rate of SGD) for updating the model. Can be a float or "adaptive".
+        ensemble_regularizer : str, optional (default="hard-L0")
+            The regularizer for the weights of the ensemble. Supported values are "none", "L0", "L1", and "hard-L0". Hard-L0 refer to L0 regularization via the prox-operator, whereas L0 and L1 refer to L0/L1 regularization via projection. Projection can be viewed as a softer regularization that drives the weights of each member towards 0, whereas hard-l0 limits the number of trees in the entire ensemble. 
+        l_ensemble_reg : int or float, optional (default=32)
+            The regularization strength. If `ensemble_regularizer = hard-L0`, then this parameter represent the total number of trees in the ensembles. If `ensemble_regularizer = L0` or `ensemble_regularizer = L1`, then this parameter is the regularization strength. This these cases the number of trees grow over time and only trees that do not contribute to the ensemble will be removed.
+        l_tree_reg : float, optional (default=0)
+            The regularization parameter for individual trees. Must be greater than or equal to 0. `l_tree_reg` controls the number of (overly) large trees in the ensemble by punishing the weights of each tree. Formally, the number of nodes of each tree is used as an additional regularizer. 
+        normalize_weights : bool, optional (default=False)
+            Whether to normalize the weights of the ensemble, i.e. the weight sum to 1.
+        burnin_steps : int, optional (default=0)
+            The number of burn-in steps before updating the model, i.e. the number of SGD steps to be take per each call of train
+        update_leaves : bool, optional (default=False)
+            Whether to update the leaves of the trees as well using SGD.
+        batch_size : int, optional (default=256)
+            The batch size for training each individual tree. Internally, a sliding window is stored. Must be greater than or equal to 1. 
+        additional_tree_options : dict, optional (default={"splitter": "best", "criterion": "gini", "max_depth": None})
+            Additional options for the trees, such as splitter, criterion, and max_depth. See sklearn.tree.DecisionTreeClassifier 
+        Raises:
+        -------
+        ValueError
+            If an unsupported value is provided for loss or ensemble_regularizer.
+            If l_tree_reg is less than 0.
+        """
         Classifier.__init__(self, schema, additional_tree_options.get("random_state",0))
         ShrubEnsembles.__init__(self, schema, loss, step_size, ensemble_regularizer, l_ensemble_reg, l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, additional_tree_options)
 
