@@ -47,10 +47,10 @@ class ShrubsClassifier(ShrubEnsembles, Classifier):
                 l_ensemble_reg = 32,  
                 l_l2_reg = 0,
                 l_tree_reg = 0,
-                normalize_weights = False,
+                normalize_weights = True,
                 burnin_steps = 0,
                 update_leaves = False,
-                batch_size = 256,
+                batch_size = 32,
                 additional_tree_options = {
                     "splitter" : "best", 
                     "criterion" : "gini",

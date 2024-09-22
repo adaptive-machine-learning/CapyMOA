@@ -84,21 +84,17 @@ class ShrubEnsembles(ABC):
 
     def __init__(self,
             schema: Schema, 
-            loss = "ce",
-            step_size = 1e-1,
-            ensemble_regularizer = "hard-L0",
-            l_ensemble_reg = 32,  
-            l_l2_reg = 0,
-            l_tree_reg = 0,
-            normalize_weights = False,
-            burnin_steps = 0,
-            update_leaves = False,
-            batch_size = 256,
-            additional_tree_options = {
-                "splitter" : "best", 
-                "criterion" : "gini",
-                "max_depth": None
-            }
+            loss,
+            step_size,
+            ensemble_regularizer,
+            l_ensemble_reg,  
+            l_l2_reg,
+            l_tree_reg,
+            normalize_weights,
+            burnin_steps,
+            update_leaves,
+            batch_size,
+            additional_tree_options 
         ):
 
         """

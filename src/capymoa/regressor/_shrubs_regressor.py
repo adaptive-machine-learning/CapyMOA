@@ -41,15 +41,15 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
     """
     def __init__(self,
                 schema: Schema, 
-                step_size = 1e-4,
+                step_size = 1e-2,
                 ensemble_regularizer = "hard-L0",
                 l_ensemble_reg = 32,  
                 l_l2_reg = 0,
                 l_tree_reg = 0,
-                normalize_weights = False,
+                normalize_weights = True,
                 burnin_steps = 0,
                 update_leaves = False,
-                batch_size = 256,
+                batch_size = 32,
                 additional_tree_options = {
                     "splitter" : "best", 
                     "max_depth": None
@@ -124,4 +124,5 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
             all_proba = self._individual_proba(np.array([instance.x]))
             scaled_prob = sum([w * p for w,p in zip(all_proba, self.estimator_weights_)])
             combined_proba = np.sum(scaled_prob, axis=0)
-            return combined_proba
+            # combined_proba should be a (1,) array, but the remaining CapyMoa code expects scalars
+            return combined_proba.item()

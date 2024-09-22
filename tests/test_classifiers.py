@@ -20,7 +20,8 @@ from capymoa.classifier import (
     CSMOTE,
     LeveragingBagging,
     OnlineAdwinBagging,
-    WeightedkNN
+    WeightedkNN,
+    ShrubsClassifier
 )
 from capymoa.base import Classifier
 from capymoa.base import MOAClassifier
@@ -203,6 +204,12 @@ test_cases = [
         partial(WeightedkNN),
         78.15,
         70,
+    ),
+    ClassifierTestCase(
+        "ShrubsClassifier",
+        partial(ShrubsClassifier),
+        88.3,
+        81,
     ),
 ]
 
