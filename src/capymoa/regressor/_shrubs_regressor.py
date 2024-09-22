@@ -44,6 +44,7 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
                 step_size = 1e-4,
                 ensemble_regularizer = "hard-L0",
                 l_ensemble_reg = 32,  
+                l_l2_reg = 0,
                 l_tree_reg = 0,
                 normalize_weights = False,
                 burnin_steps = 0,
@@ -66,6 +67,8 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
             The regularizer for the weights of the ensemble. Supported values are "none", "L0", "L1", and "hard-L0". Hard-L0 refer to L0 regularization via the prox-operator, whereas L0 and L1 refer to L0/L1 regularization via projection. Projection can be viewed as a softer regularization that drives the weights of each member towards 0, whereas hard-l0 limits the number of trees in the entire ensemble. 
         l_ensemble_reg : int or float, optional (default=32)
             The regularization strength. If `ensemble_regularizer = hard-L0`, then this parameter represent the total number of trees in the ensembles. If `ensemble_regularizer = L0` or `ensemble_regularizer = L1`, then this parameter is the regularization strength. This these cases the number of trees grow over time and only trees that do not contribute to the ensemble will be removed.
+        l_l2_reg: float, optional (default=0)
+            The L2 regularization strength of the weights of each tree. 
         l_tree_reg : float, optional (default=0)
             The regularization parameter for individual trees. Must be greater than or equal to 0. `l_tree_reg` controls the number of (overly) large trees in the ensemble by punishing the weights of each tree. Formally, the number of nodes of each tree is used as an additional regularizer. 
         normalize_weights : bool, optional (default=False)
@@ -85,7 +88,7 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
             If l_tree_reg is less than 0.
         """
         Regressor.__init__(self, schema, additional_tree_options.get("random_state",0))
-        ShrubEnsembles.__init__(self, schema, "mse", step_size, ensemble_regularizer, l_ensemble_reg, l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, additional_tree_options)
+        ShrubEnsembles.__init__(self, schema, "mse", step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg,  l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, additional_tree_options)
 
     def __str__(self):
        return str("ShrubsRegressor")

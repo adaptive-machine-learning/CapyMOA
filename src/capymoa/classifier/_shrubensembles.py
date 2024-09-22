@@ -88,6 +88,7 @@ class ShrubEnsembles(ABC):
             step_size = 1e-1,
             ensemble_regularizer = "hard-L0",
             l_ensemble_reg = 32,  
+            l_l2_reg = 0,
             l_tree_reg = 0,
             normalize_weights = False,
             burnin_steps = 0,
@@ -114,6 +115,8 @@ class ShrubEnsembles(ABC):
             The regularizer for the weights of the ensemble. Supported values are "none", "L0", "L1", and "hard-L0". Hard-L0 refer to L0 regularization via the prox-operator, whereas L0 and L1 refer to L0/L1 regularization via projection. Projection can be viewed as a softer regularization that drives the weights of each member towards 0, whereas hard-l0 limits the number of trees in the entire ensemble. 
         l_ensemble_reg : int or float, optional (default=32)
             The regularization strength. If `ensemble_regularizer = hard-L0`, then this parameter represent the total number of trees in the ensembles. If `ensemble_regularizer = L0` or `ensemble_regularizer = L1`, then this parameter is the regularization strength. This these cases the number of trees grow over time and only trees that do not contribute to the ensemble will be removed.
+        l_l2_reg: float, optional (default=0)
+            The L2 regularization strength of the weights of each tree. 
         l_tree_reg : float, optional (default=0)
             The regularization parameter for individual trees. Must be greater than or equal to 0. `l_tree_reg` controls the number of (overly) large trees in the ensemble by punishing the weights of each tree. Formally, the number of nodes of each tree is used as an additional regularizer. 
         normalize_weights : bool, optional (default=False)
@@ -174,6 +177,7 @@ class ShrubEnsembles(ABC):
         self.additional_tree_options = additional_tree_options
         self.batch_size = batch_size
         self.burnin_steps = burnin_steps
+        self.l_l2_reg = l_l2_reg
 
         # Number of classes. For regression we simply set this to 1
         if schema.is_regression():
@@ -181,13 +185,15 @@ class ShrubEnsembles(ABC):
         else:
             self.n_classes_ = schema.get_num_classes()
         
+        self.l_l2_reg = l_l2_reg
+
         # If the usere spcifies a random_state, we will also use it. Otherwise we just use 0
         # TODO This assume that random_state is a number, but it can also be a numpy.randomRandomState. 
         self.dt_seed_ = additional_tree_options.get("random_state", 0)
         
         # Estimators and their corresponding weights. 
         self.estimators_ = [] 
-        self.estimator_weights_ = [] 
+        self.estimator_weights_ = np.empty(shape=(0,), dtype=float)
 
         # Shrubs are trained over a sliding window. To enhance performance, we use a circular buffer for the data and for the targets
         self.buffer_data = np.zeros((batch_size, schema.get_num_attributes()))  
@@ -243,7 +249,7 @@ class ShrubEnsembles(ABC):
                 tree = DummyClassifier(strategy='constant', constant=target[0])
             tree.fit(data, target)
 
-        self.estimator_weights_.append(0.0)
+        self.estimator_weights_ = np.append(self.estimator_weights_, 0.0)
         self.estimators_.append(tree)
 
         # Prepare step sizes
@@ -290,9 +296,8 @@ class ShrubEnsembles(ABC):
                 node_deriv = 0
 
             # Perform the gradient step. Note that L0 / L1 regularizer is performed via the prox operator and thus performed _after_ this update.
-            # self.estimator_weights_ = self.estimator_weights_ - step_size*directions - step_size*node_deriv - step_size*self.l_l2_reg*2*self.estimator_weights_
-            self.estimator_weights_ = self.estimator_weights_ - step_size*directions - step_size*node_deriv
-            
+            self.estimator_weights_ = self.estimator_weights_ - step_size*directions - step_size*node_deriv - step_size*self.l_l2_reg*2*self.estimator_weights_
+
             # The latest tree should only receive updates in the last round of burn-in. Reset its weight here. This is somewhat arbitrary, but lead to better performance in our initial experiments. 
             if i < self.burnin_steps:
                 self.estimator_weights_[-1] = 0    
@@ -341,4 +346,4 @@ class ShrubEnsembles(ABC):
                 new_w.append(w)
 
         self.estimators_ = new_est
-        self.estimator_weights_ = new_w
+        self.estimator_weights_ = np.array(new_w)
