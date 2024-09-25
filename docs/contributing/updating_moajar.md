@@ -5,7 +5,7 @@ project uses. **It is only intended for developers who are contributing to
 CapyMOA**. Before you start, make sure you have the following:
 
 * You have installed the development dependencies and have an editable install
-  of CapyMOA. If you have not, follow the instructions in the [installation guide](../installation.md).
+  of CapyMOA. If you have not, follow the instructions in the [installation guide](../installation.rst).
 
 * You must **NOT** have set the environment variables that would
   override the default `moa.jar` location. `CAPYMOA_MOA_JAR` must be unset.

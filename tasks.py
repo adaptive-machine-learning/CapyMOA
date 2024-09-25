@@ -68,12 +68,6 @@ def docs_clean(ctx: Context):
 
 
 @task
-def docs_dev(ctx: Context):
-    """Automatically rebuild the documentation when changes are detected."""
-    ctx.run("python -m sphinx_autobuild -b html docs docs/_build --open-browser")
-
-
-@task
 def download_moa(ctx: Context):
     """Download moa.jar from the web."""
     url = ctx["moa_url"]
@@ -168,35 +162,41 @@ def clean(ctx: Context):
 @task(
     help={
         "parallel": "Run the notebooks in parallel.",
-        "overwrite": "Overwrite the notebooks with the executed output.",
-        "pattern": "Run only the notebooks that match the pattern. Same as `pytest -k`",
-        "fast": (
-            "Run the notebooks in fast mode by setting the environment variable "
-            "`NB_FAST` to `true`. You cannot use this option with `--overwrite`."
+        "overwrite": (
+            "Overwrite the notebooks with the executed output. Requires ``--slow``."
+        ),
+        "k_pattern": "Run only the notebooks that match the pattern. Same as `pytest -k`",
+        "slow": (
+            "Run the notebooks in slow mode by setting the environment variable "
+            "`NB_FAST` to `false`."
         ),
         "no_skip": "Do not skip any notebooks.",
     }
 )
 def test_notebooks(
     ctx: Context,
-    parallel: bool = True,
+    parallel: bool = False,
     overwrite: bool = False,
-    pattern: Optional[str] = None,
-    fast: bool = True,
+    k_pattern: Optional[str] = None,
+    slow: bool = False,
     no_skip: bool = False,
 ):
     """Run the notebooks and check for errors.
 
-    Uses nbmake https://github.com/treebeardtech/nbmake to execute the notebooks and
-    check for errors. The `--overwrite` flag can be used to overwrite the notebooks
-    with the executed output.
-
+    Uses nbmake https://github.com/treebeardtech/nbmake to execute the notebooks
+    and check for errors.
+    
+    The `--overwrite` flag can be used to overwrite the notebooks with the
+    executed output.
     """
-    assert not (fast and overwrite), "You cannot use `--overwrite` with `--fast`."
+    assert not (not slow and overwrite), "You cannot use `--overwrite` with `--fast`."
 
     # Set the environment variable to run the notebooks in fast mode.
-    if fast:
+    if not slow:
         environ["NB_FAST"] = "true"
+        timeout = 60 * 2
+    else:
+        timeout = -1
 
     skip_notebooks = ctx["test_skip_notebooks"]
     if skip_notebooks is None or no_skip:
@@ -205,7 +205,7 @@ def test_notebooks(
     cmd = [
         "python -m pytest --nbmake",
         "-x",  # Stop after the first failure
-        "--nbmake-timeout=500",
+        f"--nbmake-timeout={timeout}",
         "notebooks",
         "--durations=0",  # Show the duration of each notebook
     ]
@@ -215,8 +215,8 @@ def test_notebooks(
     )  # Overwrite the notebooks with the executed output
     cmd += ["--deselect " + nb for nb in skip_notebooks]  # Skip some notebooks
 
-    if pattern:
-        cmd += [f"-k {pattern}"]
+    if k_pattern:
+        cmd += [f"-k {k_pattern}"]
 
     ctx.run(" ".join(cmd))
 
@@ -253,7 +253,6 @@ def commit(ctx: Context):
 docs = Collection("docs")
 docs.add_task(docs_build, "build")
 docs.add_task(docs_clean, "clean")
-docs.add_task(docs_dev, "dev")
 docs.add_task(docs_coverage, "coverage")
 
 build = Collection("build")
