@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Literal
 
 import numpy as np
 
@@ -7,7 +8,7 @@ from capymoa.base import (
 )
 
 from capymoa.stream._stream import Schema
-from capymoa.classifier._shrubensembles import ShrubEnsembles
+from capymoa.classifier._shrubs_ensemble import ShrubEnsembles
 
 
 class ShrubsRegressor(ShrubEnsembles, Regressor):
@@ -19,73 +20,53 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
     hence allowing for adaptation to concept drift. For regression, the MSE loss is minimized.
 
     Reference:
-
+    
     `Shrub Ensembles for Online Classification
-     Sebastian Buschjäger, Sibylle Hess, and Katharina Morik
-     In Proceedings of the Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22), Jan 2022 
+    Sebastian Buschjäger, Sibylle Hess, and Katharina Morik
+    In Proceedings of the Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22), Jan 2022.
     <https://aaai.org/papers/06123-shrub-ensembles-for-online-classification/>`_
-
-    See also :py:class:`capymoa.regressor.AdaptiveRandomForestRegressor`
-    See :py:class:`capymoa.base.MOAClassifier` for train, predict and predict_proba.
 
     Example usage:
 
-    >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.classifier import ShrubsClassifier
+    >>> from capymoa.datasets import Fried
+    >>> from capymoa.regressor import ShrubsRegressor
     >>> from capymoa.evaluation import prequential_evaluation
-    >>> stream = ElectricityTiny()
+    >>> stream = Fried()
     >>> schema = stream.get_schema()
-    >>> learner = ShrubsClassifier(schema)
+    >>> learner = ShrubsRegressor(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
+    >>> results["cumulative"].rmse()
+    4.327991243404134
     """
     def __init__(self,
-                schema: Schema, 
-                step_size = 1e-2,
-                ensemble_regularizer = "hard-L0",
-                l_ensemble_reg = 32,  
-                l_l2_reg = 0,
-                l_tree_reg = 0,
-                normalize_weights = True,
-                burnin_steps = 0,
-                update_leaves = False,
-                batch_size = 32,
-                additional_tree_options = {
-                    "splitter" : "best", 
-                    "max_depth": None
-                }
-        ):
-        """
-        Initializes the ShrubsRegressor classifier with the given parameters. 
-        Parameters:
-        -----------
-        schema : Schema
-            The schema of the dataset, containing information about attributes and target.
-        step_size : float or str, optional (default=1e-1)
-            The step size (i.e. learning rate of SGD) for updating the model. Can be a float or "adaptive".
-        ensemble_regularizer : str, optional (default="hard-L0")
-            The regularizer for the weights of the ensemble. Supported values are "none", "L0", "L1", and "hard-L0". Hard-L0 refer to L0 regularization via the prox-operator, whereas L0 and L1 refer to L0/L1 regularization via projection. Projection can be viewed as a softer regularization that drives the weights of each member towards 0, whereas hard-l0 limits the number of trees in the entire ensemble. 
-        l_ensemble_reg : int or float, optional (default=32)
-            The regularization strength. If `ensemble_regularizer = hard-L0`, then this parameter represent the total number of trees in the ensembles. If `ensemble_regularizer = L0` or `ensemble_regularizer = L1`, then this parameter is the regularization strength. This these cases the number of trees grow over time and only trees that do not contribute to the ensemble will be removed.
-        l_l2_reg: float, optional (default=0)
-            The L2 regularization strength of the weights of each tree. 
-        l_tree_reg : float, optional (default=0)
-            The regularization parameter for individual trees. Must be greater than or equal to 0. `l_tree_reg` controls the number of (overly) large trees in the ensemble by punishing the weights of each tree. Formally, the number of nodes of each tree is used as an additional regularizer. 
-        normalize_weights : bool, optional (default=False)
-            Whether to normalize the weights of the ensemble, i.e. the weight sum to 1.
-        burnin_steps : int, optional (default=0)
-            The number of burn-in steps before updating the model, i.e. the number of SGD steps to be take per each call of train
-        update_leaves : bool, optional (default=False)
-            Whether to update the leaves of the trees as well using SGD.
-        batch_size : int, optional (default=256)
-            The batch size for training each individual tree. Internally, a sliding window is stored. Must be greater than or equal to 1. 
-        additional_tree_options : dict, optional (default={"splitter": "best", "criterion": "gini", "max_depth": None})
-            Additional options for the trees, such as splitter, criterion, and max_depth. See sklearn.tree.DecisionTreeRegressor 
-        Raises:
-        -------
-        ValueError
-            If an unsupported value is provided for loss or ensemble_regularizer.
-            If l_tree_reg is less than 0.
+        schema: Schema, 
+        step_size: float|Literal["adaptive"] = 1e-1,
+        ensemble_regularizer: Literal["hard-L0","L0","L1","none"] = "hard-L0",
+        l_ensemble_reg: float|int = 32, 
+        l_l2_reg: float = 0,
+        l_tree_reg: float = 0,
+        normalize_weights: bool = True,
+        burnin_steps: int = 0,
+        update_leaves: bool = False,
+        batch_size: int = 32,
+        additional_tree_options: dict = {
+            "splitter" : "best", 
+            "max_depth": None
+        }
+    ):
+        """ Initializes the ShrubEnsemble regressor with the given parameters.
+
+        :param step_size: float|Literal["adaptive"] - The step size (i.e. learning rate of SGD) for updating the model. Can be a float or "adaptive". Adaptive reduces the step size with more estimators, i.e. sets it to 1.0 / (n_estimators + 1.0)
+        :param ensemble_regularizer: Literal["hard-L0","L0","L1","none"] - The regularizer for the weights of the ensemble. Supported values are "none", "L0", "L1", and "hard-L0". Hard-L0 refers to L0 regularization via the prox-operator, whereas L0 and L1 refer to L0/L1 regularization via projection. Projection can be viewed as a softer regularization that drives the weights of each member towards 0, whereas hard-l0 limits the number of trees in the entire ensemble. 
+        :param l_ensemble_reg: float | int - The regularization strength. If `ensemble_regularizer = hard-L0`, then this parameter represent the total number of trees in the ensembles. If `ensemble_regularizer = L0` or `ensemble_regularizer = L1`, then this parameter is the regularization strength. This these cases the number of trees grow over time and only trees that do not contribute to the ensemble will be removed.
+        :param l_l2_reg: float - The L2 regularization strength of the weights of each tree. 
+        :param l_tree_reg: float - The regularization parameter for individual trees. Must be greater than or equal to 0. `l_tree_reg` controls the number of (overly) large trees in the ensemble by punishing the weights of each tree. Formally, the number of nodes of each tree is used as an additional regularizer. 
+        :param normalize_weights: bool - Whether to normalize the weights of the ensemble, i.e. the weight sum to 1.
+        :param burnin_steps: int - The number of burn-in steps before updating the model, i.e. the number of SGD steps to be take per each call of train
+        :param update_leaves: bool - Whether to update the leaves of the trees as well using SGD.
+        :param batch_size: int - The batch size for training each individual tree. Internally, a sliding window is stored. Must be greater than or equal to 1. 
+        :param additional_tree_options: dict - Additional options for the trees, such as splitter, criterion, and max_depth. See sklearn.tree.DecisionTreeRegressor for details. An example would be additional_tree_options = {"splitter": "best", "max_depth": None}
+        
         """
         Regressor.__init__(self, schema, additional_tree_options.get("random_state",0))
         ShrubEnsembles.__init__(self, schema, "mse", step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg,  l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, additional_tree_options)
@@ -94,18 +75,6 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
        return str("ShrubsRegressor")
 
     def _individual_proba(self, X):
-        ''' Predict class probabilities for each individual learner in the ensemble without considering the weights.
-
-        Parameters
-        ----------
-        X : array-like or sparse matrix, shape (n_samples, n_features)
-            The samples to be predicted.
-
-        Returns
-        -------
-        y : array, shape (n_samples,C)
-            The predicted class probabilities for each learner.
-        '''
         if len(X.shape) < 2:
             all_proba = np.zeros(shape=(len(self.estimators_), 1, 1), dtype=np.float32)
         else:

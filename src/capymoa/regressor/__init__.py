@@ -19,5 +19,5 @@ __all__ = [
     "AdaptiveRandomForestRegressor",
     "PassiveAggressiveRegressor",
     "SGDRegressor",
-    "ShrubsRegressor",
+    "ShrubsRegressor"
 ]

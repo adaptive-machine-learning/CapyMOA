@@ -24,9 +24,8 @@ class SGDRegressor(SKRegressor):
     >>> learner = SGDRegressor(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].rmse()
-    4.625212156832521
+    4.6252121568325215
     """
-
     sklearner: _SKSGDRegressor
     """The underlying scikit-learn object"""
 
