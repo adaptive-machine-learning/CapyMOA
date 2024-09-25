@@ -93,7 +93,7 @@ These modules provide miscellaneous utilities.
     capymoa.env
 
 Functions
-=========
+---------
 
 ..  automodule:: capymoa
     :members:

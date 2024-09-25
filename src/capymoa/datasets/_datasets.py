@@ -292,6 +292,18 @@ class Fried(DownloadARFFGzip):
     _filename = _get_filename("Fried")
     _remote_url = _get_remote_url("Fried")
 
+class FriedTiny(DownloadARFFGzip):
+    """A truncated version of the Friedman regression problem with 1000 instances.
+
+    This is a tiny version (1k instances) of the Fried dataset. **This should
+    only be used for quick tests, not for benchmarking algorithms.**
+
+    See :class:`Fried` for the full Friedman dataset.
+    """
+
+    _filename = _get_filename("FriedTiny")
+    _remote_url = _get_remote_url("FriedTiny")
+
 class Bike(DownloadARFFGzip):
     """Bike is a regression dataset for the amount of bike share information.
 
