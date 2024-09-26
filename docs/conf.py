@@ -24,7 +24,6 @@ html_title = f"{project}"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    "myst_parser",
     "nbsphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
@@ -34,6 +33,8 @@ extensions = [
     "sphinx.ext.linkcode",
     "sphinx.ext.mathjax",
     "sphinx_design",
+    "sphinxcontrib.programoutput",
+    "myst_parser",
 ]
 
 nitpick_ignore_regex = [

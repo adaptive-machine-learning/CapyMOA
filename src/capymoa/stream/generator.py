@@ -8,9 +8,15 @@ from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerato
 from moa.streams.generators import SEAGenerator as MOA_SEAGenerator
 from moa.streams.generators import HyperplaneGenerator as MOA_HyperplaneGenerator
 from moa.streams.generators import HyperplaneGeneratorForRegression as MOA_HyperplaneGeneratorForRegression
+from moa.streams.generators import RandomRBFGenerator as MOA_RandomRBFGenerator
 from moa.streams.generators import RandomRBFGeneratorDrift as MOA_RandomRBFGeneratorDrift
 from moa.streams.generators import AgrawalGenerator as MOA_AgrawalGenerator
 from moa.streams.generators import LEDGenerator as MOA_LEDGenerator
+from moa.streams.generators import LEDGeneratorDrift as MOA_LEDGeneratorDrift
+from moa.streams.generators import WaveformGenerator as MOA_WaveformGenerator
+from moa.streams.generators import WaveformGeneratorDrift as MOA_WaveformGeneratorDrift
+from moa.streams.generators import STAGGERGenerator as MOA_STAGGERGenerator
+from moa.streams.generators import SineGenerator as MOA_SineGenerator
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
@@ -382,6 +388,91 @@ class HyperPlaneRegression(Stream):
     #     non_default_attributes = [attr for attr in attributes if attr is not None]
     #     return f"HyperPlaneRegression({', '.join(non_default_attributes)})"
 
+
+class RandomRBFGenerator(Stream):
+    """
+    An Random RBF Generator
+
+    >>> from capymoa.stream.generator import RandomRBFGenerator
+    ...
+    >>> stream = RandomRBFGenerator()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.RandomRBFGenerator ),
+        x=ndarray(..., 10),
+        y_index=1,
+        y_label='class2'
+    )
+    >>> stream.next_instance().x
+    array([0.68807095, 0.62508298, 0.36161375, 0.29484898, 0.46067958,
+           0.83491016, 0.69794979, 0.75702471, 0.79436834, 0.7605141 ])
+    """
+    
+    def __init__(
+            self,
+            model_random_seed: int = 1,
+            instance_random_seed: int = 1,
+            number_of_classes: int = 2,
+            number_of_attributes: int = 10,
+            number_of_centroids: int = 50
+    ):
+        """Construct a Random RBF Generator .
+
+        :param instance_random_seed: Seed for random generation of instances, defaults to 1
+        :param number_of_classes: The number of classes of the generated instances, defaults to 2
+        :param number_of_attributes: The number of attributes of the generated instances, defaults to 10
+        :param number_of_drifting_centroids: The number of drifting attributes, defaults to 2
+        """
+
+        mapping = {
+            "model_random_seed": "-r",
+            "instance_random_seed": "-i",
+            "number_of_classes": "-c",
+            "number_of_attributes": "-a",
+            "number_of_centroids": "-n",           
+        }
+        self.moa_stream = MOA_RandomRBFGenerator()
+        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
+
+
+        super().__init__(
+            moa_stream=self.moa_stream,
+            CLI=config_str
+        )
+
+
+    def __str__(self):
+        attributes = [
+            (
+                f"model_random_seed={self.model_random_seed}"
+                if self.model_random_seed != 1
+                else None
+            ),
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"number_of_classes={self.number_of_classes}"
+                if self.number_of_classes != 2
+                else None
+            ),
+            (
+                f"number_of_attributes={self.number_of_attributes}"
+                if self.number_of_attributes != 10
+                else None
+            ),
+            (
+                f"number_of_centroids={self.number_of_centroids}"
+                if self.number_of_centroids != 50
+                else None
+            )
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"RandomRBFGenerator({', '.join(non_default_attributes)})"
+
+
 class RandomRBFGeneratorDrift(Stream):
     """
     Generates Random RBF concepts functions.
@@ -564,13 +655,13 @@ class LEDGenerator(Stream):
     def __init__(
             self,
             instance_random_seed: int = 1,
-            percentage: int = 10,
+            noise_percentage: int = 10,
             reduce_data: bool = False,
     ):
         """ Construct an LED Generator
 
         :param instance_random_seed: Seed for random generation of instances.
-        :param percentage: Percentage of noise to add to the data
+        :param noise_percentage: Percentage of noise to add to the data
         :param reduce_data: Reduce the data to only contain 7 relevant binary attributes
          """
         self.__init_args_kwargs__ = copy.copy(locals())
@@ -579,11 +670,10 @@ class LEDGenerator(Stream):
         self.moa_stream = MOA_LEDGenerator()
 
         self.instance_random_seed = instance_random_seed
-        self.percentage = percentage 
+        self.noise_percentage = noise_percentage 
         self.reduce_data = reduce_data
         
-        # In Moa it is an int, In CapyMoa it is a float
-        self.CLI = f"-i {self.instance_random_seed} -n {self.percentage} \
+        self.CLI = f"-i {self.instance_random_seed} -n {self.noise_percentage} \
             {'-s' if self.reduce_data else ''}"
     
         super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
@@ -597,8 +687,8 @@ class LEDGenerator(Stream):
                 else None
             ),
             (
-                f"percentage={self.percentage}"
-                if self.percentage != 10
+                f"noise_percentage={self.noise_percentage}"
+                if self.noise_percentage != 10
                 else None
             ),
             (
@@ -610,3 +700,360 @@ class LEDGenerator(Stream):
 
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"LEDGenerator({', '.join(non_default_attributes)})"
+    
+
+class LEDGeneratorDrift(Stream):
+    """
+    An LED Generator Drift
+
+    >>> from capymoa.stream.generator import LEDGeneratorDrift
+    ...
+    >>> stream = LEDGeneratorDrift()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.LEDGeneratorDrift -d 7),
+        x=ndarray(..., 24),
+        y_index=5,
+        y_label='5'
+    )
+    >>> stream.next_instance().x
+    array([0., 0., 1., 0., 1., 0., 1., 1., 1., 1., 0., 1., 1., 0., 1., 0., 1.,
+           0., 0., 1., 1., 0., 1., 1.])
+    """
+    
+    def __init__(
+            self,
+            instance_random_seed: int = 1,
+            noise_percentage: int = 10,
+            reduce_data: bool = False,
+            number_of_attributes_with_drift: int = 7,
+    ):
+        """ Construct an LED Generator Drift
+
+        :param instance_random_seed: Seed for random generation of instances.
+        :param noise_percentage: Percentage of noise to add to the data
+        :param reduce_data: Reduce the data to only contain 7 relevant binary attributes
+        :param number_of_attributes_with_drift: Number of attributes with drift
+         """
+        self.__init_args_kwargs__ = copy.copy(locals())
+        # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+        
+        self.moa_stream = MOA_LEDGeneratorDrift()
+
+        self.instance_random_seed = instance_random_seed
+        self.noise_percentage = noise_percentage 
+        self.reduce_data = reduce_data
+        self.number_of_attributes_with_drift = number_of_attributes_with_drift
+        
+        self.CLI = f"-i {self.instance_random_seed} -n {self.noise_percentage} \
+            {'-s' if self.reduce_data else ''} -d {self.number_of_attributes_with_drift}"
+    
+        super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
+
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"noise_percentage={self.noise_percentage}"
+                if self.percentage != 10
+                else None
+            ),
+            (
+                f"reduce_data={self.reduce_data}"
+                if self.reduce_data
+                else None
+            )
+            (
+                f"number_of_attributes_with_drift={self.number_of_attributes_with_drift}"
+                if self.number_of_attributes_with_drift != 7
+                else None
+            ),
+        ]
+
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"LEDGeneratorDrift({', '.join(non_default_attributes)})"
+
+
+class WaveformGenerator(Stream):
+    """
+    An Waveform Generator
+
+    >>> from capymoa.stream.generator import WaveformGenerator
+    ...
+    >>> stream = WaveformGenerator()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.WaveformGenerator ),
+        x=ndarray(..., 21),
+        y_index=0,
+        y_label='class1'
+    )
+    >>> stream.next_instance().x
+    array([-0.35222814, -0.65631772,  1.66984311,  1.3552564 ,  1.95122954,
+            3.34644007,  4.75457662,  2.72801084,  3.40907743,  2.41282297,
+            3.34658027,  2.42282518,  2.08432716,  0.78783527,  0.94201874,
+            0.75833533, -0.82178614, -1.23317608, -0.52710197, -0.44639196,
+           -2.026593  ])
+    """
+    
+    def __init__(
+            self,
+            instance_random_seed: int = 1,
+            noise: bool = False,
+    ):
+        """Construct a WaveForm Generator .
+
+        :param instance_random_seed: Seed for random generation of instances, defaults to 1
+        :param noise: Adds noise for a total of 40 attributes
+        """
+
+        mapping = {
+            "instance_random_seed": "-i",
+            "noise": "-n",
+        }
+        self.moa_stream = MOA_WaveformGenerator()
+        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
+
+
+        super().__init__(
+            moa_stream=self.moa_stream,
+            CLI=config_str
+        )
+
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"noise={self.noise}"
+                if self.noise
+                else None
+            )
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"WaveformGenerator({', '.join(non_default_attributes)})"
+    
+
+class WaveformGeneratorDrift(Stream):
+    """
+    An Waveform Generator Drift
+
+    >>> from capymoa.stream.generator import WaveformGeneratorDrift
+    ...
+    >>> stream = WaveformGeneratorDrift()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.WaveformGeneratorDrift -d 10),
+        x=ndarray(..., 21),
+        y_index=1,
+        y_label='class2'
+    )
+    >>> stream.next_instance().x
+    array([ 0.54985074,  2.17089406,  0.6142235 ,  3.18809944, -1.81293483,
+           -0.11717947, -1.77198821, -0.14927903, -0.49779111, -1.33272998,
+           -0.38139892, -1.49682927,  1.49204371,  2.65344343,  4.25116434,
+            3.39751393,  2.90259886,  4.21403878,  1.98411715,  3.33956917,
+            4.08153654])
+    """
+    
+    def __init__(
+            self,
+            instance_random_seed: int = 1,
+            noise: bool = False,
+            number_of_attributes_with_drift: int = 10,
+
+    ):
+        """Construct a WaveformGeneratorDrift Generator .
+
+        :param instance_random_seed: Seed for random generation of instances, defaults to 1
+        :param noise: Adds noise for a total of 40 attributes
+        :param number_of_attributes_with_drift: Number of attributes with drift
+        """
+
+        mapping = {
+            "instance_random_seed": "-i",
+            "noise": "-n",
+            "number_of_attributes_with_drift": "-d",
+        }
+        self.moa_stream = MOA_WaveformGeneratorDrift()
+        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
+
+
+        super().__init__(
+            moa_stream=self.moa_stream,
+            CLI=config_str
+        )
+
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"noise={self.noise}"
+                if self.noise
+                else None
+            ),
+            (
+                f"number_of_attributes_with_drift={self.number_of_attributes_with_drift}"
+                if self.number_of_attributes_with_drift != 10
+                else None
+            ),
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"WaveformGeneratorDrift({', '.join(non_default_attributes)})"
+    
+class STAGGERGenerator(Stream):
+    """
+    An STAGGER Generator
+
+    >>> from capymoa.stream.generator import STAGGERGenerator
+    ...
+    >>> stream = STAGGERGenerator()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.STAGGERGenerator ),
+        x=ndarray(..., 3),
+        y_index=0,
+        y_label='false'
+    )
+    >>> stream.next_instance().x
+    array([0., 2., 1.])
+    """
+    
+    def __init__(
+            self,
+            instance_random_seed: int = 1,
+            classification_function: int = 1,
+            balance_classes: bool = False
+    ):
+        """Construct a STAGGER Generator .
+
+        :param instance_random_seed: Seed for random generation of instances, defaults to 1
+        :param classification_function: Classification function used, as defined in the original paper.
+        :param balance: Balance the number of instances of each class.
+        """
+
+        mapping = {
+            "instance_random_seed": "-i",
+            "classification_function": "-f",
+            "balance_classes": "-b",
+        }
+        self.moa_stream = MOA_STAGGERGenerator()
+        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
+
+
+        super().__init__(
+            moa_stream=self.moa_stream,
+            CLI=config_str
+        )
+
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"classification_function={self.classification_function}"
+                if self.classification_function != 1
+                else None
+            ),
+            (
+                f"balance_classes={self.balance_classes}"
+                if self.balance_classes
+                else None
+            )
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"STAGGERGenerator({', '.join(non_default_attributes)})"
+    
+
+class SineGenerator(Stream):
+    """
+    An SineGenerator
+
+    >>> from capymoa.stream.generator import SineGenerator
+    ...
+    >>> stream = SineGenerator()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.SineGenerator ),
+        x=ndarray(..., 4),
+        y_index=0,
+        y_label='positive'
+    )
+    >>> stream.next_instance().x
+    array([0.96775591, 0.00611718, 0.9637048 , 0.93986539])
+    """
+    
+    def __init__(
+            self,
+            instance_random_seed: int = 1,
+            classification_function: int = 1,
+            suppress_irrelevant_attributes: bool = False,
+            balance_classes: bool = False
+    ):
+        """Construct a SineGenerator .
+
+        :param instance_random_seed: Seed for random generation of instances, defaults to 1
+        :param classification_function: Classification function used, as defined in the original paper.
+        :param suppress_irrelevant_attributes: Reduce the data to only contain 2 relevant numeric attributes
+        :param balance: Balance the number of instances of each class.
+        """
+
+        mapping = {
+            "instance_random_seed": "-i",
+            "classification_function": "-f",
+            "suppress_irrelevant_attributes": "-s",
+            "balance_classes": "-b",
+        }
+        self.moa_stream = MOA_SineGenerator()
+        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
+
+
+        super().__init__(
+            moa_stream=self.moa_stream,
+            CLI=config_str
+        )
+
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            (
+                f"classification_function={self.classification_function}"
+                if self.classification_function != 1
+                else None
+            ),
+            (
+                f"suppress_irrelevant_attributes={self.suppress_irrelevant_attributes}"
+                if self.suppress_irrelevant_attributes
+                else None
+            ),
+            (
+                f"balance_classes={self.balance_classes}"
+                if self.balance_classes
+                else None
+            )
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"SineGenerator({', '.join(non_default_attributes)})"
