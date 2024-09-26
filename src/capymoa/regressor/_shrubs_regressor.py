@@ -36,13 +36,13 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
     >>> learner = ShrubsRegressor(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].rmse()
-    4.327991243404134
+    4.3554695106618
     """
     def __init__(self,
         schema: Schema, 
         step_size: float|Literal["adaptive"] = 1e-1,
         ensemble_regularizer: Literal["hard-L0","L0","L1","none"] = "hard-L0",
-        l_ensemble_reg: float|int = 32, 
+        l_ensemble_reg: float|int = 16, 
         l_l2_reg: float = 0,
         l_tree_reg: float = 0,
         normalize_weights: bool = True,
@@ -51,7 +51,8 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
         batch_size: int = 32,
         additional_tree_options: dict = {
             "splitter" : "best", 
-            "max_depth": None
+            "max_depth": None,
+            "random_state": 1234
         }
     ):
         """ Initializes the ShrubEnsemble regressor with the given parameters.

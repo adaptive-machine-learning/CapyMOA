@@ -32,7 +32,7 @@ class ShrubsClassifier(ShrubEnsembles, Classifier):
     >>> learner = ShrubsClassifier(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
-    84.6
+    84.3
     
     """
 
@@ -51,7 +51,8 @@ class ShrubsClassifier(ShrubEnsembles, Classifier):
             additional_tree_options: dict = {
                 "splitter" : "best", 
                 "criterion" : "gini",
-                "max_depth": None
+                "max_depth": None,
+                "random_state": 1234
             }
         ):
 

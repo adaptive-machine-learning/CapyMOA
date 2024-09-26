@@ -146,7 +146,7 @@ class ShrubEnsembles(ABC):
 
         # If the usere spcifies a random_state, we will also use it. Otherwise we just use 0
         # TODO This assume that random_state is a number, but it can also be a numpy.randomRandomState. 
-        self.dt_seed_ = additional_tree_options.get("random_state", 0)
+        self.dt_seed_ = additional_tree_options.pop("random_state", 0)
         
         # Estimators and their corresponding weights. 
         self.estimators_ = [] 
