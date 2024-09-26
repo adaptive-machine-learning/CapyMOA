@@ -36,7 +36,7 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
     >>> learner = ShrubsRegressor(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].rmse()
-    4.3554695106618
+    4.355469623948763
     """
     def __init__(self,
         schema: Schema, 
