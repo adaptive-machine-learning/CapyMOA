@@ -342,6 +342,22 @@ class RegressionEvaluator:
             for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
         ]
 
+    def __getitem__(self, key):
+        if hasattr(self, key):
+            attr = getattr(self, key)
+            return attr()
+        return self.__getattr__(key)()
+
+    # This allows access to metrics that are generated dynamically like recall_0, f1_score_3, ...
+    def __getattr__(self, metric):
+        if metric in self.metrics_header():
+            index = self.metrics_header().index(metric)
+            def metric_value():
+                return float(self.metrics()[index])
+
+            return metric_value
+        return None
+
     def metrics_dict(self):
         return {header: value for header, value in zip(self.metrics_header(), self.metrics())}
 
