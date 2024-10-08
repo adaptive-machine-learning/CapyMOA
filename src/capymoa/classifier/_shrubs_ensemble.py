@@ -272,9 +272,7 @@ class _ShrubEnsembles(ABC):
             tmp_w = np.abs(self.estimator_weights_) - step_size*self.l_ensemble_reg
             tmp_w = sign*np.maximum(tmp_w,0)
         elif self.ensemble_regularizer == "hard-L0":
-            # print(self.estimator_weights_)
             top_K = np.argsort(self.estimator_weights_)[-self.l_ensemble_reg:]
-            # print(top_K)
             tmp_w = np.array([w if i in top_K else 0 for i,w in enumerate(self.estimator_weights_)])
         else:
             tmp_w = self.estimator_weights_
@@ -283,8 +281,6 @@ class _ShrubEnsembles(ABC):
         # as described in "Sparse projections onto the simplex" by Kyrillidis et al. 2013 (http://proceedings.mlr.press/v28/kyrillidis13.pdf)
         # Thus, we first need to extract the nonzero weights, project these and then copy them back into corresponding array
         if self.normalize_weights and len(tmp_w) > 0:
-            # print(tmp_w)
-            # print("---")
             nonzero_idx = np.nonzero(tmp_w)[0]
             nonzero_w = tmp_w[nonzero_idx]
             nonzero_w = to_prob_simplex(nonzero_w)
