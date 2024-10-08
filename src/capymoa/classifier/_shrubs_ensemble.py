@@ -42,8 +42,8 @@ def to_prob_simplex(x:list|np.array):
     projected_x = [max(xi + l, 0.0) for xi in x]
     return projected_x
 
-class ShrubEnsembles(ABC):
-    """ ShrubEnsembles
+class _ShrubEnsembles(ABC):
+    """Base for shrub ensembles for classification and regression.
 
     This class implements the ShrubEnsembles algorithm for classification and regression, which is
     an ensemble classifier that continuously adds decision trees to the ensemble by training 

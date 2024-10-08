@@ -8,17 +8,18 @@ from capymoa.base import (
 )
 
 from capymoa.stream._stream import Schema
-from capymoa.classifier._shrubs_ensemble import ShrubEnsembles
+from capymoa.classifier._shrubs_ensemble import _ShrubEnsembles
 from sklearn.tree import DecisionTreeRegressor
 
-class ShrubsRegressor(ShrubEnsembles, Regressor):
+
+class ShrubsRegressor(_ShrubEnsembles, Regressor):
     """ShrubsRegressor
 
     This class implements the ShrubEnsembles algorithm for regression, which is
     an ensemble classifier that continuously adds regression trees to the ensemble by training them over a sliding window while pruning unnecessary trees away using proximal (stochastic) gradient descent, hence allowing for adaptation to concept drift. For regression, the MSE loss is minimized.
 
     Reference:
-    
+
     `Shrub Ensembles for Online Classification
     Sebastian Buschjäger, Sibylle Hess, and Katharina Morik
     In Proceedings of the Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22), Jan 2022.
@@ -65,7 +66,7 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
         
         """
         Regressor.__init__(self, schema, sk_dt.random_state)
-        ShrubEnsembles.__init__(self, schema, "mse", step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg,  l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt)
+        _ShrubEnsembles.__init__(self, schema, "mse", step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg,  l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt)
 
     def __str__(self):
        return str("ShrubsRegressor")

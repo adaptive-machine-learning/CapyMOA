@@ -5,11 +5,12 @@ import numpy as np
 
 from capymoa.base import Classifier
 from capymoa.stream._stream import Schema
-from capymoa.classifier._shrubs_ensemble import ShrubEnsembles
+from capymoa.classifier._shrubs_ensemble import _ShrubEnsembles
 from sklearn.tree import DecisionTreeClassifier
 
-class ShrubsClassifier(ShrubEnsembles, Classifier):
-    """ ShrubsClassifier
+
+class ShrubsClassifier(_ShrubEnsembles, Classifier):
+    """ShrubsClassifier
 
     This class implements the ShrubEnsembles algorithm for classification, which is
     an ensemble classifier that continuously adds decision trees to the ensemble by training new trees over a sliding window while pruning unnecessary trees away using proximal (stochastic) gradient descent, hence allowing for adaptation to concept drift.
@@ -66,7 +67,7 @@ class ShrubsClassifier(ShrubEnsembles, Classifier):
         """
 
         Classifier.__init__(self, schema, sk_dt.random_state)
-        ShrubEnsembles.__init__(self, schema, loss, step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg, l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt)
+        _ShrubEnsembles.__init__(self, schema, loss, step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg, l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt)
 
     def __str__(self):
        return str("ShrubsClassifier")
