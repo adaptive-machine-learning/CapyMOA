@@ -105,6 +105,5 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
             return combined_proba
 
     def predict(self, instance):
-        # TODO check if index or actual class should be returned
+        # Return the index of the class with the highest probability
         return self.predict_proba(instance).argmax(axis=0)
-        # return self.classes_.take(proba.argmax(axis=1), axis=0)
