@@ -53,17 +53,52 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
     ):
         """ Initializes the ShrubEnsemble regressor with the given parameters.
 
-        :param step_size: float|Literal["adaptive"] - The step size (i.e. learning rate of SGD) for updating the model. Can be a float or "adaptive". Adaptive reduces the step size with more estimators, i.e. sets it to 1.0 / (n_estimators + 1.0)
-        :param ensemble_regularizer: Literal["hard-L0","L0","L1","none"] - The regularizer for the weights of the ensemble. Supported values are "none", "L0", "L1", and "hard-L0". Hard-L0 refers to L0 regularization via the prox-operator, whereas L0 and L1 refer to L0/L1 regularization via projection. Projection can be viewed as a softer regularization that drives the weights of each member towards 0, whereas hard-l0 limits the number of trees in the entire ensemble. 
-        :param l_ensemble_reg: float | int - The regularization strength. If `ensemble_regularizer = hard-L0`, then this parameter represent the total number of trees in the ensembles. If `ensemble_regularizer = L0` or `ensemble_regularizer = L1`, then this parameter is the regularization strength. This these cases the number of trees grow over time and only trees that do not contribute to the ensemble will be removed.
-        :param l_l2_reg: float - The L2 regularization strength of the weights of each tree. 
-        :param l_tree_reg: float - The regularization parameter for individual trees. Must be greater than or equal to 0. `l_tree_reg` controls the number of (overly) large trees in the ensemble by punishing the weights of each tree. Formally, the number of nodes of each tree is used as an additional regularizer. 
-        :param normalize_weights: bool - Whether to normalize the weights of the ensemble, i.e. the weight sum to 1.
-        :param burnin_steps: int - The number of burn-in steps before updating the model, i.e. the number of SGD steps to be take per each call of train
-        :param update_leaves: bool - Whether to update the leaves of the trees as well using SGD.
-        :param batch_size: int - The batch size for training each individual tree. Internally, a sliding window is stored. Must be greater than or equal to 1. 
-        :param additional_tree_options: dict - Additional options for the trees, such as splitter, criterion, and max_depth. See sklearn.tree.DecisionTreeRegressor for details. An example would be additional_tree_options = {"splitter": "best", "max_depth": None}
+        :param step_size: The step size (i.e. learning rate of SGD) for updating
+            the model. Can be a float or "adaptive". Adaptive reduces the step
+            size with more estimators, i.e. sets it to ``1.0 / (n_estimators +
+            1.0)``
+        :param ensemble_regularizer: The regularizer for the weights of the
+            ensemble. Supported values are:
+
+            * ``hard-L0``: L0 regularization via the prox-operator.
+            * ``L0``: L0 regularization via projection.
+            * ``L1``: L1 regularization via projection.
+            * ``none``: No regularization.
+            
+            Projection can be viewed as a softer regularization that drives the
+            weights of each member towards 0, whereas ``hard-l0`` limits the
+            number of trees in the entire ensemble.
+        :param l_ensemble_reg: The regularization strength. Depending on the
+            value of ``ensemble_regularizer``, this parameter has different
+            meanings:
         
+            * ``hard-L0``: then this parameter represent the total number of
+              trees in the ensembles.
+            * ``L0`` or ``L1``: then this parameter is the regularization
+              strength. In these cases the number of trees grow over time and
+              only trees that do not contribute to the ensemble will be
+              removed.
+            * ``none``: then this parameter is ignored.
+        :param l_l2_reg: The L2 regularization strength of the weights of each
+            tree. 
+        :param l_tree_reg: The regularization parameter for individual trees.
+            Must be greater than or equal to 0. ``l_tree_reg`` controls the
+            number of (overly) large trees in the ensemble by punishing the
+            weights of each tree. Formally, the number of nodes of each tree is
+            used as an additional regularizer.
+        :param normalize_weights: Whether to normalize the weights of the
+            ensemble, i.e. the weight sum to 1.
+        :param burnin_steps: The number of burn-in steps before updating the
+            model, i.e. the number of SGD steps to be take per each call of
+            train
+        :param update_leaves: Whether to update the leaves of the trees as well
+            using SGD.
+        :param batch_size: The batch size for training each individual tree.
+            Internally, a sliding window is stored. Must be greater than or
+            equal to 1. 
+        :param sk_dt: Base object which is used to clone any new decision trees
+            from. Note, that if you set random_state to an integer the exact
+            same clone is used for any DT object 
         """
         Regressor.__init__(self, schema, sk_dt.random_state)
         _ShrubEnsembles.__init__(self, schema, "mse", step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg,  l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt)
