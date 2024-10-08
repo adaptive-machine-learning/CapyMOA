@@ -9,15 +9,13 @@ from capymoa.base import (
 
 from capymoa.stream._stream import Schema
 from capymoa.classifier._shrubs_ensemble import ShrubEnsembles
-
+from sklearn.tree import DecisionTreeRegressor
 
 class ShrubsRegressor(ShrubEnsembles, Regressor):
     """ShrubsRegressor
 
     This class implements the ShrubEnsembles algorithm for regression, which is
-    an ensemble classifier that continously adds decision trees to the ensemble by training 
-    decision trees over a sliding window while pruning unnecessary drees away using proximal (stoachstic) gradient descent, 
-    hence allowing for adaptation to concept drift. For regression, the MSE loss is minimized.
+    an ensemble classifier that continuously adds regression trees to the ensemble by training them over a sliding window while pruning unnecessary trees away using proximal (stochastic) gradient descent, hence allowing for adaptation to concept drift. For regression, the MSE loss is minimized.
 
     Reference:
     
@@ -36,24 +34,21 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
     >>> learner = ShrubsRegressor(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].rmse()
-    4.355469623948763
+    5.21...
+
     """
     def __init__(self,
         schema: Schema, 
-        step_size: float|Literal["adaptive"] = 1e-1,
+        step_size: float|Literal["adaptive"] = "adaptive",
         ensemble_regularizer: Literal["hard-L0","L0","L1","none"] = "hard-L0",
-        l_ensemble_reg: float|int = 16, 
+        l_ensemble_reg: float|int = 32, 
         l_l2_reg: float = 0,
         l_tree_reg: float = 0,
         normalize_weights: bool = True,
-        burnin_steps: int = 0,
+        burnin_steps: int = 5,
         update_leaves: bool = False,
         batch_size: int = 32,
-        additional_tree_options: dict = {
-            "splitter" : "best", 
-            "max_depth": None,
-            "random_state": 1234
-        }
+        sk_dt: DecisionTreeRegressor = DecisionTreeRegressor(splitter="best", max_depth=None, random_state=1234)
     ):
         """ Initializes the ShrubEnsemble regressor with the given parameters.
 
@@ -69,8 +64,8 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
         :param additional_tree_options: dict - Additional options for the trees, such as splitter, criterion, and max_depth. See sklearn.tree.DecisionTreeRegressor for details. An example would be additional_tree_options = {"splitter": "best", "max_depth": None}
         
         """
-        Regressor.__init__(self, schema, additional_tree_options.get("random_state",0))
-        ShrubEnsembles.__init__(self, schema, "mse", step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg,  l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, additional_tree_options)
+        Regressor.__init__(self, schema, sk_dt.random_state)
+        ShrubEnsembles.__init__(self, schema, "mse", step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg,  l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt)
 
     def __str__(self):
        return str("ShrubsRegressor")
@@ -87,12 +82,8 @@ class ShrubsRegressor(ShrubEnsembles, Regressor):
         return all_proba
 
     def predict(self, instance):
-        if (len(self.estimators_)) == 0:
-            # TODO Maybe add a more meanigful default here
-            return 0
-        else:
-            all_proba = self._individual_proba(np.array([instance.x]))
-            scaled_prob = sum([w * p for w,p in zip(all_proba, self.estimator_weights_)])
-            combined_proba = np.sum(scaled_prob, axis=0)
-            # combined_proba should be a (1,) array, but the remaining CapyMoa code expects scalars
-            return combined_proba.item()
+        all_proba = self._individual_proba(np.array([instance.x]))
+        scaled_prob = sum([w * p for w,p in zip(all_proba, self.estimator_weights_)])
+        combined_proba = np.sum(scaled_prob, axis=0)
+        # combined_proba should be a (1,) array, but the remaining CapyMoa code expects scalars
+        return combined_proba.item()

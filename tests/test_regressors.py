@@ -77,7 +77,7 @@ def subtest_save_and_load(
         (partial(SOKNL), 3.37, 2.77),
         (partial(PassiveAggressiveRegressor), 3.67, 3.68),
         (partial(SGDRegressor), 4.63, 3.6),
-        (partial(ShrubsRegressor), 4.34, 4.05),
+        (partial(ShrubsRegressor), 5.12, 4.75),
     ],
     ids=[
         "AdaptiveRandomForestRegressor",

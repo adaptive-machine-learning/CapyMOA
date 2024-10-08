@@ -6,14 +6,13 @@ import numpy as np
 from capymoa.base import Classifier
 from capymoa.stream._stream import Schema
 from capymoa.classifier._shrubs_ensemble import ShrubEnsembles
+from sklearn.tree import DecisionTreeClassifier
 
 class ShrubsClassifier(ShrubEnsembles, Classifier):
     """ ShrubsClassifier
 
     This class implements the ShrubEnsembles algorithm for classification, which is
-    an ensemble classifier that continously adds decision trees to the ensemble by training 
-    new trees over a sliding window while pruning unnecessary trees away using proximal (stoachstic) gradient descent, 
-    hence allowing for adaptation to concept drift.
+    an ensemble classifier that continuously adds decision trees to the ensemble by training new trees over a sliding window while pruning unnecessary trees away using proximal (stochastic) gradient descent, hence allowing for adaptation to concept drift.
 
     Reference:
     
@@ -32,28 +31,23 @@ class ShrubsClassifier(ShrubEnsembles, Classifier):
     >>> learner = ShrubsClassifier(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
-    84.3
+    85.5...
     
     """
 
     def __init__(self,
             schema: Schema, 
             loss: Literal["mse","ce","h2"] = "ce",
-            step_size: float|Literal["adaptive"] = 1e-1,
+            step_size: float|Literal["adaptive"] = "adaptive",
             ensemble_regularizer: Literal["hard-L0","L0","L1","none"] = "hard-L0",
             l_ensemble_reg: float|int = 32, 
             l_l2_reg: float = 0,
             l_tree_reg: float = 0,
             normalize_weights: bool = True,
-            burnin_steps: int = 0,
+            burnin_steps: int = 5,
             update_leaves: bool = False,
             batch_size: int = 32,
-            additional_tree_options: dict = {
-                "splitter" : "best", 
-                "criterion" : "gini",
-                "max_depth": None,
-                "random_state": 1234
-            }
+            sk_dt: DecisionTreeClassifier = DecisionTreeClassifier(splitter="best", criterion="gini", max_depth=None, random_state=1234)
         ):
 
         """ Initializes the ShrubEnsemble classifier with the given parameters.
@@ -68,12 +62,11 @@ class ShrubsClassifier(ShrubEnsembles, Classifier):
         :param burnin_steps: int - The number of burn-in steps before updating the model, i.e. the number of SGD steps to be take per each call of train
         :param update_leaves: bool - Whether to update the leaves of the trees as well using SGD.
         :param batch_size: int - The batch size for training each individual tree. Internally, a sliding window is stored. Must be greater than or equal to 1. 
-        :param additional_tree_options: dict - Additional options for the trees, such as splitter, criterion, and max_depth. See sklearn.tree.DecisionTreeClassifier for details. An example would be additional_tree_options = {"splitter": "best", "criterion": "gini", "max_depth": None}
-        
+        :param sk_dt: sklearn.tree.DecisionTreeClassifier - Base object which is used to clone any new decision trees from. Note, that if you set random_state to an integer the exact same clone is used for any DT object 
         """
 
-        Classifier.__init__(self, schema, additional_tree_options.get("random_state",0))
-        ShrubEnsembles.__init__(self, schema, loss, step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg, l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, additional_tree_options)
+        Classifier.__init__(self, schema, sk_dt.random_state)
+        ShrubEnsembles.__init__(self, schema, loss, step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg, l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt)
 
     def __str__(self):
        return str("ShrubsClassifier")
@@ -94,7 +87,7 @@ class ShrubsClassifier(ShrubEnsembles, Classifier):
                 # Numpy seems to do some weird stuff when it comes to advanced indexing.
                 # Basically, due to e.classes_.astype(int) the last and second-to-last dimensions of all_proba
                 # are swapped when doing all_proba[i, :, e.classes_.astype(int)]. Hence, we would also need to swap
-                # the shapes of proba to match this correctly. Alternativley, we use a simpler form of indexing as below. 
+                # the shapes of proba to match this correctly. Alternatively, we use a simpler form of indexing as below. 
                 # Both should work fine
                 #all_proba[i, :, e.classes_.astype(int)] += proba.T
                 all_proba[i, :, :][:, e.classes_.astype(int)] += proba

@@ -4,6 +4,7 @@ from typing import Literal
 
 import numpy as np
 
+from sklearn import clone
 from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from scipy.special import softmax
@@ -45,12 +46,12 @@ class ShrubEnsembles(ABC):
     """ ShrubEnsembles
 
     This class implements the ShrubEnsembles algorithm for classification and regression, which is
-    an ensemble classifier that continously adds decision trees to the ensemble by training 
-    new trees over a sliding window while pruning unnecessary trees away using proximal (stoachstic) gradient descent, 
+    an ensemble classifier that continuously adds decision trees to the ensemble by training 
+    new trees over a sliding window while pruning unnecessary trees away using proximal (stochastic) gradient descent, 
     hence allowing for adaptation to concept drift.
 
     **Note:** 
-    This class should not be instanstiated directly, but as it only implements the base algorithm. For classification tasks use :class:`capymoa.classifier.ShrubsClassifier` and for regression tasks use :class:`capymoa.regressor.ShrubsRegressor`.
+    This class should not be instantiated directly, but as it only implements the base algorithm. For classification tasks use :class:`capymoa.classifier.ShrubsClassifier` and for regression tasks use :class:`capymoa.regressor.ShrubsRegressor`.
     
 
     Reference:
@@ -74,7 +75,7 @@ class ShrubEnsembles(ABC):
         burnin_steps: int,
         update_leaves: bool,
         batch_size: int,
-        additional_tree_options: dict
+        sk_dt: DecisionTreeClassifier|DecisionTreeRegressor
     ):
 
         """ Initializes the ShrubEnsemble ensemble with the given parameters.
@@ -103,7 +104,7 @@ class ShrubEnsembles(ABC):
             raise ValueError(f"Currently only {{none, L0, L1, hard-L0}} as ensemble regularizer is supported, but you provided {ensemble_regularizer}.")
 
         if l_tree_reg < 0:
-            raise ValueError(f"l_tree_reg must be greate or equal to 0, but your provided {l_tree_reg}.")
+            raise ValueError(f"l_tree_reg must be greater or equal to 0, but your provided {l_tree_reg}.")
 
         if batch_size is None or batch_size < 1:
             print(f"WARNING: batch_size should be greater than 1, but was {batch_size}. Setting it to 2.")
@@ -131,7 +132,7 @@ class ShrubEnsembles(ABC):
         self.l_tree_reg = l_tree_reg
         self.normalize_weights = normalize_weights
         self.update_leaves = update_leaves
-        self.additional_tree_options = additional_tree_options
+        self.sk_dt = sk_dt
         self.batch_size = batch_size
         self.burnin_steps = burnin_steps
         self.l_l2_reg = l_l2_reg
@@ -144,9 +145,9 @@ class ShrubEnsembles(ABC):
         
         self.l_l2_reg = l_l2_reg
 
-        # If the usere spcifies a random_state, we will also use it. Otherwise we just use 0
+        # If the user specifies a random_state, we will also use it. Otherwise we just use 0
         # TODO This assume that random_state is a number, but it can also be a numpy.randomRandomState. 
-        self.dt_seed_ = additional_tree_options.pop("random_state", 0)
+        #self.dt_seed_ = additional_tree_options.pop("random_state", 0)
         
         # Estimators and their corresponding weights. 
         self.estimators_ = [] 
@@ -185,12 +186,7 @@ class ShrubEnsembles(ABC):
         
         if len(set(target)) > 1:
             # Fit a new tree on the current batch. 
-            if self.n_classes_ == 1:
-                tree = DecisionTreeRegressor(random_state=self.dt_seed_, **self.additional_tree_options)
-            else:
-                tree = DecisionTreeClassifier(random_state=self.dt_seed_, **self.additional_tree_options)
-
-            self.dt_seed_ += 1
+            tree = clone(self.sk_dt)
             tree.fit(data, target)
 
             # SKlearn stores the raw counts instead of probabilities in the classification setting. 
@@ -256,8 +252,8 @@ class ShrubEnsembles(ABC):
             self.estimator_weights_ = self.estimator_weights_ - step_size*directions - step_size*node_deriv - step_size*self.l_l2_reg*2*self.estimator_weights_
 
             # The latest tree should only receive updates in the last round of burn-in. Reset its weight here. This is somewhat arbitrary, but lead to better performance in our initial experiments. 
-            if i < self.burnin_steps:
-                self.estimator_weights_[-1] = 0    
+            # if i < self.burnin_steps:
+            #     self.estimator_weights_[-1] = 0    
             
             # Update leaf values, if necessary
             if self.update_leaves:
@@ -276,7 +272,9 @@ class ShrubEnsembles(ABC):
             tmp_w = np.abs(self.estimator_weights_) - step_size*self.l_ensemble_reg
             tmp_w = sign*np.maximum(tmp_w,0)
         elif self.ensemble_regularizer == "hard-L0":
+            # print(self.estimator_weights_)
             top_K = np.argsort(self.estimator_weights_)[-self.l_ensemble_reg:]
+            # print(top_K)
             tmp_w = np.array([w if i in top_K else 0 for i,w in enumerate(self.estimator_weights_)])
         else:
             tmp_w = self.estimator_weights_
@@ -285,6 +283,8 @@ class ShrubEnsembles(ABC):
         # as described in "Sparse projections onto the simplex" by Kyrillidis et al. 2013 (http://proceedings.mlr.press/v28/kyrillidis13.pdf)
         # Thus, we first need to extract the nonzero weights, project these and then copy them back into corresponding array
         if self.normalize_weights and len(tmp_w) > 0:
+            # print(tmp_w)
+            # print("---")
             nonzero_idx = np.nonzero(tmp_w)[0]
             nonzero_w = tmp_w[nonzero_idx]
             nonzero_w = to_prob_simplex(nonzero_w)
