@@ -145,10 +145,6 @@ class _ShrubEnsembles(ABC):
         
         self.l_l2_reg = l_l2_reg
 
-        # If the user specifies a random_state, we will also use it. Otherwise we just use 0
-        # TODO This assume that random_state is a number, but it can also be a numpy.randomRandomState. 
-        #self.dt_seed_ = additional_tree_options.pop("random_state", 0)
-        
         # Estimators and their corresponding weights. 
         self.estimators_ = [] 
         self.estimator_weights_ = np.empty(shape=(0,), dtype=float)
@@ -250,11 +246,7 @@ class _ShrubEnsembles(ABC):
 
             # Perform the gradient step. Note that L0 / L1 regularizer is performed via the prox operator and thus performed _after_ this update.
             self.estimator_weights_ = self.estimator_weights_ - step_size*directions - step_size*node_deriv - step_size*self.l_l2_reg*2*self.estimator_weights_
-
-            # The latest tree should only receive updates in the last round of burn-in. Reset its weight here. This is somewhat arbitrary, but lead to better performance in our initial experiments. 
-            # if i < self.burnin_steps:
-            #     self.estimator_weights_[-1] = 0    
-            
+           
             # Update leaf values, if necessary
             if self.update_leaves:
                 for j, h in enumerate(self.estimators_):
