@@ -9,6 +9,7 @@ from .page_hinkley import PageHinkley
 from .rddm import RDDM
 from .seed import SEED
 from .stepd import STEPD
+from .abcd import ABCD
 
 __all__ = [
     "ADWIN",
@@ -22,4 +23,5 @@ __all__ = [
     "RDDM",
     "SEED",
     "STEPD",
+    "ABCD",
 ]
