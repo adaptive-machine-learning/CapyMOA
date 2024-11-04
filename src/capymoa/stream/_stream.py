@@ -580,39 +580,39 @@ def stream_from_file(
             target_type=target_type,
         )
     
-    # elif path_to_csv_or_arff_or_json.endswith(".json"):
-    #     with open(path_to_csv_or_arff_or_json, 'r') as f:
-    #         config = json.load(f)
+    elif path_to_csv_or_arff_or_json.endswith(".json"):
+        with open(path_to_csv_or_arff_or_json, 'r') as f:
+            config = json.load(f)
         
-    #     # Ensure required Kafka configuration keys are present
-    #     required_keys = ["server", "topic", "group_id"]
-    #     for key in required_keys:
-    #         if key not in config:
-    #             raise KeyError(f"Missing required Kafka config key: '{key}'")
+        # Ensure required Kafka configuration keys are present
+        required_keys = ["server", "topic", "group_id"]
+        for key in required_keys:
+            if key not in config:
+                raise KeyError(f"Missing required Kafka config key: '{key}'")
 
-    #     # Extract Kafka parameters from the JSON config
-    #     server = config["server"]
-    #     topic = config["topic"]
-    #     group_id = config["group_id"]
-    #     # buffer_size = config.get("buffer_size")
-    #     schema = config.get("schema")  # Optional schema
-    #     data = pd.DataFrame(config.get("data")).values # All Data
-    #     targets = data[:, class_index] # Targets
-    #     if _target_is_categorical(targets, target_type) and type(targets[0]) == np.float64:
-    #         targets = targets.astype(np.int64)
-    #     x_features = np.delete(data, class_index, axis=1) # Features
+        # Extract Kafka parameters from the JSON config
+        server = config["server"]
+        topic = config["topic"]
+        group_id = config["group_id"]
+        # buffer_size = config.get("buffer_size")
+        schema = config.get("schema")  # Optional schema
+        data = pd.DataFrame(config.get("data")).values # All Data
+        targets = data[:, class_index] # Targets
+        if _target_is_categorical(targets, target_type) and type(targets[0]) == np.float64:
+            targets = targets.astype(np.int64)
+        x_features = np.delete(data, class_index, axis=1) # Features
 
 
-    #     # Initialize and return KafkaStream
-    #     return KafkaStream(
-    #         server=server,
-    #         topic=topic,
-    #         group_id=group_id,
-    #         features=x_features,
-    #         targets=targets,
-    #         # buffer_size=buffer_size,
-    #         schema=schema,
-    #     )
+        # Initialize and return KafkaStream
+        return KafkaStream(
+            server=server,
+            topic=topic,
+            group_id=group_id,
+            features=x_features,
+            targets=targets,
+            # buffer_size=buffer_size,
+            schema=schema,
+        )
 
 
 
