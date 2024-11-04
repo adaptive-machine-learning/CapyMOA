@@ -19,6 +19,7 @@ from ._samknn import SAMkNN
 from ._dynamic_weighted_majority import DynamicWeightedMajority
 from ._csmote import CSMOTE
 from ._weightedknn import WeightedkNN
+from ._shrubs_classifier import ShrubsClassifier
 
 __all__ = [
     "AdaptiveRandomForestClassifier",
@@ -41,5 +42,6 @@ __all__ = [
     "SAMkNN",
     "DynamicWeightedMajority",
     "CSMOTE",
-    "WeightedkNN"
+    "WeightedkNN",
+    "ShrubsClassifier",
 ]

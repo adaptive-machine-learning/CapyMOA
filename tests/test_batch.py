@@ -32,7 +32,7 @@ class _DummyBatchClassifierSSL(BatchClassifierSSL):
         assert class_indices.shape == (self.batch_size,)
 
         # Features must be a numpy array of floats
-        assert features.dtype == np.float_
+        assert features.dtype == np.float64
         assert class_indices.dtype == np.int_
 
         self.batch_counter += 1
