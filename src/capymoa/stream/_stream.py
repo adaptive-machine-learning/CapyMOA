@@ -3,6 +3,7 @@ import warnings
 from typing import Any, Dict, Optional, Sequence, Union
 
 import numpy as np
+import pandas as pd
 from numpy.lib import recfunctions as rfn
 
 from com.yahoo.labs.samoa.instances import (
@@ -347,7 +348,9 @@ class KafkaStream(Stream):
             server: str, 
             topic: str, 
             group_id: str,
-            buffer_size: int = 100, 
+            features: np.ndarray,
+            targets: np.ndarray,
+            # buffer_size: int = 100, 
             schema: Optional[Schema] = None
     ):
         """Initialize the Kafka stream.
@@ -361,8 +364,11 @@ class KafkaStream(Stream):
         self.server = server
         self.topic = topic
         self.group_id = group_id
-        self.buffer_size = buffer_size
+        self.features = features
+        self.targets = targets
+        self.buffer_size = 100
         self.schema = schema
+        self.current_instance_index = 0  # Index for iterating over buffered data
 
         kafka_config = { # Kafka Config for the server
             'bootstrap.servers': self.server,
@@ -384,19 +390,21 @@ class KafkaStream(Stream):
             if msg.error():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
                     print(f"End of partition reached {msg.topic()} [{msg.partition()}]")
-                elif msg.error():
+                else:
                     raise KafkaError(f"Kafka error: {msg.error()}")
             else:
                 # Add valid message to buffer
-                self.buffer.append(msg.value())
+                parsed_message = json.loads(msg.value())
+                self.buffer.append(parsed_message)
+                print("Appended to Buffer")
 
 
     def has_more_instances(self) -> bool:
         """Check if more instances are available in the buffer."""
-        # Try to refill buffer if it's empty
-        if not self.buffer:
-            self._poll_kafka()
-        return len(self.buffer) > 0
+        # Try to refill buffer if it is empty
+        if self.current_instance_index >= len(self.buffer):
+            self._poll_kafka()  # Refill the buffer if all current messages have been read
+        return self.current_instance_index < len(self.buffer)
 
 
     def next_instance(self) -> Union[LabeledInstance, RegressionInstance]:
@@ -408,13 +416,18 @@ class KafkaStream(Stream):
             raise ValueError("No more instances in the buffer.")
         
         # Extract the next message from the buffer
-        message = self.buffer.pop(0)
+        message = self.buffer[self.current_instance_index]
+        self.current_instance_index += 1
+
+        # Extract features and target based on schema
+        features = [message[feature] for feature in self.features]
+        target = message[self.targets]
         
         # Convert Kafka message to appropriate instance type
-        if self.schema.is_regression():
-            return RegressionInstance.from_json(self.schema, message) #TODO
-        elif self.schema.is_classification():
-            return LabeledInstance.from_json(self.schema, message) #TODO
+        if self.schema.is_classification():
+            return LabeledInstance.from_array(self.schema, features, target)
+        elif self.schema.is_regression():
+            return RegressionInstance.from_array(self.schema, features, target)
         else:
             raise ValueError("Unsupported task type: Must be regression or classification.")
 
@@ -427,6 +440,12 @@ class KafkaStream(Stream):
     def __del__(self):
         """Ensure Kafka consumer is closed when the object is deleted."""
         self.close()
+
+    def get_schema(self):
+        return self.schema
+
+    def get_moa_stream(self):
+        raise ValueError("Not a moa_stream, a numpy read file")
         
 
 
@@ -561,31 +580,39 @@ def stream_from_file(
             target_type=target_type,
         )
     
-    elif path_to_csv_or_arff_or_json.endswith(".json"):
-        with open(path_to_csv_or_arff_or_json, 'r') as f:
-            config = json.load(f)
+    # elif path_to_csv_or_arff_or_json.endswith(".json"):
+    #     with open(path_to_csv_or_arff_or_json, 'r') as f:
+    #         config = json.load(f)
         
-        # Ensure required Kafka configuration keys are present
-        required_keys = ["server", "topic", "group_id"]
-        for key in required_keys:
-            if key not in config:
-                raise KeyError(f"Missing required Kafka config key: '{key}'")
+    #     # Ensure required Kafka configuration keys are present
+    #     required_keys = ["server", "topic", "group_id"]
+    #     for key in required_keys:
+    #         if key not in config:
+    #             raise KeyError(f"Missing required Kafka config key: '{key}'")
 
-        # Extract Kafka parameters from the JSON config
-        server = config["server"]
-        topic = config["topic"]
-        group_id = config["group_id"]
-        buffer_size = config.get("buffer_size", 100)  # Optional buffer size
-        schema = config.get("schema")  # Optional schema
+    #     # Extract Kafka parameters from the JSON config
+    #     server = config["server"]
+    #     topic = config["topic"]
+    #     group_id = config["group_id"]
+    #     # buffer_size = config.get("buffer_size")
+    #     schema = config.get("schema")  # Optional schema
+    #     data = pd.DataFrame(config.get("data")).values # All Data
+    #     targets = data[:, class_index] # Targets
+    #     if _target_is_categorical(targets, target_type) and type(targets[0]) == np.float64:
+    #         targets = targets.astype(np.int64)
+    #     x_features = np.delete(data, class_index, axis=1) # Features
 
-        # Initialize and return KafkaStream
-        return KafkaStream(
-            server=server,
-            topic=topic,
-            group_id=group_id,
-            buffer_size=buffer_size,
-            schema=schema,
-        )
+
+    #     # Initialize and return KafkaStream
+    #     return KafkaStream(
+    #         server=server,
+    #         topic=topic,
+    #         group_id=group_id,
+    #         features=x_features,
+    #         targets=targets,
+    #         # buffer_size=buffer_size,
+    #         schema=schema,
+    #     )
 
 
 
