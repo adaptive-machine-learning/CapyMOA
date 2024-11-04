@@ -1,6 +1,6 @@
 import typing
 import warnings
-from typing import Dict, Optional, Sequence, Union
+from typing import Any, Dict, Optional, Sequence, Union
 
 import numpy as np
 from numpy.lib import recfunctions as rfn
@@ -22,6 +22,9 @@ from capymoa.instance import (
     RegressionInstance,
 )
 
+# For Kafka JSON Data Streams Consumption
+import json
+from confluent_kafka import Consumer, KafkaError
 
 # Private functions
 def _target_is_categorical(targets, target_type):
@@ -336,6 +339,97 @@ class ARFFStream(Stream):
         super().__init__(moa_stream=moa_stream, CLI=CLI)
 
 
+class KafkaStream(Stream):
+    """A Kafka-based datastream that buffers instances before processing."""
+
+    def __init__(
+            self, 
+            server: str, 
+            topic: str, 
+            group_id: str,
+            buffer_size: int = 100, 
+            schema: Optional[Schema] = None
+    ):
+        """Initialize the Kafka stream.
+
+        :param server: Kafka server that hosts the Kafka topics.
+        :param topic: Kafka topic to consume messages from.
+        :param buffer_size: Maximum size of the buffer to store messages.
+        :param schema: The schema of the stream.
+        """
+
+        self.server = server
+        self.topic = topic
+        self.group_id = group_id
+        self.buffer_size = buffer_size
+        self.schema = schema
+
+        kafka_config = { # Kafka Config for the server
+            'bootstrap.servers': self.server,
+            'group.id': group_id,
+            'auto.offset.reset': 'earliest'
+        }
+
+        self.buffer: Sequence[Any] = []  # Buffer to store Kafka messages
+        self.consumer = Consumer(kafka_config) # Initialise Consumer
+        self.consumer.subscribe([self.topic]) # Subscribe to the specified topic
+
+
+    def _poll_kafka(self, timeout: float = 1.0) -> None:
+        """Poll Kafka for new messages and add them to the buffer."""
+        while len(self.buffer) < self.buffer_size:
+            msg = self.consumer.poll(timeout)
+            if msg is None:
+                break  # No message received within timeout
+            if msg.error():
+                if msg.error().code() == KafkaError._PARTITION_EOF:
+                    print(f"End of partition reached {msg.topic()} [{msg.partition()}]")
+                elif msg.error():
+                    raise KafkaError(f"Kafka error: {msg.error()}")
+            else:
+                # Add valid message to buffer
+                self.buffer.append(msg.value())
+
+
+    def has_more_instances(self) -> bool:
+        """Check if more instances are available in the buffer."""
+        # Try to refill buffer if it's empty
+        if not self.buffer:
+            self._poll_kafka()
+        return len(self.buffer) > 0
+
+
+    def next_instance(self) -> Union[LabeledInstance, RegressionInstance]:
+        """Get the next instance from the buffer.
+
+        :raises ValueError: If no more instances are available.
+        """
+        if not self.has_more_instances():
+            raise ValueError("No more instances in the buffer.")
+        
+        # Extract the next message from the buffer
+        message = self.buffer.pop(0)
+        
+        # Convert Kafka message to appropriate instance type
+        if self.schema.is_regression():
+            return RegressionInstance.from_json(self.schema, message) #TODO
+        elif self.schema.is_classification():
+            return LabeledInstance.from_json(self.schema, message) #TODO
+        else:
+            raise ValueError("Unsupported task type: Must be regression or classification.")
+
+
+    def close(self):
+        """Close the Kafka consumer."""
+        self.consumer.close()
+
+
+    def __del__(self):
+        """Ensure Kafka consumer is closed when the object is deleted."""
+        self.close()
+        
+
+
 class NumpyStream(Stream):
     """A datastream originating from a numpy array."""
 
@@ -416,12 +510,12 @@ class NumpyStream(Stream):
 
 
 def stream_from_file(
-    path_to_csv_or_arff: str,
+    path_to_csv_or_arff_or_json: str,
     dataset_name: str = "NoName",
     class_index: int = -1,
     target_type: str = None,  # "numeric" or "categorical"
 ) -> Stream:
-    """Create a datastream from a csv or arff file.
+    """Create a datastream from a csv or arff or json file.
 
     >>> from capymoa.stream import stream_from_file
     >>> stream = stream_from_file("data/electricity_tiny.csv", dataset_name="Electricity")
@@ -435,7 +529,7 @@ def stream_from_file(
     >>> stream.next_instance().x
     array([0.021277, 0.051699, 0.415055, 0.003467, 0.422915, 0.414912])
 
-    :param path_to_csv_or_arff: A file path to a CSV or ARFF file.
+    :param path_to_csv_or_arff_or_json: A file path to a CSV or ARFF or JSON file.
     :param dataset_name: A descriptive name given to the dataset, defaults to "NoName"
     :param class_index: The index of the column containing the class label. By default, the algorithm assumes that the
         class label is located in the column specified by this index. However, if the class label is located in a
@@ -444,18 +538,18 @@ def stream_from_file(
         allows the user to specify the target values in the data to be interpreted as categorical or numeric.
         Defaults to None to detect automatically.
     """
-    assert path_to_csv_or_arff is not None, "A file path must be provided."
-    if path_to_csv_or_arff.endswith(".arff"):
+    assert path_to_csv_or_arff_or_json is not None, "A file path must be provided."
+    if path_to_csv_or_arff_or_json.endswith(".arff"):
         try:
             # Delegate to the ARFFFileStream object within ARFFStream to read the file.
-            return ARFFStream(path=path_to_csv_or_arff, class_index=class_index)
+            return ARFFStream(path=path_to_csv_or_arff_or_json, class_index=class_index)
         except RuntimeException as ex:
             if 'ArffFileStream restart failed' in str(ex):
                 raise FileNotFoundError("Failed to open ARFF file stream, file could not be found.") from None
             else:
                 raise
-    elif path_to_csv_or_arff.endswith(".csv"):
-        x_features = np.genfromtxt(path_to_csv_or_arff, delimiter=",", skip_header=1)
+    elif path_to_csv_or_arff_or_json.endswith(".csv"):
+        x_features = np.genfromtxt(path_to_csv_or_arff_or_json, delimiter=",", skip_header=1)
         targets = x_features[:, class_index]
         if _target_is_categorical(targets, target_type) and type(targets[0]) == np.float64:
             targets = targets.astype(np.int64)
@@ -466,6 +560,33 @@ def stream_from_file(
             dataset_name=dataset_name,
             target_type=target_type,
         )
+    
+    elif path_to_csv_or_arff_or_json.endswith(".json"):
+        with open(path_to_csv_or_arff_or_json, 'r') as f:
+            config = json.load(f)
+        
+        # Ensure required Kafka configuration keys are present
+        required_keys = ["server", "topic", "group_id"]
+        for key in required_keys:
+            if key not in config:
+                raise KeyError(f"Missing required Kafka config key: '{key}'")
+
+        # Extract Kafka parameters from the JSON config
+        server = config["server"]
+        topic = config["topic"]
+        group_id = config["group_id"]
+        buffer_size = config.get("buffer_size", 100)  # Optional buffer size
+        schema = config.get("schema")  # Optional schema
+
+        # Initialize and return KafkaStream
+        return KafkaStream(
+            server=server,
+            topic=topic,
+            group_id=group_id,
+            buffer_size=buffer_size,
+            schema=schema,
+        )
+
 
 
 def _numpy_to_arff(
