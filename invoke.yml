@@ -5,18 +5,11 @@ moa_path: "src/capymoa/jar/moa.jar"
 # DROPBOX: When using a dropbox link, ensure that the dl=1 query parameter is 
 # present in the link. This ensures  the file is downloaded directly instead
 # of going to the dropbox page
-moa_url: "https://www.dropbox.com/scl/fi/fcht56z65vxe3mqpo7iq5/240530_moa.jar?rlkey=ugnasij42wwlwtfns0nr02fpk&dl=1"
+moa_url: "https://www.dropbox.com/scl/fi/0d9sp90cf5ixjdpuuaaxx/240908_moa.jar?rlkey=0dx4nti21kbqazft8mztlb3ek&dl=1"
 
 # What notebooks to skip when running them as tests.
+# YOU SHOULD NOT SKIP NOTEBOOKS!
+# Your notebook will eventually break and we need to know when it does.
 test_skip_notebooks:
-  - notebooks/01_evaluation.ipynb
-  - notebooks/02_sklearn.ipynb
-  - notebooks/03_pytorch.ipynb
-  - notebooks/04_drift_streams.ipynb
-  - notebooks/05_new_learner.ipynb
-  - notebooks/06_advanced_API.ipynb
-  - notebooks/07_pipelines.ipynb
-  - notebooks/08_prediction_interval.ipynb
   - notebooks/anomaly_detection.ipynb
-  - notebooks/SSL_example.ipynb
-  - notebooks/save_and_load_model.ipynb
+  - notebooks/06_advanced_API.ipynb

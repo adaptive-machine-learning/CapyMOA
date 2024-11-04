@@ -12,7 +12,8 @@ from capymoa.regressor import (
     SOKNLBT,
     SOKNL,
     PassiveAggressiveRegressor,
-    SGDRegressor
+    SGDRegressor,
+    ShrubsRegressor
 )
 from jpype import JException
 import pytest
@@ -76,6 +77,7 @@ def subtest_save_and_load(
         (partial(SOKNL), 3.37, 2.77),
         (partial(PassiveAggressiveRegressor), 3.67, 3.68),
         (partial(SGDRegressor), 4.63, 3.6),
+        (partial(ShrubsRegressor), 5.12, 4.75),
     ],
     ids=[
         "AdaptiveRandomForestRegressor",
@@ -86,7 +88,8 @@ def subtest_save_and_load(
         "SOKNLBT",
         "SOKNL",
         "PassiveAggressiveRegressor",
-        "SGDRegressor"
+        "SGDRegressor",
+        "ShrubsRegressor"
     ]
 )
 def test_regressor(subtests: SubTests, learner_constructor, rmse, win_rmse):
