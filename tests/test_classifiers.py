@@ -20,7 +20,8 @@ from capymoa.classifier import (
     CSMOTE,
     LeveragingBagging,
     OnlineAdwinBagging,
-    WeightedkNN
+    WeightedkNN,
+    ShrubsClassifier
 )
 from capymoa.base import Classifier
 from capymoa.base import MOAClassifier
@@ -204,6 +205,13 @@ test_cases = [
         78.15,
         70,
     ),
+    ClassifierTestCase(
+        "ShrubsClassifier",
+        partial(ShrubsClassifier),
+        89.6,
+        91
+        # 80,
+    ),
 ]
 
 
@@ -219,7 +227,6 @@ def _score(classifier: Classifier, stream: Stream, limit=100) -> float:
         i += 1
         if i > limit:
             break
-
     return evaluator.accuracy()
 
 
@@ -278,6 +285,10 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     # Check if the accuracy matches the expected value for both evaluator types
     actual_acc = evaluator.accuracy()
     actual_win_acc = win_evaluator.accuracy()[-1]
+
+    print(f"{actual_acc}")
+    print(f"{actual_win_acc}")
+
     assert actual_acc == pytest.approx(
         test_case.accuracy, abs=0.1
     ), f"Basic Eval: Expected accuracy of {test_case.accuracy:0.1f} got {actual_acc: 0.1f}"
