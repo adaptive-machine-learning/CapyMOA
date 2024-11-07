@@ -787,7 +787,7 @@ class KafkaStream(Stream):
             target_index: int = -1,
             class_labels: Sequence[str] = None,
             server: str = "localhost:9092",
-            topic: str = "topic1", 
+            topic: str = "topic1",
             group_id: str = "group1",
             buffer_size: int = 100, 
             schema: Optional[Schema] = None
@@ -853,10 +853,11 @@ class KafkaStream(Stream):
                 try:
                     parsed_message = json.loads(msg.value())
                     self.buffer.append(parsed_message)
-                    print("Appended to Buffer")
-                    if self.schema is None: # Generate a schema for the first time
+                    
+                    # Generate a schema for the first time
+                    if self.schema is None: 
                         self.features = [f for f in parsed_message]
-                        if self.target_type is 'categorical': # For Classification Data
+                        if self.target_type == 'categorical': # For Classification Data
                             if self.dtypes is None: # If data type is unknown
                                 self.schema = Schema.from_custom(
                                                 feature_names=[f for i, f in enumerate(self.features) if i != self.target_index],
