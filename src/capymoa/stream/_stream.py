@@ -849,6 +849,7 @@ class KafkaStream(Stream):
     def poll_kafka(self, timeout: float = 1.0) -> None:
         """Poll Kafka for new messages and add them to the buffer."""
         self.buffer.clear() # Clear current buffer
+        added_count = 0
         while len(self.buffer) < self.buffer_size:
             msg = self.consumer.poll(timeout)
             if msg is None:
@@ -863,7 +864,7 @@ class KafkaStream(Stream):
                 try:
                     parsed_message = json.loads(msg.value())
                     self.buffer.append(parsed_message)
-
+                    added_count += 1
                     # Generate a schema for the first time
                     if self.schema is None: 
                         self.features = [f for f in parsed_message]
@@ -913,6 +914,7 @@ class KafkaStream(Stream):
                 except json.decoder.JSONDecodeError:
                     raise json.decoder.JSONDecodeError(f"Unable to decode JSON item")
         self.current_instance_index = 0 # Reset Buffer Index
+        print(f"Added {added_count} items to buffer")
 
 
 
