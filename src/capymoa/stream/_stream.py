@@ -777,7 +777,9 @@ class CSVStream(Stream):
 
 
 class KafkaStream(Stream):
-    """A Kafka-based datastream that buffers instances before processing."""
+    """A Kafka-based datastream that buffers instances before processing.
+    This assumes that the Kafka Producer has instances in the form of separte JSON items - one per line
+    """
 
     def __init__(
             self,
@@ -804,6 +806,14 @@ class KafkaStream(Stream):
         :param group_id: Kafka group id of the Topic
         :param buffer_size: Size of the Stream's buffer which stores messages
         :param schema: Dataset Schema
+
+
+        Note: The Kafka Producer must have a JSON format - one line per instance
+        For example:
+
+        {"period": 0, "nswprice": 0.056443, "nswdemand": 0.439155, "vicprice": 0.003467, "vicdemand": 0.422915, "transfer": 0.414912, "class": 1}
+        {"period": 0.021277, "nswprice": 0.051699, "nswdemand": 0.415055, "vicprice": 0.003467, "vicdemand": 0.422915, "transfer": 0.414912, "class": 0}
+        {"period": 0.042553, "nswprice": 0.051489, "nswdemand": 0.385004, "vicprice": 0.003467, "vicdemand": 0.422915, "transfer": 0.414912, "class": 0}
         """
 
         self.dtypes = dtypes
@@ -853,7 +863,7 @@ class KafkaStream(Stream):
                 try:
                     parsed_message = json.loads(msg.value())
                     self.buffer.append(parsed_message)
-                    
+
                     # Generate a schema for the first time
                     if self.schema is None: 
                         self.features = [f for f in parsed_message]
