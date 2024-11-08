@@ -969,11 +969,6 @@ class KafkaStream(Stream):
     def get_buffer_size(self):
         """Returns the maximum size of the buffer"""
         return self.buffer_size
-
-
-    def get_remaining_in_buffer(self):
-        """Returns the number of remaining instances in the current buffer"""
-        return self.buffer_size - len(self.buffer)
     
 
     def get_processed_instances(self):
