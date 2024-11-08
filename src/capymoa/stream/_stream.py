@@ -831,6 +831,7 @@ class KafkaStream(Stream):
 
         self.features = None
         self.current_instance_index = 0  # Index for iterating over buffered data
+        self.number_processed = 0
 
         kafka_config = { # Kafka Config for the server
             'bootstrap.servers': self.server,
@@ -941,8 +942,10 @@ class KafkaStream(Stream):
         
         # Convert Kafka message to appropriate instance type
         if self.schema.is_classification():
+            self.number_processed += 1
             return LabeledInstance.from_array(self.schema, features, target)
         elif self.schema.is_regression():
+            self.number_processed += 1
             return RegressionInstance.from_array(self.schema, features, target)
         else:
             raise ValueError("Unsupported task type: Must be regression or classification.")
@@ -954,12 +957,28 @@ class KafkaStream(Stream):
 
 
     def __del__(self):
-        """Ensure Kafka consumer is closed when the object is deleted."""
+        """Ensures that Kafka consumer is closed when the object is deleted."""
         self.close()
 
 
     def get_schema(self):
+        """Returns the schema of the KafkaStream"""
         return self.schema
+    
+
+    def get_buffer_size(self):
+        """Returns the maximum size of the buffer"""
+        return self.buffer_size
+
+
+    def get_remaining_in_buffer(self):
+        """Returns the number of remaining instances in the current buffer"""
+        return self.buffer_size - len(self.buffer)
+    
+
+    def get_processed_instances(self):
+        """Returns the number of processed instances from initiation"""
+        return self.number_processed
 
 
     def get_moa_stream(self):
