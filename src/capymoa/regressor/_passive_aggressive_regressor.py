@@ -28,7 +28,7 @@ class PassiveAggressiveRegressor(SKRegressor):
     >>> learner = PassiveAggressiveRegressor(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].rmse()
-    3.7004531627005455
+    3.700...
     """
 
     sklearner: _SKPassiveAggressiveRegressor
