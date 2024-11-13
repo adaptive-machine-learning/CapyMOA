@@ -18,7 +18,7 @@ jobs:
       matrix:
         # Python 3.9->3.11 on Ubuntu, Windows and MacOS
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.10', '3.11', '3.12']
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -26,12 +26,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip" # caching pip dependencies
+
+      - name: CPU PyTorch (Windows/MacOS)
+        if: matrix.operating-system == 'windows-latest' || matrix.operating-system == 'macos-latest'
+        run: python -m pip install torch torchvision
+
+      - name: CPU PyTorch (Linux)
+        if: matrix.operating-system == 'ubuntu-latest'
+        run: python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+              
       - name: Install dependencies
-        run: |
-          python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install ".[dev]"
+        run: python -m pip install ".[dev]"
+
       - name: PyTest
         run: invoke test.unit
+
       - name: Notebooks
         run: invoke test.nb
 
