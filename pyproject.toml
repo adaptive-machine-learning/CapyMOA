@@ -53,6 +53,7 @@ dependencies = [
     "scikit-learn",
     "click",
     "seaborn",
+    "tqdm"
 ]
 
 [project.optional-dependencies]

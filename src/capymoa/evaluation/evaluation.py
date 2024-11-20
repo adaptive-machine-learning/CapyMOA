@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Sized
 from typing import Any, Dict, Union
 
 import pandas as pd
@@ -21,6 +21,8 @@ from capymoa.base import (
 from capymoa.evaluation.results import PrequentialResults
 from capymoa._utils import _translate_metric_name
 from capymoa.base import Classifier, Regressor
+from capymoa.evaluation._progress_bar import Union, resolve_progress_bar
+from tqdm import tqdm
 
 from com.yahoo.labs.samoa.instances import Instances, Attribute, DenseInstance
 from moa.core import InstanceExample
@@ -43,7 +45,9 @@ from moa.streams import InstanceStream
 def _is_fast_mode_compilable(stream: Stream, learner, optimise=True) -> bool:
 
     # refuse prediction interval learner
-    if not hasattr(learner, "moa_learner") or isinstance(learner.moa_learner, MOAPredictionIntervalLearner):
+    if not hasattr(learner, "moa_learner") or isinstance(
+        learner.moa_learner, MOAPredictionIntervalLearner
+    ):
         return False
 
     """Check if the stream is compatible with the efficient loops in MOA."""
@@ -53,6 +57,30 @@ def _is_fast_mode_compilable(stream: Stream, learner, optimise=True) -> bool:
     is_moa_learner = hasattr(learner, "moa_learner") and learner.moa_learner is not None
 
     return is_moa_stream and is_moa_learner and optimise
+
+
+def _get_expected_length(
+    stream: Stream, max_instances: Optional[int] = None
+) -> Optional[int]:
+    """Get the expected length of the stream."""
+    if isinstance(stream, Sized) and max_instances is not None:
+        return min(len(stream), max_instances)
+    elif isinstance(stream, Sized) and max_instances is None:
+        return len(stream)
+    elif max_instances is not None:
+        return max_instances
+    else:
+        return None
+
+def _setup_progress_bar(msg: str, progress_bar: Union[bool, tqdm], stream: Stream, learner, max_instances: Optional[int]):
+    expected_length = _get_expected_length(stream, max_instances)
+    progress_bar = resolve_progress_bar(
+        progress_bar,
+        f"{msg} {type(learner).__name__!r} on {type(stream).__name__!r}",
+    )
+    if progress_bar is not None and expected_length is not None:
+        progress_bar.set_total(expected_length)
+    return progress_bar
 
 
 class ClassificationEvaluator:
@@ -894,6 +922,7 @@ def prequential_evaluation(
     store_y: bool = False,
     optimise: bool = True,
     restart_stream: bool = True,
+    progress_bar: Union[bool, tqdm] = False,
 ) -> PrequentialResults:
     """Run and evaluate a learner on a stream using prequential evaluation.
 
@@ -917,6 +946,8 @@ def prequential_evaluation(
         position in the stream, defaults to True. Not restarting the stream is
         useful for switching between learners or evaluators, without starting
         from the beginning of the stream.
+    :param progress_bar: Enable, disable, or override the progress bar. Currently
+        incompatible with ``optimize=True``.
     :return: An object containing the results of the evaluation windowed metrics,
         cumulative metrics, ground truth targets, and predictions.
     """
@@ -971,6 +1002,8 @@ def prequential_evaluation(
                 evaluator_windowed = PredictionIntervalWindowedEvaluator(
                     schema=stream.get_schema(), window_size=window_size
                 )
+
+    progress_bar = _setup_progress_bar("Eval", progress_bar, stream, learner, max_instances)
     while stream.has_more_instances() and (
         max_instances is None or instancesProcessed <= max_instances
     ):
@@ -997,6 +1030,11 @@ def prequential_evaluation(
             ground_truth_y.append(y)
 
         instancesProcessed += 1
+        if progress_bar is not None:
+            progress_bar.update(1)
+
+    if progress_bar is not None:
+        progress_bar.close()
 
     # Stop measuring time
     elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(
@@ -1038,6 +1076,7 @@ def prequential_ssl_evaluation(
     store_y: bool = False,
     optimise: bool = True,
     restart_stream: bool = True,
+    progress_bar: Union[bool, tqdm] = False,
 ):
     """Run and evaluate a learner on a semi-supervised stream using prequential evaluation.
 
@@ -1068,6 +1107,8 @@ def prequential_ssl_evaluation(
         position in the stream, defaults to True. Not restarting the stream is
         useful for switching between learners or evaluators, without starting
         from the beginning of the stream.
+    :param progress_bar: Enable, disable, or override the progress bar. Currently
+        incompatible with ``optimize=True``.
     :return: An object containing the results of the evaluation windowed metrics,
         cumulative metrics, ground truth targets, and predictions.
     """
@@ -1130,6 +1171,7 @@ def prequential_ssl_evaluation(
 
     unlabeled_counter = 0
 
+    progress_bar = _setup_progress_bar("SSL Eval", progress_bar, stream, learner, max_instances)
     while stream.has_more_instances() and (
             max_instances is None or instancesProcessed <= max_instances
     ):
@@ -1166,6 +1208,11 @@ def prequential_ssl_evaluation(
             ground_truth_y.append(y)
 
         instancesProcessed += 1
+        if progress_bar is not None:
+            progress_bar.update(1)
+
+    if progress_bar is not None:
+        progress_bar.close()
 
     # # Stop measuring time
     elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(
@@ -1196,17 +1243,21 @@ def prequential_ssl_evaluation(
 
 
 def prequential_evaluation_anomaly(
-        stream,
-        learner,
-        max_instances=None,
-        window_size=1000,
-        optimise=True,
-        store_predictions=False,
-        store_y=False
+    stream,
+    learner,
+    max_instances=None,
+    window_size=1000,
+    optimise=True,
+    store_predictions=False,
+    store_y=False,
+    progress_bar: Union[bool, tqdm] = False,
 ):
     """
     Calculates the metrics cumulatively (i.e. test-then-train) and in a window-fashion (i.e. windowed prequential
     evaluation). Returns both evaluators so that the user has access to metrics from both evaluators.
+
+    :param progress_bar: Enable, disable, or override the progress bar. Currently
+        incompatible with ``optimize=True``.
     """
     stream.restart()
     if _is_fast_mode_compilable(stream, learner, optimise):
@@ -1234,6 +1285,7 @@ def prequential_evaluation_anomaly(
     if window_size is not None:
         evaluator_windowed = AnomalyDetectionWindowedEvaluator(schema=stream.get_schema(), window_size=window_size)
 
+    progress_bar = _setup_progress_bar("AD Eval", progress_bar, stream, learner, max_instances)
     while stream.has_more_instances() and (
             max_instances is None or instances_processed <= max_instances
     ):
@@ -1254,6 +1306,11 @@ def prequential_evaluation_anomaly(
             ground_truth_y.append(y)
 
         instances_processed += 1
+        if progress_bar is not None:
+            progress_bar.update(1)
+
+    if progress_bar is not None:
+        progress_bar.close()
 
     # Stop measuring time
     elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(
@@ -1280,8 +1337,6 @@ def prequential_evaluation_anomaly(
                                  predictions=predictions)
 
     return results
-
-
 
 ##############################################################
 ###### OPTIMISED VERSIONS (use experimental MOA method) ######
@@ -1555,15 +1610,19 @@ def _prequential_evaluation_anomaly_fast(
     return results
 
 
-
-
 ########################################################################################
 ###### EXPERIMENTAL (optimisation to go over the data once for several learners)  ######
 ########################################################################################
 
 
 def prequential_evaluation_multiple_learners(
-        stream, learners, max_instances=None, window_size=1000, store_predictions=False, store_y=False
+    stream,
+    learners,
+    max_instances=None,
+    window_size=1000,
+    store_predictions=False,
+    store_y=False,
+    progress_bar: Union[bool, tqdm] = False,
 ):
     """
     Calculates the metrics cumulatively (i.e., test-then-train) and in a windowed-fashion for multiple streams and
@@ -1573,6 +1632,8 @@ def prequential_evaluation_multiple_learners(
     several learners on it.
     Returns the results in a dictionary format. Infers whether it is a Classification or Regression problem based on the
     stream schema.
+
+    :param progress_bar: Enable, disable, or override the progress bar.
     """
     results = {}
 
@@ -1617,6 +1678,11 @@ def prequential_evaluation_multiple_learners(
 
     instancesProcessed = 1
 
+    progress_bar = resolve_progress_bar(progress_bar, f"Eval {len(learners)} learners on {type(stream).__name__}")
+    expected_length = _get_expected_length(stream, max_instances)
+    if progress_bar is not None and expected_length is not None:
+        progress_bar.set_total(expected_length)
+
     while stream.has_more_instances() and (
             max_instances is None or instancesProcessed <= max_instances
     ):
@@ -1646,6 +1712,11 @@ def prequential_evaluation_multiple_learners(
                 results[learner_name]["ground_truth_y"].append(y)
 
         instancesProcessed += 1
+        if progress_bar is not None:
+            progress_bar.update(1)
+    
+    if progress_bar is not None:
+        progress_bar.close()
 
     # Iterate through the results of each learner and add (if needed) the last window of results to it.
     if window_size is not None:
@@ -1718,5 +1789,3 @@ def write_results_to_files(
                            index=False)
     else:
         raise ValueError('Writing results to file is not supported for type ' + str(type(results)) + ' yet')
-
-
