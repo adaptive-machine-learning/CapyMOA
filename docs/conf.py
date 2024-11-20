@@ -49,6 +49,7 @@ nitpick_ignore_regex = [
     ("py:class", r"pathlib\..*"),
     ("py:class", r"sklearn\..*"),
     ("py:class", r"torch\..*"),
+    ("py:class", r"tqdm\..*"),
 ]
 toc_object_entries_show_parents = "hide"
 autosummary_ignore_module_all = False

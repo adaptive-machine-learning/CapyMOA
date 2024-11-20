@@ -29,6 +29,7 @@ class Sensor(DownloadARFFGzip):
 
     _filename = _get_filename("Sensor")
     _remote_url = _get_remote_url("Sensor")
+    _length = 2219803
 
 
 class Hyper100k(DownloadARFFGzip):
@@ -49,13 +50,14 @@ class Hyper100k(DownloadARFFGzip):
 
     _filename = _get_filename("Hyper100k")
     _remote_url = _get_remote_url("Hyper100k")
+    _length = 100_000
 
 
 class CovtFD(DownloadARFFGzip):
     """CovtFD is an adaptation from the classic :class:`Covtype` classification
     problem with added feature drifts.
 
-    * Number of instances: 581,383 (30m^2 cells)
+    * Number of instances: 581,011 (30m^2 cells)
     * Number of attributes: 104 (10 continuous, 44 categorical, 50 dummy)
     * Number of classes: 7 (forest cover types)
 
@@ -86,12 +88,13 @@ class CovtFD(DownloadARFFGzip):
 
     _filename = _get_filename("CovtFD")
     _remote_url = _get_remote_url("CovtFD")
+    _length = 581_011
 
 
 class Covtype(DownloadARFFGzip):
     """The classic covertype (/covtype) classification problem
 
-    * Number of instances: 581,383 (30m^2 cells)
+    * Number of instances: 581,012 (30m^2 cells)
     * Number of attributes: 54 (10 continuous, 44 categorical)
     * Number of classes: 7 (forest cover types)
 
@@ -114,6 +117,7 @@ class Covtype(DownloadARFFGzip):
 
     _filename = _get_filename("Covtype")
     _remote_url = _get_remote_url("Covtype")
+    _length = 581_012
 
 
 class CovtypeTiny(DownloadARFFGzip):
@@ -121,7 +125,7 @@ class CovtypeTiny(DownloadARFFGzip):
 
     **This should only be used for quick tests, not for benchmarking algorithms.**
 
-    * Number of instances: 581,383 (30m^2 cells)
+    * Number of instances: first 1001 (30m^2 cells)
     * Number of attributes: 54 (10 continuous, 44 categorical)
     * Number of classes: 7 (forest cover types)
 
@@ -144,12 +148,13 @@ class CovtypeTiny(DownloadARFFGzip):
 
     _filename = _get_filename("CovtypeTiny")
     _remote_url = _get_remote_url("CovtypeTiny")
+    _length = 1001
 
 
 class CovtypeNorm(DownloadARFFGzip):
     """A normalized version of the classic :class:`Covtype` classification problem.
 
-    * Number of instances: 581,383 (30m^2 cells)
+    * Number of instances: 581,012 (30m^2 cells)
     * Number of attributes: 54 (10 continuous, 44 categorical)
     * Number of classes: 7 (forest cover types)
 
@@ -173,6 +178,7 @@ class CovtypeNorm(DownloadARFFGzip):
 
     _filename = _get_filename("CovtypeNorm")
     _remote_url = _get_remote_url("CovtypeNorm")
+    _length = 581_012
 
 
 class RBFm_100k(DownloadARFFGzip):
@@ -199,6 +205,7 @@ class RBFm_100k(DownloadARFFGzip):
 
     _filename = _get_filename("RBFm_100k")
     _remote_url = _get_remote_url("RBFm_100k")
+    _length = 100_000
 
 
 class RTG_2abrupt(DownloadARFFGzip):
@@ -229,6 +236,7 @@ class RTG_2abrupt(DownloadARFFGzip):
 
     _filename = _get_filename("RTG_2abrupt")
     _remote_url = _get_remote_url("RTG_2abrupt")
+    _length = 100_000
 
 
 class Electricity(DownloadARFFGzip):
@@ -257,12 +265,13 @@ class Electricity(DownloadARFFGzip):
 
     _filename = _get_filename("Electricity")
     _remote_url = _get_remote_url("Electricity")
+    _length = 45_312
 
 
 class ElectricityTiny(DownloadARFFGzip):
     """A truncated version of the Electricity dataset with 1000 instances.
 
-    This is a tiny version (1k instances) of the Electricity widely used dataset
+    This is a tiny version (2k instances) of the Electricity widely used dataset
     described by M. Harries. **This should only be used for quick tests, not for
     benchmarking algorithms.**
 
@@ -271,6 +280,7 @@ class ElectricityTiny(DownloadARFFGzip):
 
     _filename = _get_filename("ElectricityTiny")
     _remote_url = _get_remote_url("ElectricityTiny")
+    _length = 2_000
 
 
 class Fried(DownloadARFFGzip):
@@ -291,6 +301,7 @@ class Fried(DownloadARFFGzip):
 
     _filename = _get_filename("Fried")
     _remote_url = _get_remote_url("Fried")
+    _length = 40_768
 
 class FriedTiny(DownloadARFFGzip):
     """A truncated version of the Friedman regression problem with 1000 instances.
@@ -303,11 +314,12 @@ class FriedTiny(DownloadARFFGzip):
 
     _filename = _get_filename("FriedTiny")
     _remote_url = _get_remote_url("FriedTiny")
+    _length = 1_000
 
 class Bike(DownloadARFFGzip):
     """Bike is a regression dataset for the amount of bike share information.
 
-    * Number of instances: 17,389
+    * Number of instances: 17,379
     * Number of attributes: 12
     * Number of targets: 1
 
@@ -322,3 +334,4 @@ class Bike(DownloadARFFGzip):
 
     _filename = _get_filename("Bike")
     _remote_url = _get_remote_url("Bike")
+    _length = 17_379

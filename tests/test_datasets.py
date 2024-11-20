@@ -1,3 +1,4 @@
+from typing import Sized, Type
 import capymoa.datasets as capymoa_datasets
 from capymoa.datasets import ElectricityTiny
 from tempfile import TemporaryDirectory
@@ -86,9 +87,17 @@ def test_electricity_tiny_schema():
         assert schema.get_index_for_label(y_value) == y_index
         assert schema.get_value_for_index(y_index) == y_value
 
-
-@pytest.mark.skip(reason="Too slow for CI")
-@pytest.mark.parametrize("dataset", _ALL_DOWNLOADABLE_DATASET)
-def test_all_datasets(dataset: DownloadableDataset):
+@pytest.mark.skip("This test is too slow")
+@pytest.mark.parametrize("dataset_type", _ALL_DOWNLOADABLE_DATASET)
+def test_all_datasets(dataset_type: Type[DownloadableDataset]):
     with TemporaryDirectory() as tmp_dir:
-        dataset(directory=tmp_dir)
+        dataset = dataset_type(directory=tmp_dir)
+
+        i = 0
+        while dataset.has_more_instances():
+            dataset.next_instance()
+            i += 1
+
+        assert str(dataset)
+        assert isinstance(dataset, Sized), "Dataset must be an instance of Sized"
+        assert len(dataset) == i, "Dataset length must be correct"

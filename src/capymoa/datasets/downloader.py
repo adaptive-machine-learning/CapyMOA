@@ -14,6 +14,8 @@ import os
 class DownloadableDataset(ABC, Stream):
     _filename: str = None
     """Name of the dataset in the capymoa dataset directory"""
+    _length: int
+    """Number of instances in the dataset"""
 
     def __init__(
         self,
@@ -79,6 +81,12 @@ class DownloadableDataset(ABC, Stream):
         :return: A MOA stream.
         """
         pass
+
+    def __len__(self) -> int:
+        return self._length
+    
+    def __str__(self) -> str:
+        return type(self).__name__
 
 
 class DownloadARFFGzip(DownloadableDataset):
