@@ -2,7 +2,86 @@
 
 
 
+## v0.8.0 (2024-12-01)
+
+### Build
+
+* build: use python 3.11, 3.12, and 3.13 ([`993b12a`](https://github.com/adaptive-machine-learning/CapyMOA/commit/993b12a588fbff88927f783dd6f9ed83c42a87c5))
+
+### Chore
+
+* chore: updating moa jar 24-09-08 ([`b7e958c`](https://github.com/adaptive-machine-learning/CapyMOA/commit/b7e958c9acd0a25066fa61761300c31c5f793290))
+
+### Ci
+
+* ci: fix docker triggers ([`2759800`](https://github.com/adaptive-machine-learning/CapyMOA/commit/275980060a9713a32529441e32a3b2cae36a07a4))
+
+* ci: fix automated docker versioning ([`0cc493e`](https://github.com/adaptive-machine-learning/CapyMOA/commit/0cc493e618b13365be0699753ff760801a67fe6e))
+
+### Documentation
+
+* docs: add autoML notebook with examples (#198) ([`ac7e578`](https://github.com/adaptive-machine-learning/CapyMOA/commit/ac7e578fc1be2186d8485c40bfdd7bae1b574102))
+
+* docs: update csmote init doc ([`0963190`](https://github.com/adaptive-machine-learning/CapyMOA/commit/09631906139b9aa19a67644693f2fa287d294d7a))
+
+* docs: fix broken link in README ([`40e98d0`](https://github.com/adaptive-machine-learning/CapyMOA/commit/40e98d0cf782a168a479ceaef950152fbb12becf))
+
+### Feature
+
+* feat: add optional progress bars ([`0610c4b`](https://github.com/adaptive-machine-learning/CapyMOA/commit/0610c4bd205fb0e1bb988886e3edee65143bd420))
+
+* feat: abcd, a drift detector for univariate and multivariate data ([`5c75c24`](https://github.com/adaptive-machine-learning/CapyMOA/commit/5c75c2445e55e6f85ef9380fb7cc1e52436d3128))
+
+* feat: add shrub ensembles for online classification
+
+Buschjäger, S., Hess, S., &amp; Morik, K. J. (2022, June). Shrub ensembles for
+online classification. In Proceedings of the AAAI Conference on Artificial
+Intelligence (Vol. 36, No. 6, pp. 6123-6131). ([`f966e32`](https://github.com/adaptive-machine-learning/CapyMOA/commit/f966e32afa080dffca364978cfcb0c76d8ceb9a7))
+
+* feat: added wrapper code for 6 stream generators ([`ee2cd30`](https://github.com/adaptive-machine-learning/CapyMOA/commit/ee2cd305d49f801281b5913fc649b5fea0202372))
+
+* feat: add autoclass for automl ([`b5adc95`](https://github.com/adaptive-machine-learning/CapyMOA/commit/b5adc950436f37b8fc0f966d305791d85ea8261c))
+
+* feat: added code for led and agrawal stream generators ([`3356f00`](https://github.com/adaptive-machine-learning/CapyMOA/commit/3356f0070c66ca08eaabdab8b557a65ea7b2254e))
+
+* feat: added drift object capabilities to arf ([`f792667`](https://github.com/adaptive-machine-learning/CapyMOA/commit/f792667754c68b26a95a6f08480ac6dbc5b9e3cf))
+
+* feat: added weightedknn ([`e9c5757`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e9c57572808bb465ebc3b2ea7ae553c7c65ea29c))
+
+* feat: create synthetic data stream for anomaly detection
+
+Co-authored-by: Heitor Murilo Gomes &lt;heitor_murilo_gomes@yahoo.com.br&gt; ([`d1dbd78`](https://github.com/adaptive-machine-learning/CapyMOA/commit/d1dbd78856fcd8db1e06039adda604fc7854bb69))
+
+* feat: clustering, 4 wrappers, notebook and documentation ([`b5c8f28`](https://github.com/adaptive-machine-learning/CapyMOA/commit/b5c8f28501d67956a326c328bf584951e2a4a9ed))
+
+* feat: clustering methods, documentation and notebook ([`dc68be6`](https://github.com/adaptive-machine-learning/CapyMOA/commit/dc68be63907cc74a88c84be679bc51d0d232d15a))
+
+### Fix
+
+* fix: fix numpy 2.0.0 compatibility (#199) ([`7bbaa96`](https://github.com/adaptive-machine-learning/CapyMOA/commit/7bbaa963950cdb19ad640ccb8d26fcd68bf50b24))
+
+* fix: ensuring deterministic behavior for driftstream ([`33ba7ba`](https://github.com/adaptive-machine-learning/CapyMOA/commit/33ba7ba81a3af291dd687640f8c4dc16dabd187b))
+
+* fix: fixing documentation for notebooks toctree ([`21fb4aa`](https://github.com/adaptive-machine-learning/CapyMOA/commit/21fb4aa2b7abaac0a9c0f50f4d7ec3ed5c248762))
+
+* fix: adding gifs shown in notebook ([`6c08d39`](https://github.com/adaptive-machine-learning/CapyMOA/commit/6c08d3963b33baaf405fd75305f87c21e3b5d7b0))
+
+### Test
+
+* test: stop skipping notebooks in CI/CD pipeline ([`dfcd0c6`](https://github.com/adaptive-machine-learning/CapyMOA/commit/dfcd0c614bc1e4273ad0a8355368d18640ebbcfa))
+
+### Unknown
+
+* Pipelines V2 (#200)
+
+Co-authored-by: Heitor Murilo Gomes &lt;heitor_murilo_gomes@yahoo.com.br&gt; ([`09a80eb`](https://github.com/adaptive-machine-learning/CapyMOA/commit/09a80ebc5d8681a42fca9d1d97365d68f97ab554))
+
+
 ## v0.7.0 (2024-08-03)
+
+### Chore
+
+* chore(version): increment version to 0.7.0 ([`d145644`](https://github.com/adaptive-machine-learning/CapyMOA/commit/d1456442c5c7d0be4b95029c0913aa0c8b8b8673))
 
 ### Ci
 
