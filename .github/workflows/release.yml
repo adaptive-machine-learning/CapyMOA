@@ -137,9 +137,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           file: docker/dockerfile
           tags: >-
-            ${{ secrets.DOCKERHUB_USERNAME }}/jupyter-capymoa:${{ needs.release_pypi.outputs.tag }}",
+            ${{ secrets.DOCKERHUB_USERNAME }}/jupyter-capymoa:${{ needs.release_pypi.outputs.tag }},
             ${{ secrets.DOCKERHUB_USERNAME }}/jupyter-capymoa:latest
-          build-args: CAPYMOA_VERSION=${{ needs.release_pypi.outputs.tag }}"
+          build-args: CAPYMOA_VERSION=${{ needs.release_pypi.outputs.tag }}
 
   website:
     name: Website
