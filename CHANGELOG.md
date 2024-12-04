@@ -2,6 +2,13 @@
 
 
 
+## v0.8.1 (2024-12-04)
+
+### Fix
+
+* fix: update docker release ([`af93fca`](https://github.com/adaptive-machine-learning/CapyMOA/commit/af93fcafe907a367f9f29079722d17bd50b99c01))
+
+
 ## v0.8.0 (2024-12-01)
 
 ### Build
@@ -9,6 +16,8 @@
 * build: use python 3.11, 3.12, and 3.13 ([`993b12a`](https://github.com/adaptive-machine-learning/CapyMOA/commit/993b12a588fbff88927f783dd6f9ed83c42a87c5))
 
 ### Chore
+
+* chore(version): increment version to 0.8.0 ([`6656242`](https://github.com/adaptive-machine-learning/CapyMOA/commit/66562427eb3131a2293e187b11a6f0c09cc65b5b))
 
 * chore: updating moa jar 24-09-08 ([`b7e958c`](https://github.com/adaptive-machine-learning/CapyMOA/commit/b7e958c9acd0a25066fa61761300c31c5f793290))
 
