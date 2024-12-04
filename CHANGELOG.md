@@ -2,7 +2,18 @@
 
 
 
+## v0.8.2 (2024-12-04)
+
+### Fix
+
+* fix: fix release.yml ([`6be2832`](https://github.com/adaptive-machine-learning/CapyMOA/commit/6be2832f586bfd6cfab3537235ab65bb4cecb109))
+
+
 ## v0.8.1 (2024-12-04)
+
+### Chore
+
+* chore(version): increment version to 0.8.1 ([`49ae3ec`](https://github.com/adaptive-machine-learning/CapyMOA/commit/49ae3ecfe09e06104dd167e266b0e85f1fa0b38f))
 
 ### Fix
 
