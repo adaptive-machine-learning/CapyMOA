@@ -237,6 +237,8 @@ Such as :class:`LabeledInstance` or :class:`RegressionInstance`.
 
 
 class Stream(ABC, Generic[_AnyInstance], Iterator[_AnyInstance]):
+    """A datastream that can be learnt instance by instance."""
+
     def __iter__(self) -> Iterator[_AnyInstance]:
         """Get an iterator over the stream.
 
@@ -391,7 +393,7 @@ class MOAStream(Stream[_AnyInstance]):
         self.moa_stream.restart()
 
 
-class ARFFStream(MOAStream):
+class ARFFStream(MOAStream[_AnyInstance]):
     """A datastream originating from an ARFF file."""
 
     def __init__(self, path: str, CLI: Optional[str] = None, class_index: int = -1):
@@ -404,8 +406,29 @@ class ARFFStream(MOAStream):
         super().__init__(moa_stream=moa_stream, CLI=CLI)
 
 
-class NumpyStream(Stream):
-    """A datastream originating from a numpy array."""
+class NumpyStream(Stream[_AnyInstance]):
+    """A datastream originating from a numpy array.
+    
+    >>> from capymoa.stream import NumpyStream
+    >>> import numpy as np
+    >>> X = np.array([[1, 2, 3], [4, 5, 6]])
+    >>> y = np.array([0, 1])
+    >>> stream: NumpyStream[LabeledInstance] = NumpyStream(X, y, dataset_name="MyDataset")
+    >>> for instance in stream:
+    ...     print(instance)
+    LabeledInstance(
+        Schema(MyDataset),
+        x=[1. 2. 3.],
+        y_index=0,
+        y_label='0'
+    )
+    LabeledInstance(
+        Schema(MyDataset),
+        x=[4. 5. 6.],
+        y_index=1,
+        y_label='1'
+    )
+    """
 
     # This class is more complex than ARFFStream because it needs to read and convert the CSV to an ARFF in memory.
     # target_type to specify the target as 'categorical' or 'numeric', None for detecting automatically.
@@ -446,7 +469,7 @@ class NumpyStream(Stream):
     def has_more_instances(self):
         return self.arff_instances_data.numInstances() > self.current_instance_index
 
-    def next_instance(self) -> Union[LabeledInstance, RegressionInstance]:
+    def next_instance(self) -> _AnyInstance:
         # Return None if all instances have been read already.
         if not self.has_more_instances():
             return None
@@ -494,7 +517,7 @@ def stream_from_file(
     >>> stream.next_instance()
     LabeledInstance(
         Schema(Electricity),
-        x=ndarray(..., 6),
+        x=[0.    0.056 0.439 0.003 0.423 0.415],
         y_index=1,
         y_label='1'
     )
@@ -667,7 +690,7 @@ def _add_instances_to_moa_stream(moa_stream, moa_header, X, y):
         moa_stream.add(instance)
 
 
-class CSVStream(Stream):
+class CSVStream(Stream[_AnyInstance]):
     def __init__(
         self,
         csv_file_path,
@@ -800,7 +823,7 @@ class CSVStream(Stream):
     def has_more_instances(self):
         return self.total_number_of_lines > self.n_lines_to_skip
 
-    def next_instance(self):
+    def next_instance(self) -> _AnyInstance:
         if not self.has_more_instances():
             return None
         # skip header

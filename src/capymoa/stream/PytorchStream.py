@@ -41,7 +41,7 @@ class PytorchStream(MOAStream):
     >>> pytorch_stream.next_instance()
     LabeledInstance(
         Schema(PytorchDataset),
-        x=ndarray(..., 784),
+        x=[0. 0. 0. ... 0. 0. 0.],
         y_index=9,
         y_label='Ankle boot'
     )

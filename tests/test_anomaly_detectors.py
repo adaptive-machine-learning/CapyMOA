@@ -49,8 +49,7 @@ def test_anomaly_detectors(
 
     learner: AnomalyDetector = learner_constructor(schema=stream.get_schema())
 
-    while stream.has_more_instances():
-        instance = stream.next_instance()
+    for instance in stream:
         score = learner.score_instance(instance)
         evaluator.update(instance.y_index, score)
         learner.train(instance)

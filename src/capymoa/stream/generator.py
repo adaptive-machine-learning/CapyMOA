@@ -32,7 +32,7 @@ class RandomTreeGenerator(MOAStream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.RandomTreeGenerator ),
-        x=ndarray(..., 10),
+        x=[0.    3.    2.    3.    4.    0.036 0.659 0.711 0.153 0.16 ],
         y_index=0,
         y_label='class1'
     )
@@ -139,7 +139,7 @@ class SEA(MOAStream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.SEAGenerator ),
-        x=ndarray(..., 3),
+        x=[7.309 4.101 2.077],
         y_index=1,
         y_label='groupB'
     )
@@ -208,7 +208,7 @@ class HyperPlaneClassification(MOAStream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.HyperplaneGenerator ),
-        x=ndarray(..., 10),
+        x=[0.397 0.348 0.294 0.506 0.116 0.771 0.66  0.157 0.378 0.14 ],
         y_index=0,
         y_label='class1'
     )
@@ -309,7 +309,7 @@ class HyperPlaneRegression(MOAStream):
     >>> stream.next_instance()
     RegressionInstance(
         Schema(generators.HyperplaneGeneratorForRegression ),
-        x=ndarray(..., 10),
+        x=[0.397 0.348 0.294 0.506 0.116 0.771 0.66  0.157 0.378 0.14 ],
         y_value=205.17965508540908
     )
     >>> stream.next_instance().x
@@ -408,7 +408,7 @@ class RandomRBFGenerator(MOAStream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.RandomRBFGenerator ),
-        x=ndarray(..., 10),
+        x=[0.21  1.01  0.092 0.272 0.45  0.226 0.212 0.373 0.583 0.297],
         y_index=1,
         y_label='class2'
     )
@@ -569,7 +569,8 @@ class AgrawalGenerator(MOAStream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.AgrawalGenerator ),
-        x=ndarray(..., 9),
+        x=[1.105e+05 0.000e+00 5.400e+01 3.000e+00 1.400e+01 4.000e+00 1.350e+05
+            3.000e+01 3.547e+05],
         y_index=1,
         y_label='groupB'
     )
@@ -635,7 +636,7 @@ class LEDGenerator(MOAStream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.LEDGenerator ),
-        x=ndarray(..., 24),
+        x=[1. 1. 0. ... 0. 0. 0.],
         y_index=5,
         y_label='5'
     )
@@ -699,7 +700,7 @@ class LEDGeneratorDrift(MOAStream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.LEDGeneratorDrift -d 7),
-        x=ndarray(..., 24),
+        x=[1. 1. 0. ... 0. 0. 0.],
         y_index=5,
         y_label='5'
     )
@@ -770,7 +771,7 @@ class WaveformGenerator(MOAStream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.WaveformGenerator ),
-        x=ndarray(..., 21),
+        x=[-0.092 -0.362  1.163 ...  2.825  0.765 -0.187],
         y_index=0,
         y_label='class1'
     )
@@ -825,7 +826,7 @@ class WaveformGeneratorDrift(MOAStream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.WaveformGeneratorDrift -d 10),
-        x=ndarray(..., 21),
+        x=[3.787 3.658 5.136 ... 5.723 2.665 2.681],
         y_index=1,
         y_label='class2'
     )
@@ -888,7 +889,7 @@ class STAGGERGenerator(MOAStream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.STAGGERGenerator ),
-        x=ndarray(..., 3),
+        x=[0. 1. 1.],
         y_index=0,
         y_label='false'
     )
@@ -951,7 +952,7 @@ class SineGenerator(MOAStream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.SineGenerator ),
-        x=ndarray(..., 4),
+        x=[0.731 0.41  0.208 0.333],
         y_index=0,
         y_label='positive'
     )

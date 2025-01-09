@@ -210,23 +210,19 @@ test_cases = [
         partial(ShrubsClassifier),
         89.6,
         91
-        # 80,
     ),
 ]
 
 
 def _score(classifier: Classifier, stream: Stream, limit=100) -> float:
     """Eval without training the classifier."""
-    stream.restart()
     evaluator = ClassificationEvaluator(schema=stream.get_schema())
-    i = 0
-    while stream.has_more_instances():
-        instance = stream.next_instance()
+    stream.restart()
+    for i, instance in enumerate(stream):
+        if i >= limit:
+            break
         prediction = classifier.predict(instance)
         evaluator.update(instance.y_index, prediction)
-        i += 1
-        if i > limit:
-            break
     return evaluator.accuracy()
 
 
@@ -252,7 +248,7 @@ def subtest_save_and_load(
             ), f"Original accuracy {expected_acc*100:.2f} != loaded accuracy {loaded_acc*100:.2f}"
 
             # Check that the loaded model can still be trained
-            loaded_classifier.train(stream.next_instance())
+            loaded_classifier.train(next(stream))
 
 
 @pytest.mark.parametrize(
@@ -275,8 +271,7 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     )
     learner: Classifier = test_case.learner_constructor(schema=stream.get_schema())
 
-    while stream.has_more_instances():
-        instance = stream.next_instance()
+    for instance in stream:
         prediction = learner.predict(instance)
         evaluator.update(instance.y_index, prediction)
         win_evaluator.update(instance.y_index, prediction)
