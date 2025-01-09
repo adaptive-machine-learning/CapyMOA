@@ -12,6 +12,20 @@ from capymoa.type_alias import FeatureVector, Label, LabelIndex, TargetValue
 if TYPE_CHECKING:
     from capymoa.stream import Schema
 
+def _features_to_string(x: np.ndarray, prefix: str = "\n    x=", suffix: str = ",") -> str:
+    """Return an array as a pretty string that shortens and wraps them.
+
+    Used for the ``__repr__`` methods of instances.
+    """
+    return prefix + np.array2string(
+        x,
+        max_line_width=80,
+        threshold=10,
+        prefix=prefix,
+        suffix=suffix,
+        precision=3,
+    ) + suffix
+
 
 class Instance:
     """An instance is a single data point in a stream. It contains a feature vector
@@ -74,7 +88,7 @@ class Instance:
         >>> instance
         Instance(
             Schema(CustomDataset),
-            x=ndarray(..., 2)
+            x=[0.1 0.2],
         )
 
         :param schema: A schema that describes the datastream the instance belongs to.
@@ -132,7 +146,7 @@ class Instance:
         return (
             f"{self.__class__.__name__}("
             + f"\n    Schema({self.schema.dataset_name}),"
-            + f"\n    x={self.x.__class__.__name__}(..., {len(self.x)})"
+            + _features_to_string(self.x)
             + "\n)"
         )
 
@@ -194,7 +208,7 @@ class LabeledInstance(Instance):
         >>> instance
         LabeledInstance(
             Schema(CustomDataset),
-            x=ndarray(..., 2),
+            x=[0.1 0.2],
             y_index=0,
             y_label='yes'
         )
@@ -237,7 +251,7 @@ class LabeledInstance(Instance):
         return (
             f"{self.__class__.__name__}("
             + f"\n    Schema({self.schema.dataset_name}),"
-            + f"\n    x={self.x.__class__.__name__}(..., {len(self.x)}),"
+            + _features_to_string(self.x)
             + f"\n    y_index={self.y_index},"
             + f"\n    y_label='{self.y_label}'"
             + "\n)"
@@ -298,7 +312,7 @@ class RegressionInstance(Instance):
         >>> instance
         RegressionInstance(
             Schema(CustomDataset),
-            x=ndarray(..., 2),
+            x=[0.1 0.2],
             y_value=0.5
         )
         >>> instance.y_value
@@ -328,7 +342,7 @@ class RegressionInstance(Instance):
         return (
             f"{self.__class__.__name__}("
             + f"\n    Schema({self.schema.dataset_name}),"
-            + f"\n    x={self.x.__class__.__name__}(..., {len(self.x)}),"
+            + _features_to_string(self.x)
             + f"\n    y_value={self.y_value}"
             + "\n)"
         )

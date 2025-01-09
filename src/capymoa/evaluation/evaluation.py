@@ -973,7 +973,6 @@ def prequential_evaluation(
 
     # Start measuring time
     start_wallclock_time, start_cpu_time = start_time_measuring()
-    instancesProcessed = 1
 
     evaluator_cumulative = None
     evaluator_windowed = None
@@ -1004,11 +1003,8 @@ def prequential_evaluation(
                 )
 
     progress_bar = _setup_progress_bar("Eval", progress_bar, stream, learner, max_instances)
-    while stream.has_more_instances() and (
-        max_instances is None or instancesProcessed <= max_instances
-    ):
-        instance = stream.next_instance()
 
+    for i, instance in enumerate(stream):
         prediction = learner.predict(instance)
 
         if stream.get_schema().is_classification():
@@ -1029,9 +1025,11 @@ def prequential_evaluation(
         if ground_truth_y is not None:
             ground_truth_y.append(y)
 
-        instancesProcessed += 1
         if progress_bar is not None:
             progress_bar.update(1)
+
+        if max_instances is not None and i >= (max_instances - 1):
+            break
 
     if progress_bar is not None:
         progress_bar.close()
@@ -1153,7 +1151,6 @@ def prequential_ssl_evaluation(
 
     # Start measuring time
     start_wallclock_time, start_cpu_time = start_time_measuring()
-    instancesProcessed = 1
 
     evaluator_cumulative = None
     evaluator_windowed = None
@@ -1172,11 +1169,7 @@ def prequential_ssl_evaluation(
     unlabeled_counter = 0
 
     progress_bar = _setup_progress_bar("SSL Eval", progress_bar, stream, learner, max_instances)
-    while stream.has_more_instances() and (
-            max_instances is None or instancesProcessed <= max_instances
-    ):
-        instance = stream.next_instance()
-
+    for i, instance in enumerate(stream):
         prediction = learner.predict(instance)
 
         if stream.get_schema().is_classification():
@@ -1207,9 +1200,11 @@ def prequential_ssl_evaluation(
         if ground_truth_y is not None:
             ground_truth_y.append(y)
 
-        instancesProcessed += 1
         if progress_bar is not None:
             progress_bar.update(1)
+
+        if max_instances is not None and i >= (max_instances - 1):
+            break
 
     if progress_bar is not None:
         progress_bar.close()
@@ -1237,7 +1232,7 @@ def prequential_ssl_evaluation(
                                  ground_truth_y=ground_truth_y,
                                  predictions=predictions,
                                  other_metrics={"unlabeled": unlabeled_counter,
-                                                "unlabeled_ratio": unlabeled_counter / instancesProcessed})
+                                                "unlabeled_ratio": unlabeled_counter / i})
 
     return results
 
