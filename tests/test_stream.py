@@ -1,16 +1,13 @@
-"""This module is for testing the speeds of different stream implementations.
-"""
+"""This module is for testing the speeds of different stream implementations."""
 
-import time
 from capymoa.stream import stream_from_file
-from cProfile import Profile
 from typing import List
 import numpy as np
 
 from capymoa.stream import Stream
-from capymoa.instance import Instance
+from capymoa.instance import Instance, LabeledInstance
 from capymoa.stream._stream import CSVStream
-import csv
+import pytest
 
 
 def _get_streams() -> List[Stream]:
@@ -30,6 +27,10 @@ def test_stream_consistency():
     def _next_instance():
         return [stream.next_instance() for stream in streams]
 
+    for schema in [stream.get_schema() for stream in streams]:
+        assert schema.get_num_attributes() == 6
+        assert schema.get_num_classes() == 2
+
     i = 0
     while any(_has_more_instance()):
         assert all(
@@ -46,3 +47,15 @@ def test_stream_consistency():
             assert (
                 prototype.y_index == instance.y_index
             ), f"Streams are not consistent at instance {i}"
+
+
+@pytest.mark.parametrize("stream", _get_streams())
+def test_iterator_api(stream: Stream[LabeledInstance]):
+    for instance in stream:
+        assert isinstance(instance, Instance)
+        assert isinstance(instance, LabeledInstance)
+        assert isinstance(instance.x, np.ndarray)
+        assert isinstance(instance.y_index, int)
+        assert instance.y_index >= 0
+        assert instance.y_index < stream.get_schema().get_num_classes()
+        assert instance.x.shape == (stream.get_schema().get_num_attributes(),)

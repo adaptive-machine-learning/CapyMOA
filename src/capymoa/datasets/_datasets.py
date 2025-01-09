@@ -303,6 +303,7 @@ class Fried(DownloadARFFGzip):
     _remote_url = _get_remote_url("Fried")
     _length = 40_768
 
+
 class FriedTiny(DownloadARFFGzip):
     """A truncated version of the Friedman regression problem with 1000 instances.
 
@@ -315,6 +316,7 @@ class FriedTiny(DownloadARFFGzip):
     _filename = _get_filename("FriedTiny")
     _remote_url = _get_remote_url("FriedTiny")
     _length = 1_000
+
 
 class Bike(DownloadARFFGzip):
     """Bike is a regression dataset for the amount of bike share information.

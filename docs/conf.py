@@ -38,7 +38,8 @@ extensions = [
 ]
 
 nitpick_ignore_regex = [
-    ("py:class", r".*\._[\w_]*"), # Ignore private classes from nitpick errors
+    ("py:class", r".*\._[\w_]*"),  # Ignore private classes from nitpick errors
+    ("py:obj", r".*\._[\w_]*"),  # Ignore private objects from nitpick errors
     ("py:class", r"abc\..*"),
     ("py:class", r"com\..*"),
     ("py:class", r"java\..*"),
@@ -51,6 +52,7 @@ nitpick_ignore_regex = [
     ("py:class", r"torch\..*"),
     ("py:class", r"tqdm\..*"),
 ]
+
 toc_object_entries_show_parents = "hide"
 autosummary_ignore_module_all = False
 autosummary_generate = True
