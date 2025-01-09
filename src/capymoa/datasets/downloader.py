@@ -7,11 +7,12 @@ from typing import Any, Optional
 import wget
 from moa.streams import ArffFileStream
 
-from capymoa.stream import Stream
+from capymoa.stream import MOAStream
 from capymoa.datasets._utils import extract, get_download_dir
 import os
 
-class DownloadableDataset(ABC, Stream):
+
+class DownloadableDataset(MOAStream, ABC):
     _filename: str = None
     """Name of the dataset in the capymoa dataset directory"""
     _length: int
@@ -84,7 +85,7 @@ class DownloadableDataset(ABC, Stream):
 
     def __len__(self) -> int:
         return self._length
-    
+
     def __str__(self) -> str:
         return type(self).__name__
 

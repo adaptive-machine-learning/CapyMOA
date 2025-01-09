@@ -2,7 +2,7 @@ import copy
 
 import torch
 
-from capymoa.stream import Stream, Schema
+from capymoa.stream import MOAStream, Schema
 from capymoa.stream._stream import _init_moa_stream_and_create_moa_header
 from capymoa.instance import (
     LabeledInstance,
@@ -11,7 +11,7 @@ from capymoa.instance import (
 from torch.utils.data import Dataset
 
 
-class PytorchStream(Stream):
+class PytorchStream(MOAStream):
     """PytorchStream turns a PyTorch dataset into a datastream.
 
     >>> from capymoa.evaluation import ClassificationEvaluator
@@ -49,13 +49,15 @@ class PytorchStream(Stream):
     """
 
     # https://pytorch.org/tutorials/beginner/basics/data_tutorial.html
-    def __init__(self, dataset: Dataset, target_type='categorical'):
+    def __init__(self, dataset: Dataset, target_type="categorical"):
         """Construct PytorchStream from a PyTorch dataset.
 
         :param dataset: PyTorch containing tuples of `x` and `y`
         :param enforce_regression: Force the task to be a regression task, default is False
         """
-        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+        self.__init_args_kwargs__ = copy.copy(
+            locals()
+        )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
 
         self.training_data = dataset
         # self.train_dataloader = DataLoader(self.training_data, batch_size=1, shuffle=False)
