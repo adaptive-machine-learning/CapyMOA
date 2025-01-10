@@ -44,7 +44,7 @@ requires-python = ">=3.9"
 # as permissive as possible, since capymoa should collaborate with other
 # packages.
 dependencies = [
-    "jpype1",
+    "jpype1>=v1.5.1",
     "wget",
     "numpy",
     "pandas",
@@ -53,7 +53,8 @@ dependencies = [
     "scikit-learn",
     "click",
     "seaborn",
-    "tqdm"
+    "tqdm",
+    "deprecated"
 ]
 
 [project.optional-dependencies]
