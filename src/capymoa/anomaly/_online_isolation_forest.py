@@ -2,7 +2,6 @@ from __future__ import annotations
 from capymoa.base import AnomalyDetector
 from capymoa.instance import Instance, LabelIndex
 from capymoa.stream._stream import Schema
-from capymoa.type_alias import AnomalyScore
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from itertools import repeat
@@ -42,7 +41,7 @@ class OnlineIsolationForest(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.52
+    AUC: 0.48
 
     """
     def __init__(self, schema: Optional[Schema] = None, random_seed: int = 1, num_trees: int = 32,
@@ -96,7 +95,7 @@ class OnlineIsolationForest(AnomalyDetector):
     def predict(self, instance: Instance) -> Optional[LabelIndex]:
         pass
 
-    def score_instance(self, instance: Instance) -> AnomalyScore:
+    def score_instance(self, instance: Instance) -> float:
         data: ndarray = instance.x.reshape((1, -1))
         return self._score_batch(data)[0]
 

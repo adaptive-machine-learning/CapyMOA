@@ -471,7 +471,7 @@ class AnomalyDetectionEvaluator:
         self._instance.setClassValue(y_target_index)
         example = InstanceExample(self._instance)
 
-        self.moa_basic_evaluator.addResult(example, [score, 1-score])
+        self.moa_basic_evaluator.addResult(example, [1-score, score])
 
         self.instances_seen += 1
 
@@ -579,7 +579,7 @@ class AnomalyDetectionWindowedEvaluator:
         self._instance.setClassValue(y_target_index)
         example = InstanceExample(self._instance)
 
-        self.moa_evaluator.addResult(example, [score, 1-score])
+        self.moa_evaluator.addResult(example, [1-score, score])
 
         self.instances_seen += 1
 

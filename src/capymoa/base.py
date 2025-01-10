@@ -16,7 +16,7 @@ from moa.core import Utils
 
 from capymoa.instance import Instance, LabeledInstance, RegressionInstance
 from capymoa.stream._stream import Schema
-from capymoa.type_alias import LabelIndex, LabelProbabilities, TargetValue, AnomalyScore
+from capymoa.type_alias import LabelIndex, LabelProbabilities, TargetValue
 
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 from sklearn.base import RegressorMixin as _SKRegressorMixin
@@ -513,8 +513,8 @@ class AnomalyDetector(ABC):
         pass
 
     @abstractmethod
-    def score_instance(self, instance: Instance) -> AnomalyScore:
-        # Returns the anomaly score for the instance. A high score is indicative of a normal instance.
+    def score_instance(self, instance: Instance) -> float:
+        # Returns the anomaly score for the instance. A high score is indicative of an anomaly.
         pass
 
 
@@ -553,10 +553,10 @@ class MOAAnomalyDetector(AnomalyDetector):
         )
 
     def score_instance(self, instance):
-        # We assume that the anomaly score is the first element of the prediction array.
+        # We assume that the anomaly score is the second element of the prediction array.
         # However, if it is not the case for a MOA learner, this method should be overridden.
         prediction_array = self.moa_learner.getVotesForInstance(instance.java_instance)
-        return prediction_array[0]
+        return float(prediction_array[1])
 
 ##############################################################
 ######################### Clustering #########################
