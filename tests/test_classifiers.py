@@ -21,7 +21,7 @@ from capymoa.classifier import (
     LeveragingBagging,
     OnlineAdwinBagging,
     WeightedkNN,
-    ShrubsClassifier
+    ShrubsClassifier,
 )
 from capymoa.base import Classifier
 from capymoa.base import MOAClassifier
@@ -237,8 +237,11 @@ def subtest_save_and_load(
         tmp_file = os.path.join(tmp_dir, "model.pkl")
         with pytest.raises(JException) if not is_serializable else nullcontext():
             # Save and load the model
-            save_model(classifier, tmp_file)
-            loaded_classifier: Classifier = load_model(tmp_file)
+            with open(tmp_file, "wb") as f:
+                save_model(classifier, f)
+
+            with open(tmp_file, "rb") as f:
+                loaded_classifier: Classifier = load_model(f)
 
             # Check that the saved and loaded model have the same accuracy
             expected_acc = _score(classifier, stream)
@@ -284,11 +287,11 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     print(f"{actual_acc}")
     print(f"{actual_win_acc}")
 
-    assert actual_acc == pytest.approx(
-        test_case.accuracy, abs=0.1
+    assert (
+        actual_acc == pytest.approx(test_case.accuracy, abs=0.1)
     ), f"Basic Eval: Expected accuracy of {test_case.accuracy:0.1f} got {actual_acc: 0.1f}"
-    assert actual_win_acc == pytest.approx(
-        test_case.win_accuracy, abs=0.1
+    assert (
+        actual_win_acc == pytest.approx(test_case.win_accuracy, abs=0.1)
     ), f"Windowed Eval: Expected accuracy of {test_case.win_accuracy:0.1f} got {actual_win_acc:0.1f}"
 
     # Check if the classifier can be saved and loaded
@@ -299,4 +302,3 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     if isinstance(learner, MOAClassifier) and test_case.cli_string is not None:
         cli_str = _extract_moa_learner_CLI(learner).strip("()")
         assert cli_str == test_case.cli_string, "CLI does not match expected value"
-

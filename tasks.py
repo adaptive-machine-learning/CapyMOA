@@ -13,9 +13,10 @@ from pathlib import Path
 from typing import List, Optional
 from subprocess import run
 import wget
-from os import cpu_count, environ
+from os import environ
 
-IS_CI = (environ.get("CI", "false").lower() == "true")
+IS_CI = environ.get("CI", "false").lower() == "true"
+
 
 def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
     """Check if all files and directories exist."""
@@ -40,10 +41,11 @@ def docs_build(ctx: Context, ignore_warnings: bool = False):
 
     doc_dir = Path("docs/_build")
     doc_dir.mkdir(exist_ok=True, parents=True)
-    cpu = cpu_count() // 2
     print("Building documentation...")
 
-    ctx.run(f"python -m sphinx build {warn} {nitpicky} --color -E -b html docs {doc_dir}")
+    ctx.run(
+        f"python -m sphinx build {warn} {nitpicky} --color -E -b html docs {doc_dir}"
+    )
 
     print("-" * 80)
     print("Documentation is built and available at:")
@@ -51,20 +53,21 @@ def docs_build(ctx: Context, ignore_warnings: bool = False):
     print("You can copy and paste this URL into your browser.")
     print("-" * 80)
 
+
 @task
 def docs_coverage(ctx: Context):
     """Check the coverage of the documentation.
-    
+
     Requires the `interrogate` package.
     """
     ctx.run("python -m interrogate -vv -c pyproject.toml || true")
+
 
 @task
 def docs_clean(ctx: Context):
     """Remove the built documentation."""
     ctx.run("rm -r docs/_build")
     ctx.run("rm docs/api/modules/*")
-
 
 
 @task
@@ -105,7 +108,9 @@ def build_stubs(ctx: Context):
 
     result = run(
         [
-            "python", "-m", "stubgenj",
+            "python",
+            "-m",
+            "stubgenj",
             f"--classpath={class_path}",
             "--output-dir=src",
             # Options
@@ -117,19 +122,16 @@ def build_stubs(ctx: Context):
             "com.github.javacliparser",
         ]
     )
-
-    if result.returncode != 0:
-        # If we are running in Github action we should be more strict.
-        if IS_CI:
-            raise Exception("Failed to generate Java stubs.")
-        else:
-            print("Optional step `invoke build.stubs` failed. Continuing anyway ...")
+    assert result.returncode == 0, "Failed to generate Java stubs."
 
 
 @task
 def clean_stubs(ctx: Context):
     """Remove the Java stubs."""
-    ctx.run("rm -r src/moa-stubs src/com-stubs || echo 'Nothing to do: Java stubs do not exist.'")
+    ctx.run(
+        "rm -r src/moa-stubs src/com-stubs || echo 'Nothing to do: Java stubs do not exist.'"
+    )
+
 
 @task(pre=[clean_stubs])
 def clean_moa(ctx: Context):
@@ -140,6 +142,7 @@ def clean_moa(ctx: Context):
         print("Removed moa.jar.")
     else:
         print("Nothing todo: `moa.jar` does not exist.")
+
 
 @task(pre=[clean_stubs, clean_moa, download_moa, build_stubs])
 def refresh_moa(ctx: Context):
@@ -185,7 +188,7 @@ def test_notebooks(
 
     Uses nbmake https://github.com/treebeardtech/nbmake to execute the notebooks
     and check for errors.
-    
+
     The `--overwrite` flag can be used to overwrite the notebooks with the
     executed output.
     """
@@ -229,7 +232,7 @@ def unittest(ctx: Context, parallel: bool = True):
         "--doctest-modules",  # Run tests defined in docstrings
         "--durations=0",  # Show the duration of each test
         "-x",  # Stop after the first failure
-        "-p no:faulthandler" #jpype can raise irrelevant warnings: https://github.com/jpype-project/jpype/issues/561
+        "-p no:faulthandler",  # jpype can raise irrelevant warnings: https://github.com/jpype-project/jpype/issues/561
     ]
     cmd += ["-n=auto"] if parallel else []
     ctx.run(" ".join(cmd))
@@ -249,6 +252,7 @@ def commit(ctx: Context):
     Utility wrapper around `python -m commitizen commit`.
     """
     ctx.run("python -m commitizen commit", pty=True)
+
 
 docs = Collection("docs")
 docs.add_task(docs_build, "build")
