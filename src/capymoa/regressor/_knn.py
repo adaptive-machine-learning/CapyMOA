@@ -27,13 +27,13 @@ class KNNRegressor(MOARegressor):
     """
 
     def __init__(
-            self,
-            schema=None,
-            CLI=None,
-            random_seed=1,
-            k=3,
-            median=False,
-            window_size=1000,
+        self,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        k=3,
+        median=False,
+        window_size=1000,
     ):
         """
         Constructing KNN Regressor.
@@ -42,7 +42,6 @@ class KNNRegressor(MOARegressor):
         :param median: choose to use mean or median as the aggregation for the final prediction.
         :param window_size: the size of the sliding window to store the instances.
         """
-
 
         # Important, should create the MOA object before invoking the super class __init__
         self.moa_learner = _moa_kNN()

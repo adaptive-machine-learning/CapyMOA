@@ -48,7 +48,7 @@ class SAMkNN(MOAClassifier):
         relative_ltm_size: float = 0.4,
         recalculate_stm_error: bool = False,
     ):
-        """ Self Adjusted Memory k Nearest Neighbor (SAMkNN) Classifier
+        """Self Adjusted Memory k Nearest Neighbor (SAMkNN) Classifier
 
         :param schema: The schema of the stream.
         :param random_seed: The random seed passed to the MOA learner.

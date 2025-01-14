@@ -1,7 +1,7 @@
 from capymoa.base import (
     MOAClassifier,
     _extract_moa_learner_CLI,
-    _extract_moa_drift_detector_CLI
+    _extract_moa_drift_detector_CLI,
 )
 
 
@@ -11,8 +11,11 @@ from capymoa.drift.detectors import (
 
 
 from moa.classifiers.meta import AdaptiveRandomForest as _MOA_AdaptiveRandomForest
-from moa.classifiers.meta.minibatch import AdaptiveRandomForestMB as _MOA_AdaptiveRandomForestMB
+from moa.classifiers.meta.minibatch import (
+    AdaptiveRandomForestMB as _MOA_AdaptiveRandomForestMB,
+)
 import os
+
 
 class AdaptiveRandomForestClassifier(MOAClassifier):
     """Adaptive Random Forest Classifier
@@ -117,9 +120,11 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
                 self.m_features_per_tree_size = 60
             else:
                 # Raise an exception with information about valid options for max_features
-                raise ValueError("Invalid value for max_features. Valid options: float between 0.0 and 1.0 "
-                                 "representing percentage, integer specifying exact number, or 'sqrt' for "
-                                 "square root of total features.")
+                raise ValueError(
+                    "Invalid value for max_features. Valid options: float between 0.0 and 1.0 "
+                    "representing percentage, integer specifying exact number, or 'sqrt' for "
+                    "square root of total features."
+                )
 
             self.lambda_param = lambda_param
             # old
@@ -137,10 +142,14 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
             self.disable_weighted_vote = disable_weighted_vote
             self.disable_drift_detection = disable_drift_detection
             self.disable_background_learner = disable_background_learner
-# new
-# ----------
-            if (number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1) and (minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1):
-                #run the sequential version by default or when both parameters are None | 0 | 1
+            # new
+            # ----------
+            if (
+                number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1
+            ) and (
+                minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1
+            ):
+                # run the sequential version by default or when both parameters are None | 0 | 1
                 self.number_of_jobs = 1
                 self.minibatch_size = 1
                 moa_learner = _MOA_AdaptiveRandomForest()
@@ -149,7 +158,7 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
                     {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
                     {'-q' if self.disable_background_learner else ''}"
             else:
-                #run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
+                # run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
                 if number_of_jobs == 0 or number_of_jobs is None:
                     self.number_of_jobs = 1
                 elif number_of_jobs < 0:
@@ -171,8 +180,8 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
                     {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
                     {'-q' if self.disable_background_learner else ''}\
                         -c {self.number_of_jobs} -b {self.minibatch_size}"
-# ----------
-# new end
+        # ----------
+        # new end
 
         super().__init__(
             schema=schema,

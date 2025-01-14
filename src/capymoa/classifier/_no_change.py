@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 
 from capymoa.base import (
     MOAClassifier,
@@ -37,8 +36,7 @@ class NoChange(MOAClassifier):
         :param schema: The schema of the stream.
         """
 
-        mapping = {
-        }
+        mapping = {}
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(NoChange, self).__init__(

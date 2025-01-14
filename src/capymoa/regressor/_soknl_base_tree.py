@@ -9,7 +9,6 @@ from capymoa.stream._stream import Schema
 from moa.classifiers.trees import SelfOptimisingBaseTree as _MOA_SelfOptimisingBaseTree
 
 
-
 class SOKNLBT(MOARegressor):
     """The base tree for Self-Optimising K Nearest Leaves as distribed by Sun. at el.
 
@@ -98,4 +97,3 @@ class SOKNLBT(MOARegressor):
             random_seed=random_seed,
             moa_learner=self.moa_learner,
         )
-

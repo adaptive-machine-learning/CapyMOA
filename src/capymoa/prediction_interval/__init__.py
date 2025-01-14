@@ -4,4 +4,4 @@ from ._adaptive_prediction_interval import AdaPI
 __all__ = [
     "MVE",
     "AdaPI",
-    ]
+]

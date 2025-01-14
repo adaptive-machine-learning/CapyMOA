@@ -1,5 +1,5 @@
 import warnings
-from typing import Dict, Optional, Sequence, Union
+from typing import Dict, Optional, Sequence
 
 import numpy as np
 from numpy.lib import recfunctions as rfn
@@ -70,9 +70,9 @@ class Schema:
 
         :param moa_header: A Java MOA header object.
         """
-        assert (
-            moa_header.numOutputAttributes() == 1
-        ), "Only one output attribute is supported."
+        assert moa_header.numOutputAttributes() == 1, (
+            "Only one output attribute is supported."
+        )
 
         self._moa_header = moa_header
         # Internally, we store the number of attributes + the class/target.
@@ -408,7 +408,7 @@ class ARFFStream(MOAStream[_AnyInstance]):
 
 class NumpyStream(Stream[_AnyInstance]):
     """A datastream originating from a numpy array.
-    
+
     >>> from capymoa.stream import NumpyStream
     >>> import numpy as np
     >>> X = np.array([[1, 2, 3], [4, 5, 6]])

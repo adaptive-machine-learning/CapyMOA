@@ -44,8 +44,12 @@ class AutoEncoder(nn.Module, EncoderDecoder):
         self.eta = eta
         self.input_size = input_size
         self.bottleneck_size = int(eta * input_size)
-        self.encoder = nn.Linear(in_features=self.input_size, out_features=self.bottleneck_size)
-        self.decoder = nn.Linear(in_features=self.bottleneck_size, out_features=self.input_size)
+        self.encoder = nn.Linear(
+            in_features=self.input_size, out_features=self.bottleneck_size
+        )
+        self.decoder = nn.Linear(
+            in_features=self.bottleneck_size, out_features=self.input_size
+        )
         self.optimizer = torch.optim.Adam(self.parameters())
 
     def forward(self, x):
@@ -115,7 +119,9 @@ class KernelPCAModel(EncoderDecoder):
         self.components = int(input_size * eta)
 
     def update(self, window, epochs: int):
-        self.pca = KernelPCA(n_components=self.components, kernel=self.kernel, fit_inverse_transform=True)
+        self.pca = KernelPCA(
+            n_components=self.components, kernel=self.kernel, fit_inverse_transform=True
+        )
         self.pca.fit(window)
 
     def new_tuple(self, x) -> Tuple[Any, Any, Any]:
@@ -125,4 +131,3 @@ class KernelPCAModel(EncoderDecoder):
         se = (dec - x) ** 2
         mse = np.mean(se)
         return mse, dec.flatten(), x.flatten()
-

@@ -39,7 +39,7 @@ class EWMAChart(MOADriftDetector):
         self, min_n_instances: int = 30, lambda_: float = 0.2, CLI: Optional[str] = None
     ):
         if CLI is None:
-            CLI = f"-n {min_n_instances} " f"-l {lambda_} "
+            CLI = f"-n {min_n_instances} -l {lambda_} "
 
         super().__init__(moa_detector=_EWMAChartDM(), CLI=CLI)
 

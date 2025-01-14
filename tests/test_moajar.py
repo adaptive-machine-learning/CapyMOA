@@ -7,9 +7,9 @@ _MOA_JAR_HASH = "96ad3955de5e702983e611c3eda06df9b2440a39d07524808702be53f5b742b
 
 def test_imports() -> None:
     """Test that the correct moa version is being packaged"""
-    assert (
-        jpype.isJVMStarted()
-    ), "JVM should be started automatically when importing capymoa"
+    assert jpype.isJVMStarted(), (
+        "JVM should be started automatically when importing capymoa"
+    )
     jar_path = Path(jpype.getClassPath())
     assert jar_path.suffix == ".jar", "MOA jar should be in the class path"
 

@@ -1,14 +1,13 @@
-
 from capymoa.base import AnomalyDetector
 from capymoa.instance import Instance
-from capymoa.type_alias import AnomalyScore, LabelIndex
+from capymoa.type_alias import AnomalyScore
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 
 class Autoencoder(AnomalyDetector):
-    """ Autoencoder anomaly detector
+    """Autoencoder anomaly detector
 
     This is a simple autoencoder anomaly detector that uses a single hidden layer.
 
@@ -38,7 +37,15 @@ class Autoencoder(AnomalyDetector):
     AUC: 0.42
 
     """
-    def __init__(self, schema=None, hidden_layer=2, learning_rate=0.5, threshold=0.6, random_seed=1):
+
+    def __init__(
+        self,
+        schema=None,
+        hidden_layer=2,
+        learning_rate=0.5,
+        threshold=0.6,
+        random_seed=1,
+    ):
         """Construct an Autoencoder anomaly detector
 
         Parameters
@@ -57,7 +64,8 @@ class Autoencoder(AnomalyDetector):
 
         if self.hidden_layer >= self.schema.get_num_attributes():
             raise ValueError(
-                "The number of hidden layer should be less than the number of input features")
+                "The number of hidden layer should be less than the number of input features"
+            )
         torch.manual_seed(self.random_seed)
         self._initialise()
 
@@ -65,21 +73,23 @@ class Autoencoder(AnomalyDetector):
         class _AEModel(nn.Module):
             def __init__(self, input_size, hidden_size):
                 super(_AEModel, self).__init__()
-                self.encoder = nn.Sequential(nn.Linear(input_size, hidden_size, dtype=torch.double),
-                                             nn.Sigmoid())
-                self.decoder = nn.Sequential(nn.Linear(hidden_size, input_size, dtype=torch.double),
-                                             nn.Sigmoid())
+                self.encoder = nn.Sequential(
+                    nn.Linear(input_size, hidden_size, dtype=torch.double), nn.Sigmoid()
+                )
+                self.decoder = nn.Sequential(
+                    nn.Linear(hidden_size, input_size, dtype=torch.double), nn.Sigmoid()
+                )
 
             def forward(self, x):
                 x = self.encoder(x)
                 x = self.decoder(x)
                 return x
-            
+
         self.model = _AEModel(
-            input_size=self.schema.get_num_attributes(), hidden_size=self.hidden_layer)
+            input_size=self.schema.get_num_attributes(), hidden_size=self.hidden_layer
+        )
         self.criterion = nn.MSELoss()
-        self.optimizer = optim.SGD(
-            self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=self.learning_rate)
 
     def __str__(self):
         return "Autoencoder Anomaly Detector"
@@ -108,7 +118,7 @@ class Autoencoder(AnomalyDetector):
     def score_instance(self, instance: Instance) -> AnomalyScore:
         # Convert the input to a tensor
         input = torch.from_numpy(instance.x)
-        
+
         # Pass the input through the autoencoder
         output = self.model(input)
 

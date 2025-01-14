@@ -29,7 +29,7 @@ SOURCE_LIST: Dict[str, _Source] = {
     ),
     "Covtype": _Source(
         "https://www.dropbox.com/scl/fi/kwjvr5kn0l0u5l4gd5788/covtype.arff.gz?rlkey=6vlomqdoi3oud26o1ngyjoibr&st=5jvy1ctv&dl=1",
-        None
+        None,
     ),
     "RBFm_100k": _Source(
         "https://www.dropbox.com/scl/fi/qwes0rxf4dg3c6vu2867b/RBFm_100k.arff.gz?rlkey=hfkz3k1lir85bag1ha9az667e&st=8kybyd98&dl=1",
@@ -49,7 +49,7 @@ SOURCE_LIST: Dict[str, _Source] = {
     ),
     "CovtypeTiny": _Source(
         "https://www.dropbox.com/scl/fi/ganjs6pfdzwhqtw1ijq8j/covtype_n1000.arff.gz?rlkey=acezd1qj967a8fcinsnlwixyk&st=7ms3jt9o&dl=1",
-        None
+        None,
     ),
     "CovtypeNorm": _Source(
         "https://www.dropbox.com/scl/fi/g63sw31cqykylv2e07cnd/covtypeNorm.arff.gz?rlkey=gdhb3zhtxd8c4djew8vf14saa&st=aoii1nk7&dl=1",

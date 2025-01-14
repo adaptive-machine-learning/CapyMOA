@@ -1,7 +1,4 @@
-from abc import ABC, abstractmethod
-
 from capymoa.stream import Stream
-from capymoa._utils import _translate_metric_name
 import pandas as pd
 import json
 import csv
@@ -10,18 +7,19 @@ from datetime import datetime
 
 
 class PrequentialResults:
-    def __init__(self,
-                 learner: str = None,
-                 stream: Stream = None,
-                 wallclock: float = None,
-                 cpu_time: float = None,
-                 max_instances: int = None,
-                 cumulative_evaluator=None,
-                 windowed_evaluator=None,
-                 ground_truth_y=None,
-                 predictions=None,
-                 other_metrics=None):
-
+    def __init__(
+        self,
+        learner: str = None,
+        stream: Stream = None,
+        wallclock: float = None,
+        cpu_time: float = None,
+        max_instances: int = None,
+        cumulative_evaluator=None,
+        windowed_evaluator=None,
+        ground_truth_y=None,
+        predictions=None,
+        other_metrics=None,
+    ):
         # protected attributes accessible through methods
         self._wallclock = wallclock
         self._cpu_time = cpu_time
@@ -60,16 +58,12 @@ class PrequentialResults:
         else:
             raise AttributeError(f"Attribute {attribute} not found")
 
-    def write_to_file(self, path: str = './', directory_name: str = None):
+    def write_to_file(self, path: str = "./", directory_name: str = None):
         if directory_name is None:
-            current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
+            current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
             directory_name = f"{current_datetime}_{self._learner}"
 
-        _write_results_to_files(
-            path=path,
-            results=self,
-            directory_name=directory_name
-        )
+        _write_results_to_files(path=path, results=self, directory_name=directory_name)
 
     def wallclock(self):
         return self._wallclock
@@ -93,49 +87,71 @@ class PrequentialResults:
         return self.windowed.metrics_per_window()
 
 
-def _write_results_to_files(
-        path: str = None,
-        results=None,
-        directory_name: str = None
-):
-    from capymoa.evaluation import (ClassificationWindowedEvaluator,
-                                    RegressionWindowedEvaluator,
-                                    ClassificationEvaluator,
-                                    RegressionEvaluator)
+def _write_results_to_files(path: str = None, results=None, directory_name: str = None):
+    from capymoa.evaluation import (
+        ClassificationWindowedEvaluator,
+        RegressionWindowedEvaluator,
+        ClassificationEvaluator,
+        RegressionEvaluator,
+    )
 
     if results is None:
-        raise ValueError('The results object is None')
+        raise ValueError("The results object is None")
 
-    path = path if path.endswith('/') else (path + '/')
+    path = path if path.endswith("/") else (path + "/")
 
-    if isinstance(results, ClassificationWindowedEvaluator) or isinstance(results, RegressionWindowedEvaluator):
+    if isinstance(results, ClassificationWindowedEvaluator) or isinstance(
+        results, RegressionWindowedEvaluator
+    ):
         data = results.metrics_per_window()
-        data.to_csv(('./' if path is None else path) + f'/windowed.csv', index=False)
-    elif isinstance(results, ClassificationEvaluator) or isinstance(results, RegressionEvaluator):
+        data.to_csv(("./" if path is None else path) + "/windowed.csv", index=False)
+    elif isinstance(results, ClassificationEvaluator) or isinstance(
+        results, RegressionEvaluator
+    ):
         json_str = json.dumps(results.metrics_dict())
         data = json.loads(json_str)
-        with open(('./' if path is None else path) + f"/cumulative.csv", 'w', newline='') as csv_file:
+        with open(
+            ("./" if path is None else path) + "/cumulative.csv", "w", newline=""
+        ) as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(data.keys())
             writer.writerow(data.values())
     elif isinstance(results, PrequentialResults):
-        directory_name = 'prequential_results' if directory_name is None else directory_name
-        if os.path.exists(path + '/' + directory_name):
-            raise ValueError(f'Directory {directory_name} already exists, please use another name')
+        directory_name = (
+            "prequential_results" if directory_name is None else directory_name
+        )
+        if os.path.exists(path + "/" + directory_name):
+            raise ValueError(
+                f"Directory {directory_name} already exists, please use another name"
+            )
         else:
-            os.makedirs(path + '/' + directory_name)
+            os.makedirs(path + "/" + directory_name)
 
-        _write_results_to_files(path=path + '/' + directory_name, results=results.cumulative)
-        _write_results_to_files(path=path + '/' + directory_name, results=results.windowed)
+        _write_results_to_files(
+            path=path + "/" + directory_name, results=results.cumulative
+        )
+        _write_results_to_files(
+            path=path + "/" + directory_name, results=results.windowed
+        )
 
         # If the ground truth and predictions are available, they will be writen to a file
         if results.ground_truth_y() is not None and results.predictions() is not None:
-            y_vs_predictions = {'ground_truth_y': results.ground_truth_y(),
-                                'predictions': results.predictions()}
+            y_vs_predictions = {
+                "ground_truth_y": results.ground_truth_y(),
+                "predictions": results.predictions(),
+            }
             if len(y_vs_predictions) > 0:
                 t_p = pd.DataFrame(y_vs_predictions)
-                t_p.to_csv(('./' if path is None else path) + '/' + directory_name +
-                           '/ground_truth_y_and_predictions.csv',
-                           index=False)
+                t_p.to_csv(
+                    ("./" if path is None else path)
+                    + "/"
+                    + directory_name
+                    + "/ground_truth_y_and_predictions.csv",
+                    index=False,
+                )
     else:
-        raise ValueError('Writing results to file is not supported for type ' + str(type(results)) + ' yet')
+        raise ValueError(
+            "Writing results to file is not supported for type "
+            + str(type(results))
+            + " yet"
+        )

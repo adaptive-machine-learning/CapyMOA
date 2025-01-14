@@ -44,11 +44,7 @@ class DDM(MOADriftDetector):
         CLI: Optional[str] = None,
     ):
         if CLI is None:
-            CLI = (
-                f"-n {min_n_instances} "
-                f"-w {warning_level} "
-                f"-o {out_control_level}"
-            )
+            CLI = f"-n {min_n_instances} -w {warning_level} -o {out_control_level}"
 
         super().__init__(moa_detector=_DDM(), CLI=CLI)
 

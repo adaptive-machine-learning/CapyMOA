@@ -3,9 +3,7 @@
 from ._soknl_base_tree import SOKNLBT
 from moa.classifiers.meta import SelfOptimisingKNearestLeaves as _MOA_SOKNL
 
-from capymoa.base import (
-    MOARegressor, _extract_moa_learner_CLI
-)
+from capymoa.base import MOARegressor, _extract_moa_learner_CLI
 
 
 class SOKNL(MOARegressor):
@@ -65,7 +63,9 @@ class SOKNL(MOARegressor):
         # Initialize instance attributes with default values, CLI was not set.
         if CLI is None:
             if tree_learner is None:
-                self.tree_learner = SOKNLBT(schema, grace_period=50, split_confidence=0.01)
+                self.tree_learner = SOKNLBT(
+                    schema, grace_period=50, split_confidence=0.01
+                )
             elif type(tree_learner) is str:
                 self.tree_learner = tree_learner
             else:

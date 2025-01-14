@@ -7,7 +7,7 @@ from capymoa._utils import build_cli_str_from_mapping_and_locals
 class WeightedkNN(MOAClassifier):
     """WeightedKNN
     Reference:
-    
+
     'Effective Weighted k-Nearest Neighbors for Dynamic Data Streams'
     Maroua Bahri
     IEEE International Conference on Big Data (Big Data), 2022
@@ -24,26 +24,17 @@ class WeightedkNN(MOAClassifier):
     74.7
     """
 
-
-    def __init__(
-        self,
-        schema: Schema,
-        k: int = 10,
-        limit: int = 1000
-    ):
-
-        """ Weighted KNN Classifier
+    def __init__(self, schema: Schema, k: int = 10, limit: int = 1000):
+        """Weighted KNN Classifier
         :param schema: The schema of the stream.
         :param k: The number of neighbors.
         :param w: The maximum number of instances to store.
         """
 
-
         mapping = {
             "k": "-k",
             "limit": "-w",
         }
-
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         self.moa_learner = _MOA_WeightedkNN()

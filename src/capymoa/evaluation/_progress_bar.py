@@ -34,7 +34,6 @@ class JavaIProgressBar(ABC):
 
 
 class TqdmProgressBar(JavaIProgressBar):
-
     def __init__(self, progress_bar: tqdm):
         super().__init__()
         self.progress_bar = progress_bar

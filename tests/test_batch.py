@@ -67,7 +67,7 @@ def test_batch_basic():
     y = np.arange(n)
     assert x.shape == (n, feature_count)
 
-    stream = NumpyStream(x, y, target_type='categorical')
+    stream = NumpyStream(x, y, target_type="categorical")
     learner = _DummyBatchClassifierSSL(batch_size, stream.schema, class_value_type=str)
     prequential_ssl_evaluation(
         stream=stream, learner=learner, label_probability=0.01, window_size=100

@@ -28,16 +28,16 @@ class DynamicWeightedMajority(MOAClassifier):
     """
 
     def __init__(
-            self,
-            schema: Schema,
-            random_seed: int = 1,
-            base_learner='bayes.NaiveBayes',
-            period: int = 50,
-            beta: float = 0.5,
-            theta: float = 0.01,
-            max_experts: int = 10000,  # overwrite Integer.MAX_VALUE in Java with 10000
+        self,
+        schema: Schema,
+        random_seed: int = 1,
+        base_learner="bayes.NaiveBayes",
+        period: int = 50,
+        beta: float = 0.5,
+        theta: float = 0.01,
+        max_experts: int = 10000,  # overwrite Integer.MAX_VALUE in Java with 10000
     ):
-        """ Dynamic Weighted Majority classifier
+        """Dynamic Weighted Majority classifier
 
         param: base_learner: the base learner to be used, default naive bayes.
         param: period: period between expert removal, creation, and weight update, default 50.
@@ -48,11 +48,11 @@ class DynamicWeightedMajority(MOAClassifier):
         """
 
         mapping = {
-            "base_learner": '-l',
-            "period": '-p',
-            "beta": '-b',
-            "theta": '-t',
-            "max_experts": '-e',
+            "base_learner": "-l",
+            "period": "-p",
+            "beta": "-b",
+            "theta": "-t",
+            "max_experts": "-e",
         }
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())

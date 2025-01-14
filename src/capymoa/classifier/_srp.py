@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 
 from capymoa.base import (
     MOAClassifier,
@@ -42,15 +41,15 @@ class StreamingRandomPatches(MOAClassifier):
         self,
         schema: Schema | None = None,
         random_seed: int = 0,
-        base_learner = 'trees.HoeffdingTree -g 50 -c 0.01',
-        ensemble_size = 100,
-        max_features = 0.6,
-        training_method:str = 'RandomPatches',
+        base_learner="trees.HoeffdingTree -g 50 -c 0.01",
+        ensemble_size=100,
+        max_features=0.6,
+        training_method: str = "RandomPatches",
         lambda_param: float = 6.0,
-        drift_detection_method ='ADWINChangeDetector -a 1.0E-5',
-        warning_detection_method = 'ADWINChangeDetector -a 1.0E-4',
-        disable_weighted_vote: bool =False,
-        disable_drift_detection: bool =False,
+        drift_detection_method="ADWINChangeDetector -a 1.0E-5",
+        warning_detection_method="ADWINChangeDetector -a 1.0E-4",
+        disable_weighted_vote: bool = False,
+        disable_drift_detection: bool = False,
         disable_background_learner: bool = False,
     ):
         """Streaming Random Patches (SRP) Classifier
@@ -95,14 +94,15 @@ class StreamingRandomPatches(MOAClassifier):
             "RandomSubspaces": "Random Subspaces",
             "Resampling": "Resampling (bagging)",
             "RandomPatches": "Random Patches",
-
         }
-        assert (training_method in training_method_map
-                ), f"{training_method} is not a valid training method."
+        assert training_method in training_method_map, (
+            f"{training_method} is not a valid training method."
+        )
         training_method_str = training_method_map[training_method]
 
-        assert (type(base_learner) == str
-                ), "Only MOA CLI strings are supported for SRP base_learner, at the moment."
+        assert isinstance(base_learner, str), (
+            "Only MOA CLI strings are supported for SRP base_learner, at the moment."
+        )
 
         # max_features = max_features
         if isinstance(max_features, float) and 0.0 <= max_features <= 1.0:
@@ -119,10 +119,12 @@ class StreamingRandomPatches(MOAClassifier):
             max_features_per_ensemble_item = 60
         else:
             # Raise an exception with information about valid options for max_features
-            raise ValueError("Invalid value for max_features. Valid options: \n"
-                             "float between 0.0 and 1.0 representing a percentage,\n"
-                             "an integer specifying exact number, or\n"
-                             "'sqrt' for square root of total features.")
+            raise ValueError(
+                "Invalid value for max_features. Valid options: \n"
+                "float between 0.0 and 1.0 representing a percentage,\n"
+                "an integer specifying exact number, or\n"
+                "'sqrt' for square root of total features."
+            )
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(StreamingRandomPatches, self).__init__(

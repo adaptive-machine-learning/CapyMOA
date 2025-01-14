@@ -205,12 +205,7 @@ test_cases = [
         78.15,
         70,
     ),
-    ClassifierTestCase(
-        "ShrubsClassifier",
-        partial(ShrubsClassifier),
-        89.6,
-        91
-    ),
+    ClassifierTestCase("ShrubsClassifier", partial(ShrubsClassifier), 89.6, 91),
 ]
 
 
@@ -246,9 +241,9 @@ def subtest_save_and_load(
             # Check that the saved and loaded model have the same accuracy
             expected_acc = _score(classifier, stream)
             loaded_acc = _score(loaded_classifier, stream)
-            assert (
-                expected_acc == loaded_acc
-            ), f"Original accuracy {expected_acc*100:.2f} != loaded accuracy {loaded_acc*100:.2f}"
+            assert expected_acc == loaded_acc, (
+                f"Original accuracy {expected_acc * 100:.2f} != loaded accuracy {loaded_acc * 100:.2f}"
+            )
 
             # Check that the loaded model can still be trained
             loaded_classifier.train(next(stream))

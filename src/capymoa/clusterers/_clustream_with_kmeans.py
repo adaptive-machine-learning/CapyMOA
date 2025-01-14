@@ -5,17 +5,19 @@ from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 # import numpy as np
 
+
 class Clustream_with_kmeans(MOAClusterer):
     """
     Clustream clustering algorithm without Macro-clustering.
     """
+
     def __init__(
         self,
         schema: typing.Union[Schema, None] = None,
         time_window: int = 1000,
         max_num_kernels: int = 100,
         kernel_radi_factor: float = 2,
-        k_option: int = 5
+        k_option: int = 5,
     ):
         """Clustream clusterer with K-means offline clustering.
 
@@ -30,23 +32,21 @@ class Clustream_with_kmeans(MOAClusterer):
             "time_window": "-h",
             "max_num_kernels": "-m",
             "kernel_radi_factor": "-t",
-            "k_option": "-k"
+            "k_option": "-k",
         }
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         self.moa_learner = _MOA_Clustream_WKM()
         super(Clustream_with_kmeans, self).__init__(
-            schema=schema,
-            CLI=config_str,
-            moa_learner=self.moa_learner
+            schema=schema, CLI=config_str, moa_learner=self.moa_learner
         )
 
     def implements_micro_clusters(self) -> bool:
         return True
-    
+
     def implements_macro_clusters(self) -> bool:
         return True
-    
+
     # def predict(self, X):
     #     clusters = self.get_micro_clustering_result()
     #     min_dist = np.inf

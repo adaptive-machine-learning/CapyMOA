@@ -61,9 +61,9 @@ def subtest_save_and_load(
             # Check that the saved and loaded model have the same accuracy
             expected_acc = _score(regressor, stream)
             loaded_acc = _score(loaded_regressor, stream)
-            assert (
-                expected_acc == loaded_acc
-            ), f"Original accuracy {expected_acc*100:.2f} != loaded accuracy {loaded_acc*100:.2f}"
+            assert expected_acc == loaded_acc, (
+                f"Original accuracy {expected_acc * 100:.2f} != loaded accuracy {loaded_acc * 100:.2f}"
+            )
 
             # Check that the loaded model can still be trained
             loaded_regressor.train(stream.next_instance())

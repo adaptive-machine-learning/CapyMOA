@@ -27,9 +27,10 @@ import _jpype
 import pickle
 from copyreg import dispatch_table
 
-__ALL__ = ['JPickler', 'JUnpickler']
+__ALL__ = ["JPickler", "JUnpickler"]
 
 # This must exist as a global, the real unserializer is created by the JUnpickler
+
 
 def encode(object_):
     from java.io import ObjectOutputStream, ByteArrayOutputStream
@@ -38,6 +39,7 @@ def encode(object_):
     oo_stream = ObjectOutputStream(o_stream)
     oo_stream.writeObject(object_)
     return o_stream.toByteArray()
+
 
 class JUnserializer(object):
     def __call__(self, *args):
@@ -73,7 +75,7 @@ class _JDispatch(object):
 
     def reduce(self, obj):
         byte = bytes(encode(obj))
-        return (self._builder, (byte, ))
+        return (self._builder, (byte,))
 
 
 class JPickler(pickle.Pickler):
@@ -126,8 +128,10 @@ class JUnpickler(pickle.Unpickler):
         one which points to our decoder instance.
         """
         if cls == "JUnserializer":
+
             class JUnserializer(object):
                 def __call__(self, *args):
-                    return _jpype.JClass('org.jpype.pickle.Decoder')().unpack(args[0])
+                    return _jpype.JClass("org.jpype.pickle.Decoder")().unpack(args[0])
+
             return JUnserializer
         return pickle.Unpickler.find_class(self, module, cls)

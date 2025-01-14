@@ -1,19 +1,26 @@
 from .pipeline import (
-    BasePipeline, ClassifierPipeline, RegressorPipeline, ClassifierPipelineElement,
-    TransformerPipelineElement, RegressorPipelineElement, DriftDetectorPipelineElement, PipelineElement,
-    RandomSearchClassifierPE
+    BasePipeline,
+    ClassifierPipeline,
+    ClassifierPipelineElement,
+    DriftDetectorPipelineElement,
+    PipelineElement,
+    RandomSearchClassifierPE,
+    RegressorPipeline,
+    RegressorPipelineElement,
+    TransformerPipelineElement,
 )
-from .transformer import (
-    Transformer, MOATransformer
-)
+from .transformer import Transformer, MOATransformer
 
 __all__ = [
-    "Transformer",
+    "BasePipeline",
+    "ClassifierPipeline",
+    "ClassifierPipelineElement",
+    "DriftDetectorPipelineElement",
     "MOATransformer",
     "PipelineElement",
-    "ClassifierPipelineElement",
-    "TransformerPipelineElement",
+    "RandomSearchClassifierPE",
+    "RegressorPipeline",
     "RegressorPipelineElement",
-    "DriftDetectorPipelineElement",
-    "RandomSearchClassifierPE"
+    "Transformer",
+    "TransformerPipelineElement",
 ]

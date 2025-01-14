@@ -4,26 +4,33 @@ from typing import Any, Dict
 
 import numpy as np
 
-from .abcd_components.feature_extraction import AutoEncoder, EncoderDecoder, PCAModel, KernelPCAModel
+from .abcd_components.feature_extraction import (
+    AutoEncoder,
+    EncoderDecoder,
+    PCAModel,
+    KernelPCAModel,
+)
 from .abcd_components.windowing import AdaptiveWindow, p_bernstein
 from capymoa.drift.base_detector import BaseDriftDetector
 from ...instance import Instance
 
 
 class ABCD(BaseDriftDetector):
-    def __init__(self,
-                 delta_drift: float = 0.002,
-                 delta_warn: float = 0.01,
-                 model_id: str = "ae",
-                 split_type: str = "ed",
-                 encoding_factor: float = 0.5,
-                 update_epochs: int = 50,
-                 num_splits: int = 20,
-                 max_size: int = np.inf,
-                 subspace_threshold: float = 2.5,
-                 n_min: int = 100,
-                 maximum_absolute_value: float = 1.0,
-                 bonferroni: bool = False):
+    def __init__(
+        self,
+        delta_drift: float = 0.002,
+        delta_warn: float = 0.01,
+        model_id: str = "ae",
+        split_type: str = "ed",
+        encoding_factor: float = 0.5,
+        update_epochs: int = 50,
+        num_splits: int = 20,
+        max_size: int = np.inf,
+        subspace_threshold: float = 2.5,
+        n_min: int = 100,
+        maximum_absolute_value: float = 1.0,
+        bonferroni: bool = False,
+    ):
         """
         :param delta_drift: The desired confidence level at which a drift is detected
         :param delta_warn: The desired confidence level at which a warning is detected
@@ -45,10 +52,15 @@ class ABCD(BaseDriftDetector):
         self.subspace_threshold = subspace_threshold
         self.n_min = n_min
         self.maximum_absolute_value = maximum_absolute_value
-        self.window = AdaptiveWindow(delta_drift=delta_drift, delta_warn=delta_warn,
-                                     split_type=split_type, max_size=max_size,
-                                     bonferroni=bonferroni, n_splits=num_splits,
-                                     abs_max=maximum_absolute_value)
+        self.window = AdaptiveWindow(
+            delta_drift=delta_drift,
+            delta_warn=delta_warn,
+            split_type=split_type,
+            max_size=max_size,
+            bonferroni=bonferroni,
+            n_splits=num_splits,
+            abs_max=maximum_absolute_value,
+        )
         self.model: EncoderDecoder = None
         self.last_change_point = None
         self.last_detection_point = None
@@ -121,12 +133,20 @@ class ABCD(BaseDriftDetector):
                     self.pre_train(self._new_data)
                     self._new_data = None
                 return
-            new_tuple = self.model.new_tuple(this_element)  # A new tuple containing, MSE, reconstruction, and original
+            new_tuple = self.model.new_tuple(
+                this_element
+            )  # A new tuple containing, MSE, reconstruction, and original
         else:
-            new_tuple = (this_element[0, 0], np.zeros_like(this_element), this_element)  # In the 1d case, we don't need an encoder-decoder model, we simply monitor the input
+            new_tuple = (
+                this_element[0, 0],
+                np.zeros_like(this_element),
+                this_element,
+            )  # In the 1d case, we don't need an encoder-decoder model, we simply monitor the input
         self.window.grow(new_tuple)  # add new tuple to window
         self._last_loss = self.window.most_recent_loss()
-        self.in_concept_change, self.in_warning_zone, detection_point = self.window.has_change()
+        self.in_concept_change, self.in_warning_zone, detection_point = (
+            self.window.has_change()
+        )
 
         if self.in_warning_zone:
             self.warning_index.append(self.idx)
@@ -154,10 +174,18 @@ class ABCD(BaseDriftDetector):
         return self.drift_dimensions
 
     def get_drift_dims(self) -> np.ndarray:
-        drift_dims = np.array([
-            i for i in range(len(self.drift_dimensions)) if self.drift_dimensions[i] < self.subspace_threshold
-        ])
-        return np.arange(len(self.drift_dimensions)) if len(drift_dims) == 0 else drift_dims
+        drift_dims = np.array(
+            [
+                i
+                for i in range(len(self.drift_dimensions))
+                if self.drift_dimensions[i] < self.subspace_threshold
+            ]
+        )
+        return (
+            np.arange(len(self.drift_dimensions))
+            if len(drift_dims) == 0
+            else drift_dims
+        )
 
     def get_severity(self):
         return self._severity
@@ -167,8 +195,8 @@ class ABCD(BaseDriftDetector):
         output = self.window.reconstructions()
         error = output - data
         squared_errors = np.power(error, 2)
-        window1 = squared_errors[:self.window.t_star]
-        window2 = squared_errors[self.window.t_star:]
+        window1 = squared_errors[: self.window.t_star]
+        window2 = squared_errors[self.window.t_star :]
         mean1 = np.mean(window1, axis=0)
         mean2 = np.mean(window2, axis=0)
         eps = np.abs(mean2 - mean1)
@@ -176,7 +204,14 @@ class ABCD(BaseDriftDetector):
         sigma2 = np.std(window2, axis=0)
         n1 = len(window1)
         n2 = len(window2)
-        p = p_bernstein(eps, n1=n1, n2=n2, sigma1=sigma1, sigma2=sigma2, abs_max=self.maximum_absolute_value)
+        p = p_bernstein(
+            eps,
+            n1=n1,
+            n2=n2,
+            sigma1=sigma1,
+            sigma2=sigma2,
+            abs_max=self.maximum_absolute_value,
+        )
         self.drift_dimensions = p if isinstance(p, np.ndarray) else np.array([p])
 
     def _evaluate_magnitude(self):

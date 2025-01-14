@@ -130,7 +130,6 @@ def test_then_train_river(stream_data, model, max_instances=MAX_INSTANCES):
 
     data = []
     performance_names = ["Classified instances", "accuracy"]
-    performance_values = []
 
     ds = stream_river.iter_array(X, Y)
 

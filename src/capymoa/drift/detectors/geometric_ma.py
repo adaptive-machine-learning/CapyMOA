@@ -39,7 +39,7 @@ class GeometricMovingAverage(MOADriftDetector):
         CLI: Optional[str] = None,
     ):
         if CLI is None:
-            CLI = f"-n {min_n_instances} " f"-l {lambda_} " f"-a {alpha}"
+            CLI = f"-n {min_n_instances} -l {lambda_} -a {alpha}"
 
         super().__init__(moa_detector=_GeometricMovingAverageDM(), CLI=CLI)
 

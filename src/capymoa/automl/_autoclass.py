@@ -1,7 +1,6 @@
 from capymoa.base import (
     Classifier,
     MOAClassifier,
-    _extract_moa_learner_CLI,
 )
 from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals
@@ -23,10 +22,14 @@ class AutoClass(MOAClassifier):
         self,
         schema: Schema = None,
         random_seed: int = 0,
-        configuration_json: str = '../../data/settings_autoclass.json',
-        base_classifiers: list[Classifier] = ['lazy.kNN', 'trees.HoeffdingTree', 'trees.HoeffdingAdaptiveTree'],
+        configuration_json: str = "../../data/settings_autoclass.json",
+        base_classifiers: list[Classifier] = [
+            "lazy.kNN",
+            "trees.HoeffdingTree",
+            "trees.HoeffdingAdaptiveTree",
+        ],
         number_active_classifiers: int = 1,
-        weight_classifiers: bool = False
+        weight_classifiers: bool = False,
     ):
         """AutoClass automl algorithm by Bahri and Georgantas.
 
@@ -43,7 +46,9 @@ class AutoClass(MOAClassifier):
 
         # Check if the json configuration file exists.
         if not os.path.exists(configuration_json):
-            raise FileNotFoundError(f"The configuration json file was not found: {configuration_json}")
+            raise FileNotFoundError(
+                f"The configuration json file was not found: {configuration_json}"
+            )
 
         mapping = {
             # Configuration json file or dictionary
@@ -60,15 +65,20 @@ class AutoClass(MOAClassifier):
 
         if all(isinstance(classifier, str) for classifier in base_classifiers):
             # Join the list of strings as 'x,y'
-            base_classifiers = ','.join(base_classifiers)
+            base_classifiers = ",".join(base_classifiers)
         # Check if base_classifiers is a list of Classifier objects
-        elif all(issubclass(classifier, MOAClassifier) for classifier in base_classifiers):
+        elif all(
+            issubclass(classifier, MOAClassifier) for classifier in base_classifiers
+        ):
             # Join the strings from the classifiers' class names
-            base_classifiers = ','.join(
-                str(classifier(schema).moa_learner.getClass().getName()) for classifier in base_classifiers
+            base_classifiers = ",".join(
+                str(classifier(schema).moa_learner.getClass().getName())
+                for classifier in base_classifiers
             )
         else:
-            raise ValueError("base_classifiers must be either a list of strings or a list of Classifier objects")
+            raise ValueError(
+                "base_classifiers must be either a list of strings or a list of Classifier objects"
+            )
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(AutoClass, self).__init__(

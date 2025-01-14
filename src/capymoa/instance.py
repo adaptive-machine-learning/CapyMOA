@@ -12,19 +12,26 @@ from capymoa.type_alias import FeatureVector, Label, LabelIndex, TargetValue
 if TYPE_CHECKING:
     from capymoa.stream import Schema
 
-def _features_to_string(x: np.ndarray, prefix: str = "\n    x=", suffix: str = ",") -> str:
+
+def _features_to_string(
+    x: np.ndarray, prefix: str = "\n    x=", suffix: str = ","
+) -> str:
     """Return an array as a pretty string that shortens and wraps them.
 
     Used for the ``__repr__`` methods of instances.
     """
-    return prefix + np.array2string(
-        x,
-        max_line_width=80,
-        threshold=10,
-        prefix=prefix,
-        suffix=suffix,
-        precision=3,
-    ) + suffix
+    return (
+        prefix
+        + np.array2string(
+            x,
+            max_line_width=80,
+            threshold=10,
+            prefix=prefix,
+            suffix=suffix,
+            precision=3,
+        )
+        + suffix
+    )
 
 
 class Instance:

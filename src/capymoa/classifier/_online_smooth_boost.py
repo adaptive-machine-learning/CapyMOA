@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 
 from capymoa.base import (
     MOAClassifier,
@@ -39,9 +38,9 @@ class OnlineSmoothBoost(MOAClassifier):
         self,
         schema: Schema | None = None,
         random_seed: int = 0,
-        base_learner = 'trees.HoeffdingTree',
+        base_learner="trees.HoeffdingTree",
         boosting_iterations: int = 100,
-        gamma = 0.1,
+        gamma=0.1,
     ):
         """OnlineSmoothBoost Classifier
 
@@ -58,8 +57,9 @@ class OnlineSmoothBoost(MOAClassifier):
             "gamma": "-g",
         }
 
-        assert (type(base_learner) == str
-                ), "Only MOA CLI strings are supported for OnlineSmoothBoost base_learner, at the moment."
+        assert isinstance(base_learner, str), (
+            "Only MOA CLI strings are supported for OnlineSmoothBoost base_learner, at the moment."
+        )
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(OnlineSmoothBoost, self).__init__(
