@@ -2,6 +2,33 @@
 
 This document outlines the version control practices used in the CapyMOA project.
 
+## Linting and Formatting
+
+Linting is the process of automatically checking code for style, syntax, and other issues.
+Code formatting ensures code meets a consistent style.
+Together they help ensure the codebase is consistent and clean.
+Developers don't have to worry about formatting and reviewers can focus on code rather than style preferences.
+
+CapyMOA uses the [ruff](https://astral.sh/ruff) linter to enforce both.
+Checks are run automatically using GitHub actions on every pull request.
+
+You will need to run `ruff` locally before committing changes.  
+Ruff is installed as part of the [development dependencies](../installation.rst). 
+
+To format files run:
+```bash
+ruff format # or python -m invoke format
+```
+
+To lint files run:
+```bash
+ruff check # or python -m invoke lint
+```
+
+Furthermore, `python -m invoke commit` will run the linter and check that 
+formatting is correct before committing.
+
+
 ## Commit Messages
 
 **tldr; Run `python -m invoke commit` (or `invoke commit`, `python -m commitizen commit`) to commit changes.** (Requires that you've [installed the optional development dependencies](../installation.rst).)
