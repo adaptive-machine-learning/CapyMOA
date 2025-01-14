@@ -20,9 +20,23 @@ permissions:
   pull-requests: read
 
 jobs:
+  codeql:
+    name: "Code Quality Analysis"
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Formatting `ruff format`
+      uses: astral-sh/ruff-action@v3
+      with:
+        args: "format --check"
+    - name: Linting `ruff check`
+      uses: astral-sh/ruff-action@v3
+
   tests:
     timeout-minutes: 20
     runs-on: ${{ matrix.operating-system }}
+    needs: [codeql]
     strategy:
       fail-fast: true
       matrix:
