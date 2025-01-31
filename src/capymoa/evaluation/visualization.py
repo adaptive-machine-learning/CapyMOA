@@ -4,7 +4,6 @@ from capymoa.stream.drift import DriftStream, RecurrentConceptDriftStream
 from com.yahoo.labs.samoa.instances import InstancesHeader
 import numpy as np
 import seaborn as sns
-from capymoa._utils import _translate_metric_name
 from capymoa.evaluation.results import (
     # PrequentialPredictionIntervalResults,
     PrequentialResults,
@@ -16,22 +15,21 @@ import shutil
 from PIL import Image
 import glob
 
-import matplotlib.pyplot as plt
-import numpy as np
 import itertools
 
+
 def plot_windowed_results(
-        *results,
-        metric: str,
-        plot_title: str = None,
-        xlabel: str = None,
-        ylabel: str = None,
-        figure_path: str = "./",
-        figure_name: str = None,
-        save_only: bool = True,
-        prevent_plotting_drifts: bool = False,
-        ymin: float = None,
-        ymax: float = None,
+    *results,
+    metric: str,
+    plot_title: str = None,
+    xlabel: str = None,
+    ylabel: str = None,
+    figure_path: str = "./",
+    figure_name: str = None,
+    save_only: bool = True,
+    prevent_plotting_drifts: bool = False,
+    ymin: float = None,
+    ymax: float = None,
 ):
     """
     Plot a comparison of values from multiple evaluators based on a selected column using line plots.
@@ -47,13 +45,13 @@ def plot_windowed_results(
     # check if the results are all prequential
     for result in results:
         if not isinstance(result, PrequentialResults):
-            raise ValueError('Only PrequentialResults class are valid')
+            raise ValueError("Only PrequentialResults class are valid")
 
     num_instances = results[0].max_instances
     stream = results[0]["stream"]
 
     if num_instances is not None:
-        window_size = results[0].windowed.metrics_per_window()['instances'][0]
+        window_size = results[0].windowed.metrics_per_window()["instances"][0]
         num_windows = results[0].windowed.metrics_per_window().shape[0]
         for i in range(1, num_windows + 1):
             x_values.append(i * window_size)
@@ -62,7 +60,9 @@ def plot_windowed_results(
     for result in results:
         df = result.windowed.metrics_per_window()
         if metric not in df.columns:
-            print(f"Column '{metric}' not found in metrics DataFrame for {result['learner']}. Skipping.")
+            print(
+                f"Column '{metric}' not found in metrics DataFrame for {result['learner']}. Skipping."
+            )
         else:
             dfs.append(df)
             labels.append(result.learner)
@@ -81,8 +81,8 @@ def plot_windowed_results(
 
     # Add padding to ymin and ymax to prevent clipping
     padding = 0.05 * (ymax - ymin)
-    ymin -= (2 * padding)
-    ymax += (2 * padding)
+    ymin -= 2 * padding
+    ymax += 2 * padding
 
     # Create a figure
     plt.figure(figsize=(12, 5))
@@ -131,23 +131,39 @@ def plot_windowed_results(
                         colour_idxs[c["id"]] = colour_idx
                         colour_idx += 1
                         concept_label = c["id"]
-                    plt.hlines(y=ymin + padding, xmin=c['start'], xmax=c['end'], color=cmap(colour_idxs[c["id"]]), linestyle='--', linewidth=2,
-                               label=concept_label)
+                    plt.hlines(
+                        y=ymin + padding,
+                        xmin=c["start"],
+                        xmax=c["end"],
+                        color=cmap(colour_idxs[c["id"]]),
+                        linestyle="--",
+                        linewidth=2,
+                        label=concept_label,
+                    )
 
             # Add gradual drift windows as 70% transparent rectangles
             if gradual_drift_window_lengths:
                 if not drift_locations:
-                    print("Error: gradual_drift_window_lengths is provided, but drift_locations is not.")
+                    print(
+                        "Error: gradual_drift_window_lengths is provided, but drift_locations is not."
+                    )
                     return
 
                 if len(drift_locations) != len(gradual_drift_window_lengths):
-                    print("Error: drift_locations and gradual_drift_window_lengths must have the same length.")
+                    print(
+                        "Error: drift_locations and gradual_drift_window_lengths must have the same length."
+                    )
                     return
 
                 for i in range(len(drift_locations)):
                     location = drift_locations[i]
                     window_length = gradual_drift_window_lengths[i]
-                    plt.axvspan(location - window_length / 2, location + window_length / 2, alpha=0.2, color="red")
+                    plt.axvspan(
+                        location - window_length / 2,
+                        location + window_length / 2,
+                        alpha=0.2,
+                        color="red",
+                    )
 
     # Set the y-axis limits
     plt.ylim(ymin, ymax)
@@ -176,9 +192,17 @@ def plot_windowed_results(
 
 # TODO: Update this function so that it works properly with DriftStreams
 # TODO: Once Schema is updated to provide an easier access to the target name should remove direct access to MOA
-def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=None, plot_title=None,
-                                     xlabel=None, ylabel=None, figure_path="./", figure_name=None, save_only=False
-                                     ):
+def plot_predictions_vs_ground_truth(
+    *results,
+    ground_truth=None,
+    plot_interval=None,
+    plot_title=None,
+    xlabel=None,
+    ylabel=None,
+    figure_path="./",
+    figure_name=None,
+    save_only=False,
+):
     """
     Plot predictions vs. ground truth for multiple results.
 
@@ -193,8 +217,8 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
 
     # check if the results are prequential prediction interval results
     # for result in results:
-        # if not hasattr(result.windowed, 'coverage'):
-        #     raise ValueError('Cannot process results that do not include prediction interval results.')
+    # if not hasattr(result.windowed, 'coverage'):
+    #     raise ValueError('Cannot process results that do not include prediction interval results.')
 
     # Determine ground truth y
     if ground_truth is None:
@@ -216,7 +240,9 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
         if result.predictions() is not None:
             predictions = result.predictions()[start:end]
             if len(predictions) != len(ground_truth[start:end]):
-                raise ValueError(f"Length of predictions for result {i + 1} does not match ground truth.")
+                raise ValueError(
+                    f"Length of predictions for result {i + 1} does not match ground truth."
+                )
 
     # Plot ground truth y vs. predictions for each result within the specified interval
     instance_numbers = list(range(start, end))
@@ -225,14 +251,30 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
     #         predictions = result["predictions"][start:end]
     for result in results:
         predictions = result.predictions()[start:end]
-        plt.plot(instance_numbers, predictions, label=f"{result['learner']} predictions", alpha=0.7)
+        plt.plot(
+            instance_numbers,
+            predictions,
+            label=f"{result['learner']} predictions",
+            alpha=0.7,
+        )
 
     # Plot ground truth y
-    plt.scatter(instance_numbers, ground_truth[start:end], label="ground truth", marker='*', s=20, color='red')
+    plt.scatter(
+        instance_numbers,
+        ground_truth[start:end],
+        label="ground truth",
+        marker="*",
+        s=20,
+        color="red",
+    )
 
     # TODO: Once Schema is updated to provide an easier access to the target name should remove direct access to MOA
-    output_name = str(InstancesHeader.getClassNameString(results[0]['stream'].get_schema().get_moa_header()))
-    output_name = output_name[output_name.find(":") + 1:-1]
+    output_name = str(
+        InstancesHeader.getClassNameString(
+            results[0]["stream"].get_schema().get_moa_header()
+        )
+    )
+    output_name = output_name[output_name.find(":") + 1 : -1]
 
     # Add labels and title
     plt.xlabel(xlabel if xlabel else "# Instance")
@@ -246,61 +288,53 @@ def plot_predictions_vs_ground_truth(*results, ground_truth=None, plot_interval=
         plt.show()
     elif figure_path:
         current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        figure_name = figure_name if figure_name else f"predictions_vs_ground_truth_{current_time}.pdf"
+        figure_name = (
+            figure_name
+            if figure_name
+            else f"predictions_vs_ground_truth_{current_time}.pdf"
+        )
         plt.savefig(figure_path + figure_name)
 
 
 def plot_regression_results(
-        # cope with data
-
-        *results,  # results value from regression models
-        ground_truth=None,  # stored ground truths
-        start=0,  # the start point of plotting
-        end=1E10,  # the end
-
-        # options for users
-
-        plot_target=True,
-        plot_predictions=True,
-        plot_residuals=True,
-
-        # target_type='line',  # line or dots
-        add_target_markers=True,
-        target_marker='*',  # can be any markers supported by matplotlib
-
-        predictions_type='dots',  # line or dots
-        predictions_marker='.',  # can be any markers supported by matplotlib
-
-        absolute_residuals=False,
-
-        plot_hist_residuals=False,
-        kde_residuals=False,
-        hist_bins=None,
-
-        # color options
-
-        color_target=None,
-        color_predictions=None,  # if specified, MUST have same amount with *results
-
-        # label settings
-
-        xlabel=None,
-        ylabel=None,
-
-        # cope with file
-
-        plot_title=None,
-        figure_path="./",
-        figure_name=None,
-        figure_name_hist=None,
-        save_only=False,
-
-        prevent_plotting_drifts=False,
+    # cope with data
+    *results,  # results value from regression models
+    ground_truth=None,  # stored ground truths
+    start=0,  # the start point of plotting
+    end=1e10,  # the end
+    # options for users
+    plot_target=True,
+    plot_predictions=True,
+    plot_residuals=True,
+    # target_type='line',  # line or dots
+    add_target_markers=True,
+    target_marker="*",  # can be any markers supported by matplotlib
+    predictions_type="dots",  # line or dots
+    predictions_marker=".",  # can be any markers supported by matplotlib
+    absolute_residuals=False,
+    plot_hist_residuals=False,
+    kde_residuals=False,
+    hist_bins=None,
+    # color options
+    color_target=None,
+    color_predictions=None,  # if specified, MUST have same amount with *results
+    # label settings
+    xlabel=None,
+    ylabel=None,
+    # cope with file
+    plot_title=None,
+    figure_path="./",
+    figure_name=None,
+    figure_name_hist=None,
+    save_only=False,
+    prevent_plotting_drifts=False,
 ):
     # check if the results are prequential regression results
     for result in results:
-        if not hasattr(result.windowed, 'rmse'):
-            raise ValueError('Cannot process results that do not include regression results.')
+        if not hasattr(result.windowed, "rmse"):
+            raise ValueError(
+                "Cannot process results that do not include regression results."
+            )
 
     # Check if the ground_truth is stored in the first result
     if ground_truth is None:
@@ -328,9 +362,18 @@ def plot_regression_results(
     for i, result in enumerate(results):
         if result.predictions() is not None:
             predictions.append(np.array(result.predictions()[start:end]))
-            residuals.append(np.array(np.array(result.predictions()[start:end]) - np.array(targets)))
+            residuals.append(
+                np.array(np.array(result.predictions()[start:end]) - np.array(targets))
+            )
             if absolute_residuals:
-                absolute_values.append(np.abs(np.array(np.array(result.predictions()[start:end]) - np.array(targets))))
+                absolute_values.append(
+                    np.abs(
+                        np.array(
+                            np.array(result.predictions()[start:end])
+                            - np.array(targets)
+                        )
+                    )
+                )
 
     # Create a figure
     plt.figure(figsize=((end - start) / 10, 6))
@@ -338,49 +381,87 @@ def plot_regression_results(
     instance_numbers = list(range(start, end))
 
     # get default colors from matplotlib for further possible use
-    default_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    default_colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
     # plot targets
     if plot_target:
-        plt.plot(instance_numbers, targets, label="targets", linewidth=1,
-                     color=color_target if color_target is not None else "g")
+        plt.plot(
+            instance_numbers,
+            targets,
+            label="targets",
+            linewidth=1,
+            color=color_target if color_target is not None else "g",
+        )
     if add_target_markers:
-        plt.scatter(instance_numbers, targets, label="targets", marker=target_marker, s=20,
-                        color=color_target if color_target is not None else "g")
+        plt.scatter(
+            instance_numbers,
+            targets,
+            label="targets",
+            marker=target_marker,
+            s=20,
+            color=color_target if color_target is not None else "g",
+        )
 
     # plot predictions
     if plot_predictions:
         for i, prediction in enumerate(predictions):
-            if predictions_type == 'line':
-                plt.plot(instance_numbers, predictions[i],
-                         label=results[i]['learner'] + " predictions",
-                         color=color_predictions[i] if color_predictions is not None else default_colors[i],
-                         linewidth=1, linestyle="--", alpha=0.5)
-            elif predictions_type == 'dots':
-                plt.scatter(instance_numbers, predictions[i],
-                            label=results[i]['learner'] + " predictions",
-                            color=color_predictions[i] if color_predictions is not None else default_colors[i],
-                            marker=predictions_marker, s=20)
+            if predictions_type == "line":
+                plt.plot(
+                    instance_numbers,
+                    predictions[i],
+                    label=results[i]["learner"] + " predictions",
+                    color=color_predictions[i]
+                    if color_predictions is not None
+                    else default_colors[i],
+                    linewidth=1,
+                    linestyle="--",
+                    alpha=0.5,
+                )
+            elif predictions_type == "dots":
+                plt.scatter(
+                    instance_numbers,
+                    predictions[i],
+                    label=results[i]["learner"] + " predictions",
+                    color=color_predictions[i]
+                    if color_predictions is not None
+                    else default_colors[i],
+                    marker=predictions_marker,
+                    s=20,
+                )
             else:
                 raise ValueError("Predictions_type must be 'line' or 'dots'.")
 
-    if predictions_type == 'dots':
-        if len(results) > 2 :
+    if predictions_type == "dots":
+        if len(results) > 2:
             plot_residuals = False
 
         for i in range(len(instance_numbers)):
             values = [predictions[x][i] for x in range(len(predictions))]
             values.append(targets[i])
             values = np.array(values)
-            plt.vlines(x=instance_numbers[i], ymin=min(values), ymax=max(values), linestyles='dashed', colors='grey',
-                       linewidth=0.5)
+            plt.vlines(
+                x=instance_numbers[i],
+                ymin=min(values),
+                ymax=max(values),
+                linestyles="dashed",
+                colors="grey",
+                linewidth=0.5,
+            )
 
     # plot residuals
     if plot_residuals:
         for i, residual in enumerate(residuals):
-            plt.bar(instance_numbers, residuals[i] if not absolute_residuals else absolute_values[i],
-                    label=results[i]['learner'] + " residuals" if not absolute_residuals else " absolute residuals",
-                    color=color_predictions[i] if color_predictions is not None else default_colors[i], alpha=0.5)
+            plt.bar(
+                instance_numbers,
+                residuals[i] if not absolute_residuals else absolute_values[i],
+                label=results[i]["learner"] + " residuals"
+                if not absolute_residuals
+                else " absolute residuals",
+                color=color_predictions[i]
+                if color_predictions is not None
+                else default_colors[i],
+                alpha=0.5,
+            )
 
     if stream is not None and isinstance(stream, DriftStream):
         if not prevent_plotting_drifts:
@@ -422,17 +503,23 @@ def plot_regression_results(
                             color="red",
                         )
 
-    output_name = str(InstancesHeader.getClassNameString(results[0]['stream'].get_schema().get_moa_header()))
-    output_name = output_name[output_name.find(":") + 1:-1]
+    output_name = str(
+        InstancesHeader.getClassNameString(
+            results[0]["stream"].get_schema().get_moa_header()
+        )
+    )
+    output_name = output_name[output_name.find(":") + 1 : -1]
 
-    prepared_title = ''
+    prepared_title = ""
     fragments = []
     if plot_predictions:
         fragments.append("Predictions")
     if plot_target:
         fragments.append("Targets")
     if plot_residuals:
-        fragments.append("Residuals" if not absolute_residuals else " Absolute Residuals")
+        fragments.append(
+            "Residuals" if not absolute_residuals else " Absolute Residuals"
+        )
     if len(fragments) > 0:
         for i, s in enumerate(fragments):
             prepared_title += s
@@ -442,7 +529,7 @@ def plot_regression_results(
         raise ValueError("Nothing to plot")
 
     # Add labels and title
-    sns.set_style('darkgrid')
+    sns.set_style("darkgrid")
     plt.xlabel(xlabel if xlabel else "# Instance")
     plt.ylabel(ylabel if ylabel else output_name)
     plt.title(plot_title if plot_title else prepared_title)
@@ -453,17 +540,27 @@ def plot_regression_results(
         plt.show()
     elif figure_path:
         current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        figure_name = figure_name if figure_name is not None else f"sequential_regression_results_{current_time}.pdf"
+        figure_name = (
+            figure_name
+            if figure_name is not None
+            else f"sequential_regression_results_{current_time}.pdf"
+        )
         plt.savefig(figure_path + figure_name)
 
     # plot bar plot for residuals
     if plot_hist_residuals:
         plt.figure(figsize=(8, 6))
         for i, residual in enumerate(residuals):
-            sns.histplot(residual, kde=kde_residuals, bins='auto' if hist_bins is None else hist_bins,
-                         label=results[i]['learner'],
-                         color=color_predictions[i] if color_predictions is not None else default_colors[i],
-                         alpha=0.5)
+            sns.histplot(
+                residual,
+                kde=kde_residuals,
+                bins="auto" if hist_bins is None else hist_bins,
+                label=results[i]["learner"],
+                color=color_predictions[i]
+                if color_predictions is not None
+                else default_colors[i],
+                alpha=0.5,
+            )
 
         sns.set_style("darkgrid")
         plt.title("Residuals Histogram Plot")
@@ -474,41 +571,43 @@ def plot_regression_results(
             plt.show()
         elif figure_path:
             current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            figure_name_hist = figure_name_hist if figure_name_hist is not None else f"histogram_for_residuals_{current_time}.pdf"
+            figure_name_hist = (
+                figure_name_hist
+                if figure_name_hist is not None
+                else f"histogram_for_residuals_{current_time}.pdf"
+            )
             plt.savefig(figure_path + figure_name_hist)
 
 
 def plot_prediction_interval(
-        *results, ground_truth=None,
-        start=0, end=1E10,
-
-        plot_truth=True,
-        plot_bounds=True,
-        plot_predictions=True,
-        colors=None,
-
-        xlabel=None,
-        ylabel=None,
-
-        plot_title=None,
-        figure_path="./",
-        figure_name=None,
-        save_only=False,
-
-        dynamic_switch=True,
-
-        prevent_plotting_drifts=False,
-
+    *results,
+    ground_truth=None,
+    start=0,
+    end=1e10,
+    plot_truth=True,
+    plot_bounds=True,
+    plot_predictions=True,
+    colors=None,
+    xlabel=None,
+    ylabel=None,
+    plot_title=None,
+    figure_path="./",
+    figure_name=None,
+    save_only=False,
+    dynamic_switch=True,
+    prevent_plotting_drifts=False,
 ):
     # check if the results are all prequential
     for result in results:
-        if not hasattr(result, 'coverage'):
-            raise ValueError('Cannot process results that do not include prediction interval results.')
+        if not hasattr(result, "coverage"):
+            raise ValueError(
+                "Cannot process results that do not include prediction interval results."
+            )
 
     if len(results) > 2:
-        raise ValueError('This function only supports up to 2 results currently.')
+        raise ValueError("This function only supports up to 2 results currently.")
 
-    default_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    default_colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     stream = results[0]["stream"]
 
     if len(results) == 1:
@@ -536,35 +635,66 @@ def plot_prediction_interval(
         plt.figure(figsize=((end - start) / 10, 6))
 
         if plot_bounds:
-            u = np.array(upper)
-            l = np.array(lower)
-            plt.plot(instance_numbers, u, linewidth=0.1, alpha=0.2,
-                     color=colors[0] if colors is not None else default_colors[0])
-            plt.plot(instance_numbers, l, linewidth=0.1, alpha=0.2,
-                     color=colors[0] if colors is not None else default_colors[0])
-            plt.fill_between(instance_numbers, u, l, color=colors[0] if colors is not None else default_colors[0],
-                             alpha=0.5, label=results[0].learner + " interval")
+            upper = np.array(upper)
+            lower = np.array(lower)
+            plt.plot(
+                instance_numbers,
+                upper,
+                linewidth=0.1,
+                alpha=0.2,
+                color=colors[0] if colors is not None else default_colors[0],
+            )
+            plt.plot(
+                instance_numbers,
+                lower,
+                linewidth=0.1,
+                alpha=0.2,
+                color=colors[0] if colors is not None else default_colors[0],
+            )
+            plt.fill_between(
+                instance_numbers,
+                upper,
+                lower,
+                color=colors[0] if colors is not None else default_colors[0],
+                alpha=0.5,
+                label=results[0].learner + " interval",
+            )
         if plot_predictions:
-            plt.plot(instance_numbers, np.array(predictions), linewidth=1, linestyle='-',
-                     color=colors[0] if colors is not None else default_colors[0],
-                     label=results[0].learner + " predictions")
+            plt.plot(
+                instance_numbers,
+                np.array(predictions),
+                linewidth=1,
+                linestyle="-",
+                color=colors[0] if colors is not None else default_colors[0],
+                label=results[0].learner + " predictions",
+            )
         if plot_truth:
             insideX = []
             insideY = []
             outsideX = []
             outsideY = []
             for i, v in enumerate(targets):
-                if u[i] >= v >= l[i]:
+                if upper[i] >= v >= lower[i]:
                     insideX.append(instance_numbers[i])
                     insideY.append(v)
                 else:
                     outsideX.append(instance_numbers[i])
                     outsideY.append(v)
 
-            plt.scatter(np.array(insideX), np.array(insideY), marker='*',
-                        color='g', label='Ground Truth (inner)')
-            plt.scatter(np.array(outsideX), np.array(outsideY), marker='x',
-                        color='r', label='Ground Truth (outer)')
+            plt.scatter(
+                np.array(insideX),
+                np.array(insideY),
+                marker="*",
+                color="g",
+                label="Ground Truth (inner)",
+            )
+            plt.scatter(
+                np.array(outsideX),
+                np.array(outsideY),
+                marker="x",
+                color="r",
+                label="Ground Truth (outer)",
+            )
 
         if stream is not None and isinstance(stream, DriftStream):
             if not prevent_plotting_drifts:
@@ -606,8 +736,12 @@ def plot_prediction_interval(
                                 color="red",
                             )
 
-        output_name = str(InstancesHeader.getClassNameString(results[0]['stream'].get_schema().get_moa_header()))
-        output_name = output_name[output_name.find(":") + 1:-1]
+        output_name = str(
+            InstancesHeader.getClassNameString(
+                results[0]["stream"].get_schema().get_moa_header()
+            )
+        )
+        output_name = output_name[output_name.find(":") + 1 : -1]
 
         # Add labels and title
         sns.set_style("darkgrid")
@@ -620,7 +754,11 @@ def plot_prediction_interval(
             plt.show()
         elif figure_path:
             current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            figure_name = figure_name if figure_name else f"prediction_interval_over_time_{current_time}.pdf"
+            figure_name = (
+                figure_name
+                if figure_name
+                else f"prediction_interval_over_time_{current_time}.pdf"
+            )
             plt.savefig(figure_path + figure_name)
 
     # Plots two regions from prediction interval learners for comparison
@@ -666,51 +804,103 @@ def plot_prediction_interval(
 
             if not dynamic_switch:
                 # Plot first area
-                plt.plot(instance_numbers, u_first, linewidth=0.1, alpha=0.2,
-                         color=colors[0] if colors is not None else default_colors[0])
-                plt.plot(instance_numbers, l_first, linewidth=0.1, alpha=0.2,
-                         color=colors[0] if colors is not None else default_colors[0])
-                plt.fill_between(instance_numbers, u_first, l_first,
-                                 color=colors[0] if colors is not None else default_colors[0],
-                                 alpha=0.2, label=results[0].learner + " interval")
+                plt.plot(
+                    instance_numbers,
+                    u_first,
+                    linewidth=0.1,
+                    alpha=0.2,
+                    color=colors[0] if colors is not None else default_colors[0],
+                )
+                plt.plot(
+                    instance_numbers,
+                    l_first,
+                    linewidth=0.1,
+                    alpha=0.2,
+                    color=colors[0] if colors is not None else default_colors[0],
+                )
+                plt.fill_between(
+                    instance_numbers,
+                    u_first,
+                    l_first,
+                    color=colors[0] if colors is not None else default_colors[0],
+                    alpha=0.2,
+                    label=results[0].learner + " interval",
+                )
 
                 # Plot second area
-                plt.plot(instance_numbers, u_second, linewidth=0.1, alpha=0.5,
-                         color=colors[1] if colors is not None else default_colors[1])
-                plt.plot(instance_numbers, l_second, linewidth=0.1, alpha=0.5,
-                         color=colors[1] if colors is not None else default_colors[1])
-                plt.fill_between(instance_numbers, u_second, l_second,
-                                 color=colors[1] if colors is not None else default_colors[1],
-                                 alpha=0.5, label=results[1].learner + " interval")
+                plt.plot(
+                    instance_numbers,
+                    u_second,
+                    linewidth=0.1,
+                    alpha=0.5,
+                    color=colors[1] if colors is not None else default_colors[1],
+                )
+                plt.plot(
+                    instance_numbers,
+                    l_second,
+                    linewidth=0.1,
+                    alpha=0.5,
+                    color=colors[1] if colors is not None else default_colors[1],
+                )
+                plt.fill_between(
+                    instance_numbers,
+                    u_second,
+                    l_second,
+                    color=colors[1] if colors is not None else default_colors[1],
+                    alpha=0.5,
+                    label=results[1].learner + " interval",
+                )
             else:
                 # define function for further dynamic plot
                 def _plot_first(i, alpha):
-                    plt.plot(instance_numbers[switch_points[i]:switch_points[i+1]+1],
-                             u_first[switch_points[i]:switch_points[i + 1]+1], linewidth=0.1, alpha=alpha,
-                             color=colors[0] if colors is not None else default_colors[0])
-                    plt.plot(instance_numbers[switch_points[i]:switch_points[i + 1]+1],
-                             l_first[switch_points[i]:switch_points[i + 1]+1], linewidth=0.1, alpha=alpha,
-                             color=colors[0] if colors is not None else default_colors[0])
+                    plt.plot(
+                        instance_numbers[switch_points[i] : switch_points[i + 1] + 1],
+                        u_first[switch_points[i] : switch_points[i + 1] + 1],
+                        linewidth=0.1,
+                        alpha=alpha,
+                        color=colors[0] if colors is not None else default_colors[0],
+                    )
+                    plt.plot(
+                        instance_numbers[switch_points[i] : switch_points[i + 1] + 1],
+                        l_first[switch_points[i] : switch_points[i + 1] + 1],
+                        linewidth=0.1,
+                        alpha=alpha,
+                        color=colors[0] if colors is not None else default_colors[0],
+                    )
 
-                    plt.fill_between(instance_numbers[switch_points[i]:switch_points[i + 1]+1],
-                                     u_first[switch_points[i]:switch_points[i + 1]+1],
-                                     l_first[switch_points[i]:switch_points[i + 1]+1],
-                                     color=colors[0] if colors is not None else default_colors[0],
-                                     alpha=alpha, label=results[0].learner + " interval" if i == 0 else "")
+                    plt.fill_between(
+                        instance_numbers[switch_points[i] : switch_points[i + 1] + 1],
+                        u_first[switch_points[i] : switch_points[i + 1] + 1],
+                        l_first[switch_points[i] : switch_points[i + 1] + 1],
+                        color=colors[0] if colors is not None else default_colors[0],
+                        alpha=alpha,
+                        label=results[0].learner + " interval" if i == 0 else "",
+                    )
 
                 def _plot_second(i, alpha):
-                    plt.plot(instance_numbers[switch_points[i]:switch_points[i + 1]+1],
-                             u_second[switch_points[i]:switch_points[i + 1]+1], linewidth=0.1, alpha=alpha,
-                             color=colors[1] if colors is not None else default_colors[1])
-                    plt.plot(instance_numbers[switch_points[i]:switch_points[i + 1]+1],
-                             l_second[switch_points[i]:switch_points[i + 1]+1], linewidth=0.1, alpha=alpha,
-                             color=colors[1] if colors is not None else default_colors[1])
+                    plt.plot(
+                        instance_numbers[switch_points[i] : switch_points[i + 1] + 1],
+                        u_second[switch_points[i] : switch_points[i + 1] + 1],
+                        linewidth=0.1,
+                        alpha=alpha,
+                        color=colors[1] if colors is not None else default_colors[1],
+                    )
+                    plt.plot(
+                        instance_numbers[switch_points[i] : switch_points[i + 1] + 1],
+                        l_second[switch_points[i] : switch_points[i + 1] + 1],
+                        linewidth=0.1,
+                        alpha=alpha,
+                        color=colors[1] if colors is not None else default_colors[1],
+                    )
 
-                    plt.fill_between(instance_numbers[switch_points[i ]:switch_points[i + 1]+1],
-                                     u_second[switch_points[i]:switch_points[i + 1]+1],
-                                     l_second[switch_points[i]:switch_points[i + 1]+1],
-                                     color=colors[1] if colors is not None else default_colors[1],
-                                     alpha=alpha, label=results[1].learner + " interval" if i == 0 else "")
+                    plt.fill_between(
+                        instance_numbers[switch_points[i] : switch_points[i + 1] + 1],
+                        u_second[switch_points[i] : switch_points[i + 1] + 1],
+                        l_second[switch_points[i] : switch_points[i + 1] + 1],
+                        color=colors[1] if colors is not None else default_colors[1],
+                        alpha=alpha,
+                        label=results[1].learner + " interval" if i == 0 else "",
+                    )
 
                 # determine which on top first
                 first_first = l_first[0] > l_second[0]
@@ -726,7 +916,7 @@ def plot_prediction_interval(
                         if l_first[i] > l_second[i]:
                             switch_points.append(i)
                             larger = not larger
-                switch_points.append(len(u_first) -1)
+                switch_points.append(len(u_first) - 1)
 
                 # Plot dynamic switching areas
                 for i in range(len(switch_points) - 1):
@@ -747,12 +937,22 @@ def plot_prediction_interval(
 
         #  Plot predictions
         if plot_predictions:
-            plt.plot(instance_numbers, np.array(predictions_first), linewidth=1, linestyle='-',
-                     color=colors[0] if colors is not None else default_colors[0],
-                     label=results[0].learner + " predictions")
-            plt.plot(instance_numbers, np.array(predictions_second), linewidth=1, linestyle='-',
-                     color=colors[1] if colors is not None else default_colors[1],
-                     label=results[1].learner + " predictions")
+            plt.plot(
+                instance_numbers,
+                np.array(predictions_first),
+                linewidth=1,
+                linestyle="-",
+                color=colors[0] if colors is not None else default_colors[0],
+                label=results[0].learner + " predictions",
+            )
+            plt.plot(
+                instance_numbers,
+                np.array(predictions_second),
+                linewidth=1,
+                linestyle="-",
+                color=colors[1] if colors is not None else default_colors[1],
+                label=results[1].learner + " predictions",
+            )
 
         if plot_truth:
             insideX = []
@@ -763,8 +963,14 @@ def plot_prediction_interval(
             outsideY = []
 
             for i, v in enumerate(targets):
-                _out = v >= max(upper_first[i], upper_second[i]) or v <= min(lower_first[i], lower_second[i])
-                _in = min(upper_first[i], upper_second[i]) >= v >= max(lower_first[i], lower_second[i])
+                _out = v >= max(upper_first[i], upper_second[i]) or v <= min(
+                    lower_first[i], lower_second[i]
+                )
+                _in = (
+                    min(upper_first[i], upper_second[i])
+                    >= v
+                    >= max(lower_first[i], lower_second[i])
+                )
                 if _out:
                     outsideX.append(instance_numbers[i])
                     outsideY.append(v)
@@ -775,12 +981,27 @@ def plot_prediction_interval(
                     betweenX.append(instance_numbers[i])
                     betweenY.append(v)
 
-            plt.scatter(np.array(insideX), np.array(insideY), marker='*',
-                        color='g', label='Ground Truth (inner)')
-            plt.scatter(np.array(outsideX), np.array(outsideY), marker='x',
-                        color='r', label='Ground Truth (outer)')
-            plt.scatter(np.array(betweenX), np.array(betweenY), marker='+',
-                        color='orange', label='Ground Truth (interim)')
+            plt.scatter(
+                np.array(insideX),
+                np.array(insideY),
+                marker="*",
+                color="g",
+                label="Ground Truth (inner)",
+            )
+            plt.scatter(
+                np.array(outsideX),
+                np.array(outsideY),
+                marker="x",
+                color="r",
+                label="Ground Truth (outer)",
+            )
+            plt.scatter(
+                np.array(betweenX),
+                np.array(betweenY),
+                marker="+",
+                color="orange",
+                label="Ground Truth (interim)",
+            )
 
         if stream is not None and isinstance(stream, DriftStream):
             if not prevent_plotting_drifts:
@@ -822,8 +1043,12 @@ def plot_prediction_interval(
                                 color="red",
                             )
 
-        output_name = str(InstancesHeader.getClassNameString(results[0]['stream'].get_schema().get_moa_header()))
-        output_name = output_name[output_name.find(":") + 1:-1]
+        output_name = str(
+            InstancesHeader.getClassNameString(
+                results[0]["stream"].get_schema().get_moa_header()
+            )
+        )
+        output_name = output_name[output_name.find(":") + 1 : -1]
 
         # Add labels and title
         sns.set_style("darkgrid")
@@ -836,19 +1061,24 @@ def plot_prediction_interval(
             plt.show()
         elif figure_path:
             current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            figure_name = figure_name if figure_name else f"prediction_interval_over_time_comparison_{current_time}.pdf"
+            figure_name = (
+                figure_name
+                if figure_name
+                else f"prediction_interval_over_time_comparison_{current_time}.pdf"
+            )
             plt.savefig(figure_path + figure_name)
 
+
 def _plot_clustering_state(
-        clusterer_name,
-        macro: ClusteringResult,
-        micro: ClusteringResult,
-        figure_path="./",
-        figure_name=None,
-        show_fig=True,
-        save_fig=False,
-        make_gif=False,
-        show_ids=False
+    clusterer_name,
+    macro: ClusteringResult,
+    micro: ClusteringResult,
+    figure_path="./",
+    figure_name=None,
+    show_fig=True,
+    save_fig=False,
+    make_gif=False,
+    show_ids=False,
 ):
     """
     Internal function to plot the current state of a clustering algorithm.
@@ -864,27 +1094,51 @@ def _plot_clustering_state(
     # Macro-clustering visualization
     if len(ma_centers) > 0:
         if ma_weights is not None:
-            scatter = ax.scatter(*zip(*ma_centers), c=ma_weights, cmap='copper', label='Centers', s=50, edgecolor='k', linewidths=0.4)
+            scatter = ax.scatter(
+                *zip(*ma_centers),
+                c=ma_weights,
+                cmap="copper",
+                label="Centers",
+                s=50,
+                edgecolor="k",
+                linewidths=0.4,
+            )
             cbar = fig.colorbar(scatter)
-            cbar.set_label('Macro cluster Weights')
-        
+            cbar.set_label("Macro cluster Weights")
+
         # Add circles representing the radius of each center
         # keep the largest radius for the plot
         if ma_radii is not None:
             for (x, y), radius in zip(ma_centers, ma_radii):
                 if radius > max_radius:
                     max_radius = radius
-                circle = plt.Circle((x, y), radius, color='red', fill=False, lw=0.4)
+                circle = plt.Circle((x, y), radius, color="red", fill=False, lw=0.4)
                 ax.add_patch(circle)
-        
+
         # Annotate the centers with cluster IDs
         if show_ids:
             if ma_ids is not None:
                 for (x, y), cluster_id in zip(ma_centers, ma_ids):
-                    ax.text(x, y, str(cluster_id), fontsize=7, ha='center', va='center', color='white')
+                    ax.text(
+                        x,
+                        y,
+                        str(cluster_id),
+                        fontsize=7,
+                        ha="center",
+                        va="center",
+                        color="white",
+                    )
             else:
                 for (x, y), cluster_id in zip(ma_centers, range(len(ma_centers))):
-                    ax.text(x, y, str(cluster_id), fontsize=7, ha='center', va='center', color='white')
+                    ax.text(
+                        x,
+                        y,
+                        str(cluster_id),
+                        fontsize=7,
+                        ha="center",
+                        va="center",
+                        color="white",
+                    )
 
     # Micro-clustering visualization
     mi_centers = micro.get_centers()
@@ -892,35 +1146,42 @@ def _plot_clustering_state(
     mi_radii = micro.get_radii()
     if len(mi_centers) > 0:
         if mi_weights is not None:
-            scatter_mi = ax.scatter(*zip(*mi_centers), c=mi_weights, cmap='winter', s=10, edgecolor='k', linewidths=0.2)
+            scatter_mi = ax.scatter(
+                *zip(*mi_centers),
+                c=mi_weights,
+                cmap="winter",
+                s=10,
+                edgecolor="k",
+                linewidths=0.2,
+            )
             cbar = fig.colorbar(scatter_mi)
-            cbar.set_label('Micro cluster Weights')
+            cbar.set_label("Micro cluster Weights")
         # Add circles representing the radius of each center
         for (x, y), radius in zip(mi_centers, mi_radii):
             if radius > max_radius:
-                    max_radius = radius
-            circle = plt.Circle((x, y), radius, color='blue', fill=False, lw=0.2)
+                max_radius = radius
+            circle = plt.Circle((x, y), radius, color="blue", fill=False, lw=0.2)
             ax.add_patch(circle)
         # # Annotate the centers with cluster IDs
         # for (x, y), cluster_id in zip(mi_centers, range(len(mi_centers))):
         #     ax.text(x, y, str(cluster_id), fontsize=7, ha='center', va='center', color='white')
 
     # Add labels and title
-    output_name = f'Clustering from {clusterer_name}'
-    ax.set_xlabel('F1')
-    ax.set_ylabel('F2')
+    output_name = f"Clustering from {clusterer_name}"
+    ax.set_xlabel("F1")
+    ax.set_ylabel("F2")
     ax.set_title(output_name)
     # # Create a proxy artist for the minimum weight and add to the legend
     # proxy_artist = plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=plt.cm.copper(0), markersize=10, label=f'Centers')
     # ax.legend(handles=[proxy_artist])
-    ax.axis('equal')  # Ensure that the circles are not distorted
+    ax.axis("equal")  # Ensure that the circles are not distorted
     # Show the plot or save it to the specified path
     if show_fig:
         plt.show()
     else:
-        plt.close(fig) 
+        plt.close(fig)
     if make_gif:
-        ax.set_title(output_name + f' {figure_name}')
+        ax.set_title(output_name + f" {figure_name}")
         # include the max radius into the limits to make sure the circles are not cut off on all images
         minx = ax.get_xlim()[0] - max_radius
         maxx = ax.get_xlim()[1] + max_radius
@@ -930,20 +1191,23 @@ def _plot_clustering_state(
     elif save_fig:
         # not a gif, use timestamp
         current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        figure_name = figure_name if figure_name else f"clustering_result_{current_time}"
-        fig.savefig(figure_path + figure_name + '.png', dpi=300)
+        figure_name = (
+            figure_name if figure_name else f"clustering_result_{current_time}"
+        )
+        fig.savefig(figure_path + figure_name + ".png", dpi=300)
+
 
 def plot_clustering_state(
-        clusterer: Clusterer,
-        figure_path="./",
-        figure_name=None,
-        show_fig=True,
-        save_fig=False,
-        make_gif=False,
+    clusterer: Clusterer,
+    figure_path="./",
+    figure_name=None,
+    show_fig=True,
+    save_fig=False,
+    make_gif=False,
 ):
     """
     Plots the current state of a clustering algorithm.
-    
+
     :param clusterer: Clusterer object
     :param figure_path: str, path to the directory where the figure is stored. Defaults to "./"
     :param figure_name: str, name of the figure. Defaults to None, in which case the name is going to be `clustering_result_<timestamp>`
@@ -953,12 +1217,30 @@ def plot_clustering_state(
     """
     macro = clusterer.get_clustering_result()
     micro = clusterer.get_micro_clustering_result()
-    _plot_clustering_state(str(clusterer), macro, micro, figure_path, figure_name, show_fig, save_fig, make_gif)
-    
-def plot_clustering_evolution(clusteringResults, clean_up=True, filename=None, intermediate_directory=None, dpi=300, frame_duration=500, loops=0):
+    _plot_clustering_state(
+        str(clusterer),
+        macro,
+        micro,
+        figure_path,
+        figure_name,
+        show_fig,
+        save_fig,
+        make_gif,
+    )
+
+
+def plot_clustering_evolution(
+    clusteringResults,
+    clean_up=True,
+    filename=None,
+    intermediate_directory=None,
+    dpi=300,
+    frame_duration=500,
+    loops=0,
+):
     """
     Plots the evolution of the clustering process as a gif.
-    
+
     :param clusteringResults: ClusteringEvaluator object
     :param clean_up: bool, whether to remove the intermediate files after creating the gif
     :param filename: str, name of the gif file. Defaults to None, in which case the filename is going to be `<clusteringResults.clusterer_name>_clustering_evolution.gif`
@@ -967,18 +1249,33 @@ def plot_clustering_evolution(clusteringResults, clean_up=True, filename=None, i
     :param frame_duration: int, duration of each frame in milliseconds. Defaults to 500
     :param loops: int, number of loops. Defaults to 0 (infinite loop)
     """
-    macros = clusteringResults.get_measurements()['macro']
-    micros = clusteringResults.get_measurements()['micro']
-    gif_path = './gifmaker/' if intermediate_directory is None else intermediate_directory
-    
+    macros = clusteringResults.get_measurements()["macro"]
+    micros = clusteringResults.get_measurements()["micro"]
+    gif_path = (
+        "./gifmaker/" if intermediate_directory is None else intermediate_directory
+    )
+
     os.makedirs(gif_path, exist_ok=True)
     figs = []
     # calculate the number of trailing zeroes needed for the image names
     num_images = len(macros) if len(macros) > len(micros) else len(micros)
     num_digits = len(str(num_images))
     maxx, maxy, minx, miny = -np.inf, -np.inf, np.inf, np.inf
-    for i, (macro, micro) in enumerate(itertools.zip_longest(macros, micros, fillvalue=ClusteringResult([],[],[],[]))):
-        fig, e_minx, e_maxx, e_miny, e_maxy = _plot_clustering_state(clusteringResults.clusterer_name, macro, micro, figure_path=gif_path, figure_name=str(i).zfill(num_digits), show_fig=False, save_fig=True, make_gif=True)
+    for i, (macro, micro) in enumerate(
+        itertools.zip_longest(
+            macros, micros, fillvalue=ClusteringResult([], [], [], [])
+        )
+    ):
+        fig, e_minx, e_maxx, e_miny, e_maxy = _plot_clustering_state(
+            clusteringResults.clusterer_name,
+            macro,
+            micro,
+            figure_path=gif_path,
+            figure_name=str(i).zfill(num_digits),
+            show_fig=False,
+            save_fig=True,
+            make_gif=True,
+        )
         if e_minx < minx:
             minx = e_minx
         if e_maxx > maxx:
@@ -993,18 +1290,21 @@ def plot_clustering_evolution(clusteringResults, clean_up=True, filename=None, i
     for f in figs:
         f.gca().set_xlim([minx, maxx])
         f.gca().set_ylim([miny, maxy])
-        f.savefig(f'{gif_path}{f.gca().get_title()}.png', dpi=dpi)
+        f.savefig(f"{gif_path}{f.gca().get_title()}.png", dpi=dpi)
         plt.close(f)
 
     # Create a GIF from the images
-    images = [Image.open(img) for img in sorted(glob.glob(gif_path + '*.png'))]
-    
+    images = [Image.open(img) for img in sorted(glob.glob(gif_path + "*.png"))]
+
     images[0].save(
-        f'{gif_path}/{filename}' if filename is not None else gif_path + f"/{clusteringResults.clusterer_name.replace(' ','_')}_clustering_evolution.gif",
+        f"{gif_path}/{filename}"
+        if filename is not None
+        else gif_path
+        + f"/{clusteringResults.clusterer_name.replace(' ', '_')}_clustering_evolution.gif",
         save_all=True,
         append_images=images[1:],
         duration=frame_duration,  # Duration of each frame in milliseconds
-        loop=loops         # 0 means loop forever; set to 1 for single loop
+        loop=loops,  # 0 means loop forever; set to 1 for single loop
     )
     # clean up after making the gif
     if clean_up:

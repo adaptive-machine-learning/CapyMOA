@@ -49,8 +49,7 @@ class HoeffdingAdaptiveTree(HoeffdingTree):
         remove_poor_attrs: bool = False,
         disable_prepruning: bool = True,
     ):
-
-        """ Hoeffding Adaptive Tree (HAT) classifier.
+        """Hoeffding Adaptive Tree (HAT) classifier.
 
         :param schema: the schema of the stream.
         :param random_seed: the random seed passed to the moa learner.

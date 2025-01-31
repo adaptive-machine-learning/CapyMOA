@@ -2,15 +2,12 @@ import inspect
 
 from capymoa.base import (
     MOAPredictionIntervalLearner,
-    _get_moa_creation_CLI,
     _extract_moa_learner_CLI,
 )
 
-from capymoa.regressor import *
+from capymoa.regressor import AdaptiveRandomForestRegressor
 
-from moa.classifiers.predictioninterval import  MVEPredictionInterval as MOA_MVE
-
-
+from moa.classifiers.predictioninterval import MVEPredictionInterval as MOA_MVE
 
 
 class MVE(MOAPredictionIntervalLearner):
@@ -20,12 +17,9 @@ class MVE(MOAPredictionIntervalLearner):
         CLI=None,
         random_seed=1,
         base_learner=None,
-        confidence_level=0.95
+        confidence_level=0.95,
     ):
-        mappings = {
-            'base_learner': '-l',
-            'confidence_level': '-c'
-        }
+        mappings = {"base_learner": "-l", "confidence_level": "-c"}
 
         config_str = ""
         parameters = inspect.signature(self.__init__).parameters
@@ -34,16 +28,17 @@ class MVE(MOAPredictionIntervalLearner):
                 continue
             this_parameter = parameters[key]
             set_value = locals()[key]
-            is_bool = type(set_value) == bool
-            if is_bool:
+            if isinstance(set_value, bool):
                 if set_value:
                     str_extension = mappings[key] + " "
                 else:
                     str_extension = ""
             else:
-                if key == 'base_learner':
+                if key == "base_learner":
                     if base_learner is None:
-                        set_value = _extract_moa_learner_CLI(AdaptiveRandomForestRegressor(schema))
+                        set_value = _extract_moa_learner_CLI(
+                            AdaptiveRandomForestRegressor(schema)
+                        )
                     elif type(base_learner) is str:
                         set_value = base_learner
                     else:
@@ -65,7 +60,7 @@ class MVE(MOAPredictionIntervalLearner):
             random_seed=random_seed,
             moa_learner=self.moa_learner,
         )
+
     def __str__(self):
         # Overrides the default class name from MOA
         return "MVEPredictionInterval"
-

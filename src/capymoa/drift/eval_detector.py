@@ -57,10 +57,10 @@ class EvaluateDetector:
 
         self.results = pd.Series(
             {
-                'mean_time_to_detect': -1,
-                'missed_detection_ratio': -1,
-                'mean_time_btw_false_alarms': -1,
-                'alarms_per_ep_mean': -1,
+                "mean_time_to_detect": -1,
+                "missed_detection_ratio": -1,
+                "mean_time_btw_false_alarms": -1,
+                "alarms_per_ep_mean": -1,
             }
         )
 
@@ -85,10 +85,10 @@ class EvaluateDetector:
 
             self.metrics.append(
                 {
-                    'mtfa': mtfa,
-                    'n_alarms': n_alarms,
-                    'delay': det_delay,
-                    'detected': detected_flag,
+                    "mtfa": mtfa,
+                    "n_alarms": n_alarms,
+                    "delay": det_delay,
+                    "detected": detected_flag,
                 }
             )
 
@@ -101,10 +101,10 @@ class EvaluateDetector:
 
         self.results = pd.Series(
             {
-                'mean_time_to_detect': df['delay'].mean(),
-                'missed_detection_ratio': 1 - df['detected'].mean(),
-                'mean_time_btw_false_alarms': df['mtfa'].mean(),
-                'no_alarms_per_episode': df['n_alarms'].mean(),
+                "mean_time_to_detect": df["delay"].mean(),
+                "missed_detection_ratio": 1 - df["detected"].mean(),
+                "mean_time_btw_false_alarms": df["mtfa"].mean(),
+                "no_alarms_per_episode": df["n_alarms"].mean(),
             }
         )
 
@@ -122,17 +122,14 @@ class EvaluateDetector:
             episode_preds = episode_preds[episode_preds > last_cut]
             episode_preds -= last_cut
 
-            drift_episodes.append(
-                {'preds': episode_preds,
-                 'true': true - last_cut}
-            )
+            drift_episodes.append({"preds": episode_preds, "true": true - last_cut})
 
             last_cut = true + self.max_delay
 
         return drift_episodes
 
     def _check_arrays(self, preds: ArrayLike, trues: ArrayLike):
-        assert len(trues) > 0, 'No drift points given'
+        assert len(trues) > 0, "No drift points given"
 
         if not isinstance(preds, np.ndarray):
             preds = np.asarray(preds)
@@ -143,12 +140,12 @@ class EvaluateDetector:
         if len(preds) > 1:
             tot_neg_alarms = np.sum(np.diff(preds) < 0)
             if tot_neg_alarms > 0:
-                raise ValueError('Provide an ordered list of detections')
+                raise ValueError("Provide an ordered list of detections")
 
         if len(trues) > 1:
             tot_neg_drifts = np.sum(np.diff(trues) < 0)
             if tot_neg_drifts > 0:
-                raise ValueError('Provide an ordered list of drift points')
+                raise ValueError("Provide an ordered list of drift points")
 
     @staticmethod
     def calc_false_alarms(preds: ArrayLike, true: int) -> Tuple[float, int]:

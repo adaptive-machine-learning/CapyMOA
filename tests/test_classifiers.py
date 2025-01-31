@@ -205,12 +205,7 @@ test_cases = [
         78.15,
         70,
     ),
-    ClassifierTestCase(
-        "ShrubsClassifier",
-        partial(ShrubsClassifier),
-        89.6,
-        91
-    ),
+    ClassifierTestCase("ShrubsClassifier", partial(ShrubsClassifier), 89.6, 91),
 ]
 
 
@@ -246,9 +241,9 @@ def subtest_save_and_load(
             # Check that the saved and loaded model have the same accuracy
             expected_acc = _score(classifier, stream)
             loaded_acc = _score(loaded_classifier, stream)
-            assert (
-                expected_acc == loaded_acc
-            ), f"Original accuracy {expected_acc*100:.2f} != loaded accuracy {loaded_acc*100:.2f}"
+            assert expected_acc == loaded_acc, (
+                f"Original accuracy {expected_acc * 100:.2f} != loaded accuracy {loaded_acc * 100:.2f}"
+            )
 
             # Check that the loaded model can still be trained
             loaded_classifier.train(next(stream))
@@ -287,12 +282,12 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     print(f"{actual_acc}")
     print(f"{actual_win_acc}")
 
-    assert (
-        actual_acc == pytest.approx(test_case.accuracy, abs=0.1)
-    ), f"Basic Eval: Expected accuracy of {test_case.accuracy:0.1f} got {actual_acc: 0.1f}"
-    assert (
-        actual_win_acc == pytest.approx(test_case.win_accuracy, abs=0.1)
-    ), f"Windowed Eval: Expected accuracy of {test_case.win_accuracy:0.1f} got {actual_win_acc:0.1f}"
+    assert actual_acc == pytest.approx(test_case.accuracy, abs=0.1), (
+        f"Basic Eval: Expected accuracy of {test_case.accuracy:0.1f} got {actual_acc: 0.1f}"
+    )
+    assert actual_win_acc == pytest.approx(test_case.win_accuracy, abs=0.1), (
+        f"Windowed Eval: Expected accuracy of {test_case.win_accuracy:0.1f} got {actual_win_acc:0.1f}"
+    )
 
     # Check if the classifier can be saved and loaded
     with subtests.test(msg="save_and_load"):

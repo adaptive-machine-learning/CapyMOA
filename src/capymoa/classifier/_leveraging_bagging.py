@@ -7,9 +7,10 @@ from moa.classifiers.meta import LeveragingBag as _MOA_LeveragingBag
 from moa.classifiers.meta.minibatch import LeveragingBagMB as _MOA_LeveragingBagMB
 import os
 
+
 class LeveragingBagging(MOAClassifier):
-    """Leveraging Bagging for evolving data streams using ADWIN. 
-    
+    """Leveraging Bagging for evolving data streams using ADWIN.
+
     Leveraging Bagging and Leveraging Bagging MC using Random Output Codes ( -o option).
 
     Reference:
@@ -23,14 +24,14 @@ class LeveragingBagging(MOAClassifier):
     """
 
     def __init__(
-        self, 
-        schema=None, 
-        CLI=None, 
-        random_seed=1, 
-        base_learner=None, 
+        self,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        base_learner=None,
         ensemble_size=100,
         minibatch_size=None,
-        number_of_jobs=None
+        number_of_jobs=None,
     ):
         """Construct a Leveraging Bagging classifier.
 
@@ -67,14 +68,18 @@ class LeveragingBagging(MOAClassifier):
             )
             self.ensemble_size = ensemble_size
             moa_learner = None
-            if (number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1) and (minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1):
-                #run the sequential version by default or when both parameters are None | 0 | 1
+            if (
+                number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1
+            ) and (
+                minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1
+            ):
+                # run the sequential version by default or when both parameters are None | 0 | 1
                 self.number_of_jobs = 1
                 self.minibatch_size = 1
                 moa_learner = _MOA_LeveragingBag()
                 CLI = f"-l {self.base_learner} -s {self.ensemble_size}"
             else:
-                #run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
+                # run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
                 if number_of_jobs == 0 or number_of_jobs is None:
                     self.number_of_jobs = 1
                 elif number_of_jobs < 0:
@@ -92,7 +97,6 @@ class LeveragingBagging(MOAClassifier):
                     self.minibatch_size = int(minibatch_size)
                 moa_learner = _MOA_LeveragingBagMB()
                 CLI = f"-l {self.base_learner} -s {self.ensemble_size} -c {self.number_of_jobs} -b {self.minibatch_size} "
-
 
         super().__init__(
             schema=schema, CLI=CLI, random_seed=random_seed, moa_learner=moa_learner

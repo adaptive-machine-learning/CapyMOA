@@ -16,7 +16,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     an ensemble classifier that continuously adds decision trees to the ensemble by training new trees over a sliding window while pruning unnecessary trees away using proximal (stochastic) gradient descent, hence allowing for adaptation to concept drift.
 
     Reference:
-    
+
     `Shrub Ensembles for Online Classification
     Sebastian Buschjäger, Sibylle Hess, and Katharina Morik
     In Proceedings of the Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22), Jan 2022.
@@ -33,7 +33,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
     85.5...
-    
+
     """
 
     def __init__(
@@ -53,7 +53,6 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
             splitter="best", criterion="gini", max_depth=None, random_state=1234
         ),
     ):
-
         """Initializes the ShrubEnsemble classifier with the given parameters.
 
         :param loss: The loss function to be used. Supported values are ``"mse"``,
@@ -69,14 +68,14 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
             * ``L0``: L0 regularization via projection.
             * ``L1``: L1 regularization via projection.
             * ``none``: No regularization.
-            
+
             Projection can be viewed as a softer regularization that drives the
             weights of each member towards 0, whereas ``hard-l0`` limits the
             number of trees in the entire ensemble.
         :param l_ensemble_reg: The regularization strength. Depending on the
             value of ``ensemble_regularizer``, this parameter has different
             meanings:
-        
+
             * ``hard-L0``: then this parameter represent the total number of
               trees in the ensembles.
             * ``L0`` or ``L1``: then this parameter is the regularization
@@ -85,7 +84,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
               removed.
             * ``none``: then this parameter is ignored.
         :param l_l2_reg: The L2 regularization strength of the weights of each
-            tree. 
+            tree.
         :param l_tree_reg: The regularization parameter for individual trees.
             Must be greater than or equal to 0. ``l_tree_reg`` controls the
             number of (overly) large trees in the ensemble by punishing the
@@ -100,14 +99,28 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
             using SGD.
         :param batch_size: The batch size for training each individual tree.
             Internally, a sliding window is stored. Must be greater than or
-            equal to 1. 
+            equal to 1.
         :param sk_dt: Base object which is used to clone any new decision trees
             from. Note, that if you set random_state to an integer the exact
-            same clone is used for any DT object 
+            same clone is used for any DT object
         """
 
         Classifier.__init__(self, schema, sk_dt.random_state)
-        _ShrubEnsembles.__init__(self, schema, loss, step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg, l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt)
+        _ShrubEnsembles.__init__(
+            self,
+            schema,
+            loss,
+            step_size,
+            ensemble_regularizer,
+            l_ensemble_reg,
+            l_l2_reg,
+            l_tree_reg,
+            normalize_weights,
+            burnin_steps,
+            update_leaves,
+            batch_size,
+            sk_dt,
+        )
 
     def __str__(self):
         return str("ShrubsClassifier")
@@ -116,13 +129,20 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
         # assert self.estimators_ is not None, "Call fit before calling predict_proba!"
 
         if len(X.shape) < 2:
-            all_proba = np.zeros(shape=(len(self.estimators_), 1, self.n_classes_), dtype=np.float32)
+            all_proba = np.zeros(
+                shape=(len(self.estimators_), 1, self.n_classes_), dtype=np.float32
+            )
         else:
-            all_proba = np.zeros(shape=(len(self.estimators_), X.shape[0], self.n_classes_), dtype=np.float32)
+            all_proba = np.zeros(
+                shape=(len(self.estimators_), X.shape[0], self.n_classes_),
+                dtype=np.float32,
+            )
 
         for i, e in enumerate(self.estimators_):
             if len(X.shape) < 2:
-                all_proba[i, 1, e.classes_.astype(int)] += e.predict_proba(X[np.newaxis,:])
+                all_proba[i, 1, e.classes_.astype(int)] += e.predict_proba(
+                    X[np.newaxis, :]
+                )
             else:
                 proba = e.predict_proba(X)
                 # Numpy seems to do some weird stuff when it comes to advanced indexing.
@@ -140,7 +160,9 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
             return 1.0 / self.n_classes_ * np.ones(self.n_classes_)
         else:
             all_proba = self._individual_proba(np.array([instance.x]))
-            scaled_prob = sum([w * p for w,p in zip(all_proba, self.estimator_weights_)])
+            scaled_prob = sum(
+                [w * p for w, p in zip(all_proba, self.estimator_weights_)]
+            )
             combined_proba = np.sum(scaled_prob, axis=0)
             return combined_proba
 

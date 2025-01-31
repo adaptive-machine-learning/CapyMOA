@@ -63,13 +63,13 @@ class MOADriftDetector(BaseDriftDetector):
         """
         :param moa_detector: The MOA detector object or class identifier.
         :param CLI: The command-line interface (CLI) configuration for the MOA drift detector, defaults to None
-        """        
+        """
         super().__init__()
 
         self.CLI = CLI
 
         if isinstance(moa_detector, type):
-            if type(moa_detector) == _jpype._JClass:
+            if isinstance(moa_detector, _jpype._JClass):
                 moa_detector = moa_detector()
             else:  # this is not a Java object, thus it certainly isn't a MOA learner
                 raise ValueError("Invalid MOA detector provided.")

@@ -61,9 +61,9 @@ def subtest_save_and_load(
             # Check that the saved and loaded model have the same accuracy
             expected_acc = _score(regressor, stream)
             loaded_acc = _score(loaded_regressor, stream)
-            assert (
-                expected_acc == loaded_acc
-            ), f"Original accuracy {expected_acc*100:.2f} != loaded accuracy {loaded_acc*100:.2f}"
+            assert expected_acc == loaded_acc, (
+                f"Original accuracy {expected_acc * 100:.2f} != loaded accuracy {loaded_acc * 100:.2f}"
+            )
 
             # Check that the loaded model can still be trained
             loaded_regressor.train(stream.next_instance())
@@ -124,12 +124,12 @@ def test_regressor(subtests: SubTests, learner_constructor, rmse, win_rmse):
 
     actual_rmse = evaluator.rmse()
     actual_win_rmse = win_evaluator.rmse()[-1]
-    assert actual_rmse == pytest.approx(
-        rmse, abs=0.1
-    ), f"Basic Eval: Expected {rmse:0.1f} RMSE got {actual_rmse: 0.1f} RMSE"
-    assert actual_win_rmse == pytest.approx(
-        win_rmse, abs=0.1
-    ), f"Windowed Eval: Expected {win_rmse:0.1f} RMSE got {actual_win_rmse:0.1f} RMSE"
+    assert actual_rmse == pytest.approx(rmse, abs=0.1), (
+        f"Basic Eval: Expected {rmse:0.1f} RMSE got {actual_rmse: 0.1f} RMSE"
+    )
+    assert actual_win_rmse == pytest.approx(win_rmse, abs=0.1), (
+        f"Windowed Eval: Expected {win_rmse:0.1f} RMSE got {actual_win_rmse:0.1f} RMSE"
+    )
 
     with subtests.test(msg="save_and_load"):
         subtest_save_and_load(learner, stream, True)

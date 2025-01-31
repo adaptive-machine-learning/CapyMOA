@@ -7,6 +7,7 @@ from moa.classifiers.meta import OzaBagAdwin as _MOA_OzaBagAdwin
 from moa.classifiers.meta.minibatch import OzaBagAdwinMB as _MOA_OzaBagAdwinMB
 import os
 
+
 class OnlineAdwinBagging(MOAClassifier):
     """Bagging for evolving data streams using ADWIN.
 
@@ -27,7 +28,7 @@ class OnlineAdwinBagging(MOAClassifier):
     statement of these two points (a theorem) appears in the reference paper.
 
     References:
-    `Albert Bifet and Ricard Gavaldà. Learning from time-changing data with 
+    `Albert Bifet and Ricard Gavaldà. Learning from time-changing data with
     adaptive windowing. In SIAM International Conference on Data Mining, 2007.`
     `[BHPKG] Albert Bifet, Geoff Holmes, Bernhard Pfahringer, Richard Kirkby,
     and Ricard Gavaldà . New ensemble methods for evolving data streams.
@@ -52,15 +53,16 @@ class OnlineAdwinBagging(MOAClassifier):
     See :py:class:`capymoa.base.MOAClassifier` for train, predict and predict_proba.
 
     """
+
     def __init__(
-        self, 
-        schema=None, 
-        CLI=None, 
-        random_seed=1, 
-        base_learner=None, 
+        self,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        base_learner=None,
         ensemble_size=100,
         minibatch_size=None,
-        number_of_jobs=None
+        number_of_jobs=None,
     ):
         """Construct an Online bagging classifier using online bootstrap sampling with the addition of ADWIN drift detector.
 
@@ -90,14 +92,18 @@ class OnlineAdwinBagging(MOAClassifier):
             )
             self.ensemble_size = ensemble_size
             moa_learner = None
-            if (number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1) and (minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1):
-                #run the sequential version by default or when both parameters are None | 0 | 1
+            if (
+                number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1
+            ) and (
+                minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1
+            ):
+                # run the sequential version by default or when both parameters are None | 0 | 1
                 self.number_of_jobs = 1
                 self.minibatch_size = 1
                 moa_learner = _MOA_OzaBagAdwin()
                 CLI = f"-l {self.base_learner} -s {self.ensemble_size}"
             else:
-                #run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
+                # run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
                 if number_of_jobs == 0 or number_of_jobs is None:
                     self.number_of_jobs = 1
                 elif number_of_jobs < 0:

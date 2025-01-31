@@ -5,7 +5,6 @@ from tempfile import TemporaryDirectory
 import pytest
 import numpy as np
 import platform
-from capymoa.datasets.__main__ import download_datasets
 from capymoa.datasets.downloader import DownloadableDataset
 from capymoa.stream import stream_from_file
 from subprocess import run
@@ -80,12 +79,13 @@ def test_electricity_tiny_schema():
     assert schema.get_label_indexes() == [0, 1]
     assert schema.get_num_attributes() == 6
     assert schema.get_num_classes() == 2
-    assert schema.is_regression() == False
-    assert schema.is_classification() == True
+    assert schema.is_regression() is False
+    assert schema.is_classification() is True
 
     for y_index, y_value in enumerate(schema.get_label_values()):
         assert schema.get_index_for_label(y_value) == y_index
         assert schema.get_value_for_index(y_index) == y_value
+
 
 @pytest.mark.skip("This test is too slow")
 @pytest.mark.parametrize("dataset_type", _ALL_DOWNLOADABLE_DATASET)

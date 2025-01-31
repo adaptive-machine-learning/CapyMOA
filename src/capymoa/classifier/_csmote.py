@@ -1,6 +1,5 @@
 from capymoa.base import (
     MOAClassifier,
-    _extract_moa_learner_CLI,
 )
 from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals
@@ -39,11 +38,11 @@ class CSMOTE(MOAClassifier):
         self,
         schema: Schema = None,
         random_seed: int = 0,
-        base_learner = 'trees.HoeffdingTree',
+        base_learner="trees.HoeffdingTree",
         neighbors: int = 10,
         threshold: float = 0.5,
         min_size_allowed: int = 100,
-        disable_drift_detection: bool = False
+        disable_drift_detection: bool = False,
     ):
         """Continuous Synthetic Minority Oversampling (C-SMOTE) by Bernardo et al.
 
@@ -64,8 +63,9 @@ class CSMOTE(MOAClassifier):
             "disable_drift_detection": "-d",
         }
 
-        assert (type(base_learner) == str
-                ), "Only MOA CLI strings are supported for CSMOTE base_learner, at the moment."
+        assert isinstance(base_learner, str), (
+            "Only MOA CLI strings are supported for CSMOTE base_learner, at the moment."
+        )
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(CSMOTE, self).__init__(

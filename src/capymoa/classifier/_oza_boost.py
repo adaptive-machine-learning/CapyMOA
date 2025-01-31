@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 
 from capymoa.base import (
     MOAClassifier,
@@ -46,7 +45,7 @@ class OzaBoost(MOAClassifier):
         self,
         schema: Schema | None = None,
         random_seed: int = 0,
-        base_learner = 'trees.HoeffdingTree',
+        base_learner="trees.HoeffdingTree",
         boosting_iterations: int = 10,
         use_pure_boost: bool = False,
     ):
@@ -65,8 +64,9 @@ class OzaBoost(MOAClassifier):
             "use_pure_boost": "-p",
         }
 
-        assert (type(base_learner) == str
-                ), "Only MOA CLI strings are supported for OzaBoost base_learner, at the moment."
+        assert isinstance(base_learner, str), (
+            "Only MOA CLI strings are supported for OzaBoost base_learner, at the moment."
+        )
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(OzaBoost, self).__init__(

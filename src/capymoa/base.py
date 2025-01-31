@@ -1,16 +1,17 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Union
+from typing import Optional
 
 from jpype import _jpype
-import jpype
 from moa.classifiers import (
     Classifier as MOA_Classifier_Interface,
     Regressor as MOA_Regressor_Interface,
 )
-from moa.classifiers.predictioninterval import PredictionIntervalLearner as MOA_PredictionInterval_Interface
+from moa.classifiers.predictioninterval import (
+    PredictionIntervalLearner as MOA_PredictionInterval_Interface,
+)
 from moa.classifiers.trees import (
-ARFFIMTDD as MOA_ARFFIMTDD,
-SelfOptimisingBaseTree as MOA_SOKNLBT,
+    ARFFIMTDD as MOA_ARFFIMTDD,
+    SelfOptimisingBaseTree as MOA_SOKNLBT,
 )
 from moa.core import Utils
 
@@ -44,12 +45,11 @@ def _extract_moa_drift_detector_CLI(drift_detector):
     moa_detector_class_id = str(moa_detector.getClass().getName())
     moa_detector_class_id_parts = moa_detector_class_id.split(".")
 
-    moa_detector_str = (
-        f"{moa_detector_class_id_parts[-1]}"
-    )
+    moa_detector_str = f"{moa_detector_class_id_parts[-1]}"
     moa_detector_str = f"({moa_detector_str} {CLI})"
 
     return moa_detector_str
+
 
 def _get_moa_creation_CLI(moa_learner):
     """
@@ -67,7 +67,9 @@ def _get_moa_creation_CLI(moa_learner):
     moa_learner_class_id_parts = moa_learner_class_id.split(".")
 
     moa_learner_str = (
-        f"{moa_learner_class_id_parts[-1]}" if isinstance(moa_learner, MOA_ARFFIMTDD) or isinstance(moa_learner, MOA_SOKNLBT)
+        f"{moa_learner_class_id_parts[-1]}"
+        if isinstance(moa_learner, MOA_ARFFIMTDD)
+        or isinstance(moa_learner, MOA_SOKNLBT)
         else f"{moa_learner_class_id_parts[-2]}.{moa_learner_class_id_parts[-1]}"
     )
 
@@ -94,15 +96,23 @@ def _extract_moa_learner_CLI(learner):
     """
 
     # Check if the base_learner is a MOAClassifie or a MOARegressor
-    if isinstance(learner, MOAClassifier) or isinstance(learner, MOARegressor) or isinstance(learner, MOAPredictionIntervalLearner):
+    if (
+        isinstance(learner, MOAClassifier)
+        or isinstance(learner, MOARegressor)
+        or isinstance(learner, MOAPredictionIntervalLearner)
+    ):
         learner = _get_moa_creation_CLI(learner.moa_learner)
 
     # ... or a Classifier or a Regressor (Interfaces from MOA) type
-    if isinstance(learner, MOA_Classifier_Interface) or isinstance(learner, MOA_Regressor_Interface) or isinstance(learner, MOA_PredictionInterval_Interface):
+    if (
+        isinstance(learner, MOA_Classifier_Interface)
+        or isinstance(learner, MOA_Regressor_Interface)
+        or isinstance(learner, MOA_PredictionInterval_Interface)
+    ):
         learner = _get_moa_creation_CLI(learner)
 
     # ... or a java object, which we presume is a MOA object (if it is not, MOA will raise the error)
-    if type(learner) == _jpype._JClass:
+    if isinstance(learner, _jpype._JClass):
         learner = _get_moa_creation_CLI(learner())
     return learner
 
@@ -160,7 +170,7 @@ class MOAClassifier(Classifier):
         self.CLI = CLI
         # If moa_learner is a class identifier instead of an object
         if isinstance(moa_learner, type):
-            if type(moa_learner) == _jpype._JClass:
+            if isinstance(moa_learner, _jpype._JClass):
                 moa_learner = moa_learner()
             else:  # this is not a Java object, thus it certainly isn't a MOA learner
                 raise ValueError("Invalid MOA classifier provided.")
@@ -179,7 +189,6 @@ class MOAClassifier(Classifier):
         self.moa_learner.prepareForUse()
         self.moa_learner.resetLearningImpl()
         self.moa_learner.setModelContext(schema.get_moa_header())
-
 
     def __str__(self):
         # Removes the package information from the name of the learner.
@@ -205,8 +214,8 @@ class SKClassifier(Classifier):
     """A wrapper class for using scikit-learn classifiers in CapyMOA.
 
     Some of scikit-learn's classifiers that are compatible with online learning
-    have been wrapped and tested already in CapyMOA (See :mod:`capymoa.classifier`). 
-    
+    have been wrapped and tested already in CapyMOA (See :mod:`capymoa.classifier`).
+
     However, if you want to use a scikit-learn classifier that has not been
     wrapped yet, you can use this class to wrap it yourself. This requires
     that the scikit-learn classifier implements the ``partial_fit`` and
@@ -247,7 +256,9 @@ class SKClassifier(Classifier):
     sklearner: _SKClassifierMixin
     """The underlying scikit-learn object."""
 
-    def __init__(self, sklearner: _SKClassifierMixin, schema: Schema = None, random_seed: int = 1):
+    def __init__(
+        self, sklearner: _SKClassifierMixin, schema: Schema = None, random_seed: int = 1
+    ):
         """Construct a scikit-learn classifier wrapper.
 
         :param sklearner: A scikit-learn classifier object to wrap that must
@@ -256,7 +267,7 @@ class SKClassifier(Classifier):
         :param random_seed: Random seed for reproducibility.
         :raises ValueError: If the scikit-learn algorithm does not implement
             ``partial_fit`` or ``predict``.
-        """        
+        """
         super().__init__(schema=schema, random_seed=random_seed)
 
         # Checks if it implements partial_fit and predict
@@ -378,8 +389,8 @@ class SKRegressor(Regressor):
     """A wrapper class for using scikit-learn regressors in CapyMOA.
 
     Some of scikit-learn's regressors that are compatible with online learning
-    have been wrapped and tested already in CapyMOA (See :mod:`capymoa.regressor`). 
-    
+    have been wrapped and tested already in CapyMOA (See :mod:`capymoa.regressor`).
+
     However, if you want to use a scikit-learn regressor that has not been
     wrapped yet, you can use this class to wrap it yourself. This requires
     that the scikit-learn regressor implements the ``partial_fit`` and
@@ -422,7 +433,9 @@ class SKRegressor(Regressor):
     sklearner: _SKRegressorMixin
     """The underlying scikit-learn object."""
 
-    def __init__(self, sklearner: _SKRegressorMixin, schema: Schema = None, random_seed: int = 1):
+    def __init__(
+        self, sklearner: _SKRegressorMixin, schema: Schema = None, random_seed: int = 1
+    ):
         """Construct a scikit-learn regressor wrapper.
 
         :param sklearner: A scikit-learn classifier object to wrap that must
@@ -431,7 +444,7 @@ class SKRegressor(Regressor):
         :param random_seed: Random seed for reproducibility.
         :raises ValueError: If the scikit-learn algorithm does not implement
             ``partial_fit`` or ``predict``.
-        """        
+        """
         super().__init__(schema=schema, random_seed=random_seed)
 
         # Checks if it implements partial_fit and predict
@@ -468,15 +481,16 @@ class PredictionIntervalLearner(Regressor):
     @abstractmethod
     def train(self, instance):
         pass
+
     @abstractmethod
     def predict(self, instance):
         pass
 
 
 class MOAPredictionIntervalLearner(MOARegressor, PredictionIntervalLearner):
-
     def train(self, instance):
         self.moa_learner.trainOnInstance(instance.java_instance)
+
     def predict(self, instance):
         prediction_PI = self.moa_learner.getVotesForInstance(instance.java_instance)
         if len(prediction_PI) != 3:
@@ -558,12 +572,13 @@ class MOAAnomalyDetector(AnomalyDetector):
         prediction_array = self.moa_learner.getVotesForInstance(instance.java_instance)
         return prediction_array[0]
 
+
 ##############################################################
 ######################### Clustering #########################
 ##############################################################
 class ClusteringResult:
     """Abstract clustering result class that has the structure of clusters: centers, weights, radii, and ids.
-    
+
     IDs might not be available for most MOA implementations."""
 
     def __init__(self, centers, weights, radii, ids):
@@ -577,15 +592,16 @@ class ClusteringResult:
 
     def get_weights(self):
         return self._weights
-    
+
     def get_radii(self):
         return self._radii
-    
+
     def get_ids(self):
         return self._ids
-    
+
     def __str__(self) -> str:
         return f"Centers: {self._centers}, Weights: {self._weights}, Radii: {self._radii}, IDs: {self._ids}"
+
 
 class Clusterer(ABC):
     def __init__(self, schema: Schema, random_seed=1):
@@ -617,7 +633,7 @@ class Clusterer(ABC):
     @abstractmethod
     def _get_micro_clusters_radii(self):
         pass
-    
+
     @abstractmethod
     def _get_micro_clusters_weights(self):
         pass
@@ -637,11 +653,11 @@ class Clusterer(ABC):
     @abstractmethod
     def get_clustering_result(self):
         pass
-    
+
     @abstractmethod
     def get_micro_clustering_result(self):
         pass
-    
+
     # @abstractmethod
     # def predict(self, instance: Instance) -> Optional[LabelIndex]:
     #     pass
@@ -649,6 +665,7 @@ class Clusterer(ABC):
     # @abstractmethod
     # def predict_proba(self, instance: Instance) -> LabelProbabilities:
     #     pass
+
 
 class MOAClusterer(Clusterer):
     """
@@ -666,14 +683,14 @@ class MOAClusterer(Clusterer):
         self.CLI = CLI
         # If moa_learner is a class identifier instead of an object
         if isinstance(moa_learner, type):
-            if type(moa_learner) == _jpype._JClass:
+            if isinstance(moa_learner, _jpype._JClass):
                 moa_learner = moa_learner()
             else:  # this is not a Java object, thus it certainly isn't a MOA learner
                 raise ValueError("Invalid MOA clusterer provided.")
         self.moa_learner = moa_learner
 
         # self.moa_learner.setRandomSeed(self.random_seed)
-        
+
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())
 
@@ -701,7 +718,9 @@ class MOAClusterer(Clusterer):
         ret = []
         for c in self.moa_learner.getMicroClusteringResult().getClustering():
             java_array = c.getCenter()[:-1]
-            python_array = [java_array[i] for i in range(len(java_array))]  # Convert to Python list
+            python_array = [
+                java_array[i] for i in range(len(java_array))
+            ]  # Convert to Python list
             ret.append(python_array)
         return ret
 
@@ -710,7 +729,7 @@ class MOAClusterer(Clusterer):
         for c in self.moa_learner.getMicroClusteringResult().getClustering():
             ret.append(c.getRadius())
         return ret
-    
+
     def _get_micro_clusters_weights(self):
         ret = []
         for c in self.moa_learner.getMicroClusteringResult().getClustering():
@@ -721,7 +740,9 @@ class MOAClusterer(Clusterer):
         ret = []
         for c in self.moa_learner.getClusteringResult().getClustering():
             java_array = c.getCenter()[:-1]
-            python_array = [java_array[i] for i in range(len(java_array))]  # Convert to Python list
+            python_array = [
+                java_array[i] for i in range(len(java_array))
+            ]  # Convert to Python list
             ret.append(python_array)
         return ret
 
@@ -740,16 +761,25 @@ class MOAClusterer(Clusterer):
     def get_clustering_result(self):
         if self.implements_macro_clusters():
             # raise ValueError("This clusterer does not implement macro-clusters.")
-            return ClusteringResult(self._get_clusters_centers(), self._get_clusters_weights(), self._get_clusters_radii(), [])
-        else:
-            return ClusteringResult([], [], [], [])
-    
-    def get_micro_clustering_result(self):
-        if self.implements_micro_clusters():
-            return ClusteringResult(self._get_micro_clusters_centers(), self._get_micro_clusters_weights(), self._get_micro_clusters_radii(), [])
+            return ClusteringResult(
+                self._get_clusters_centers(),
+                self._get_clusters_weights(),
+                self._get_clusters_radii(),
+                [],
+            )
         else:
             return ClusteringResult([], [], [], [])
 
+    def get_micro_clustering_result(self):
+        if self.implements_micro_clusters():
+            return ClusteringResult(
+                self._get_micro_clusters_centers(),
+                self._get_micro_clusters_weights(),
+                self._get_micro_clusters_radii(),
+                [],
+            )
+        else:
+            return ClusteringResult([], [], [], [])
 
     # def predict(self, instance):
     #     return Utils.maxIndex(
@@ -758,4 +788,3 @@ class MOAClusterer(Clusterer):
 
     # def predict_proba(self, instance):
     #     return self.moa_learner.getVotesForInstance(instance.java_instance)
-    

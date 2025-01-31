@@ -37,7 +37,7 @@ class CUSUM(MOADriftDetector):
         CLI: Optional[str] = None,
     ):
         if CLI is None:
-            CLI = f"-n {min_n_instances} " f"-d {delta} " f"-l {lambda_}"
+            CLI = f"-n {min_n_instances} -d {delta} -l {lambda_}"
 
         super().__init__(moa_detector=_CusumDM(), CLI=CLI)
 

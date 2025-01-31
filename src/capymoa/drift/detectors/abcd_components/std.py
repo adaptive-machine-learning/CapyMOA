@@ -18,7 +18,7 @@ class Aggregate:
     def std(self):
         if self.n < 2:
             return np.nan
-        with np.errstate(all='ignore'):
+        with np.errstate(all="ignore"):
             return np.sqrt(self.variance())
 
 
@@ -62,7 +62,7 @@ class PairwiseVariance:
         new_aggregate = Aggregate(n=count, mean=new_mean, m2=m2)
         self.aggregates.append(new_aggregate)
         if len(self.aggregates) > self.max_size:
-            self.aggregates = self.aggregates[-self.max_size:]
+            self.aggregates = self.aggregates[-self.max_size :]
 
     def reset(self):
         self.aggregates = []
@@ -82,6 +82,6 @@ class PairwiseVariance:
         delta = mean_b - mean_a
         m2_ab = agg2.m2
         m2_a = agg1.m2
-        m2_b = m2_ab - m2_a - delta ** 2 * (n_a * n_b) / n_ab
+        m2_b = m2_ab - m2_a - delta**2 * (n_a * n_b) / n_ab
 
         return PairwiseAggregate(agg1, Aggregate(n=n_b, mean=mean_b, m2=m2_b))

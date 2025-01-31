@@ -1,6 +1,7 @@
 """Code taken from:
 https://github.com/scikit-learn/scikit-learn/blob/8721245511de2f225ff5f9aa5f5fadce663cd4a3/doc/sphinxext/github_link.py
 """
+
 import inspect
 import os
 import subprocess

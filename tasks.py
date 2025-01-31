@@ -251,7 +251,23 @@ def commit(ctx: Context):
 
     Utility wrapper around `python -m commitizen commit`.
     """
+    print("Running Lint Checks ...")
+    ctx.run("python -m ruff check")
+    print("Running Format Checks ...")
+    ctx.run("python -m ruff format --check")
     ctx.run("python -m commitizen commit", pty=True)
+
+
+@task
+def lint(ctx: Context):
+    """Lint the code using ruff."""
+    ctx.run("python -m ruff check --fix")
+
+
+@task
+def format(ctx: Context):
+    """Format the code using ruff."""
+    ctx.run("python -m ruff format")
 
 
 docs = Collection("docs")
@@ -277,3 +293,5 @@ ns.add_collection(build)
 ns.add_collection(test)
 ns.add_task(commit)
 ns.add_task(refresh_moa)
+ns.add_task(lint)
+ns.add_task(format)

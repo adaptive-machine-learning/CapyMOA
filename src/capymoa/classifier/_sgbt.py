@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 
 from capymoa.base import (
     MOAClassifier,
@@ -47,13 +46,13 @@ class StreamingGradientBoostedTrees(MOAClassifier):
         self,
         schema: Schema | None = None,
         random_seed: int = 0,
-        base_learner = 'trees.FIMTDD -s VarianceReductionSplitCriterion -g 25 -c 0.05 -e -p',
+        base_learner="trees.FIMTDD -s VarianceReductionSplitCriterion -g 25 -c 0.05 -e -p",
         boosting_iterations: int = 100,
         percentage_of_features: int = 75,
-        learning_rate = 0.0125,
+        learning_rate=0.0125,
         disable_one_hot: bool = False,
         multiply_hessian_by: int = 1,
-        skip_training: int =1,
+        skip_training: int = 1,
         use_squared_loss: bool = False,
     ):
         """Streaming Gradient Boosted Trees (SGBT) Classifier
@@ -82,8 +81,9 @@ class StreamingGradientBoostedTrees(MOAClassifier):
             "random_seed": "-r",
         }
 
-        assert (type(base_learner) == str
-                ), "Only MOA CLI strings are supported for SGBT base_learner, at the moment."
+        assert isinstance(base_learner, str), (
+            "Only MOA CLI strings are supported for SGBT base_learner, at the moment."
+        )
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(StreamingGradientBoostedTrees, self).__init__(

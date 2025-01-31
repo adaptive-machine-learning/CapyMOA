@@ -35,12 +35,12 @@ def test_stream_consistency():
 
         prototype = instances.pop()
         for instance in instances:
-            assert np.allclose(
-                prototype.x, instance.x
-            ), f"Streams are not consistent at instance {i}"
-            assert (
-                prototype.y_index == instance.y_index
-            ), f"Streams are not consistent at instance {i}"
+            assert np.allclose(prototype.x, instance.x), (
+                f"Streams are not consistent at instance {i}"
+            )
+            assert prototype.y_index == instance.y_index, (
+                f"Streams are not consistent at instance {i}"
+            )
 
 
 @pytest.mark.parametrize("stream", _get_streams())
