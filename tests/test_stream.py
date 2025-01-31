@@ -3,6 +3,7 @@
 from capymoa.evaluation.evaluation import prequential_ssl_evaluation
 from capymoa.stream import stream_from_file
 from typing import List, Optional
+from capymoa.stream._stream import ConcatStream
 import numpy as np
 
 from capymoa.base import ClassifierSSL
@@ -43,16 +44,46 @@ def test_stream_consistency():
             )
 
 
-@pytest.mark.parametrize("stream", _get_streams())
+@pytest.mark.parametrize(
+    "stream",
+    [NumpyStream(np.array([[1, 2, 3], [4, 5, 6]]), np.array([0, 1])), *_get_streams()],
+)
 def test_iterator_api(stream: Stream[LabeledInstance]):
     for instance in stream:
+        print(instance)
+        assert str(instance)
         assert isinstance(instance, Instance), f"got {type(instance)}"
         assert isinstance(instance, LabeledInstance)
         assert isinstance(instance.x, np.ndarray)
         assert isinstance(instance.y_index, int)
+        assert isinstance(instance.y_label, str)
         assert instance.y_index >= 0
         assert instance.y_index < stream.get_schema().get_num_classes()
         assert instance.x.shape == (stream.get_schema().get_num_attributes(),)
+
+
+def test_concat_stream():
+    stream_a = NumpyStream(
+        np.arange(10).reshape((10, 1)), np.zeros(10), target_type="categorical"
+    )
+    stream_b = NumpyStream(
+        np.arange(10, 20).reshape((10, 1)), np.zeros(10), target_type="categorical"
+    )
+    stream = ConcatStream([stream_a, stream_b])
+    assert len(stream) == 20
+    for instance, x in zip(stream, range(20)):
+        assert instance.x == x
+
+
+def test_concat_stream_with_different_schema():
+    stream_a = NumpyStream(
+        np.arange(10).reshape((10, 1)), np.zeros(10), target_type="categorical"
+    )
+    stream_b = NumpyStream(
+        np.arange(10, 20).reshape((5, 2)), np.zeros(5), target_type="categorical"
+    )
+    with pytest.raises(ValueError):
+        ConcatStream([stream_a, stream_b])
 
 
 def test_stream():
