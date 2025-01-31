@@ -282,12 +282,12 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     print(f"{actual_acc}")
     print(f"{actual_win_acc}")
 
-    assert (
-        actual_acc == pytest.approx(test_case.accuracy, abs=0.1)
-    ), f"Basic Eval: Expected accuracy of {test_case.accuracy:0.1f} got {actual_acc: 0.1f}"
-    assert (
-        actual_win_acc == pytest.approx(test_case.win_accuracy, abs=0.1)
-    ), f"Windowed Eval: Expected accuracy of {test_case.win_accuracy:0.1f} got {actual_win_acc:0.1f}"
+    assert actual_acc == pytest.approx(test_case.accuracy, abs=0.1), (
+        f"Basic Eval: Expected accuracy of {test_case.accuracy:0.1f} got {actual_acc: 0.1f}"
+    )
+    assert actual_win_acc == pytest.approx(test_case.win_accuracy, abs=0.1), (
+        f"Windowed Eval: Expected accuracy of {test_case.win_accuracy:0.1f} got {actual_win_acc:0.1f}"
+    )
 
     # Check if the classifier can be saved and loaded
     with subtests.test(msg="save_and_load"):
