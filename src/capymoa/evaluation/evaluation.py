@@ -50,9 +50,7 @@ def _is_fast_mode_compilable(stream: Stream, learner, optimise=True) -> bool:
         return False
 
     """Check if the stream is compatible with the efficient loops in MOA."""
-    is_moa_stream = stream.moa_stream is not None and isinstance(
-        stream.moa_stream, InstanceStream
-    )
+    is_moa_stream = isinstance(stream.get_moa_stream(), InstanceStream)
     is_moa_learner = hasattr(learner, "moa_learner") and learner.moa_learner is not None
 
     return is_moa_stream and is_moa_learner and optimise

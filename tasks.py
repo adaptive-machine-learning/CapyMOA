@@ -210,7 +210,7 @@ def test_notebooks(
         "-x",  # Stop after the first failure
         f"--nbmake-timeout={timeout}",
         "notebooks",
-        "--durations=0",  # Show the duration of each notebook
+        "--durations=5",  # Show the duration of each notebook
     ]
     cmd += ["-n=auto"] if parallel else []  # Should we run in parallel?
     cmd += (
@@ -230,7 +230,7 @@ def unittest(ctx: Context, parallel: bool = True):
     cmd = [
         "python -m pytest",
         "--doctest-modules",  # Run tests defined in docstrings
-        "--durations=0",  # Show the duration of each test
+        "--durations=5",  # Show the duration of each test
         "-x",  # Stop after the first failure
         "-p no:faulthandler",  # jpype can raise irrelevant warnings: https://github.com/jpype-project/jpype/issues/561
     ]
