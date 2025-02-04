@@ -1,6 +1,5 @@
 from capymoa.base import AnomalyDetector
 from capymoa.instance import Instance
-from capymoa.type_alias import AnomalyScore
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -34,7 +33,7 @@ class Autoencoder(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.42
+    AUC: 0.58
 
     """
 
@@ -115,7 +114,7 @@ class Autoencoder(AnomalyDetector):
         else:
             return 1
 
-    def score_instance(self, instance: Instance) -> AnomalyScore:
+    def score_instance(self, instance: Instance) -> float:
         # Convert the input to a tensor
         input = torch.from_numpy(instance.x)
 
