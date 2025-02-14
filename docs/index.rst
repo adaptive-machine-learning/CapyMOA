@@ -74,7 +74,8 @@ features.  You can find the code to reproduce this benchmark in
 Python's data science ecosystem.*
 
 📖 Cite Us
-=======
+--------------
+
 If you use CapyMOA in your research, please cite us using the following Bibtex entry::
 
    @misc{
