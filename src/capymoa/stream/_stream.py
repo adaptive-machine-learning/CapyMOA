@@ -228,6 +228,22 @@ class Schema:
         """Return a string representation of the schema as an ARFF header."""
         return str(self._moa_header.toString()).strip()
 
+    def __eq__(self, other: "Schema") -> bool:
+        """Return True if the schema is equal to another schema.
+
+        This is used by :meth:`ConcatStream` to check if the schemas are compatible
+        before concatenating the streams.
+        """
+        if self.is_classification() and other.is_classification():
+            return (
+                self.get_num_classes() == other.get_num_classes()
+                and self.get_num_attributes() == other.get_num_attributes()
+            )
+        elif self.is_regression() and other.is_regression():
+            return self.get_num_attributes() == other.get_num_attributes()
+        else:
+            return False
+
 
 _AnyInstance = TypeVar("_AnyInstance", bound=Instance)
 """A generic type that is bound to an instance type.
@@ -502,6 +518,9 @@ class NumpyStream(Stream[_AnyInstance]):
 
     def restart(self):
         self.current_instance_index = 0
+
+    def __len__(self) -> int:
+        return self.arff_instances_data.numInstances()
 
 
 def stream_from_file(
@@ -870,3 +889,95 @@ class CSVStream(Stream[_AnyInstance]):
     def restart(self):
         self.total_number_of_lines = 0
         self.n_lines_to_skip = 1 if self.skip_header else 0
+
+
+class ConcatStream(Stream[_AnyInstance]):
+    """Concatenate multiple streams into a single stream.
+
+    When the end of a stream is reached, the next stream in the list is used.
+
+    >>> from capymoa.stream import ConcatStream, NumpyStream
+    >>> import numpy as np
+    >>> X1 = np.array([[1, 2, 3]])
+    >>> X2 = np.array([[4, 5, 6]])
+    >>> y1 = np.array([0])
+    >>> y2 = np.array([0])
+    >>> stream1 = NumpyStream(X1, y1)
+    >>> stream2 = NumpyStream(X2, y2)
+    >>> concat_stream = ConcatStream([stream1, stream2])
+    >>> for instance in concat_stream:
+    ...     print(instance)
+    LabeledInstance(
+        Schema(No_Name),
+        x=[1. 2. 3.],
+        y_index=0,
+        y_label='0'
+    )
+    LabeledInstance(
+        Schema(No_Name),
+        x=[4. 5. 6.],
+        y_index=0,
+        y_label='0'
+    )
+    """
+
+    def __init__(self, streams: Sequence[Stream]):
+        """Construct a ConcatStream object from a list of streams.
+
+        :param streams: A list of streams to chain together.
+        """
+        super().__init__()
+        # Check that all streams have the same schema.
+        schema = streams[0].get_schema()
+        for stream in streams[1:]:
+            if stream.get_schema() != schema:
+                raise ValueError("All streams must have the same schema.")
+
+        self.streams = streams
+        self.stream_index = 0
+
+        self._length: Optional[int] = None
+        if all(hasattr(stream, "__len__") for stream in streams):
+            self._length = sum(len(stream) for stream in streams)
+
+    def has_more_instances(self) -> bool:
+        """Return ``True`` if the stream have more instances to read."""
+        return any(s.has_more_instances() for s in self.streams[self.stream_index :])
+
+    def next_instance(self) -> _AnyInstance:
+        """Return the next instance in the stream.
+
+        :raises ValueError: If the machine learning task is neither a regression
+            nor a classification task.
+        :return: A labeled instances or a regression depending on the schema.
+        """
+        stream = self.streams[self.stream_index]
+        if not stream.has_more_instances():
+            self.stream_index += 1
+
+        if not self.has_more_instances():
+            raise StopIteration()
+
+        return self.streams[self.stream_index].next_instance()
+
+    def get_schema(self) -> Schema:
+        """Return the schema of the stream."""
+        return self.streams[self.stream_index].get_schema()
+
+    def get_moa_stream(self) -> Optional[InstanceStream]:
+        """Get the MOA stream object if it exists."""
+        return self.streams[self.stream_index].get_moa_stream()
+
+    def restart(self):
+        """Restart the stream to read instances from the beginning."""
+        for stream in self.streams:
+            stream.restart()
+        self.stream_index = 0
+
+    def __len__(self) -> None:
+        """Return the length of the stream."""
+        if self._length is None:
+            raise RuntimeError(
+                "Only supports ``len()`` if contained streams have a length."
+            )
+        return self._length

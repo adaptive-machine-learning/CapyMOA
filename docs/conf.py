@@ -56,7 +56,7 @@ nitpick_ignore_regex = [
 toc_object_entries_show_parents = "hide"
 autosummary_ignore_module_all = False
 autosummary_generate = True
-autodoc_member_order = "bysource"
+autodoc_member_order = "groupwise"
 autodoc_class_signature = "separated"
 
 templates_path = ["_templates"]

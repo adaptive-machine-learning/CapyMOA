@@ -5,9 +5,10 @@ from ._stream import (
     stream_from_file,
     CSVStream,
     NumpyStream,
+    ConcatStream,
     MOAStream,
 )
-from .PytorchStream import PytorchStream
+from .torch import TorchClassifyStream
 from . import drift, generator, preprocessing
 
 __all__ = [
@@ -15,11 +16,12 @@ __all__ = [
     "Schema",
     "stream_from_file",
     "ARFFStream",
-    "PytorchStream",
+    "TorchClassifyStream",
     "CSVStream",
     "drift",
     "generator",
     "preprocessing",
     "NumpyStream",
     "MOAStream",
+    "ConcatStream",
 ]
