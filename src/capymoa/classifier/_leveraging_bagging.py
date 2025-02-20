@@ -86,7 +86,7 @@ class LeveragingBagging(MOAClassifier):
                     self.number_of_jobs = os.cpu_count()
                 else:
                     self.number_of_jobs = int(min(number_of_jobs, os.cpu_count()))
-                
+
                 if minibatch_size is None:
                     # if the user sets only the number_of_jobs, we assume he wants the parallel minibatch version and initialize minibatch_size to the default 25
                     self.minibatch_size = 25
