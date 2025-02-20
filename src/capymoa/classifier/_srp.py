@@ -7,6 +7,8 @@ from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 from moa.classifiers.meta import StreamingRandomPatches as _MOA_SRP
+from moa.classifiers.meta.minibatch import StreamingRandomPatchesMB as _MOA_SRP_MB
+import os
 
 
 class StreamingRandomPatches(MOAClassifier):
@@ -46,11 +48,14 @@ class StreamingRandomPatches(MOAClassifier):
         max_features=0.6,
         training_method: str = "RandomPatches",
         lambda_param: float = 6.0,
+        minibatch_size=None,
+        number_of_jobs=None,
         drift_detection_method="ADWINChangeDetector -a 1.0E-5",
         warning_detection_method="ADWINChangeDetector -a 1.0E-4",
         disable_weighted_vote: bool = False,
         disable_drift_detection: bool = False,
         disable_background_learner: bool = False,
+
     ):
         """Streaming Random Patches (SRP) Classifier
 
@@ -58,7 +63,7 @@ class StreamingRandomPatches(MOAClassifier):
         :param random_seed: The random seed passed to the MOA learner.
         :param base_learner: The base learner to be trained. Default trees.HoeffdingTree -g 50 -c 0.01.
         :param ensemble_size: The number of trees in the ensemble.
-        :param max_features: The maximum number of features to consider when splitting a node.
+        :param max_features: The subspace size for each ensemble member.
             If provided as a float between 0.0 and 1.0, it represents the percentage of features to consider.
             If provided as an integer, it specifies the exact number of features to consider.
             If provided as the string "sqrt", it indicates that the square root of the total number of features.
@@ -69,12 +74,22 @@ class StreamingRandomPatches(MOAClassifier):
             RandomPatches: Random Patches.
         :param lambda_param: The lambda parameter that controls the Poisson distribution for
             the online bagging simulation.
+        :param minibatch_size: The number of instances that a learner must accumulate before training.
+        :param number_of_jobs: The number of parallel jobs to run during the execution of the algorithm.
+            By default, the algorithm executes tasks sequentially (i.e., with `number_of_jobs=1`).
+            Increasing the `number_of_jobs` can lead to faster execution on multi-core systems.
+            However, setting it to a high value may consume more system resources and memory.
+            This implementation is designed to be embarrassingly parallel, meaning that the algorithm's computations
+            can be efficiently distributed across multiple processing units without sacrificing predictive
+            performance. It's recommended to experiment with different values to find the optimal setting based on
+            the available hardware resources and the nature of the workload.
         :param drift_detection_method: The method used for drift detection.
         :param warning_detection_method: The method used for warning detection.
         :param disable_weighted_vote: Whether to disable weighted voting.
         :param disable_drift_detection: Whether to disable drift detection.
         :param disable_background_learner: Whether to disable background learning.
         """
+        moa_learner = None
 
         mapping = {
             "base_learner": "-l",
@@ -125,10 +140,39 @@ class StreamingRandomPatches(MOAClassifier):
                 "an integer specifying exact number, or\n"
                 "'sqrt' for square root of total features."
             )
-
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
+
+        if (
+                number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1
+        ) and (
+                minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1
+        ):
+            number_of_jobs=1
+            minibatch_size=1
+            moa_learner = _MOA_SRP()
+
+        else:
+            if number_of_jobs == 0 or number_of_jobs is None:
+                self.number_of_jobs = 1
+            elif number_of_jobs < 0:
+                self.number_of_jobs = os.cpu_count()
+            else:
+                self.number_of_jobs = int(min(number_of_jobs, os.cpu_count()))
+            if minibatch_size <= 1:
+                # if the user sets the number of jobs and the minibatch_size less than 1 it is considered that the user wants a parallel execution of a single instance at a time
+                self.minibatch_size = 1
+            elif minibatch_size is None:
+                # if the user sets only the number_of_jobs, we assume he wants the parallel minibatch version and initialize minibatch_size to the default 25
+                self.minibatch_size = 25
+            else:
+                # if the user sets both parameters to values greater than 1, we initialize the minibatch_size to the user's choice
+                self.minibatch_size = int(minibatch_size)
+            moa_learner = _MOA_SRP_MB()
+            config_str += f"-b {self.minibatch_size} "
+            config_str += f"-c {self.number_of_jobs} "
+
         super(StreamingRandomPatches, self).__init__(
-            moa_learner=_MOA_SRP,
+            moa_learner=moa_learner,
             schema=schema,
             CLI=config_str,
             random_seed=random_seed,

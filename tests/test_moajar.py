@@ -1,11 +1,12 @@
 import jpype
 from pathlib import Path
 from hashlib import sha256
+import capymoa
 
-_MOA_JAR_HASH = "96ad3955de5e702983e611c3eda06df9b2440a39d07524808702be53f5b742b9"
-
+_MOA_JAR_HASH = "b2d8dd2704a64458f220da913228457f1b6b6914355d25e09202bde5ab279647"
 
 def test_imports() -> None:
+    assert capymoa
     """Test that the correct moa version is being packaged"""
     assert jpype.isJVMStarted(), (
         "JVM should be started automatically when importing capymoa"
