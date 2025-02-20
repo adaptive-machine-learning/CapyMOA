@@ -5,6 +5,7 @@ import capymoa
 
 _MOA_JAR_HASH = "b2d8dd2704a64458f220da913228457f1b6b6914355d25e09202bde5ab279647"
 
+
 def test_imports() -> None:
     assert capymoa
     """Test that the correct moa version is being packaged"""

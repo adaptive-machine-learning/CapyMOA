@@ -55,7 +55,6 @@ class StreamingRandomPatches(MOAClassifier):
         disable_weighted_vote: bool = False,
         disable_drift_detection: bool = False,
         disable_background_learner: bool = False,
-
     ):
         """Streaming Random Patches (SRP) Classifier
 
@@ -142,13 +141,11 @@ class StreamingRandomPatches(MOAClassifier):
             )
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
 
-        if (
-                number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1
-        ) and (
-                minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1
+        if (number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1) and (
+            minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1
         ):
-            number_of_jobs=1
-            minibatch_size=1
+            number_of_jobs = 1
+            minibatch_size = 1
             moa_learner = _MOA_SRP()
 
         else:
