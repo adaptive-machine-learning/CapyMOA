@@ -48,21 +48,21 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
     """
 
     def __init__(
-            self,
-            schema=None,
-            CLI=None,
-            random_seed=1,
-            base_learner=None,
-            ensemble_size=100,
-            max_features=0.6,
-            lambda_param=6.0,
-            minibatch_size=None,
-            number_of_jobs=1,
-            drift_detection_method=None,
-            warning_detection_method=None,
-            disable_weighted_vote=False,
-            disable_drift_detection=False,
-            disable_background_learner=False,
+        self,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        base_learner=None,
+        ensemble_size=100,
+        max_features=0.6,
+        lambda_param=6.0,
+        minibatch_size=None,
+        number_of_jobs=1,
+        drift_detection_method=None,
+        warning_detection_method=None,
+        disable_weighted_vote=False,
+        disable_drift_detection=False,
+        disable_background_learner=False,
     ):
         """Construct an Adaptive Random Forest Classifier
 
@@ -146,21 +146,21 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
             else:
                 self.number_of_jobs = int(min(number_of_jobs, os.cpu_count()))
 
-            if (minibatch_size is not None and minibatch_size > 1):
+            if minibatch_size is not None and minibatch_size > 1:
                 self.minibatch_size = int(minibatch_size)
                 moa_learner = _MOA_AdaptiveRandomForestMB()
-                CLI = (f"-l {self.base_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
+                CLI = f"-l {self.base_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
                                     {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
                                     {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
                                     {'-q' if self.disable_background_learner else ''}\
-                                    -c {self.number_of_jobs} -b {self.minibatch_size}")
+                                    -c {self.number_of_jobs} -b {self.minibatch_size}"
             else:
                 moa_learner = _MOA_AdaptiveRandomForest()
-                CLI = (f"-l {self.base_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
+                CLI = f"-l {self.base_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
                                     {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
                                     {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
                                     {'-q' if self.disable_background_learner else ''}\
-                                    -j {self.number_of_jobs}")
+                                    -j {self.number_of_jobs}"
 
         super().__init__(
             schema=schema,
