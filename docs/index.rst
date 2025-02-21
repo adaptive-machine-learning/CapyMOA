@@ -81,7 +81,7 @@ If you use CapyMOA in your research, please cite us using the following Bibtex e
    @misc{
       gomes2025capymoaefficientmachinelearning,
       title={{CapyMOA}: Efficient Machine Learning for Data Streams in Python},
-      author={Heitor Murilo Gomes and Anton Lee and Nuwan Gunasekara and Yibin Sun and Guilherme Weigert Cassales and Justin Liu and Marco Heyden and Vitor Cerqueira and Maroua Bahri and Yun Sing Koh and Bernhard Pfahringer and Albert Bifet},
+      author={Heitor Murilo Gomes and Anton Lee and Nuwan Gunasekara and Yibin Sun and Guilherme Weigert Cassales and Justin Jia Liu and Marco Heyden and Vitor Cerqueira and Maroua Bahri and Yun Sing Koh and Bernhard Pfahringer and Albert Bifet},
       year={2025},
       eprint={2502.07432},
       archivePrefix={arXiv},
