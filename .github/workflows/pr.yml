@@ -1,7 +1,7 @@
 # This workflow will install Python dependencies, run tests and lint with a variety of Python versions
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
-# TODO: In the future we ought to perform linting and code coverage checks
+# TODO: In the future we ought to perform code coverage checks
 
 name: Pull Request
 
@@ -19,58 +19,81 @@ permissions:
   contents: read
   pull-requests: read
 
+env:
+  PYTHON_VERSION: "3.10"
+
 jobs:
-  codeql:
-    name: "Code Quality Analysis"
+  code:
+    name: "Check Code"
     timeout-minutes: 20
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+
     steps:
     - uses: actions/checkout@v3
-    - name: Formatting `ruff format`
+
+    - name: Add Job Summary
+      run: cat .github/workflows/pr.md >$GITHUB_STEP_SUMMARY
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip' # caching pip dependencies
+
+    - name: Formatting
       uses: astral-sh/ruff-action@v3
       with:
         args: "format --check"
-    - name: Linting `ruff check`
+    
+    - name: Linting
       uses: astral-sh/ruff-action@v3
 
-  tests:
-    timeout-minutes: 20
-    runs-on: ${{ matrix.operating-system }}
-    needs: [codeql]
-    strategy:
-      fail-fast: true
-      matrix:
-        include:
-          - python-version: "3.10"
-            operating-system: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip' # caching pip dependencies
     - name: Install dependencies
       run: |
         python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
         python -m pip install ".[dev]"
+
     - name: Cache Test Datasets
       id: cache-test-datasets
       uses: actions/cache@v4
       with:
         path: data
         key: "test-datasets"
-    - name: PyTest
+
+    - name: Tests and Doctests
       run: invoke test.unit
-    - name: Notebooks
+
+    - name: Check Notebooks
       run: invoke test.nb
 
-  commitlint:
-    name: "Conventional Commit Compliance"
+  commit:
+    name: "Check Commit"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: wagoid/commitlint-github-action@v6
+
+  documentation:
+    name: "Check Documentation"
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip' # caching pip dependencies
+    - name: Install Dependencies
+      run: |
+        sudo apt-get install -y pandoc
+        python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        python -m pip install ".[dev,doc]"
+    - name: Documentation Coverage Report
+      run: invoke docs.coverage
+    - name: Build Documentation
+      run: invoke docs.build
