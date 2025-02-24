@@ -1,0 +1,15 @@
+Important requirements for running benchmark
+
+CapyMOA: 
+	The most recent version of CapyMOA library and environments.
+	Details in https://capymoa.org
+
+River:
+	The most recent version of River library and environments.
+	Details in https://riverml.xyz
+
+Scikit-Multiflow (future):
+	Python: 3.7.12
+	Pandas: 1.3.5
+	Numpy: 1.21.6
+	The most recent version of Scikit-Multiflow library.
