@@ -42,8 +42,8 @@ authors:
 license: "BSD-3-Clause"
 url: "https://github.com/adaptive-machine-learning/CapyMOA"
 preferred-citation:
-  - type: generic
-    authors:
+  type: article
+  authors:
     - family-names: "Gomes"
       given-names: "Heitor Murilo"
       orcid: "https://orcid.org/0000-0002-5276-637X"
@@ -79,7 +79,7 @@ preferred-citation:
     - family-names: "Bifet"
       given-names: "Albert"
       orcid: "https://orcid.org/0000-0002-8339-7773"
-    title: "CapyMOA: Efficient Machine Learning for Data Streams in Python"
-    journal: "arXiv"
-    year: 2025
-    doi: "10.48550/arXiv.2502.07432"
+  title: "CapyMOA: Efficient Machine Learning for Data Streams in Python"
+  journal: "arXiv"
+  year: 2025
+  doi: "10.48550/arXiv.2502.07432"
