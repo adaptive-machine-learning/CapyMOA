@@ -578,218 +578,218 @@ class MOAAnomalyDetector(AnomalyDetector):
         return float(prediction_array[1])
 
 
-##############################################################
-######################### Clustering #########################
-##############################################################
-class ClusteringResult:
-    """Abstract clustering result class that has the structure of clusters: centers, weights, radii, and ids.
+# ##############################################################
+# ######################### Clustering #########################
+# ##############################################################
+# class ClusteringResult:
+#     """Abstract clustering result class that has the structure of clusters: centers, weights, radii, and ids.
 
-    IDs might not be available for most MOA implementations."""
+#     IDs might not be available for most MOA implementations."""
 
-    def __init__(self, centers, weights, radii, ids):
-        self._centers = centers
-        self._weights = weights
-        self._radii = radii
-        self._ids = ids
+#     def __init__(self, centers, weights, radii, ids):
+#         self._centers = centers
+#         self._weights = weights
+#         self._radii = radii
+#         self._ids = ids
 
-    def get_centers(self):
-        return self._centers
+#     def get_centers(self):
+#         return self._centers
 
-    def get_weights(self):
-        return self._weights
+#     def get_weights(self):
+#         return self._weights
 
-    def get_radii(self):
-        return self._radii
+#     def get_radii(self):
+#         return self._radii
 
-    def get_ids(self):
-        return self._ids
+#     def get_ids(self):
+#         return self._ids
 
-    def __str__(self) -> str:
-        return f"Centers: {self._centers}, Weights: {self._weights}, Radii: {self._radii}, IDs: {self._ids}"
-
-
-class Clusterer(ABC):
-    def __init__(self, schema: Schema, random_seed=1):
-        self.random_seed = random_seed
-        self.schema = schema
-        if self.schema is None:
-            raise ValueError("Schema must be initialised")
-
-    @abstractmethod
-    def __str__(self):
-        pass
-
-    @abstractmethod
-    def train(self, instance: Instance):
-        pass
-
-    @abstractmethod
-    def implements_micro_clusters(self) -> bool:
-        pass
-
-    @abstractmethod
-    def implements_macro_clusters(self) -> bool:
-        pass
-
-    @abstractmethod
-    def _get_micro_clusters_centers(self):
-        pass
-
-    @abstractmethod
-    def _get_micro_clusters_radii(self):
-        pass
-
-    @abstractmethod
-    def _get_micro_clusters_weights(self):
-        pass
-
-    @abstractmethod
-    def _get_clusters_centers(self):
-        pass
-
-    @abstractmethod
-    def _get_clusters_radii(self):
-        pass
-
-    @abstractmethod
-    def _get_clusters_weights(self):
-        pass
-
-    @abstractmethod
-    def get_clustering_result(self):
-        pass
-
-    @abstractmethod
-    def get_micro_clustering_result(self):
-        pass
-
-    # @abstractmethod
-    # def predict(self, instance: Instance) -> Optional[LabelIndex]:
-    #     pass
-
-    # @abstractmethod
-    # def predict_proba(self, instance: Instance) -> LabelProbabilities:
-    #     pass
+#     def __str__(self) -> str:
+#         return f"Centers: {self._centers}, Weights: {self._weights}, Radii: {self._radii}, IDs: {self._ids}"
 
 
-class MOAClusterer(Clusterer):
-    """
-    A wrapper class for using MOA (Massive Online Analysis) clusterers in CapyMOA.
+# class Clusterer(ABC):
+#     def __init__(self, schema: Schema, random_seed=1):
+#         self.random_seed = random_seed
+#         self.schema = schema
+#         if self.schema is None:
+#             raise ValueError("Schema must be initialised")
 
-    Attributes:
-    - schema: The schema representing the instances. Defaults to None.
-    - CLI: The command-line interface (CLI) configuration for the MOA learner.
-    - random_seed: The random seed for reproducibility. Defaults to 1.
-    - moa_learner: The MOA learner object or class identifier.
-    """
+#     @abstractmethod
+#     def __str__(self):
+#         pass
 
-    def __init__(self, moa_learner, schema=None, CLI=None):
-        super().__init__(schema=schema)
-        self.CLI = CLI
-        # If moa_learner is a class identifier instead of an object
-        if isinstance(moa_learner, type):
-            if isinstance(moa_learner, _jpype._JClass):
-                moa_learner = moa_learner()
-            else:  # this is not a Java object, thus it certainly isn't a MOA learner
-                raise ValueError("Invalid MOA clusterer provided.")
-        self.moa_learner = moa_learner
+#     @abstractmethod
+#     def train(self, instance: Instance):
+#         pass
 
-        # self.moa_learner.setRandomSeed(self.random_seed)
+#     @abstractmethod
+#     def implements_micro_clusters(self) -> bool:
+#         pass
 
-        if self.schema is not None:
-            self.moa_learner.setModelContext(self.schema.get_moa_header())
+#     @abstractmethod
+#     def implements_macro_clusters(self) -> bool:
+#         pass
 
-        # If the CLI is None, we assume the object has already been configured
-        # or that default values should be used.
-        if self.CLI is not None:
-            self.moa_learner.getOptions().setViaCLIString(CLI)
+#     @abstractmethod
+#     def _get_micro_clusters_centers(self):
+#         pass
 
-        self.moa_learner.prepareForUse()
-        self.moa_learner.resetLearningImpl()
-        self.moa_learner.setModelContext(schema.get_moa_header())
+#     @abstractmethod
+#     def _get_micro_clusters_radii(self):
+#         pass
 
-    def __str__(self):
-        # Removes the package information from the name of the learner.
-        full_name = str(self.moa_learner.getClass().getCanonicalName())
-        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+#     @abstractmethod
+#     def _get_micro_clusters_weights(self):
+#         pass
 
-    def CLI_help(self):
-        return str(self.moa_learner.getOptions().getHelpString())
+#     @abstractmethod
+#     def _get_clusters_centers(self):
+#         pass
 
-    def train(self, instance):
-        self.moa_learner.trainOnInstance(instance.java_instance.getData())
+#     @abstractmethod
+#     def _get_clusters_radii(self):
+#         pass
 
-    def _get_micro_clusters_centers(self):
-        ret = []
-        for c in self.moa_learner.getMicroClusteringResult().getClustering():
-            java_array = c.getCenter()[:-1]
-            python_array = [
-                java_array[i] for i in range(len(java_array))
-            ]  # Convert to Python list
-            ret.append(python_array)
-        return ret
+#     @abstractmethod
+#     def _get_clusters_weights(self):
+#         pass
 
-    def _get_micro_clusters_radii(self):
-        ret = []
-        for c in self.moa_learner.getMicroClusteringResult().getClustering():
-            ret.append(c.getRadius())
-        return ret
+#     @abstractmethod
+#     def get_clustering_result(self):
+#         pass
 
-    def _get_micro_clusters_weights(self):
-        ret = []
-        for c in self.moa_learner.getMicroClusteringResult().getClustering():
-            ret.append(c.getWeight())
-        return ret
+#     @abstractmethod
+#     def get_micro_clustering_result(self):
+#         pass
 
-    def _get_clusters_centers(self):
-        ret = []
-        for c in self.moa_learner.getClusteringResult().getClustering():
-            java_array = c.getCenter()[:-1]
-            python_array = [
-                java_array[i] for i in range(len(java_array))
-            ]  # Convert to Python list
-            ret.append(python_array)
-        return ret
+#     # @abstractmethod
+#     # def predict(self, instance: Instance) -> Optional[LabelIndex]:
+#     #     pass
 
-    def _get_clusters_radii(self):
-        ret = []
-        for c in self.moa_learner.getClusteringResult().getClustering():
-            ret.append(c.getRadius())
-        return ret
+#     # @abstractmethod
+#     # def predict_proba(self, instance: Instance) -> LabelProbabilities:
+#     #     pass
 
-    def _get_clusters_weights(self):
-        ret = []
-        for c in self.moa_learner.getClusteringResult().getClustering():
-            ret.append(c.getWeight())
-        return ret
 
-    def get_clustering_result(self):
-        if self.implements_macro_clusters():
-            # raise ValueError("This clusterer does not implement macro-clusters.")
-            return ClusteringResult(
-                self._get_clusters_centers(),
-                self._get_clusters_weights(),
-                self._get_clusters_radii(),
-                [],
-            )
-        else:
-            return ClusteringResult([], [], [], [])
+# class MOAClusterer(Clusterer):
+#     """
+#     A wrapper class for using MOA (Massive Online Analysis) clusterers in CapyMOA.
 
-    def get_micro_clustering_result(self):
-        if self.implements_micro_clusters():
-            return ClusteringResult(
-                self._get_micro_clusters_centers(),
-                self._get_micro_clusters_weights(),
-                self._get_micro_clusters_radii(),
-                [],
-            )
-        else:
-            return ClusteringResult([], [], [], [])
+#     Attributes:
+#     - schema: The schema representing the instances. Defaults to None.
+#     - CLI: The command-line interface (CLI) configuration for the MOA learner.
+#     - random_seed: The random seed for reproducibility. Defaults to 1.
+#     - moa_learner: The MOA learner object or class identifier.
+#     """
 
-    # def predict(self, instance):
-    #     return Utils.maxIndex(
-    #         self.moa_learner.getVotesForInstance(instance.java_instance)
-    #     )
+#     def __init__(self, moa_learner, schema=None, CLI=None):
+#         super().__init__(schema=schema)
+#         self.CLI = CLI
+#         # If moa_learner is a class identifier instead of an object
+#         if isinstance(moa_learner, type):
+#             if isinstance(moa_learner, _jpype._JClass):
+#                 moa_learner = moa_learner()
+#             else:  # this is not a Java object, thus it certainly isn't a MOA learner
+#                 raise ValueError("Invalid MOA clusterer provided.")
+#         self.moa_learner = moa_learner
 
-    # def predict_proba(self, instance):
-    #     return self.moa_learner.getVotesForInstance(instance.java_instance)
+#         # self.moa_learner.setRandomSeed(self.random_seed)
+
+#         if self.schema is not None:
+#             self.moa_learner.setModelContext(self.schema.get_moa_header())
+
+#         # If the CLI is None, we assume the object has already been configured
+#         # or that default values should be used.
+#         if self.CLI is not None:
+#             self.moa_learner.getOptions().setViaCLIString(CLI)
+
+#         self.moa_learner.prepareForUse()
+#         self.moa_learner.resetLearningImpl()
+#         self.moa_learner.setModelContext(schema.get_moa_header())
+
+#     def __str__(self):
+#         # Removes the package information from the name of the learner.
+#         full_name = str(self.moa_learner.getClass().getCanonicalName())
+#         return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+
+#     def CLI_help(self):
+#         return str(self.moa_learner.getOptions().getHelpString())
+
+#     def train(self, instance):
+#         self.moa_learner.trainOnInstance(instance.java_instance.getData())
+
+#     def _get_micro_clusters_centers(self):
+#         ret = []
+#         for c in self.moa_learner.getMicroClusteringResult().getClustering():
+#             java_array = c.getCenter()[:-1]
+#             python_array = [
+#                 java_array[i] for i in range(len(java_array))
+#             ]  # Convert to Python list
+#             ret.append(python_array)
+#         return ret
+
+#     def _get_micro_clusters_radii(self):
+#         ret = []
+#         for c in self.moa_learner.getMicroClusteringResult().getClustering():
+#             ret.append(c.getRadius())
+#         return ret
+
+#     def _get_micro_clusters_weights(self):
+#         ret = []
+#         for c in self.moa_learner.getMicroClusteringResult().getClustering():
+#             ret.append(c.getWeight())
+#         return ret
+
+#     def _get_clusters_centers(self):
+#         ret = []
+#         for c in self.moa_learner.getClusteringResult().getClustering():
+#             java_array = c.getCenter()[:-1]
+#             python_array = [
+#                 java_array[i] for i in range(len(java_array))
+#             ]  # Convert to Python list
+#             ret.append(python_array)
+#         return ret
+
+#     def _get_clusters_radii(self):
+#         ret = []
+#         for c in self.moa_learner.getClusteringResult().getClustering():
+#             ret.append(c.getRadius())
+#         return ret
+
+#     def _get_clusters_weights(self):
+#         ret = []
+#         for c in self.moa_learner.getClusteringResult().getClustering():
+#             ret.append(c.getWeight())
+#         return ret
+
+#     def get_clustering_result(self):
+#         if self.implements_macro_clusters():
+#             # raise ValueError("This clusterer does not implement macro-clusters.")
+#             return ClusteringResult(
+#                 self._get_clusters_centers(),
+#                 self._get_clusters_weights(),
+#                 self._get_clusters_radii(),
+#                 [],
+#             )
+#         else:
+#             return ClusteringResult([], [], [], [])
+
+#     def get_micro_clustering_result(self):
+#         if self.implements_micro_clusters():
+#             return ClusteringResult(
+#                 self._get_micro_clusters_centers(),
+#                 self._get_micro_clusters_weights(),
+#                 self._get_micro_clusters_radii(),
+#                 [],
+#             )
+#         else:
+#             return ClusteringResult([], [], [], [])
+
+#     # def predict(self, instance):
+#     #     return Utils.maxIndex(
+#     #         self.moa_learner.getVotesForInstance(instance.java_instance)
+#     #     )
+
+#     # def predict_proba(self, instance):
+#     #     return self.moa_learner.getVotesForInstance(instance.java_instance)

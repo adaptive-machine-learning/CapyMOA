@@ -10,7 +10,8 @@ from .evaluation import (
     PredictionIntervalEvaluator,
     PredictionIntervalWindowedEvaluator,
     AnomalyDetectionEvaluator,
-    ClusteringEvaluator,
+    # ClusteringEvaluator,
+    # online_evaluation_clustering,
 )
 from . import results
 
@@ -26,6 +27,7 @@ __all__ = [
     "PredictionIntervalEvaluator",
     "PredictionIntervalWindowedEvaluator",
     "AnomalyDetectionEvaluator",
-    "ClusteringEvaluator",
+    # "ClusteringEvaluator",
     "results",
+    # "online_evaluation_clustering",
 ]
