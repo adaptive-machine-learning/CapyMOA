@@ -24,7 +24,7 @@ task contains two classes:
 
 To get the usual CapyMOA stream object for training:
 
->>> instance = scenario.train_stream.next_instance()
+>>> instance = scenario.train_streams[0].next_instance()
 >>> instance
 LabeledInstance(
     Schema(SplitMNISTTrain),
@@ -51,15 +51,17 @@ from pathlib import Path
 from typing import Any, Callable, Optional, Tuple, Sequence, Set
 from capymoa.datasets import get_download_dir
 from capymoa.ocl.util.data import partition_by_schedule, class_incremental_schedule
-from capymoa.stream import TorchClassifyStream, Stream, ConcatStream
+from capymoa.stream import TorchClassifyStream, Stream
 from capymoa.instance import LabeledInstance
 from capymoa.stream._stream import Schema
 import torch
+from urllib.request import urlretrieve
 from torchvision import datasets
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, TensorDataset
 from torch import Tensor
 from torchvision.transforms import ToTensor, Normalize, Compose
 from abc import abstractmethod, ABC
+import numpy as np
 
 
 class _BuiltInCIScenario(ABC):
@@ -69,23 +71,11 @@ class _BuiltInCIScenario(ABC):
     learning datasets.
     """
 
-    train_tasks: Sequence[Dataset[Tuple[Tensor, Tensor]]]
-    """A sequence of PyTorch datasets representing the training tasks.
+    train_streams: Sequence[Stream[LabeledInstance]]
+    """A sequence of streams containing each task for training."""
 
-    Use the :attr:`train_stream` instead. Unlike CapyMOA
-    :class:`capymoa.stream.Stream` objects, :class:`torch.utils.data.Dataset`
-    are not intended for OCL. This attribute is intended for evaluation and
-    debugging.
-    """
-
-    test_tasks: Sequence[Dataset[Tuple[Tensor, Tensor]]]
-    """A sequence of PyTorch datasets containing the test tasks."""
-
-    train_stream: Stream[LabeledInstance]
-    """A stream of labeled instances for training."""
-
-    test_stream: Stream[LabeledInstance]
-    """A stream of labeled instances for testing."""
+    test_streams: Sequence[Stream[LabeledInstance]]
+    """A sequence of streams containing each task for testing."""
 
     task_schedule: Sequence[Set[int]]
     """A sequence of sets containing the classes for each task.
@@ -178,20 +168,20 @@ class _BuiltInCIScenario(ABC):
 
         # Create streams for training and testing
         dataset_prefix = self.__class__.__name__
-        self.train_stream = _tasks_to_stream(
+        self.train_streams = _tasks_to_streams(
             self.train_tasks,
             num_classes=self.num_classes,
             shuffle=True,
             seed=seed + 1,
             dataset_name=f"{dataset_prefix}Train",
         )
-        self.test_stream = _tasks_to_stream(
+        self.test_streams = _tasks_to_streams(
             self.test_tasks,
             num_classes=self.num_classes,
             shuffle=False,
             dataset_name=f"{dataset_prefix}Test",
         )
-        self.schema = self.train_stream.get_schema()
+        self.schema = self.train_streams[0].get_schema()
 
     @classmethod
     @abstractmethod
@@ -205,14 +195,14 @@ class _BuiltInCIScenario(ABC):
         pass
 
 
-def _tasks_to_stream(
+def _tasks_to_streams(
     tasks: Sequence[Dataset[Tuple[Tensor, Tensor]]],
     num_classes: int,
     shuffle: bool = False,
     seed: int = 0,
     class_names: Optional[Sequence[str]] = None,
     dataset_name: str = "OnlineContinualLearningDatastream",
-) -> Stream[LabeledInstance]:
+) -> Sequence[Stream[LabeledInstance]]:
     """Convert a sequence of tasks into a stream.
 
     :param tasks: A sequence of PyTorch datasets representing tasks.
@@ -222,9 +212,9 @@ def _tasks_to_stream(
     :param class_names: The names of the classes, defaults to None
     :param dataset_name: The name of the dataset, defaults to
         "OnlineContinualLearningDatastream"
-    :return: A stream of labeled instances for classification.
+    :return: A sequence of streams representing the tasks
     """
-    streams = [
+    return [
         TorchClassifyStream(
             task,
             num_classes=num_classes,
@@ -235,7 +225,6 @@ def _tasks_to_stream(
         )
         for task in tasks
     ]
-    return ConcatStream(streams)
 
 
 class SplitMNIST(_BuiltInCIScenario):
@@ -266,6 +255,52 @@ class SplitMNIST(_BuiltInCIScenario):
             download=auto_download,
             transform=transform,
         )
+
+
+class TinySplitMNIST(_BuiltInCIScenario):
+    """A lower resolution and smaller version of the SplitMNIST dataset for testing.
+
+    You should use :class:`SplitMNIST` instead, this dataset is intended for testing
+    and documentation purposes.
+
+    - 16x16 resolution
+    - 100 training samples per class
+    - 20 testing samples per class
+    - 10 classes
+    - 5 tasks
+    """
+
+    num_classes = 10
+    default_task_count = 5
+    mean = [0.1307]
+    std = [0.3081]
+    url = "https://www.dropbox.com/scl/fi/7ipn2j3r7okbtwyx7npi0/capymoa_tiny_mnist.npz?rlkey=4ujpsgu18s217hmqrka6acc9x&st=r3lehylt&dl=1"
+
+    @classmethod
+    def _download_dataset(
+        self,
+        train: bool,
+        directory: Path,
+        auto_download: bool,
+        transform: Optional[Any],
+    ) -> Dataset[Tuple[Tensor, Tensor]]:
+        filename = directory / "capymoa_tiny_mnist.npz"
+        if not filename.exists():
+            if not auto_download:
+                raise FileNotFoundError(f"Dataset not found at {filename}")
+            urlretrieve(self.url, filename)
+
+        data = np.load(filename)
+        if train:
+            return TensorDataset(
+                torch.from_numpy(data["train_x"]).float() / 255,
+                torch.from_numpy(data["train_y"]).int(),
+            )
+        else:
+            return TensorDataset(
+                torch.from_numpy(data["test_x"]).float() / 255,
+                torch.from_numpy(data["test_y"]).int(),
+            )
 
 
 class SplitFashionMNIST(_BuiltInCIScenario):

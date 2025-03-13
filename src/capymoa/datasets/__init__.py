@@ -33,7 +33,7 @@ from ._datasets import (
     Sensor,
 )
 from ._utils import get_download_dir
-from . import downloader, ocl
+from . import downloader
 
 __all__ = [
     "Bike",
@@ -51,5 +51,4 @@ __all__ = [
     "Sensor",
     "downloader",
     "get_download_dir",
-    "ocl",
 ]
