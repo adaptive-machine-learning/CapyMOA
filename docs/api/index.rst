@@ -52,6 +52,7 @@ and semi-supervised learning.
     capymoa.regressor
     capymoa.anomaly
     capymoa.ssl
+    capymoa.ocl
 
 Drift Detection
 ---------------

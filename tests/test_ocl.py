@@ -1,5 +1,5 @@
 from typing import Type
-from capymoa.ocl import datasets as datasets
+from capymoa.datasets import ocl
 from capymoa.stream import Stream
 import numpy as np
 import pytest
@@ -7,22 +7,22 @@ import inspect
 
 ALL_OCL_SCENARIO = [
     cls
-    for _, cls in inspect.getmembers(datasets)
+    for _, cls in inspect.getmembers(ocl)
     if inspect.isclass(cls)
-    and issubclass(cls, datasets._BuiltInCIScenario)
-    and cls != datasets._BuiltInCIScenario
+    and issubclass(cls, ocl._BuiltInCIScenario)
+    and cls != ocl._BuiltInCIScenario
 ]
 
 
 @pytest.mark.parametrize("scenario_type", ALL_OCL_SCENARIO)
 def test_ocl_split_datamodule_constructors(
-    scenario_type: Type[datasets._BuiltInCIScenario],
+    scenario_type: Type[ocl._BuiltInCIScenario],
 ):
     # Skip all except MNIST since downloading datasets can be slow on CI
-    if scenario_type != datasets.TinySplitMNIST:
+    if scenario_type != ocl.TinySplitMNIST:
         pytest.skip("Skipping non-MNIST scenarios")
 
-    scenario: datasets._BuiltInCIScenario = scenario_type()
+    scenario: ocl._BuiltInCIScenario = scenario_type()
     assert isinstance(scenario.train_tasks, list)
     assert isinstance(scenario.test_tasks, list)
     assert isinstance(scenario.train_streams, list)
