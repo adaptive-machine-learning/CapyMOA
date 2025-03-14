@@ -229,7 +229,7 @@ class LabeledInstance(Instance):
         :param y_index: _description_
         :return: _description_
         """
-        return cls(schema, (x, y_index))
+        return cls(schema, (x, int(y_index)))
 
     @property
     def y_label(self) -> Label:

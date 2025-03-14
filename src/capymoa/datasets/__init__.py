@@ -50,6 +50,6 @@ __all__ = [
     "RTG_2abrupt",
     "Sensor",
     "downloader",
-    "get_download_dir",
     "ocl",
+    "get_download_dir",
 ]

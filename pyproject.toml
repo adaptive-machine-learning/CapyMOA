@@ -66,6 +66,7 @@ dev=[
     "nbmake",
     "pytest-xdist",
     "invoke",
+    "stubgenj",
     "wget",
     "commitizen~=3.24.0",
     "ruff",

@@ -106,7 +106,7 @@ def build_stubs(ctx: Context):
         print("Nothing todo: Java stubs already exist.")
         return
 
-    result = run(
+    run(
         [
             "python",
             "-m",
@@ -120,9 +120,9 @@ def build_stubs(ctx: Context):
             "moa",
             "com.yahoo.labs.samoa",
             "com.github.javacliparser",
-        ]
+        ],
+        check=True,
     )
-    assert result.returncode == 0, "Failed to generate Java stubs."
 
 
 @task
