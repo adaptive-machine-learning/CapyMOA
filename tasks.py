@@ -9,6 +9,7 @@ For example, to build the project, you can run `invoke build`.
 from invoke import task
 from invoke.collection import Collection
 from invoke.context import Context
+from invoke.exceptions import UnexpectedExit
 from pathlib import Path
 from typing import List, Optional
 from subprocess import run
@@ -36,22 +37,30 @@ def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
 @task()
 def docs_build(ctx: Context, ignore_warnings: bool = False):
     """Build the documentation using Sphinx."""
-    warn = "-W" if not ignore_warnings else ""
-    nitpicky = "-n" if not ignore_warnings else ""
+    cmd = []
+    cmd += "python -m sphinx build".split()
+    cmd += ["--color"]  # color output
+    cmd += ["-b", "html"]  # generate html
+    if not ignore_warnings:
+        cmd += ["-W"]  # warnings as errors
+        cmd += ["-n"]  # nitpicky mode
 
     doc_dir = Path("docs/_build")
     doc_dir.mkdir(exist_ok=True, parents=True)
-    print("Building documentation...")
+    cmd += ["docs", doc_dir.as_posix()]  # add source and output directories
 
-    ctx.run(
-        f"python -m sphinx build {warn} {nitpicky} --color -E -b html docs {doc_dir}"
-    )
-
-    print("-" * 80)
-    print("Documentation is built and available at:")
-    print(f"  file://{doc_dir.resolve()}/index.html")
-    print("You can copy and paste this URL into your browser.")
-    print("-" * 80)
+    try:
+        ctx.run(" ".join(cmd), echo=True)
+        print("-" * 80)
+        print("Documentation is built and available at:")
+        print(f"  file://{doc_dir.resolve()}/index.html")
+        print("You can copy and paste this URL into your browser.")
+    except UnexpectedExit:
+        print("-" * 80)
+        print("Documentation build failed. Here are some tips:")
+        print("  - Check the Sphinx output for errors and warnings.")
+        print("  - Try running `invoke docs.clean` to remove cached files.")
+        print("  - Try running with `--ignore-warnings` to ignore warnings.")
 
 
 @task
