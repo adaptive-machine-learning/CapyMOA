@@ -1,5 +1,5 @@
 from capymoa.datasets._datasets import ElectricityTiny
-from capymoa.ssl.classifier._batch import BatchClassifierSSL
+from capymoa.base import BatchClassifierSSL
 from capymoa.stream._stream import Schema, NumpyStream
 from capymoa.evaluation.evaluation import prequential_ssl_evaluation
 import numpy as np
@@ -13,27 +13,24 @@ class _DummyBatchClassifierSSL(BatchClassifierSSL):
         random_seed=1,
         class_value_type=int,
     ):
-        super().__init__(batch_size, schema, random_seed)
+        super().__init__(batch_size=batch_size, schema=schema, random_seed=random_seed)
         self.instance_counter = 0
         self.batch_counter = 0
         self.class_value_type = class_value_type
+        self.batch_size = batch_size
 
-    def train_on_batch(
-        self,
-        features,
-        class_indices,
-    ):
+    def batch_train(self, x, y):
         # Check type
-        assert isinstance(features, np.ndarray)
-        assert isinstance(class_indices, np.ndarray)
+        assert isinstance(x, np.ndarray)
+        assert isinstance(y, np.ndarray)
 
         # Check shape
-        assert features.shape == (self.batch_size, self.schema.get_num_attributes())
-        assert class_indices.shape == (self.batch_size,)
+        assert x.shape == (self.batch_size, self.schema.get_num_attributes())
+        assert y.shape == (self.batch_size,)
 
         # Features must be a numpy array of floats
-        assert features.dtype == np.float64
-        assert class_indices.dtype == np.int_
+        assert x.dtype == np.float32
+        assert y.dtype == np.int32
 
         self.batch_counter += 1
 

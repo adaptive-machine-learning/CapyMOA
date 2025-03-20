@@ -16,17 +16,17 @@ from dataclasses import dataclass
 class OCLMetrics:
     """A collection of metrics evaluating an online continual learner."""
 
-    anytime_accuracy: float
+    accuracy: float
     """Anytime Accuracy is the accuracy of the learner on all previous tasks."""
-    average_anytime_accuracy: float
-    """Average Anytime Accuracy is the average Anytime Accuracy over the model's lifetime."""
+    average_accuracy: float
+    """Average accuracy is the average accuracy over the model's lifetime."""
     online_accuracy: float
     """Online accuracy evaluates the anytime inference ability of a model."""
 
-    anytime_accuracy_series: np.ndarray
-    """The anytime accuracy (see :attr:`anytime_accuracy`) at each task boundary."""
-    average_anytime_accuracy_series: np.ndarray
-    """The average anytime accuracy (see :attr:`average_anytime_accuracy`) at each task boundary."""
+    accuracy_series: np.ndarray
+    """The accuracy (see :attr:`accuracy`) at each task boundary."""
+    average_accuracy_series: np.ndarray
+    """The average accuracy (see :attr:`average_accuracy`) at each task boundary."""
     online_accuracy_series: np.ndarray
     """The online accuracy (see :attr:`online_accuracy`) at each task boundary."""
 
@@ -43,11 +43,6 @@ class OCLMetrics:
     1. Rows are the true class
     2. Columns are the predicted class
     """
-
-    @property
-    def accuracy(self) -> float:
-        """Alias for :attr:`anytime_accuracy`."""
-        return self.anytime_accuracy
 
 
 class _OCLEvaluator:
@@ -96,19 +91,18 @@ class _OCLEvaluator:
             self.cm[train_task_id, test_task_id, y_true, y_pred] += 1
         # TODO: handle missing predictions
 
-    def anytime_accuracy(self, task_id: int) -> float:
-        """See :attr:`OCLMetrics.anytime_accuracy`."""
-        cm = self.cm[task_id, : task_id + 1].sum(0)
+    def accuracy(self, task_id: int) -> float:
+        """See :attr:`OCLMetrics.accuracy`."""
+        cm = self.cm[task_id, : (task_id + 1)].sum(0)
         return float(cm.diag().sum() / cm.sum())
 
-    def average_anytime_accuracy(self, task_id: int) -> float:
-        """See :attr:`OCLMetrics.average_anytime_accuracy`."""
-        cm = self.cm[: task_id + 1, : task_id + 1].sum(dim=(0, 1))
-        return float(cm.diag().sum() / cm.sum())
+    def average_accuracy(self, task_id: int) -> float:
+        """See :attr:`OCLMetrics.average_accuracy`."""
+        return sum(self.accuracy(i) for i in range(task_id + 1)) / (task_id + 1)
 
     def online_accuracy(self, task_id: int) -> float:
         """See :attr:`OCLMetrics.online_accuracy`."""
-        cm = self.pcm[: task_id + 1].sum(0)
+        cm = self.pcm[: (task_id + 1)].sum(0)
         return float(cm.diag().sum() / cm.sum())
 
     def task_accuracy(self, train_task_id: int, test_task_id: int) -> float:
@@ -135,13 +129,11 @@ class _OCLEvaluator:
             task_accuracy_matrix[i, j] = self.task_accuracy(i, j)
 
         return OCLMetrics(
-            anytime_accuracy=self.anytime_accuracy(task_id),
-            average_anytime_accuracy=self.average_anytime_accuracy(task_id),
+            accuracy=self.accuracy(task_id),
+            average_accuracy=self.average_accuracy(task_id),
             online_accuracy=self.online_accuracy(task_id),
-            anytime_accuracy_series=np.vectorize(self.anytime_accuracy)(tasks),
-            average_anytime_accuracy_series=np.vectorize(self.average_anytime_accuracy)(
-                tasks
-            ),
+            accuracy_series=np.vectorize(self.accuracy)(tasks),
+            average_accuracy_series=np.vectorize(self.average_accuracy)(tasks),
             online_accuracy_series=np.vectorize(self.online_accuracy)(tasks),
             class_confusion=class_cm / class_cm.sum(1),
             task_accuracy_matrix=task_accuracy_matrix,
