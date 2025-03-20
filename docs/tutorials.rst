@@ -19,6 +19,7 @@ These tutorials will show you how to get started with the CapyMOA library.
    notebooks/07_pipelines.ipynb
    notebooks/08_prediction_interval.ipynb
    notebooks/09_automl.ipynb
+   notebooks/10_ocl.ipynb
 
 .. toctree::
    :maxdepth: 1
