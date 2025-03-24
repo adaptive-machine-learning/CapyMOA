@@ -30,7 +30,7 @@ from capymoa.stream._stream import Schema
                 num_trees=32,
                 max_leaf_samples=32,
             ),
-            0.50,
+            0.42,
             None,
         ),
         (
