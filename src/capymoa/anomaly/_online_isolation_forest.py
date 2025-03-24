@@ -53,7 +53,7 @@ class OnlineIsolationForest(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.48
+    AUC: 0.39
 
     """
 
@@ -86,6 +86,7 @@ class OnlineIsolationForest(AnomalyDetector):
         :param n_jobs: Number of parallel jobs.
         """
         super().__init__(schema=schema, random_seed=random_seed)
+        self.random_generator: Generator = default_rng(seed=self.random_seed)
         self.num_trees: int = num_trees
         self.window_size: int = window_size
         self.branching_factor: int = branching_factor
@@ -106,7 +107,7 @@ class OnlineIsolationForest(AnomalyDetector):
                 branching_factor=self.branching_factor,
                 data_size=self.data_size,
                 split=self.split,
-                random_seed=self.random_seed,
+                random_seed=self.random_generator.integers(0, 2**32),
             )
             for _ in range(self.num_trees)
         ]
@@ -208,21 +209,21 @@ class OnlineIsolationForest(AnomalyDetector):
 class OnlineIsolationTree:
     def __init__(
         self,
+        random_seed: int,
         max_leaf_samples: int,
         growth_criterion: Literal["fixed", "adaptive"],
         subsample: float,
         branching_factor: int,
         data_size: int,
         split: Literal["axisparallel"] = "axisparallel",
-        random_seed: int = 1,
     ):
+        self.random_generator: Generator = default_rng(seed=random_seed)
         self.max_leaf_samples: int = max_leaf_samples
         self.growth_criterion: Literal["fixed", "adaptive"] = growth_criterion
         self.subsample: float = subsample
         self.branching_factor: int = branching_factor
         self.data_size: int = data_size
         self.split: Literal["axisparallel"] = split
-        self.random_generator: Generator = default_rng(seed=random_seed)
         self.depth_limit: float = OnlineIsolationTree._get_random_path_length(
             self.branching_factor,
             self.max_leaf_samples,
