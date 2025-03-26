@@ -129,6 +129,50 @@ class Schema:
         """Return the number of attributes excluding the target attribute."""
         return self._moa_header.numAttributes() - self._moa_header.numOutputAttributes()
 
+    def get_num_nominal_attributes(self) -> int:
+        """Return the number of nominal attributes."""
+        num_features = self.get_num_attributes()
+        num_nominal = 0
+        for i in range(num_features):
+            if self._moa_header.attribute(i).isNominal():
+                num_nominal += 1
+        return num_nominal
+
+    def get_num_numeric_attributes(self) -> int:
+        """Return the number of numeric attributes."""
+        num_features = self.get_num_attributes()
+        num_numeric = 0
+        for i in range(num_features):
+            if self._moa_header.attribute(i).isNumeric():
+                num_numeric += 1
+        return num_numeric
+
+    def get_nominal_attributes(self) -> dict | None:
+        """Return a dict of nominal attributes."""
+        num_features = self.get_num_attributes()
+        if self.get_num_nominal_attributes() <= 0:
+            return None
+        else:
+            nominal_attributes = {}
+            for i in range(num_features):
+                if self._moa_header.attribute(i).isNominal():
+                    nominal_attributes[self._moa_header.attribute(i).name()] = list(
+                        self._moa_header.attribute(i).getAttributeValues()
+                    )
+            return nominal_attributes
+
+    def get_numeric_attributes(self) -> list | None:
+        """Return a list of numeric attribute names."""
+        num_features = self.get_num_attributes()
+        if self.get_num_numeric_attributes() <= 0:
+            return None
+        else:
+            numeric_attributes = []
+            for i in range(num_features):
+                if self._moa_header.attribute(i).isNumeric():
+                    numeric_attributes.append(self._moa_header.attribute(i).name())
+            return numeric_attributes
+
     def get_num_classes(self) -> int:
         """Return the number of possible classes. If regression, returns 1."""
         if self._regression:
