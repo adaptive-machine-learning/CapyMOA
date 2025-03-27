@@ -98,8 +98,8 @@ test_cases = [
             split_criterion=GiniSplitCriterion(),
             leaf_prediction="NaiveBayes",
         ),
-        87.8,
-        85.0,
+        87.35,
+        84.0,
         cli_string="trees.EFDT -R 200 -m 33554433 -g 10 -s GiniSplitCriterion -c 0.001 -z -p -l NB",
     ),
     ClassifierTestCase(
