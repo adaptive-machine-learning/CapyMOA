@@ -24,15 +24,16 @@ traditional continual learning, OCL restricts training to a single data pass.
 >>> learner = HoeffdingTree(scenario.schema)
 >>> metrics = ocl_train_eval_loop(learner, scenario.train_streams, scenario.test_streams)
 
-The accuracy on all tasks at the end of the last task:
+The final accuracy is the accuracy on all tasks after finishing training on all
+tasks:
 
->>> print(f"{metrics.accuracy:0.2f}")
-0.69
+>>> print(f"Final Accuracy: {metrics.accuracy_final:0.2f}")
+Final Accuracy: 0.69
 
 The accuracy on each task after training on each task:
 
 >>> with np.printoptions(precision=2):
-...     print(metrics.task_accuracy_matrix)
+...     print(metrics.accuracy_matrix)
 [[0.9  0.   0.   0.3  0.  ]
  [0.88 0.9  0.   0.12 0.  ]
  [0.77 0.82 0.62 0.12 0.  ]
@@ -43,6 +44,12 @@ Notice that the accuracies in the upper triangle are close to zero because the
 learner has not trained on those tasks yet. The diagonal contains the accuracy
 on each task after training on that task. The lower triangle contains the
 accuracy on each task after training on all tasks.
+
+>>> print(f"Forward Transfer: {metrics.forward_transfer:0.2f}")
+Forward Transfer: 0.05
+
+>>> print(f"Backward Transfer: {metrics.backward_transfer:0.2f}")
+Backward Transfer: -0.07
 """
 
 from ._base import TaskAware, TaskBoundaryAware
