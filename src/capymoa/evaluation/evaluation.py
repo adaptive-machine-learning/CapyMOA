@@ -18,7 +18,6 @@ from capymoa.base import (
 )
 
 from capymoa.evaluation.results import PrequentialResults
-# from capymoa.cluster.results import PrequentialClusteringResults
 from capymoa._utils import _translate_metric_name
 from capymoa.base import Classifier, Regressor
 from capymoa.evaluation._progress_bar import resolve_progress_bar
