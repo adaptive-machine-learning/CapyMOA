@@ -69,7 +69,7 @@ def test_nonascii_capymoa(env):
     """
     with tempfile.TemporaryDirectory(suffix="☺") as d:
         moa_jar = shutil.copyfile(capymoa_moa_jar(), Path(d) / "moa.jar")
-        env["CAPYMOA_MOA_JAR"] = moa_jar
+        env["CAPYMOA_MOA_JAR"] = moa_jar.as_posix()
         result = subprocess.run(
             [
                 PYTHON_EXE,
