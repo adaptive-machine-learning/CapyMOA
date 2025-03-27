@@ -28,6 +28,17 @@ def test_stream_consistency():
     for schema in [stream.get_schema() for stream in streams]:
         assert schema.get_num_attributes() == 6
         assert schema.get_num_classes() == 2
+        assert schema.get_num_numeric_attributes() == 6
+        assert schema.get_num_nominal_attributes() == 0
+        assert schema.get_numeric_attributes() == [
+            "period",
+            "nswprice",
+            "nswdemand",
+            "vicprice",
+            "vicdemand",
+            "transfer",
+        ]
+        assert schema.get_nominal_attributes() is None
 
     i = 0
     for instances in zip(*streams, strict=True):
