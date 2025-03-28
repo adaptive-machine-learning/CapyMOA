@@ -55,8 +55,6 @@ def save_model(model: object, file: BinaryIO) -> None:
     :param model: A python object optionally containing Java objects.
     :param file: The file-like object to save the model to.
     """
-    if not isinstance(file, (RawIOBase, BufferedIOBase)):
-        raise ValueError("File must be opened in binary mode.")
     if not file.writable():
         raise ValueError("File must be writable.")
     JPickler(file).dump(model)
