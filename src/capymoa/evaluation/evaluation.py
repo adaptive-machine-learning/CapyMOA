@@ -1282,7 +1282,7 @@ def prequential_evaluation_anomaly(
                 stream, learner, max_instances, window_size, store_y, store_predictions
             )
     except ValueError:
-        pass # If the stream is not compatible, just ignore the error and continue with the normal evaluation.
+        pass  # If the stream is not compatible, just ignore the error and continue with the normal evaluation.
 
     predictions = None
     if store_predictions:
