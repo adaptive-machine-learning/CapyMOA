@@ -1276,10 +1276,13 @@ def prequential_evaluation_anomaly(
         incompatible with ``optimize=True``.
     """
     stream.restart()
-    if _is_fast_mode_compilable(stream, learner, optimise):
-        return _prequential_evaluation_anomaly_fast(
-            stream, learner, max_instances, window_size, store_y, store_predictions
-        )
+    try:
+        if _is_fast_mode_compilable(stream, learner, optimise):
+            return _prequential_evaluation_anomaly_fast(
+                stream, learner, max_instances, window_size, store_y, store_predictions
+            )
+    except ValueError:
+        pass # If the stream is not compatible, just ignore the error and continue with the normal evaluation.
 
     predictions = None
     if store_predictions:
