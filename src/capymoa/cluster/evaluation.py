@@ -78,6 +78,7 @@ class ClusteringEvaluator:
                 # Overall silhouette score
                 silhouette_scores.append(np.mean(silhouette_values) if silhouette_values else 0)
         return silhouette_scores
+    
     def _ssq_score(self, cluster: Cluster, past_dps=None, future_dps=None):
         centers = np.array(cluster._get_clusters_centers())
         ssq_scores = []
@@ -99,6 +100,7 @@ class ClusteringEvaluator:
                     ssq += np.sum((point.x - cluster_center) ** 2)
                 ssq_scores.append(ssq)
         return ssq_scores
+    
     def _bss_score(self, cluster: Cluster, past_dps=None, future_dps=None):
         centers = np.array(cluster._get_clusters_centers())
         bss_scores = []

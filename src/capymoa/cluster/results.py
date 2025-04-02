@@ -1,9 +1,35 @@
 from capymoa.stream import Stream
-import pandas as pd
-import json
-import csv
-import os
-from datetime import datetime
+# import pandas as pd
+# import json
+# import csv
+# import os
+# from datetime import datetime
+
+class ClusteringResult:
+    """Abstract clustering result class that has the structure of clusters: centers, weights, radii, and ids.
+
+    IDs might not be available for most MOA implementations."""
+
+    def __init__(self, centers, weights, radii, ids):
+        self._centers = centers
+        self._weights = weights
+        self._radii = radii
+        self._ids = ids
+
+    def get_centers(self):
+        return self._centers
+
+    def get_weights(self):
+        return self._weights
+
+    def get_radii(self):
+        return self._radii
+
+    def get_ids(self):
+        return self._ids
+
+    def __str__(self) -> str:
+        return f"Centers: {self._centers}, Weights: {self._weights}, Radii: {self._radii}, IDs: {self._ids}"
 
 class PrequentialClusteringResults:
     def __init__(

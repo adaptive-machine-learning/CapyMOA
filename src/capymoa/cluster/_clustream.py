@@ -54,3 +54,6 @@ class Clustream(MOACluster):
     #             closest_center = center
     #     print(closest_center)
     #     return closest_center
+
+    def _is_visualization_supported(self):
+        return True
