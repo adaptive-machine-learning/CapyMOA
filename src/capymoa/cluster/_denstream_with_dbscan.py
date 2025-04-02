@@ -72,3 +72,6 @@ class Denstream_with_dbscan(MOACluster):
 
     def __str__(self):
         return "Denstream with DBSCAN"
+
+    def _is_visualization_supported(self):
+        return True

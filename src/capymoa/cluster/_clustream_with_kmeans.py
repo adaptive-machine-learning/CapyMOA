@@ -60,3 +60,6 @@ class Clustream_with_kmeans(MOACluster):
 
     def __str__(self):
         return "Clustream with KMeans"
+    
+    def _is_visualization_supported(self):
+        return True
