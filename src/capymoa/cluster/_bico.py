@@ -1,8 +1,11 @@
 import typing
 from moa.clusterers.kmeanspm import BICO as _MOA_BICO
+# from moa.core import Instance
+from capymoa.instance import Instance
 from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 from capymoa.cluster.base import MOACluster
+
 
 
 class BICO(MOACluster):
@@ -45,6 +48,12 @@ class BICO(MOACluster):
 				schema=schema, CLI=config_str, moa_learner=self.moa_learner
 			)
 
+	def train(self, instance):
+		m_java_instance = Instance.from_array(self.schema, instance.x)
+		print(m_java_instance.java_instance.getData(), '-', instance.java_instance.getData())
+		
+		self.moa_learner.trainOnInstance(instance.java_instance.getData())
+
 	def implements_micro_clusters(self) -> bool:
 		return True
 
@@ -53,3 +62,6 @@ class BICO(MOACluster):
 
 	def _is_visualization_supported(self):
 		return False
+
+
+# Warning resets on ARF
