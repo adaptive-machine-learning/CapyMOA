@@ -13,9 +13,9 @@ class CobWeb(MOACluster):
     def __init__(
         self,
         schema: typing.Union[Schema, None] = None,
-        acuity: int = 1000,
-        cutoff: int = 8,
-        randomSeed: int = 0,
+        acuity: int = 1,
+        cutoff: int = 0.002,
+        randomSeed: int = 1,
     ):
         """CobWeb clusterer.
 
@@ -41,7 +41,7 @@ class CobWeb(MOACluster):
         return False
 
     def implements_macro_clusters(self) -> bool:
-        return False
+        return True
 
     # def predict(self, X):
     #     clusters = self.get_micro_clustering_result()

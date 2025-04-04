@@ -35,7 +35,10 @@ class ClusteringEvaluator:
         return self.cluster_name
 
     def _silhouette_score(self, cluster: Cluster, past_dps=None, future_dps=None):
-        centers = np.array(cluster._get_clusters_centers())
+        if cluster.implements_macro_clusters():
+            centers = np.array(cluster._get_clusters_centers())
+        else:
+            centers = np.array(cluster._get_micro_clusters_centers())
 
         silhouette_scores = []
         # Assign each data point to the nearest cluster center
@@ -80,7 +83,10 @@ class ClusteringEvaluator:
         return silhouette_scores
     
     def _ssq_score(self, cluster: Cluster, past_dps=None, future_dps=None):
-        centers = np.array(cluster._get_clusters_centers())
+        if cluster.implements_macro_clusters():
+            centers = np.array(cluster._get_clusters_centers())
+        else:
+            centers = np.array(cluster._get_micro_clusters_centers())
         ssq_scores = []
         # Assign each data point to the nearest cluster center
         if past_dps is not None and future_dps is not None:
@@ -102,7 +108,10 @@ class ClusteringEvaluator:
         return ssq_scores
     
     def _bss_score(self, cluster: Cluster, past_dps=None, future_dps=None):
-        centers = np.array(cluster._get_clusters_centers())
+        if cluster.implements_macro_clusters():
+            centers = np.array(cluster._get_clusters_centers())
+        else:
+            centers = np.array(cluster._get_micro_clusters_centers())
         bss_scores = []
         if past_dps is not None and future_dps is not None:
             for _ in [past_dps, future_dps]:
