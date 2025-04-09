@@ -347,9 +347,9 @@ class Stream(ABC, Generic[_AnyInstance], Iterator[_AnyInstance]):
     def get_schema(self) -> Schema:
         """Return the schema of the stream."""
 
-    @abstractmethod
     def get_moa_stream(self) -> Optional[InstanceStream]:
         """Get the MOA stream object if it exists."""
+        return None
 
     @abstractmethod
     def restart(self):
@@ -556,9 +556,6 @@ class NumpyStream(Stream[_AnyInstance]):
 
     def get_schema(self):
         return self.schema
-
-    def get_moa_stream(self):
-        raise ValueError("Not a moa_stream, a numpy read file")
 
     def restart(self):
         self.current_instance_index = 0
@@ -926,9 +923,6 @@ class CSVStream(Stream[_AnyInstance]):
 
     def get_schema(self):
         return self.schema
-
-    def get_moa_stream(self):
-        raise ValueError("No moa_stream available, this is a CSV")
 
     def restart(self):
         self.total_number_of_lines = 0
