@@ -1,6 +1,13 @@
 from typing import Optional, Sequence, Union
 
 from capymoa.base import Classifier
+from capymoa.evaluation.evaluation import (
+    ClassificationEvaluator,
+    ClassificationWindowedEvaluator,
+    start_time_measuring,
+    stop_time_measuring,
+)
+from capymoa.evaluation.results import PrequentialResults
 from capymoa.instance import LabeledInstance
 from capymoa.ocl._base import TaskAware, TaskBoundaryAware
 from capymoa.stream import Stream
@@ -139,8 +146,16 @@ class OCLMetrics:
     This matrix is :math:`A` with the first two dimensions flattened to a 2D array.
     """
 
-    prequential_cumulative_accuracy: float
-    """The average test-then-train accuracy over the entire data-stream."""
+    ttt: PrequentialResults
+    """Test-then-train/prequential results."""
+    boundaries: np.ndarray
+    """Instance index for the boundaries."""
+    ttt_windowed_task_index: np.ndarray
+    """The position of each window within each task.
+    
+    Useful as the ``x`` axis for
+    :attr:`capymoa.evaluation.results.PrequentialResults.windowed`.
+    """
 
 
 def _backwards_transfer(R: torch.Tensor) -> float:
@@ -155,6 +170,19 @@ def _forwards_transfer(R: torch.Tensor) -> float:
     return (R.triu(1).sum() / (n * (n - 1) / 2)).item()
 
 
+def _get_ttt_windowed_task_index(boundaries: np.ndarray, window_size: int):
+    tasks = np.zeros(int(boundaries[-1]) // window_size)
+    for task_id, (start, end) in enumerate(
+        zip(boundaries[:-1], boundaries[1:], strict=True)
+    ):
+        win_start = int(start) // window_size
+        win_end = int(end) // window_size
+        tasks[win_start:win_end] = np.linspace(
+            task_id, task_id + 1, win_end - win_start
+        )
+    return tasks
+
+
 class _OCLEvaluator:
     """A builder used to collect statistics during online continual learning evaluation."""
 
@@ -163,16 +191,11 @@ class _OCLEvaluator:
     ``(eval_step_id, train_task_id, test_task_id, true_class, predicted_class)``.
     """
 
-    pcm: torch.Tensor
-    """Prequential Confusion 'Matrix' is the confusion matrix for online prequential evaluation.
-    """
-
     def __init__(self, task_count: int, eval_step_count: int, class_count: int):
         self.task_count = task_count
         self.class_count = class_count
         self.seen_tasks = 0
         self.step_count = eval_step_count
-        self.pcm = torch.zeros(task_count, class_count, class_count, dtype=torch.int)
         self.cm = torch.zeros(
             task_count,
             eval_step_count,
@@ -181,15 +204,6 @@ class _OCLEvaluator:
             class_count,
             dtype=torch.int,
         )
-
-    def prequential_update(
-        self, train_task_id: int, y_true: LabelIndex, y_pred: Optional[LabelIndex]
-    ):
-        """Record a prediction during online evaluation."""
-        self.seen_tasks = max(self.seen_tasks, train_task_id + 1)
-        if y_pred is not None:
-            self.pcm[train_task_id, y_true, y_pred] += 1
-        # TODO: handle missing predictions
 
     def holdout_update(
         self,
@@ -204,7 +218,9 @@ class _OCLEvaluator:
             self.cm[train_task_id, eval_step_id, test_task_id, y_true, y_pred] += 1
         # TODO: handle missing predictions
 
-    def build(self) -> OCLMetrics:
+    def build(
+        self, ttt: PrequentialResults, boundary_instances: torch.Tensor
+    ) -> OCLMetrics:
         """Creates metrics using collected statistics."""
         correct = self.cm.diagonal(dim1=3, dim2=4).sum(-1)
         total = self.cm.sum((3, 4))
@@ -232,10 +248,14 @@ class _OCLEvaluator:
 
         accuracy_seen = np.vectorize(_accuracy_seen)(tasks)
         accuracy_all = np.vectorize(_accuracy_all)(tasks)
+        boundaries = boundary_instances.numpy()
 
-        online_accuracy = (
-            self.pcm.diagonal(dim1=1, dim2=2).sum().item() / self.pcm.sum()
-        )
+        ttt_windowed_task_index = None
+        if ttt.windowed is not None:
+            ttt_windowed_task_index = _get_ttt_windowed_task_index(
+                boundaries, ttt.windowed.window_size
+            )
+            assert len(ttt_windowed_task_index) == len(ttt.windowed.accuracy())
 
         return OCLMetrics(
             accuracy_seen=accuracy_seen,
@@ -255,7 +275,9 @@ class _OCLEvaluator:
             anytime_accuracy_matrix=anytime_acc.flatten(end_dim=1).numpy(),
             backward_transfer=_backwards_transfer(accuracy_matrix),
             forward_transfer=_forwards_transfer(accuracy_matrix),
-            prequential_cumulative_accuracy=online_accuracy,
+            ttt=ttt,
+            boundaries=boundaries,
+            ttt_windowed_task_index=ttt_windowed_task_index,
         )
 
 
@@ -268,6 +290,7 @@ def ocl_train_eval_loop(
     test_streams: Sequence[Stream[LabeledInstance]],
     continual_evaluations: int = 1,
     progress_bar: bool = False,
+    eval_window_size: int = 1000,
 ) -> OCLMetrics:
     """Train and evaluate a learner on a sequence of tasks.
 
@@ -293,6 +316,12 @@ def ocl_train_eval_loop(
     metrics = _OCLEvaluator(
         n_tasks, continual_evaluations, learner.schema.get_num_classes()
     )
+    online_eval = ClassificationEvaluator(schema=learner.schema)
+    windowed_eval = ClassificationWindowedEvaluator(
+        schema=learner.schema, window_size=eval_window_size
+    )
+    boundary_instances = torch.zeros(len(train_streams) + 1)
+    start_wallclock_time, start_cpu_time = start_time_measuring()
 
     # Setup progress bar
     train_len = sum(len(stream) for stream in train_streams)
@@ -309,33 +338,55 @@ def ocl_train_eval_loop(
         train_stream.restart()
         if isinstance(learner, TaskBoundaryAware):
             learner.set_train_task(train_task_id)
+        boundary_instances[train_task_id + 1] = boundary_instances[train_task_id] + len(
+            train_stream
+        )
 
         # Train and evaluation loop for a single task
         for step, instance in enumerate(train_stream):
             # Update the learner and collect prequential statistics
             pbar.update(1)
             y_pred = learner.predict(instance)
-            metrics.prequential_update(train_task_id, instance.y_index, y_pred)
+            online_eval.update(instance.y_index, y_pred)
+            windowed_eval.update(instance.y_index, y_pred)
             learner.train(instance)
 
             # Evaluate the learner on evenly spaced steps during training
             evaluate_every = len(train_stream) // continual_evaluations
-            if (step + 1) % evaluate_every != 0:
-                continue
-            eval_step = step // evaluate_every
+            if (step + 1) % evaluate_every == 0:
+                eval_step = step // evaluate_every
 
-            for test_task_id, test_stream in enumerate(test_streams):
-                # Setup stream and inform learner of the test task
-                test_stream.restart()
-                if isinstance(learner, TaskAware):
-                    learner.set_test_task(test_task_id)
+                for test_task_id, test_stream in enumerate(test_streams):
+                    # Setup stream and inform learner of the test task
+                    test_stream.restart()
+                    if isinstance(learner, TaskAware):
+                        learner.set_test_task(test_task_id)
 
-                # predict instances in the current task
-                for instance in test_stream:
-                    pbar.update(1)
-                    y_pred = learner.predict(instance)
-                    metrics.holdout_update(
-                        train_task_id, eval_step, test_task_id, instance.y_index, y_pred
-                    )
+                    # predict instances in the current task
+                    for instance in test_stream:
+                        pbar.update(1)
+                        y_pred = learner.predict(instance)
+                        metrics.holdout_update(
+                            train_task_id,
+                            eval_step,
+                            test_task_id,
+                            instance.y_index,
+                            y_pred,
+                        )
 
-    return metrics.build()
+    # TODO: We should measure time spent in ``learner.train`` separately from
+    # time spent in evaluation.
+    elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(
+        start_wallclock_time, start_cpu_time
+    )
+    return metrics.build(
+        PrequentialResults(
+            learner=str(learner),
+            stream=f"{train_streams[0]}x{len(train_streams)}",
+            cumulative_evaluator=online_eval,
+            windowed_evaluator=windowed_eval,
+            wallclock=elapsed_wallclock_time,
+            cpu_time=elapsed_cpu_time,
+        ),
+        boundary_instances,
+    )
