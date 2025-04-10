@@ -1,9 +1,9 @@
 import warnings
-from typing import Dict, Optional, Sequence
+from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Dict, Generic, Iterator, Optional, Sequence, TypeVar, Union
 
 import numpy as np
-from numpy.lib import recfunctions as rfn
-
 from com.yahoo.labs.samoa.instances import (
     Attribute,
     DenseInstance,
@@ -12,17 +12,13 @@ from com.yahoo.labs.samoa.instances import (
 )
 from moa.core import FastVector, InstanceExample
 from moa.streams import ArffFileStream, InstanceStream
-from java.lang import RuntimeException
-
+from numpy.lib import recfunctions as rfn
 
 from capymoa.instance import (
     Instance,
     LabeledInstance,
     RegressionInstance,
 )
-
-from typing import Generic, Iterator, TypeVar
-from abc import ABC, abstractmethod
 
 
 # Private functions
@@ -189,6 +185,7 @@ class Schema:
 
     def is_y_index_in_range(self, y_index: int) -> bool:
         """Return True if the y_index is in the range of the class label indexes."""
+        self._assert_classification()
         return 0 <= y_index < self.get_num_classes()
 
     @property
@@ -456,13 +453,15 @@ class MOAStream(Stream[_AnyInstance]):
 class ARFFStream(MOAStream[_AnyInstance]):
     """A datastream originating from an ARFF file."""
 
-    def __init__(self, path: str, CLI: Optional[str] = None, class_index: int = -1):
+    def __init__(
+        self, path: Union[str, Path], CLI: Optional[str] = None, class_index: int = -1
+    ):
         """Construct an ARFFStream object from a file path.
 
         :param path: A filepath
         :param CLI: Additional command line arguments to pass to the MOA stream.
         """
-        moa_stream = ArffFileStream(path, class_index)
+        moa_stream = ArffFileStream(str(path), class_index)
         super().__init__(moa_stream=moa_stream, CLI=CLI)
 
 
@@ -565,7 +564,7 @@ class NumpyStream(Stream[_AnyInstance]):
 
 
 def stream_from_file(
-    path_to_csv_or_arff: str,
+    path_to_csv_or_arff: Union[str, Path],
     dataset_name: str = "NoName",
     class_index: int = -1,
     target_type: str = None,  # "numeric" or "categorical"
@@ -593,24 +592,24 @@ def stream_from_file(
         allows the user to specify the target values in the data to be interpreted as categorical or numeric.
         Defaults to None to detect automatically.
     """
-    assert path_to_csv_or_arff is not None, "A file path must be provided."
-    if path_to_csv_or_arff.endswith(".arff"):
-        try:
-            # Delegate to the ARFFFileStream object within ARFFStream to read the file.
-            return ARFFStream(path=path_to_csv_or_arff, class_index=class_index)
-        except RuntimeException as ex:
-            if "ArffFileStream restart failed" in str(ex):
-                raise FileNotFoundError(
-                    "Failed to open ARFF file stream, file could not be found."
-                ) from None
-            else:
-                raise
-    elif path_to_csv_or_arff.endswith(".csv"):
+    filename = Path(path_to_csv_or_arff)
+    if not filename.exists():
+        raise FileNotFoundError(f"No such file or directory: '{filename}'")
+    if filename.is_dir():
+        raise IsADirectoryError(f"Is a directory: '{filename}'")
+
+    if filename.suffix == ".arff":
+        return ARFFStream(path=filename.as_posix(), class_index=class_index)
+    elif filename.suffix == ".csv":
         return CSVStream(
-            path_to_csv_or_arff,
+            filename.as_posix(),
             dataset_name=dataset_name,
             class_index=class_index,
             target_type=target_type,
+        )
+    else:
+        raise ValueError(
+            f"Unsupported file type: expected '.arff' or '.csv', but got '{filename.suffix}'"
         )
 
 
@@ -914,7 +913,7 @@ class CSVStream(Stream[_AnyInstance]):
         if self.schema.is_classification():
             return LabeledInstance.from_array(self.schema, X, int(y))
         elif self.schema.is_regression():
-            return RegressionInstance.from_array(self.schema, X, int(y))
+            return RegressionInstance.from_array(self.schema, X, float(y))
         else:
             raise ValueError(
                 "Unknown machine learning task must be a regression or "
@@ -931,9 +930,7 @@ class CSVStream(Stream[_AnyInstance]):
 
 class ConcatStream(Stream[_AnyInstance]):
     """Concatenate multiple streams into a single stream.
-
     When the end of a stream is reached, the next stream in the list is used.
-
     >>> from capymoa.stream import ConcatStream, NumpyStream
     >>> import numpy as np
     >>> X1 = np.array([[1, 2, 3]])
@@ -961,7 +958,6 @@ class ConcatStream(Stream[_AnyInstance]):
 
     def __init__(self, streams: Sequence[Stream]):
         """Construct a ConcatStream object from a list of streams.
-
         :param streams: A list of streams to chain together.
         """
         super().__init__()
@@ -984,7 +980,6 @@ class ConcatStream(Stream[_AnyInstance]):
 
     def next_instance(self) -> _AnyInstance:
         """Return the next instance in the stream.
-
         :raises ValueError: If the machine learning task is neither a regression
             nor a classification task.
         :return: A labeled instances or a regression depending on the schema.

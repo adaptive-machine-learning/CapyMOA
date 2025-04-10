@@ -5,8 +5,8 @@ from ._stream import (
     stream_from_file,
     CSVStream,
     NumpyStream,
-    ConcatStream,
     MOAStream,
+    ConcatStream,
 )
 from .torch import TorchClassifyStream
 from . import drift, generator, preprocessing

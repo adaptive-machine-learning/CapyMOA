@@ -61,7 +61,7 @@ SOURCE_LIST: Dict[str, _Source] = {
     ),
     "FriedTiny": _Source(
         "https://www.dropbox.com/scl/fi/ck7mhvljj6oxb7e0bn26k/fried_tiny.arff.gz?rlkey=jmw5f613j52wqurih18v5rb10&st=nre84p53&dl=1",
-        None,
+        "https://www.dropbox.com/scl/fi/ejmu51dwu5u0d3z94f2vq/fried_tiny.csv.gz?rlkey=31miahxhab5g0jstpe9hcbe40&st=5y6lrdxa&dl=1",
     ),
     "Bike": _Source(
         "https://www.dropbox.com/scl/fi/r3lmdpzhyzv2h0mdh4802/bike.arff.gz?rlkey=9eq3x5onmgtpmhi1kpjs25u4c&st=ikx0urzf&dl=1",
