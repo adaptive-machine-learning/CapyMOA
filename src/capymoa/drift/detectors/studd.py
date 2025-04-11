@@ -102,7 +102,7 @@ class STUDD(BaseDriftDetector):
             tmp_instance = self.instance_from_arr(instance_x, teacher_prediction)
 
         # Only detect drift after seeing minimum number of instances
-        ## important to have a minimum number of instances to train the student model
+        # important to have a minimum number of instances to train the student model
         if self.idx >= self.min_n_instances:
             pred = self.student.predict(tmp_instance)
 
@@ -161,11 +161,11 @@ class STUDD(BaseDriftDetector):
 
         :param clean_history: Whether to reset detection history, defaults to False
         """
-        self.detector.reset(clean_history)
-        
+        self.detector.reset(clean_history=clean_history)
+
         self.in_concept_change = self.detector.in_concept_change
         self.in_warning_zone = self.detector.in_warning_zone
-        
+
         if clean_history:
             self.detection_index = self.detector.detection_index
             self.warning_index = self.detector.warning_index
