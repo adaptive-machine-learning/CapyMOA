@@ -39,10 +39,10 @@ jobs:
         run: python -m pip install ".[dev]"
 
       - name: PyTest
-        run: invoke test.unit
+        run:  python -m invoke test.unit
 
       - name: Notebooks
-        run: invoke test.nb
+        run:  python -m invoke test.nb
 
   documentation:
     name: Documentation
@@ -61,7 +61,7 @@ jobs:
         python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
         python -m pip install ".[dev,doc]"
     - name: Build Documentation
-      run: invoke docs.build
+      run: python -m invoke docs.build
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
