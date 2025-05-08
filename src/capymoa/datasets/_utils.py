@@ -5,7 +5,6 @@ from tempfile import TemporaryDirectory
 from typing import Optional, Union, Tuple
 import wget
 from shutil import copyfileobj
-import os
 from capymoa.env import capymoa_datasets_dir
 from urllib.parse import urlsplit
 
@@ -109,17 +108,10 @@ def download_extract(url: str, output_directory: Path) -> Path:
             f"Output directory {output_directory} is not a directory."
         )
 
-    # The wget download will add temporary files to the current working directory
-    # so we need to change the working directory to avoid cluttering the current
-    # directory with temporary files.
-    wd = os.getcwd()
     with TemporaryDirectory() as working_directory:
         working_directory = Path(working_directory)
-        os.chdir(working_directory)
-        archive = wget.download(url, working_directory.as_posix())
-        print()
+        archive = wget.download(url, working_directory.absolute().as_posix())
         extracted = extract(archive)
         out_filename = output_directory / extracted.name
         shutil.move(extracted, out_filename)
-    os.chdir(wd)
     return out_filename
