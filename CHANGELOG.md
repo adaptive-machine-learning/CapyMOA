@@ -2,7 +2,30 @@
 
 
 
+## v0.9.1 (2025-05-08)
+
+### Ci
+
+* ci: fix temporary directories for windows (#255) ([`f030afb`](https://github.com/adaptive-machine-learning/CapyMOA/commit/f030afb1059a864a0d04a86220f8e3bffdabbef9))
+
+* ci: use ``python -m`` to fix windows release (#254) ([`85fe5f5`](https://github.com/adaptive-machine-learning/CapyMOA/commit/85fe5f560cb7f1aeec62ad756b57700852a49c9a))
+
+### Documentation
+
+* docs: add license to pypi (#253) ([`1c9bc4b`](https://github.com/adaptive-machine-learning/CapyMOA/commit/1c9bc4bf714e2a9eadd440967123feca49bb856f))
+
+### Fix
+
+* fix(stream): stop ``CSVStream`` rounding ``y_value`` erroneously (#252) ([`82d66ec`](https://github.com/adaptive-machine-learning/CapyMOA/commit/82d66ec7763af45435eb90529c6378cfce7ec7dd))
+
+* fix(stream): fix ``get_moa_stream`` ``ValueError`` (#251) ([`effd818`](https://github.com/adaptive-machine-learning/CapyMOA/commit/effd8188321fdd99c3cd3f8ce8c3a84393f54aa9))
+
+
 ## v0.9.0 (2025-03-28)
+
+### Chore
+
+* chore(version): increment version to 0.9.0 ([`77a333f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/77a333f80f602e3490cd682c7af7977df648ed0d))
 
 ### Ci
 
