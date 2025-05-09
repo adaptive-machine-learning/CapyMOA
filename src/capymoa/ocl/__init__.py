@@ -1,8 +1,8 @@
-"""Learners and base classes for Online Continual Learning.
+"""Online Continual Learning (OCL) module.
 
-Online Continual Learning (OCL) is a setting where learners train on a sequence
-of tasks. A task is a specific concept or data distribution. After training the
-learner on each task, we evaluate the learner on all tasks.
+OCL is a setting where learners train on a sequence of tasks. A task is a
+specific concept or data distribution. After training the learner on each task,
+we evaluate the learner on all tasks.
 
 Continual learning is an important problem to deep learning because these models
 suffer from catastrophic forgetting, which occurs when a model forgets how to
@@ -17,8 +17,8 @@ objective is performance on historic tasks rather than adaptation. Unlike
 traditional continual learning, OCL restricts training to a single data pass.
 
 >>> from capymoa.classifier import HoeffdingTree
->>> from capymoa.datasets.ocl import TinySplitMNIST
->>> from capymoa.evaluation.ocl import ocl_train_eval_loop
+>>> from capymoa.ocl.datasets import TinySplitMNIST
+>>> from capymoa.ocl.evaluation import ocl_train_eval_loop
 >>> import numpy as np
 >>> scenario = TinySplitMNIST()
 >>> learner = HoeffdingTree(scenario.schema)
@@ -52,10 +52,7 @@ Forward Transfer: 0.05
 Backward Transfer: -0.07
 """
 
-from ._base import TaskAware, TaskBoundaryAware
+from . import datasets, base, util, evaluation
 
 
-__all__ = [
-    "TaskAware",
-    "TaskBoundaryAware",
-]
+__all__ = ["evaluation", "datasets", "base", "util"]

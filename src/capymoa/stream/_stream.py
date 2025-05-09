@@ -930,7 +930,9 @@ class CSVStream(Stream[_AnyInstance]):
 
 class ConcatStream(Stream[_AnyInstance]):
     """Concatenate multiple streams into a single stream.
+
     When the end of a stream is reached, the next stream in the list is used.
+
     >>> from capymoa.stream import ConcatStream, NumpyStream
     >>> import numpy as np
     >>> X1 = np.array([[1, 2, 3]])
@@ -954,6 +956,7 @@ class ConcatStream(Stream[_AnyInstance]):
         y_index=0,
         y_label='0'
     )
+
     """
 
     def __init__(self, streams: Sequence[Stream]):
@@ -980,6 +983,7 @@ class ConcatStream(Stream[_AnyInstance]):
 
     def next_instance(self) -> _AnyInstance:
         """Return the next instance in the stream.
+
         :raises ValueError: If the machine learning task is neither a regression
             nor a classification task.
         :return: A labeled instances or a regression depending on the schema.
