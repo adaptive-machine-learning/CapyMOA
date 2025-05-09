@@ -1,3 +1,5 @@
+"""Evaluate online continual learning in classification tasks."""
+
 from typing import Optional, Sequence, Union
 
 from capymoa.base import Classifier
@@ -9,7 +11,7 @@ from capymoa.evaluation.evaluation import (
 )
 from capymoa.evaluation.results import PrequentialResults
 from capymoa.instance import LabeledInstance
-from capymoa.ocl._base import TaskAware, TaskBoundaryAware
+from capymoa.ocl.base import TaskAware, TaskBoundaryAware
 from capymoa.stream import Stream
 
 from capymoa.type_alias import LabelIndex

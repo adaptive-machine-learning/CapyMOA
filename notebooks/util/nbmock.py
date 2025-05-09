@@ -7,12 +7,12 @@ def mock_datasets():
     """Mock the datasets to use the tiny versions for testing."""
     import unittest.mock as mock
     from capymoa.datasets import ElectricityTiny, CovtypeTiny, FriedTiny
-    from capymoa.datasets.ocl import TinySplitMNIST
+    from capymoa.ocl.datasets import TinySplitMNIST
 
     mock.patch("capymoa.datasets.Electricity", ElectricityTiny).start()
     mock.patch("capymoa.datasets.Covtype", CovtypeTiny).start()
     mock.patch("capymoa.datasets.Fried", FriedTiny).start()
-    mock.patch("capymoa.datasets.ocl.SplitMNIST", TinySplitMNIST).start()
+    mock.patch("capymoa.ocl.datasets.SplitMNIST", TinySplitMNIST).start()
 
 
 def is_nb_fast() -> bool:

@@ -1,4 +1,4 @@
-"""This module contains built-in datastream for online continual learning (OCL).
+"""Use built-in datasets for online continual learning.
 
 In OCL datastreams are irreversible sequences of examples following a
 non-stationary data distribution. Learners in OCL can only learn from a single
@@ -8,15 +8,15 @@ the datastream.
 Portions of the datastream where the data distribution is relatively stationary
 are called *tasks*.
 
-A common way to construct an OCL dataset for experimentation is to groups the
-classes of a usual classification dataset into tasks. Known as the
-*class-incremental* scenario, the learner is presented with a sequence of tasks
-where each task contains a new subset of the classes.
+A common way to construct an OCL dataset for experimentation is to group the
+classes of a classification dataset into tasks. Known as the *class-incremental*
+scenario, the learner is presented with a sequence of tasks where each task
+contains a new subset of the classes.
 
-For example :class:`SplitMNIST` splits the MNIST dataset into five tasks where each
-task contains two classes:
+For example :class:`SplitMNIST` splits the MNIST dataset into five tasks where
+each task contains two classes:
 
->>> from capymoa.datasets.ocl import SplitMNIST
+>>> from capymoa.ocl.datasets import SplitMNIST
 >>> scenario = SplitMNIST()
 >>> scenario.task_schedule
 [{1, 4}, {5, 7}, {9, 3}, {0, 8}, {2, 6}]

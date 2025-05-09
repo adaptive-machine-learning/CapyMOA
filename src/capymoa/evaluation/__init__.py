@@ -12,7 +12,7 @@ from .evaluation import (
     AnomalyDetectionEvaluator,
     ClusteringEvaluator,
 )
-from . import results, ocl
+from . import results
 
 __all__ = [
     "prequential_evaluation",
@@ -28,5 +28,4 @@ __all__ = [
     "AnomalyDetectionEvaluator",
     "ClusteringEvaluator",
     "results",
-    "ocl",
 ]
