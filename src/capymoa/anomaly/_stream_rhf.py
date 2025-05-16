@@ -1,12 +1,5 @@
 import numpy as np
 from capymoa.base import AnomalyDetector
-import numpy as np
-from scipy.stats import kurtosis
-import random
-import time
-from sklearn.metrics import roc_auc_score, average_precision_score, roc_curve, auc
-import pandas as pd
-from scipy.stats import sem
 
 
 # Random Histogram Tree Node
