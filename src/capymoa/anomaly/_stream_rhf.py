@@ -299,7 +299,6 @@ class StreamRHF(AnomalyDetector):
         :param num_trees: Number of trees in the forest.
         :param window_size: Size of the sliding window.
         """
-        print("our StreamRHF initialized")
         self.schema = schema
         self.max_height = max_height
         self.num_trees = num_trees
