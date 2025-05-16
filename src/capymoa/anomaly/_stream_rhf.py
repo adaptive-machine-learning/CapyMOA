@@ -275,7 +275,7 @@ class StreamRHF(AnomalyDetector):
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.anomaly import Autoencoder
-    >>> from capymoa.evaluation import StreamRHF
+    >>> from capymoa.anomaly import StreamRHF
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
     >>> learner = StreamRHF(schema=schema)
