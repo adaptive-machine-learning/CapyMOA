@@ -274,8 +274,8 @@ class StreamRHF(AnomalyDetector):
     Example:
 
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.anomaly import Autoencoder
     >>> from capymoa.anomaly import StreamRHF
+    >>> from capymoa.evaluation import AnomalyDetectionEvaluator
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
     >>> learner = StreamRHF(schema=schema)
@@ -287,7 +287,7 @@ class StreamRHF(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.50
+    AUC: 0.61
 
     """
 
