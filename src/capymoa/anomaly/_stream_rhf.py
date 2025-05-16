@@ -181,7 +181,6 @@ def print_tree_info(node):
 
 class RandomHistogramForest:
     def __init__(self, num_trees, max_height, window_size, number_of_features):
-        print(window_size)
         self.num_trees = num_trees
         self.max_height = max_height
         self.window_size = window_size
