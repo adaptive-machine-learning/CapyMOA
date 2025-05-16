@@ -1,9 +1,5 @@
 import numpy as np
-import random
-import math
 from capymoa.base import AnomalyDetector
-from capymoa.instance import Instance
-from capymoa.type_alias import AnomalyScore
 import numpy as np
 from scipy.stats import kurtosis
 import random
@@ -259,15 +255,15 @@ class StreamRHF(AnomalyDetector):
         self.forest = RandomHistogramForest(num_trees, max_height, window_size, schema.get_num_attributes())
         self.forest.initialize_forest()
 
-    def score_instance(self, instance):
+    def score_instance(self, instance) -> float:
         """
         Score a single instance.
-        A score value close to 0 means that is an anomaly and close to 1 it means it is a normal instance
+        A score value close to 1 means that is an anomaly and close to 0 it means it is a normal instance
         :param instance: An instance from the stream.
         :return: Anomaly score for the instance.
         """
-        #In the case that the score 0 means that is an anomaly and 1 if normal instance
-        return 1-self.forest.score(instance.x)
+        #In the case that the score 1 means that is an anomaly and 0 if normal instance
+        return float(self.forest.score(instance.x))
 
     def train(self, instance):
         """
