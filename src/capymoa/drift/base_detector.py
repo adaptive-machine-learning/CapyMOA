@@ -105,23 +105,6 @@ class MOADriftDetector(BaseDriftDetector):
 
         if self.in_concept_change:
             self.detection_index.append(self.idx)
-            self.reset()
-
-    def reset(self, clean_history: bool = False) -> None:
-        """Reset the drift detector.
-
-        :param clean_history: Whether to reset detection history, defaults to False
-        """
-        self.in_concept_change = False
-        self.in_warning_zone = False
-        self.moa_detector.prepareForUse()
-        self.moa_detector.resetLearning()
-
-        if clean_history:
-            self.detection_index = []
-            self.warning_index = []
-            self.data = []
-            self.idx = 0
 
     @override
     def get_params(self) -> Dict[str, Any]:
