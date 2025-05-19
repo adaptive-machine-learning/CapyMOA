@@ -63,3 +63,15 @@ class HDDMWeighted(MOADriftDetector):
         self.lambda_ = lambda_
         self.test_type = test_type
         self.get_params()
+
+    def add_element(self, element: float):
+        if not isinstance(element, float):
+            element = float(element)
+
+        self.moa_detector.input(element)
+        self.data.append(element)
+
+        self.estimation = self.moa_detector.getEstimation()
+        self.delay = self.moa_detector.getDelay()
+        self.in_concept_change = self.moa_detector.getChange()
+        self.in_warning_zone = self.moa_detector.getWarningZone()

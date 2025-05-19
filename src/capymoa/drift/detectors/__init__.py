@@ -10,7 +10,6 @@ from .rddm import RDDM
 from .seed import SEED
 from .stepd import STEPD
 from .abcd import ABCD
-from .studd import STUDD
 
 __all__ = [
     "ADWIN",
@@ -25,5 +24,4 @@ __all__ = [
     "SEED",
     "STEPD",
     "ABCD",
-    "STUDD",
 ]
