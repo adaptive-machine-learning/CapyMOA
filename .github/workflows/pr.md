@@ -6,16 +6,18 @@ These checks are defined by the `.github/workflows/pr.yml` file and this documen
 If you encounter any issues, reading the error messages and trying to reproduce them locally is a good first step.
 Don't hesitate to ask for assistance in the pull request or join the Discord server.
 
-## Check Code
+## Tests
 
 This job runs formatting, linting, tests, doctests, and checks notebooks.
 
-<!-- TODO: update this link to the capymoa website after next deployment -->
-- If "**Formatting**" or "**Linting**" step fail the [Linting and Formatting guide](https://github.com/adaptive-machine-learning/CapyMOA/blob/main/docs/contributing/vcs.md#linting-and-formatting) may help.
 - If "**Tests and Doctests**" step fails the [Adding Tests guide](https://capymoa.org/contributing/tests.html) may help.
 - If "**Check Notebooks**" step fail the [Notebooks guide](https://capymoa.org/contributing/docs.html#notebooks) may help.
 
-## Check Commit
+## Code Style
+
+This job uses `ruff` to check the code style. If this job fail the [Linting and Formatting guide](https://capymoa.org/contributing/vcs.html#linting-and-formatting) may help.
+
+## Commit Style
 
 This job checks if commit messages are conventional commit compliant. If these checks fail, the [Commit Messages guide](https://capymoa.org/contributing/vcs.html#commit-messages) may help. **Don't worry too much about this check, as the reviewer can assist by squashing and merging commits with a compliant message.**
 
