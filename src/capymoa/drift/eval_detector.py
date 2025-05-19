@@ -78,7 +78,7 @@ class EvaluateDriftDetector:
         >>> metrics = evaluator.calc_performance(trues=trues, preds=preds, tot_n_instances=2000)
     """
 
-    def __init__(self, max_delay: int, rate_period: int = 1000, max_early_detection: int = 0):
+    def __init__(self, max_delay: int, rate_period: int = 1000):
         """Initialize the drift detector evaluator.
 
         Args:
@@ -86,9 +86,6 @@ class EvaluateDriftDetector:
                 occurs. For gradual drifts, this window starts from the drift end_location.
                 If a detector fails to signal within this window, it is considered to have
                 missed the drift (false negative).
-            max_early_detection (int): Maximum number of instances before a drift starts where
-                a detection is still considered valid. For detections that occur earlier than
-                this window, they are considered false positives.
             rate_period (int): The number of instances in a relevant time period. This number is
                 used to calculate the false alarm rate and alarm rate.
                 Default is 1000.
@@ -107,7 +104,6 @@ class EvaluateDriftDetector:
         self._validate_parameters(max_delay, rate_period)
 
         self.max_delay = max_delay
-        self.max_early_detection = max_early_detection
         self.rate_period = rate_period
         self.metrics: Dict[str, Any] = {}
 
@@ -201,7 +197,7 @@ class EvaluateDriftDetector:
             for pred in episode_preds:
                 n_alarms += 1
 
-                if drift_start - self.max_early_detection <= pred <= drift_end + self.max_delay:
+                if drift_start - self.max_delay <= pred <= drift_end + self.max_delay:
                     tp += 1
                     if not drift_detected:  # only counting first detection
                         drift_detected = True
