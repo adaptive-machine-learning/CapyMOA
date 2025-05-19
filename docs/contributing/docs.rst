@@ -28,9 +28,17 @@ Docstrings
 
 CapyMOA uses Sphinx to generate documentation from function, class, and module
 docstring comments. CapyMOA uses the `sphinx/reStructuredText
-<https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.htm>`_ style of
+<https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html>`_ style of
 docstrings. Rather than having type information in the docstring, we prefer to
 use Python-type hints. This allows for better type checking and IDE support.
+
+.. warning::
+
+    Some parts of our codebase use the wrong docstring format (e.g. Google
+    style, NumPy style, etc.). These are **wrong** since they are not parsed
+    correctly by Sphinx and display strangely on the website. We are in the
+    process of fixing these. **Please do not use these as examples for your own
+    docstrings.**
 
 Here is an example of a function docstring:
 
@@ -58,6 +66,22 @@ Here is an example of a function docstring:
             :raises ValueError: If no schema is provided and no moa_stream is provided.
             :raises ValueError: If command line arguments are provided without a moa_stream.
             """
+
+
+.. important::
+
+    If you use **autodocstring for VSCode**, set the docstring format to `sphinx-notypes` in the settings.
+    (`autodocstring <https://marketplace.visualstudio.com/items?itemName=njpwerner.autodocstring>`_)
+
+    If you use **PyCharm**, set the docstring format to `reStructuredText` in the settings.
+    (`PyCharm settings <https://www.jetbrains.com/help/pycharm/settings-tools-python-integrated-tools.html>`_)
+
+    If you use an AI tool to generate docstrings please ensure that it actually
+    outputs reStructuredText style docstrings. Also go through the docstring and
+    ensure it is **concise** and correct. You may have luck setting up a project
+    wide prompt (`Copilot docs
+    <https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot?tool=vscode>`_).
+
 
 Notebooks
 ---------

@@ -23,8 +23,8 @@ env:
   PYTHON_VERSION: "3.10"
 
 jobs:
-  code:
-    name: "Check Code"
+  tests:
+    name: "Tests"
     timeout-minutes: 20
     runs-on: ubuntu-latest
     strategy:
@@ -42,14 +42,6 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
         cache: 'pip' # caching pip dependencies
 
-    - name: Formatting
-      uses: astral-sh/ruff-action@v3
-      with:
-        args: "format --check"
-    
-    - name: Linting
-      uses: astral-sh/ruff-action@v3
-
     - name: Install dependencies
       run: |
         python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
@@ -62,23 +54,37 @@ jobs:
         path: data
         key: "test-datasets"
 
-    - name: Tests and Doctests
-      run: invoke test.unit
+    - name: PyTest
+      run: invoke test.pytest
+
+    - name: Doctest
+      run: invoke test.doctest
 
     - name: Check Notebooks
       run: invoke test.nb
 
+  lint:
+    name: "Code Style"
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Formatting
+      uses: astral-sh/ruff-action@v3
+      with:
+        args: "format --check"
+    - name: Linting
+      uses: astral-sh/ruff-action@v3
+
   commit:
-    name: "Check Commit"
+    name: "Commit Style"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: wagoid/commitlint-github-action@v6
 
   documentation:
-    name: "Check Documentation"
+    name: "Documentation"
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
