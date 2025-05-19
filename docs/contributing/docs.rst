@@ -70,7 +70,7 @@ Here is an example of a function docstring:
 
 .. important::
 
-    If you use **autodocstring for VSCode**, set the docstring format to `sphinx` in the settings.
+    If you use **autodocstring for VSCode**, set the docstring format to `sphinx-notypes` in the settings.
     (`autodocstring <https://marketplace.visualstudio.com/items?itemName=njpwerner.autodocstring>`_)
 
     If you use **PyCharm**, set the docstring format to `reStructuredText` in the settings.

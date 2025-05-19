@@ -190,13 +190,15 @@ class RandomHistogramForest:
         self.current_window = []
         self.number_of_features = number_of_features
 
-    def initialize_forest(self):
+    def initialize_forest(self, seed=None):
+        rng = np.random.default_rng(seed)
+
         self.forest = []
         # Maximum possible nodes in a full binary tree
         num_nodes = 2 ** (self.max_height + 1)
         # Each tree gets a seed array for all possible nodes
         self.seed_arrays = [
-            np.random.randint(0, 10000, size=num_nodes) for _ in range(self.num_trees)
+            rng.integers(0, 10000, size=num_nodes) for _ in range(self.num_trees)
         ]
 
         # this will just create the trees with empty data, just the root i'd say
@@ -277,7 +279,7 @@ class StreamRHF(AnomalyDetector):
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
-    >>> learner = StreamRHF(schema=schema, num_trees=5)
+    >>> learner = StreamRHF(schema=schema, num_trees=5, max_height=3)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -286,18 +288,22 @@ class StreamRHF(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.60
+    AUC: 0.73
 
     """
 
-    def __init__(self, schema, max_height=5, num_trees=100, window_size=20):
+    def __init__(
+        self, schema, max_height=5, num_trees=100, window_size=20, random_seed=0
+    ):
         """
         Initialize the StreamRHF learner.
         :param schema: Schema of the data stream.
         :param max_height: Maximum height of the trees.
         :param num_trees: Number of trees in the forest.
         :param window_size: Size of the sliding window.
+        :param random_seed: Random seed for reproducibility.
         """
+        super().__init__(schema, random_seed)
         self.schema = schema
         self.max_height = max_height
         self.num_trees = num_trees
@@ -305,7 +311,7 @@ class StreamRHF(AnomalyDetector):
         self.forest = RandomHistogramForest(
             num_trees, max_height, window_size, schema.get_num_attributes()
         )
-        self.forest.initialize_forest()
+        self.forest.initialize_forest(random_seed)
 
     def score_instance(self, instance) -> float:
         """

@@ -3,6 +3,7 @@ from capymoa.anomaly import (
     HalfSpaceTrees,
     OnlineIsolationForest,
     Autoencoder,
+    StreamRHF,
 )
 from capymoa.base import AnomalyDetector
 from capymoa.base import MOAClassifier
@@ -38,12 +39,9 @@ from capymoa.stream._stream import Schema
             0.57,
             None,
         ),
+        (partial(StreamRHF, num_trees=5, max_height=3), 0.72, None),
     ],
-    ids=[
-        "HalfSpaceTrees",
-        "OnlineIsolationForest",
-        "Autoencoder",
-    ],
+    ids=["HalfSpaceTrees", "OnlineIsolationForest", "Autoencoder", "StreamRHF"],
 )
 def test_anomaly_detectors(
     learner_constructor: Callable[[Schema], AnomalyDetector],
