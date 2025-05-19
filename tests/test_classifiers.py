@@ -1,45 +1,47 @@
+import os
 from contextlib import nullcontext
 from dataclasses import dataclass
-from capymoa.evaluation import ClassificationEvaluator, ClassificationWindowedEvaluator
-from capymoa.classifier import (
-    EFDT,
-    HoeffdingTree,
-    AdaptiveRandomForestClassifier,
-    OnlineBagging,
-    NaiveBayes,
-    KNN,
-    StreamingGradientBoostedTrees,
-    OzaBoost,
-    MajorityClass,
-    NoChange,
-    OnlineSmoothBoost,
-    StreamingRandomPatches,
-    HoeffdingAdaptiveTree,
-    SAMkNN,
-    DynamicWeightedMajority,
-    CSMOTE,
-    LeveragingBagging,
-    OnlineAdwinBagging,
-    WeightedkNN,
-    ShrubsClassifier,
-)
-from capymoa.base import Classifier
-from capymoa.base import MOAClassifier
-from capymoa.datasets import ElectricityTiny
-from capymoa.misc import save_model, load_model
-from java.lang import Exception as JException
-import pytest
 from functools import partial
-from typing import Callable, Optional
-from capymoa.base import _extract_moa_learner_CLI
-from capymoa.splitcriteria import GiniSplitCriterion
-
-from capymoa.stream import Schema, Stream
-
-from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
-from pytest_subtests import SubTests
 from tempfile import TemporaryDirectory
-import os
+from typing import Callable, Optional
+
+import pytest
+import torch
+from java.lang import Exception as JException
+from pytest_subtests import SubTests
+
+from capymoa.ann import Perceptron
+from capymoa.base import Classifier, MOAClassifier, _extract_moa_learner_CLI
+from capymoa.classifier import (
+    CSMOTE,
+    EFDT,
+    KNN,
+    AdaptiveRandomForestClassifier,
+    DynamicWeightedMajority,
+    Finetune,
+    HoeffdingAdaptiveTree,
+    HoeffdingTree,
+    LeveragingBagging,
+    MajorityClass,
+    NaiveBayes,
+    NoChange,
+    OnlineAdwinBagging,
+    OnlineBagging,
+    OnlineSmoothBoost,
+    OzaBoost,
+    PassiveAggressiveClassifier,
+    SAMkNN,
+    SGDClassifier,
+    ShrubsClassifier,
+    StreamingGradientBoostedTrees,
+    StreamingRandomPatches,
+    WeightedkNN,
+)
+from capymoa.datasets import ElectricityTiny
+from capymoa.evaluation import ClassificationEvaluator, ClassificationWindowedEvaluator
+from capymoa.misc import load_model, save_model
+from capymoa.splitcriteria import GiniSplitCriterion
+from capymoa.stream import Schema, Stream
 
 
 @dataclass
@@ -206,6 +208,17 @@ test_cases = [
         70,
     ),
     ClassifierTestCase("ShrubsClassifier", partial(ShrubsClassifier), 89.6, 91),
+    ClassifierTestCase(
+        "Finetune",
+        partial(
+            Finetune,
+            model=Perceptron,
+            optimizer=partial(torch.optim.Adam, lr=0.01),
+            batch_size=16,
+        ),
+        65.4,
+        72.0,
+    ),
 ]
 
 

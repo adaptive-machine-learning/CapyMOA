@@ -79,6 +79,7 @@ These modules provide miscellaneous utilities.
     :caption: Miscellaneous
     :recursive:
 
+    capymoa.ann
     capymoa.splitcriteria
     capymoa.misc
     capymoa.env
