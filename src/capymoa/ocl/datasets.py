@@ -182,6 +182,7 @@ class _BuiltInCIScenario(ABC):
             dataset_name=f"{dataset_prefix}Test",
         )
         self.schema = self.train_streams[0].get_schema()
+        self.num_tasks = len(self.task_schedule)
 
     @classmethod
     @abstractmethod
@@ -193,6 +194,9 @@ class _BuiltInCIScenario(ABC):
         transform: Optional[Any],
     ) -> Dataset[Tuple[Tensor, Tensor]]:
         pass
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}{self.num_classes}/{self.num_tasks}"
 
 
 def _tasks_to_streams(

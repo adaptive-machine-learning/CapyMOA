@@ -269,7 +269,6 @@ class StreamRHF(AnomalyDetector):
 
     `STREAMRHF: Tree-Based Unsupervised Anomaly Detection for Data Streams.
     Stefan Nesic, Andrian Putina, Maroua Bahri, Alexis Huet, Jose Manuel Navarro, Dario Rossi, Mauro Sozio.
-
     <https://nonsns.github.io/paper/rossi22aiccsa.pdf>`_
 
     Example:

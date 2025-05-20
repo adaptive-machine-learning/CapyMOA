@@ -121,8 +121,8 @@ and modules.
 
    api/index
 
-About us
----------
+ℹ️ About us
+-----------
 
 .. toctree::
    about
