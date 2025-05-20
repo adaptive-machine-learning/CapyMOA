@@ -5,9 +5,11 @@ from dataclasses import dataclass
 import pytest
 from capymoa.ocl.datasets import TinySplitMNIST
 from capymoa.ocl.evaluation import ocl_train_eval_loop
+from capymoa.ocl.strategy import ExperienceReplay
+from capymoa.ann import Perceptron
 from functools import partial
 
-from capymoa.classifier import HoeffdingTree
+from capymoa.classifier import HoeffdingTree, Finetune
 
 approx = partial(pytest.approx, abs=0.001)
 
@@ -18,9 +20,9 @@ class Case:
 
     name: str
     constructor: Callable[[Schema], Classifier]
-    accuracy_final: float
-    anytime_accuracy_all_avg: float
-    ttt_accuracy: float
+    accuracy_final: float = 0
+    anytime_accuracy_all_avg: float = 0
+    ttt_accuracy: float = 0
 
 
 """
@@ -31,6 +33,14 @@ set.
 """
 TEST_CASES: List[Case] = [
     Case("HoeffdingTree", HoeffdingTree, 0.690, 0.465, 58.5),
+    Case("Finetune", partial(Finetune, model=Perceptron), 0.275, 0.196, 2.7),
+    Case(
+        "ExperienceReplay",
+        lambda schema: ExperienceReplay(Finetune(schema, Perceptron)),
+        0.280,
+        0.194,
+        2.6,
+    ),
 ]
 
 

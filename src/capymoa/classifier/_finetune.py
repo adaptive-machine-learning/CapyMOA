@@ -54,8 +54,8 @@ class Finetune(BatchClassifier):
         model: Union[nn.Module, Callable[[Schema], nn.Module]],
         batch_size: int = 32,
         optimizer: Union[Optimizer, Callable[[ParamsT], Optimizer]] = optim.Adam,
-        device: Union[device, str] = "cpu",
         criterion: nn.Module = nn.CrossEntropyLoss(),
+        device: Union[device, str] = "cpu",
         random_seed: int = 0,
     ) -> None:
         """Construct a learner to finetune a neural network.
@@ -67,9 +67,9 @@ class Finetune(BatchClassifier):
         :param batch_size: Number of samples to use for training in each batch.
         :param optimizer: A PyTorch gradient descent optimizer or a constructor
             function that takes the model parameters and returns an optimizer.
+        :param criterion: Loss function to use for training.
         :param device: Hardware for training.
         :param random_seed: Seeds torch :py:func:`torch.manual_seed`.
-        :param criterion: Loss function to use for training.
         """
         super().__init__(schema, batch_size, random_seed)
         # seed for reproducibility
@@ -128,4 +128,6 @@ class Finetune(BatchClassifier):
         return self._batch.batch_size
 
     def __str__(self) -> str:
-        return f"Finetune(model={str(self.model)}, optimizer={str(self.optimizer)}, batch_size={self.batch_size}"
+        model_name = str(self.model.__class__.__name__)
+        optimizer_name = str(self.optimizer.__class__.__name__)
+        return f"Finetune(model={model_name}, optimizer={optimizer_name}, batch_size={self.batch_size})"
