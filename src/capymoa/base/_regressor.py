@@ -4,7 +4,6 @@ import numpy as np
 from numpy.typing import NDArray
 from sklearn.base import RegressorMixin as _SKRegressorMixin
 
-from capymoa.base._batch import _BatchBuilder
 from capymoa.instance import Instance, RegressionInstance
 from capymoa.stream._stream import Schema
 from capymoa.type_alias import TargetValue
@@ -15,8 +14,8 @@ class Regressor(ABC):
         self.random_seed = random_seed
         self.schema = schema
 
-    def __str__(self):
-        pass
+    def __str__(self) -> str:
+        return str(self.__class__.__name__)
 
     @abstractmethod
     def train(self, instance: RegressionInstance):
@@ -28,61 +27,100 @@ class Regressor(ABC):
 
 
 class BatchRegressor(Regressor):
-    """Base class for batch trained regression algorithms.
+    """Base class for regressor that support mini-batches.
 
-    >>> class MyBatchRegressor(BatchRegressor):
-    ...
-    ...     def batch_train(self, x, y):
-    ...         with np.printoptions(precision=2):
-    ...             print(x)
-    ...             print(y)
-    ...             print()
-    ...
-    ...     def predict(self, instance):
-    ...         return 0.0
-    ...
+    Supported by:
+
+    - :func:`capymoa.evaluation.prequential_evaluation`
+
+    Evaluators that support batch classifiers will call the :func:`batch_train`
+    and :func:`batch_predict` methods instead of :func:`train` and
+    :func:`predict`:
+
+    >>> from capymoa.base import BatchRegressor
     >>> from capymoa.datasets import FriedTiny
-    >>> print("downloading stream"); stream = FriedTiny()
-    downloading stream...
-    >>> learner = MyBatchRegressor(stream.schema, batch_size=2)
-    >>> for _ in range(4):
-    ...     learner.train(stream.next_instance())
-    [[0.49 0.07 0.   0.83 0.76 0.6  0.13 0.89 0.07 0.34]
-     [0.22 0.4  0.66 0.53 0.84 0.71 0.58 0.47 0.57 0.53]]
-    [17.95 13.81]
-    <BLANKLINE>
-    [[0.9  0.91 0.94 0.98 0.56 0.74 0.63 0.82 0.31 0.51]
-     [0.79 0.86 0.36 0.84 0.16 0.95 0.11 0.29 0.41 0.99]]
-    [20.77 18.3 ]
-    <BLANKLINE>
+    >>> from capymoa.evaluation import prequential_evaluation
+    >>>
+    >>> batch_size = 500
+    >>> class MyBatchRegressor(BatchRegressor):
+    ...     def batch_train(self, x, y):
+    ...         print(f"batch_train x.shape={x.shape} x.dtype={x.dtype}")
+    ...         print(f"batch_train y.shape={y.shape} y.dtype={y.dtype}")
+    ...
+    ...     def batch_predict(self, x):
+    ...         print(f"batch_predict x.shape={x.shape} x.dtype={x.dtype}")
+    ...         return np.zeros((x.shape[0],))
+    ...
+    >>> stream = FriedTiny()
+    >>> batch_regressor = MyBatchRegressor(stream.schema)
+    >>> _ = prequential_evaluation(
+    ...     stream,
+    ...     batch_regressor,
+    ...     batch_size=batch_size,
+    ...     max_instances=721
+    ... )
+    batch_predict x.shape=(500, 10) x.dtype=float64
+    batch_train x.shape=(500, 10) x.dtype=float64
+    batch_train y.shape=(500,) y.dtype=float64
+    batch_predict x.shape=(221, 10) x.dtype=float64
+    batch_train x.shape=(221, 10) x.dtype=float64
+    batch_train y.shape=(221,) y.dtype=float64
 
+    You can manually use ``itertools.batched`` (python 3.12) function and
+    ``np.stack`` to collect batches of instances as a matrix:
+
+    >>> from itertools import islice
+    >>> from capymoa._utils import batched # Not available in python < 3.12
+    >>> for i, batch in enumerate(batched(stream, 100)):
+    ...     x = np.stack([instance.x for instance in batch])
+    ...     y = np.stack([instance.y_value for instance in batch])
+    ...     batch_regressor.batch_train(x, y)
+    ...     break
+    batch_train x.shape=(100, 10) x.dtype=float64
+    batch_train y.shape=(100,) y.dtype=float64
+
+    The default implementation of :func:`train` and :func:`predict` calls the
+    batch variants with a batch of size 1. This is useful for parts of CapyMOA
+    that expect a classifier to be able to train and predict on single
+    instances.
+
+    >>> instance = next(stream)
+    >>> batch_regressor.train(instance)
+    batch_train x.shape=(1, 10) x.dtype=float64
+    batch_train y.shape=(1,) y.dtype=float64
+    >>> batch_regressor.predict(instance)
+    batch_predict x.shape=(1, 10) x.dtype=float64
+    np.float64(0.0)
     """
 
-    def __init__(self, schema: Schema, batch_size: int, random_seed: int = 1) -> None:
-        """Initialize the batch classifier.
-
-        :param schema: A schema used to allocate memory for the batch.
-        :param batch_size: The size of the batch.
-        :param random_seed: The random seed for reproducibility.
-        """
-        super().__init__(schema, random_seed)
-        self._batch = _BatchBuilder(
-            batch_size, schema.get_num_attributes(), 1, np.float32, np.float32
+    def train(self, instance: RegressionInstance) -> None:
+        """Calls :func:`batch_train` with a batch of size 1."""
+        return self.batch_train(
+            x=instance.x.reshape(1, -1), y=np.array(instance.y_value).reshape(1)
         )
 
-    def train(self, instance: RegressionInstance) -> None:
-        """Collate instances into a batch and call :func:`batch_train`."""
-        if self._batch.add(instance.x, instance.y_value):
-            self.batch_train(self._batch.batch_x, self._batch.batch_y.flatten())
+    def predict(self, instance: RegressionInstance) -> TargetValue:
+        """Calls :func:`batch_predict` with a batch of size 1."""
+        return self.batch_predict(x=instance.x.reshape(1, -1))[0]
 
     @abstractmethod
-    def batch_train(self, x: NDArray[np.number], y: NDArray[np.integer]) -> None:
+    def batch_train(self, x: NDArray[np.number], y: NDArray[np.number]) -> None:
         """Train the classifier with a batch of instances.
 
         :param x: A real valued matrix of shape ``(batch_size, num_attributes)``
             containing a batch of feature vectors.
         :param y: A real valued vector of shape ``(batch_size,)`` containing a batch
             of target values.
+        """
+
+    @abstractmethod
+    def batch_predict(self, x: NDArray[np.number]) -> NDArray[np.number]:
+        """Return probability estimates for each label in a batch.
+
+        :param x: A real valued matrix of shape ``(batch_size, num_attributes)``
+            containing a batch of feature vectors.
+        :return: An array of shape ``(batch_size, num_labels)`` containing the
+            probabilities for each label.
         """
 
 

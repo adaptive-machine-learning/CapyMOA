@@ -1,6 +1,8 @@
 """Contains private utility functions used throughout the library."""
 
-from typing import Dict, Any
+from typing import Dict, Any, Iterator, Tuple, TypeVar
+from itertools import islice
+import sys
 import re
 
 # Create a single mapping dictionary
@@ -144,3 +146,37 @@ def _leaf_prediction(leaf_prediction):
         )
 
     return leaf_prediction
+
+
+T = TypeVar("T")
+
+
+def batched(iterable: Iterator[T], n: int = 1) -> Iterator[Tuple[T, ...]]:
+    """Yield successive n-sized chunks from an iterable.
+
+    Will be removed in a future release, use the built-in ``itertools.batched``
+    instead if available.
+
+    >>> list(batched(range(5), 2))
+    [(0, 1), (2, 3), (4,)]
+    >>> list(batched(range(5), 3))
+    [(0, 1, 2), (3, 4)]
+    >>> list(batched(range(5), 6))
+    [(0, 1, 2, 3, 4)]
+
+    :param iterable: The iterable to batch.
+    :param n: The size of each batch.
+    :return: A generator yielding tuples of size n.
+    """
+    # If Python 3.12 or later we can use the built-in batched function
+    if sys.version_info >= (3, 12):
+        from itertools import batched
+
+        yield from batched(iterable, n)
+    else:
+        # Fallback for Python versions < 3.12
+        if n < 1:
+            raise ValueError("n must be at least one")
+        iterator = iter(iterable)
+        while batch := tuple(islice(iterator, n)):
+            yield batch

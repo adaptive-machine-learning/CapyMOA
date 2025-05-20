@@ -25,13 +25,12 @@ class Finetune(BatchClassifier):
     >>> stream = ElectricityTiny()
     >>> learner = Finetune(
     ...     stream.get_schema(),
-    ...     batch_size=16,
     ...     model=Perceptron,
     ...     optimizer=partial(Adam, lr=0.01)
     ... )
-    >>> results = prequential_evaluation(stream, learner)
+    >>> results = prequential_evaluation(stream, learner, batch_size=32)
     >>> print(f"{results['cumulative'].accuracy():.1f}")
-    65.3
+    62.4
 
     Alternatively, you can use a custom model and optimizer:
 
@@ -42,7 +41,7 @@ class Finetune(BatchClassifier):
     ...     model=model,
     ...     optimizer=optimizer,
     ... )
-    >>> results = prequential_evaluation(stream, learner)
+    >>> results = prequential_evaluation(stream, learner, batch_size=32)
     >>> print(f"{results['cumulative'].accuracy():.1f}")
     60.4
 
@@ -52,7 +51,6 @@ class Finetune(BatchClassifier):
         self,
         schema: Schema,
         model: Union[nn.Module, Callable[[Schema], nn.Module]],
-        batch_size: int = 32,
         optimizer: Union[Optimizer, Callable[[ParamsT], Optimizer]] = optim.Adam,
         criterion: nn.Module = nn.CrossEntropyLoss(),
         device: Union[device, str] = "cpu",
@@ -64,18 +62,18 @@ class Finetune(BatchClassifier):
         :param model: A classifier model that takes a ``(bs, input_dim)`` matrix
             and returns a ``(bs, num_classes)`` matrix. Alternatively, a
             constructor function that takes a schema and returns a model.
-        :param batch_size: Number of samples to use for training in each batch.
         :param optimizer: A PyTorch gradient descent optimizer or a constructor
             function that takes the model parameters and returns an optimizer.
         :param criterion: Loss function to use for training.
         :param device: Hardware for training.
         :param random_seed: Seeds torch :py:func:`torch.manual_seed`.
         """
-        super().__init__(schema, batch_size, random_seed)
+        super().__init__(schema, random_seed)
         # seed for reproducibility
         torch.manual_seed(random_seed)
         #: The model to be trained.
         self.model: nn.Module = model if isinstance(model, nn.Module) else model(schema)
+        self.model.to(device)
         #: The optimizer to be used for training.
         self.optimizer: Optimizer = (
             optimizer
@@ -93,6 +91,12 @@ class Finetune(BatchClassifier):
         return self.torch_batch_train(
             torch.from_numpy(x).to(self.device, self.dtype),
             torch.from_numpy(y).long().to(self.device),
+        )
+
+    def batch_predict_proba(self, x: np.ndarray) -> np.ndarray:
+        assert x.ndim == 2
+        return self.torch_batch_predict_proba(
+            torch.from_numpy(x).to(self.device, self.dtype),
         )
 
     def torch_batch_train(self, x: Tensor, y: Tensor) -> None:
@@ -115,7 +119,19 @@ class Finetune(BatchClassifier):
         self.optimizer.step()
         assert not loss.isnan(), "Loss is NaN"
 
-    @torch.no_grad
+    @torch.no_grad()
+    def torch_batch_predict_proba(self, x: Tensor) -> np.ndarray:
+        """Predict the probabilities of the classes for the given batch of data.
+
+        :param x: Input data of shape (batch_size, num_features).
+        :param y: Target labels of shape (batch_size,).
+        :return: Predicted probabilities of shape (batch_size, num_classes).
+        """
+        self.model.eval()
+        y_hat = self.model(x)
+        return y_hat.softmax(dim=1).cpu().numpy()
+
+    @torch.no_grad()
     def predict_proba(self, instance: Instance) -> LabelProbabilities:
         self.model.eval()
         x = torch.from_numpy(instance.x).to(self.device, self.dtype)
@@ -123,11 +139,7 @@ class Finetune(BatchClassifier):
         y_hat = self.model(x)
         return y_hat.softmax(dim=1).cpu().numpy()
 
-    @property
-    def batch_size(self) -> int:
-        return self._batch.batch_size
-
     def __str__(self) -> str:
         model_name = str(self.model.__class__.__name__)
         optimizer_name = str(self.optimizer.__class__.__name__)
-        return f"Finetune(model={model_name}, optimizer={optimizer_name}, batch_size={self.batch_size})"
+        return f"Finetune(model={model_name}, optimizer={optimizer_name})"

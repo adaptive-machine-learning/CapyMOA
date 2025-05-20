@@ -26,7 +26,7 @@ class TaskBoundaryAware(ABC):
 
     >>> scenario = TinySplitMNIST()
     >>> learner = MyTaskBoundaryAware(scenario.schema)
-    >>> _ = ocl_train_eval_loop(learner, scenario.train_streams, scenario.test_streams)
+    >>> _ = ocl_train_eval_loop(learner, scenario.train_loaders(32), scenario.test_loaders(32))
     Training task 0
     Training task 1
     Training task 2
@@ -63,7 +63,7 @@ class TaskAware(TaskBoundaryAware):
 
     >>> scenario = TinySplitMNIST()
     >>> learner = MyTaskAware(scenario.schema)
-    >>> ocl_train_eval_loop(learner, scenario.train_streams, scenario.test_streams)
+    >>> ocl_train_eval_loop(learner, scenario.train_loaders(32), scenario.test_loaders(32))
     Training task 0
     Testing task 0
     Testing task 1

@@ -38,7 +38,7 @@ from capymoa.classifier import (
     WeightedkNN,
 )
 from capymoa.datasets import ElectricityTiny
-from capymoa.evaluation import ClassificationEvaluator, ClassificationWindowedEvaluator
+from capymoa.evaluation import ClassificationEvaluator, prequential_evaluation
 from capymoa.misc import load_model, save_model
 from capymoa.splitcriteria import GiniSplitCriterion
 from capymoa.stream import Schema, Stream
@@ -58,6 +58,7 @@ class ClassifierTestCase:
     """The expected CLI string of the learner."""
     is_serializable: bool = True
     """Whether the learner is serializable."""
+    batch_size: int = 1
 
 
 """
@@ -213,11 +214,11 @@ test_cases = [
         partial(
             Finetune,
             model=Perceptron,
-            optimizer=partial(torch.optim.Adam, lr=0.01),
-            batch_size=16,
+            optimizer=partial(torch.optim.Adam, lr=0.001),
         ),
-        65.4,
-        72.0,
+        60.4,
+        66.0,
+        batch_size=32,
     ),
 ]
 
@@ -276,24 +277,14 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     * Does the CLI string match the expected value?
     """
     stream = ElectricityTiny()
-    evaluator = ClassificationEvaluator(schema=stream.get_schema())
-    win_evaluator = ClassificationWindowedEvaluator(
-        schema=stream.get_schema(), window_size=100
-    )
     learner: Classifier = test_case.learner_constructor(schema=stream.get_schema())
-
-    for instance in stream:
-        prediction = learner.predict(instance)
-        evaluator.update(instance.y_index, prediction)
-        win_evaluator.update(instance.y_index, prediction)
-        learner.train(instance)
+    results = prequential_evaluation(
+        stream, learner, window_size=100, batch_size=test_case.batch_size
+    )
 
     # Check if the accuracy matches the expected value for both evaluator types
-    actual_acc = evaluator.accuracy()
-    actual_win_acc = win_evaluator.accuracy()[-1]
-
-    print(f"{actual_acc}")
-    print(f"{actual_win_acc}")
+    actual_acc = results.cumulative.accuracy()
+    actual_win_acc = results.windowed.accuracy()[-1]
 
     assert actual_acc == pytest.approx(test_case.accuracy, abs=0.1), (
         f"Basic Eval: Expected accuracy of {test_case.accuracy:0.1f} got {actual_acc: 0.1f}"
