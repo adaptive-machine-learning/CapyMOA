@@ -105,7 +105,7 @@ class MOADriftDetector(BaseDriftDetector):
 
         if self.in_concept_change:
             self.detection_index.append(self.idx)
-            self.reset()
+            # self.reset()
 
     def reset(self, clean_history: bool = False) -> None:
         """Reset the drift detector.
