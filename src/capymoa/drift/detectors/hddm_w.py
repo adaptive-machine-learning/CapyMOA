@@ -39,12 +39,12 @@ class HDDMWeighted(MOADriftDetector):
     TEST_TYPES = ["Two-sided", "One-sided"]
 
     def __init__(
-        self,
-        drift_confidence: float = 0.001,
-        warning_confidence: float = 0.005,
-        lambda_: float = 0.05,
-        test_type: str = "Two-sided",
-        CLI: Optional[str] = None,
+            self,
+            drift_confidence: float = 0.001,
+            warning_confidence: float = 0.005,
+            lambda_: float = 0.05,
+            test_type: str = "Two-sided",
+            CLI: Optional[str] = None,
     ):
         assert test_type in self.TEST_TYPES, "Wrong test type"
 
@@ -63,15 +63,3 @@ class HDDMWeighted(MOADriftDetector):
         self.lambda_ = lambda_
         self.test_type = test_type
         self.get_params()
-
-    def add_element(self, element: float):
-        if not isinstance(element, float):
-            element = float(element)
-
-        self.moa_detector.input(element)
-        self.data.append(element)
-
-        self.estimation = self.moa_detector.getEstimation()
-        self.delay = self.moa_detector.getDelay()
-        self.in_concept_change = self.moa_detector.getChange()
-        self.in_warning_zone = self.moa_detector.getWarningZone()
