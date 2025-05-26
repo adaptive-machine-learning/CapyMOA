@@ -55,12 +55,18 @@ def docs_build(ctx: Context, ignore_warnings: bool = False):
         print("Documentation is built and available at:")
         print(f"  file://{doc_dir.resolve()}/index.html")
         print("You can copy and paste this URL into your browser.")
-    except UnexpectedExit:
+    except UnexpectedExit as err:
         print("-" * 80)
-        print("Documentation build failed. Here are some tips:")
-        print("  - Check the Sphinx output for errors and warnings.")
-        print("  - Try running `invoke docs.clean` to remove cached files.")
-        print("  - Try running with `--ignore-warnings` to ignore warnings.")
+        print(
+            "Documentation build failed. Here are some tips:\n"
+            " - Check the Sphinx output for errors and warnings.\n"
+            " - Try running `invoke docs.clean` to remove cached files.\n"
+            " - Try running with `--ignore-warnings` to ignore warnings.\n"
+            "   The build in CI pipelines will still fail but this might\n"
+            "   help you fix the warnings locally.\n"
+        )
+        # Ensure error code is propagated for CI/CD pipelines
+        raise SystemExit(err.result.return_code)
 
 
 @task
@@ -299,6 +305,7 @@ def lint(ctx: Context):
 def format(ctx: Context):
     """Format the code using ruff."""
     ctx.run("python -m ruff format", echo=True)
+    ctx.run("python -m ruff check --fix", echo=True)
 
 
 docs = Collection("docs")

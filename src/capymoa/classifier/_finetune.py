@@ -1,9 +1,9 @@
-from typing import Callable, Union
+from typing import Callable, Union, Iterator
 
 import numpy as np
 import torch
 from torch import Tensor, device, nn, optim
-from torch.optim.optimizer import Optimizer, ParamsT
+from torch.optim.optimizer import Optimizer
 
 from capymoa.base import BatchClassifier
 from capymoa.instance import Instance
@@ -53,7 +53,9 @@ class Finetune(BatchClassifier):
         schema: Schema,
         model: Union[nn.Module, Callable[[Schema], nn.Module]],
         batch_size: int = 32,
-        optimizer: Union[Optimizer, Callable[[ParamsT], Optimizer]] = optim.Adam,
+        optimizer: Union[
+            Optimizer, Callable[[Iterator[Tensor]], Optimizer]
+        ] = optim.Adam,
         device: Union[device, str] = "cpu",
         criterion: nn.Module = nn.CrossEntropyLoss(),
         random_seed: int = 0,
