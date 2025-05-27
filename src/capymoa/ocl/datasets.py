@@ -29,8 +29,8 @@ To get the usual CapyMOA stream object for training:
 LabeledInstance(
     Schema(SplitMNISTTrain),
     x=[0. 0. 0. ... 0. 0. 0.],
-    y_index=1,
-    y_label='1'
+    y_index=4,
+    y_label='4'
 )
 
 CapyMOA streams flatten the data into a feature vector:
@@ -47,21 +47,23 @@ torch.Size([1, 28, 28])
 1
 """
 
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Optional, Tuple, Sequence, Set
-from capymoa.datasets import get_download_dir
-from capymoa.ocl.util.data import partition_by_schedule, class_incremental_schedule
-from capymoa.stream import TorchClassifyStream, Stream
-from capymoa.instance import LabeledInstance
-from capymoa.stream._stream import Schema
-import torch
+from typing import Any, Callable, Optional, Sequence, Set, Tuple
 from urllib.request import urlretrieve
-from torchvision import datasets
-from torch.utils.data import Dataset, TensorDataset
-from torch import Tensor
-from torchvision.transforms import ToTensor, Normalize, Compose
-from abc import abstractmethod, ABC
+
 import numpy as np
+import torch
+from torch import Tensor
+from torch.utils.data import DataLoader, Dataset, TensorDataset
+from torchvision import datasets
+from torchvision.transforms import Compose, Normalize, ToTensor
+
+from capymoa.datasets import get_download_dir
+from capymoa.instance import LabeledInstance
+from capymoa.ocl.util.data import class_incremental_schedule, partition_by_schedule
+from capymoa.stream import Stream, TorchClassifyStream
+from capymoa.stream._stream import Schema
 
 
 class _BuiltInCIScenario(ABC):
@@ -109,6 +111,7 @@ class _BuiltInCIScenario(ABC):
         self,
         num_tasks: Optional[int] = None,
         shuffle_tasks: bool = True,
+        shuffle_data: bool = True,
         seed: int = 0,
         directory: Path = get_download_dir(),
         auto_download: bool = True,
@@ -122,6 +125,7 @@ class _BuiltInCIScenario(ABC):
             defaults to :attr:`default_task_count`.
         :param shuffle_tasks: Should the contents and order of the tasks be
             shuffled, defaults to True.
+        :param shuffle_data: Should the training dataset be shuffled.
         :param seed: Seed for shuffling the tasks, defaults to 0.
         :param directory: The directory to download the dataset to, defaults to
             :func:`capymoa.datasets.get_download_dir`.
@@ -163,7 +167,12 @@ class _BuiltInCIScenario(ABC):
         test_dataset = self._download_dataset(
             False, directory, auto_download, test_transform
         )
-        self.train_tasks = partition_by_schedule(train_dataset, self.task_schedule)
+        self.train_tasks = partition_by_schedule(
+            train_dataset,
+            self.task_schedule,
+            shuffle=shuffle_data,
+            rng=generator,
+        )
         self.test_tasks = partition_by_schedule(test_dataset, self.task_schedule)
 
         # Create streams for training and testing
@@ -171,8 +180,7 @@ class _BuiltInCIScenario(ABC):
         self.train_streams = _tasks_to_streams(
             self.train_tasks,
             num_classes=self.num_classes,
-            shuffle=True,
-            seed=seed + 1,
+            shuffle=False,
             dataset_name=f"{dataset_prefix}Train",
         )
         self.test_streams = _tasks_to_streams(
@@ -187,7 +195,7 @@ class _BuiltInCIScenario(ABC):
     @classmethod
     @abstractmethod
     def _download_dataset(
-        self,
+        cls,
         train: bool,
         directory: Path,
         auto_download: bool,
@@ -197,6 +205,49 @@ class _BuiltInCIScenario(ABC):
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}{self.num_classes}/{self.num_tasks}"
+
+    def train_loaders(
+        self, batch_size: int, **kwargs: Any
+    ) -> Sequence[DataLoader[Tuple[Tensor, Tensor]]]:
+        """Get the training streams for the scenario.
+
+        * The order of the tasks is fixed and does not change between iterations.
+          The datasets themselves are shuffled in :func:`__init__` if `shuffle_data`
+          is set to True. This is because the order of data is important in
+          online learning since the learner can only see each example once.
+
+        :param batch_size: Collects vectors in batches of this size.
+        :param kwargs: Additional keyword arguments to pass to the DataLoader.
+        :return: A data loader for each task.
+        """
+        return [
+            DataLoader(
+                task,
+                batch_size=batch_size,
+                shuffle=False,
+                **kwargs,
+            )
+            for task in self.train_tasks
+        ]
+
+    def test_loaders(
+        self, batch_size: int, **kwargs: Any
+    ) -> Sequence[DataLoader[Tuple[Tensor, Tensor]]]:
+        """Get the training streams for the scenario.
+
+        :param batch_size: Collects vectors in batches of this size.
+        :param kwargs: Additional keyword arguments to pass to the DataLoader.
+        :return: A data loader for each task.
+        """
+        return [
+            DataLoader(
+                task,
+                batch_size=batch_size,
+                shuffle=False,
+                **kwargs,
+            )
+            for task in self.test_tasks
+        ]
 
 
 def _tasks_to_streams(

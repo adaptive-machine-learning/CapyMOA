@@ -71,7 +71,10 @@ def get_class_indices(targets: LongTensor) -> dict[int, LongTensor]:
 
 
 def partition_by_schedule(
-    dataset: Dataset[Tuple[Tensor, Tensor]], class_schedule: Sequence[Set[int]]
+    dataset: Dataset[Tuple[Tensor, Tensor]],
+    class_schedule: Sequence[Set[int]],
+    shuffle: bool = False,
+    rng: torch.Generator = torch.default_generator,
 ) -> Sequence[Dataset[Tuple[Tensor, Tensor]]]:
     """Divide a dataset into multiple datasets based on a class schedule.
 
@@ -82,6 +85,9 @@ def partition_by_schedule(
     :param dataset: The dataset to divide.
     :param class_schedule: A sequence of sets containing class indices defining
         task order and composition.
+    :param shuffle: If True, the samples in each task are shuffled.
+    :param rng: The random number generator used for shuffling, defaults
+        to torch.default_generator
     :return: A list of datasets, each corresponding to a task.
     """
     targets = get_targets(dataset)
@@ -89,7 +95,9 @@ def partition_by_schedule(
     task_datasets = []
     for classes in class_schedule:
         indices = torch.cat([class_indices[c] for c in classes])
-        subset = Subset(dataset, indices.tolist())
+        if shuffle:
+            indices = indices[torch.randperm(indices.numel(), generator=rng)]
+        subset = Subset(dataset, cast(Sequence[int], indices))
         subset.targets = targets[indices]  # type: ignore
         assert isinstance(subset, Sized), "Subset should be a Sized object"
         task_datasets.append(subset)

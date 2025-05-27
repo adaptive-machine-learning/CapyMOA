@@ -22,7 +22,7 @@ traditional continual learning, OCL restricts training to a single data pass.
 >>> import numpy as np
 >>> scenario = TinySplitMNIST()
 >>> learner = HoeffdingTree(scenario.schema)
->>> metrics = ocl_train_eval_loop(learner, scenario.train_streams, scenario.test_streams)
+>>> metrics = ocl_train_eval_loop(learner, scenario.train_loaders(32), scenario.test_loaders(32))
 
 The final accuracy is the accuracy on all tasks after finishing training on all
 tasks:
@@ -52,7 +52,6 @@ Forward Transfer: 0.05
 Backward Transfer: -0.07
 """
 
-from . import datasets, base, util, evaluation
-
+from . import base, datasets, evaluation, util
 
 __all__ = ["evaluation", "datasets", "base", "util"]

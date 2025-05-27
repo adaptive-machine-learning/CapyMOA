@@ -1,8 +1,15 @@
 """Evaluate online continual learning in classification tasks."""
 
-from typing import Optional, Sequence, Union
+from dataclasses import dataclass
+from typing import Optional, Sequence, Tuple, Union
 
-from capymoa.base import Classifier
+import numpy as np
+import torch
+from torch import Tensor
+from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
+
+from capymoa.base import BatchClassifier, Classifier
 from capymoa.evaluation.evaluation import (
     ClassificationEvaluator,
     ClassificationWindowedEvaluator,
@@ -10,16 +17,9 @@ from capymoa.evaluation.evaluation import (
     stop_time_measuring,
 )
 from capymoa.evaluation.results import PrequentialResults
-from capymoa.instance import LabeledInstance
+from capymoa.instance import Instance, LabeledInstance
 from capymoa.ocl.base import TaskAware, TaskBoundaryAware
-from capymoa.stream import Stream
-
 from capymoa.type_alias import LabelIndex
-import torch
-import numpy as np
-from tqdm.auto import tqdm
-
-from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -286,10 +286,39 @@ class _OCLEvaluator:
 _OCLClassifier = Union[TaskBoundaryAware, TaskAware, Classifier]
 
 
+def _batch_test(learner: Classifier, x: Tensor) -> np.ndarray:
+    """Test a batch of instances using the learner."""
+    batch_size = x.shape[0]
+    x = x.view(batch_size, -1)
+    if isinstance(learner, BatchClassifier):
+        y_proba = learner.batch_predict_proba(x.numpy())
+        return np.argmax(y_proba, axis=1)
+    else:
+        yb_pred = np.zeros(batch_size, dtype=int)
+        for i in range(batch_size):
+            instance = Instance.from_array(learner.schema, x[i].numpy())
+            yb_pred[i] = learner.predict(instance)
+        return yb_pred
+
+
+def _batch_train(learner: Classifier, x: Tensor, y: Tensor):
+    """Train a batch of instances using the learner."""
+    batch_size = x.shape[0]
+    x = x.view(batch_size, -1)
+    if isinstance(learner, BatchClassifier):
+        learner.batch_train(x.numpy(), y.numpy())
+    else:
+        for i in range(batch_size):
+            instance = LabeledInstance.from_array(
+                learner.schema, x[i].numpy(), int(y[i].item())
+            )
+            learner.train(instance)
+
+
 def ocl_train_eval_loop(
     learner: _OCLClassifier,
-    train_streams: Sequence[Stream[LabeledInstance]],
-    test_streams: Sequence[Stream[LabeledInstance]],
+    train_streams: Sequence[DataLoader[Tuple[Tensor, Tensor]]],
+    test_streams: Sequence[DataLoader[Tuple[Tensor, Tensor]]],
     continual_evaluations: int = 1,
     progress_bar: bool = False,
     eval_window_size: int = 1000,
@@ -312,8 +341,14 @@ def ocl_train_eval_loop(
         raise ValueError("Number of train and test tasks must be equal")
     if not isinstance(learner, Classifier):
         raise ValueError("Learner must be a classifier")
-    if continual_evaluations < 1:
+    if 1 > continual_evaluations:
         raise ValueError("Continual evaluations must be at least 1")
+    if (min_stream_len := min(len(s) for s in train_streams)) < continual_evaluations:
+        raise ValueError(
+            "Cannot evaluate more times than the number of batches. "
+            f"(min stream length (in batches): {min_stream_len}, "
+            f"continual evaluations: {continual_evaluations})"
+        )
 
     metrics = _OCLEvaluator(
         n_tasks, continual_evaluations, learner.schema.get_num_classes()
@@ -337,21 +372,20 @@ def ocl_train_eval_loop(
     # Iterate over each task
     for train_task_id, train_stream in enumerate(train_streams):
         # Setup stream and inform learner of the test task
-        train_stream.restart()
         if isinstance(learner, TaskBoundaryAware):
             learner.set_train_task(train_task_id)
-        boundary_instances[train_task_id + 1] = boundary_instances[train_task_id] + len(
-            train_stream
-        )
 
         # Train and evaluation loop for a single task
-        for step, instance in enumerate(train_stream):
+        for step, (xb, yb) in enumerate(train_stream):
             # Update the learner and collect prequential statistics
+            xb: Tensor
+            yb: Tensor
             pbar.update(1)
-            y_pred = learner.predict(instance)
-            online_eval.update(instance.y_index, y_pred)
-            windowed_eval.update(instance.y_index, y_pred)
-            learner.train(instance)
+            yb_pred = _batch_test(learner, xb)
+            _batch_train(learner, xb, yb)
+            for y, y_pred in zip(yb, yb_pred, strict=True):
+                online_eval.update(y.item(), y_pred)
+                windowed_eval.update(y.item(), y_pred)
 
             # Evaluate the learner on evenly spaced steps during training
             evaluate_every = len(train_stream) // continual_evaluations
@@ -360,21 +394,24 @@ def ocl_train_eval_loop(
 
                 for test_task_id, test_stream in enumerate(test_streams):
                     # Setup stream and inform learner of the test task
-                    test_stream.restart()
                     if isinstance(learner, TaskAware):
                         learner.set_test_task(test_task_id)
 
                     # predict instances in the current task
-                    for instance in test_stream:
+                    for test_xb, test_yb in test_stream:
                         pbar.update(1)
-                        y_pred = learner.predict(instance)
-                        metrics.holdout_update(
-                            train_task_id,
-                            eval_step,
-                            test_task_id,
-                            instance.y_index,
-                            y_pred,
-                        )
+                        yb_pred = _batch_test(learner, test_xb)
+
+                        for y, y_pred in zip(test_yb, yb_pred):
+                            metrics.holdout_update(
+                                train_task_id,
+                                eval_step,
+                                test_task_id,
+                                y.item(),
+                                y_pred,
+                            )
+
+            boundary_instances[train_task_id + 1] = online_eval.instances_seen
 
     # TODO: We should measure time spent in ``learner.train`` separately from
     # time spent in evaluation.

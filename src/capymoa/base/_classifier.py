@@ -7,7 +7,6 @@ from moa.core import Utils
 from numpy.typing import NDArray
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
-from capymoa.base._batch import _BatchBuilder
 from capymoa.instance import Instance, LabeledInstance
 from capymoa.stream._stream import Schema
 from capymoa.type_alias import LabelIndex, LabelProbabilities
@@ -34,12 +33,12 @@ class Classifier(ABC):
         self.random_seed = random_seed
         self.schema = schema
 
-    @abstractmethod
     def __str__(self) -> str:
         """Return a label/name for the classifier.
 
         Used for labeling classifiers in visualizations.
         """
+        return self.__class__.__name__
 
     @abstractmethod
     def train(self, instance: LabeledInstance) -> None:
@@ -72,57 +71,76 @@ class Classifier(ABC):
 
 
 class BatchClassifier(Classifier):
-    """Base class for batch trained classifiers.
+    """Base class for classifiers that support mini-batches.
 
-    >>> class MyBatchClassifier(BatchClassifier):
-    ...     def __str__(self):
-    ...         return "MyBatchClassifier"
-    ...
-    ...     def predict(self, instance):
-    ...         return None
-    ...
-    ...     def predict_proba(self, instance):
-    ...         return None
-    ...
-    ...     def batch_train(self, x, y):
-    ...         with np.printoptions(precision=2):
-    ...             print(x)
-    ...             print(y)
-    ...             print()
-    ...
+    Supported by:
+
+    - :func:`capymoa.ocl.evaluation.ocl_train_eval_loop`
+    - :func:`capymoa.evaluation.prequential_evaluation`
+
+    Evaluators that support batch classifiers will call the :func:`batch_train`
+    and :func:`batch_predict_proba` methods instead of :func:`train` and
+    :func:`predict_proba`:
+
+    >>> from capymoa.base import BatchClassifier
     >>> from capymoa.datasets import ElectricityTiny
-    >>> stream = ElectricityTiny()
+    >>> from capymoa.evaluation import prequential_evaluation
+    >>>
+    >>> batch_size = 500
+    >>> class MyBatchClassifier(BatchClassifier):
+    ...     def batch_train(self, x, y):
+    ...         print(f"batch_train x.shape={x.shape} x.dtype={x.dtype}")
+    ...         print(f"batch_train y.shape={y.shape} y.dtype={y.dtype}")
     ...
-    >>> learner = MyBatchClassifier(stream.schema, batch_size=2)
-    >>> for _ in range(4):
-    ...     learner.train(stream.next_instance())
-    [[0.   0.06 0.44 0.   0.42 0.41]
-     [0.02 0.05 0.42 0.   0.42 0.41]]
-    [1 1]
-    <BLANKLINE>
-    [[0.04 0.05 0.39 0.   0.42 0.41]
-     [0.06 0.05 0.31 0.   0.42 0.41]]
-    [1 1]
-    <BLANKLINE>
+    ...     def batch_predict_proba(self, x):
+    ...         print(f"batch_predict_proba x.shape={x.shape} x.dtype={x.dtype}")
+    ...         return np.zeros((x.shape[0], self.schema.get_num_classes()))
+    ...
+    >>> stream = ElectricityTiny()
+    >>> batch_classifier = MyBatchClassifier(stream.schema)
+    >>> _ = prequential_evaluation(
+    ...     stream,
+    ...     batch_classifier,
+    ...     batch_size=batch_size,
+    ...     max_instances=721
+    ... )
+    batch_predict_proba x.shape=(500, 6) x.dtype=float64
+    batch_train x.shape=(500, 6) x.dtype=float64
+    batch_train y.shape=(500,) y.dtype=int64
+    batch_predict_proba x.shape=(221, 6) x.dtype=float64
+    batch_train x.shape=(221, 6) x.dtype=float64
+    batch_train y.shape=(221,) y.dtype=int64
 
+    You can manually use ``itertools.batched`` (python 3.12) function and
+    ``np.stack`` to collect batches of instances as a matrix:
+
+    >>> from itertools import islice
+    >>> from capymoa._utils import batched # Not available in python < 3.12
+    >>> stream.restart() # streams are stateful, so restart it
+    >>> for i, batch in enumerate(batched(stream, 100)):
+    ...     x = np.stack([instance.x for instance in batch])
+    ...     y = np.stack([instance.y_index for instance in batch])
+    ...     batch_classifier.batch_train(x, y)
+    ...     break
+    batch_train x.shape=(100, 6) x.dtype=float64
+    batch_train y.shape=(100,) y.dtype=int64
+
+    The default implementation of :func:`train` and :func:`predict` calls the
+    batch variants with a batch of size 1. This is useful for parts of CapyMOA
+    that expect a classifier to be able to train and predict on single
+    instances.
+
+    >>> instance = next(stream)
+    >>> batch_classifier.train(instance)
+    batch_train x.shape=(1, 6) x.dtype=float64
+    batch_train y.shape=(1,) y.dtype=int64
+    >>> batch_classifier.predict(instance)
+    batch_predict_proba x.shape=(1, 6) x.dtype=float64
+    np.int64(0)
+    >>> batch_classifier.predict_proba(instance)
+    batch_predict_proba x.shape=(1, 6) x.dtype=float64
+    array([0., 0.])
     """
-
-    def __init__(self, schema: Schema, batch_size: int, random_seed: int = 1) -> None:
-        """Initialize the batch classifier.
-
-        :param schema: A schema used to allocate memory for the batch.
-        :param batch_size: The size of the batch.
-        :param random_seed: The random seed for reproducibility.
-        """
-        super().__init__(schema, random_seed)
-        self._batch = _BatchBuilder(
-            batch_size, schema.get_num_attributes(), 1, np.float32, np.int32
-        )
-
-    def train(self, instance: LabeledInstance) -> None:
-        """Collate instances into a batch and call :func:`batch_train`."""
-        if self._batch.add(instance.x, instance.y_index):
-            self.batch_train(self._batch.batch_x, self._batch.batch_y.flatten())
 
     @abstractmethod
     def batch_train(self, x: NDArray[np.number], y: NDArray[np.integer]) -> None:
@@ -134,6 +152,36 @@ class BatchClassifier(Classifier):
             label index. Missing labels are coded as ``-1`` in the
             semi-supervised setting.
         """
+
+    @abstractmethod
+    def batch_predict_proba(self, x: NDArray[np.number]) -> NDArray[np.number]:
+        """Return probability estimates for each label in a batch.
+
+        :param x: A real valued matrix of shape ``(batch_size, num_attributes)``
+            containing a batch of feature vectors.
+        :return: An array of shape ``(batch_size, num_labels)`` containing the
+            probabilities for each label.
+        """
+
+    def train(self, instance: LabeledInstance) -> None:
+        """Calls :func:`batch_train` with a batch of size 1."""
+        return self.batch_train(
+            x=instance.x.reshape(1, -1), y=np.array(instance.y_index).reshape(-1)
+        )
+
+    def predict_proba(self, instance: Instance) -> Optional[LabelProbabilities]:
+        """Calls :func:`batch_predict_proba` with a batch of size 1."""
+        return self.batch_predict_proba(x=instance.x.reshape(1, -1))[0]
+
+    def batch_predict(self, x: NDArray[np.number]) -> NDArray[np.integer]:
+        """Predict the labels of a batch of instances.
+
+        :param x: A real valued matrix of shape ``(batch_size, num_attributes)``
+            containing a batch of feature vectors.
+        :return: An array of shape ``(batch_size,)`` containing the predicted
+            labels.
+        """
+        return np.argmax(self.batch_predict_proba(x), axis=1)
 
 
 class MOAClassifier(Classifier):

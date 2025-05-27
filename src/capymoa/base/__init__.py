@@ -10,16 +10,15 @@ from capymoa.base._base import (
     _extract_moa_learner_CLI,
 )
 from capymoa.base._classifier import (
-    Classifier,
     BatchClassifier,
+    Classifier,
     MOAClassifier,
     SKClassifier,
 )
-from capymoa.base._regressor import Regressor, BatchRegressor, MOARegressor, SKRegressor
+from capymoa.base._regressor import BatchRegressor, MOARegressor, Regressor, SKRegressor
 from capymoa.base._ssl import (
     ClassifierSSL,
     MOAClassifierSSL,
-    BatchClassifierSSL,
 )
 
 __all__ = [
@@ -31,7 +30,6 @@ __all__ = [
     "SKClassifier",
     "ClassifierSSL",
     "MOAClassifierSSL",
-    "BatchClassifierSSL",
     "Regressor",
     "BatchRegressor",
     "MOARegressor",

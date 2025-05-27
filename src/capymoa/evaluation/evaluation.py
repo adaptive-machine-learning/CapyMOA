@@ -1,45 +1,45 @@
-from typing import Optional, Sized
-from typing import Union
-
-import pandas as pd
-import numpy as np
+import csv
+import json
+import os
 import time
 import warnings
-import json
-import csv
-import os
+from itertools import islice
+from typing import Optional, Sized, Union
 
-from capymoa.stream import Schema, Stream
-
-from capymoa.base import (
-    AnomalyDetector,
-    ClassifierSSL,
-    MOAPredictionIntervalLearner,
-    Clusterer,
-)
-
-from capymoa.evaluation.results import PrequentialResults
-from capymoa._utils import _translate_metric_name
-from capymoa.base import Classifier, Regressor
-from capymoa.evaluation._progress_bar import resolve_progress_bar
-from tqdm import tqdm
-
-from com.yahoo.labs.samoa.instances import Instances, Attribute, DenseInstance
+import numpy as np
+import pandas as pd
+from com.yahoo.labs.samoa.instances import Attribute, DenseInstance, Instances
+from java.util import ArrayList
 from moa.core import InstanceExample
 from moa.evaluation import (
+    BasicAUCImbalancedPerformanceEvaluator,
     BasicClassificationPerformanceEvaluator,
+    BasicPredictionIntervalEvaluator,
+    BasicRegressionPerformanceEvaluator,
+    EfficientEvaluationLoops,
     WindowAUCImbalancedPerformanceEvaluator,
     WindowClassificationPerformanceEvaluator,
-    BasicRegressionPerformanceEvaluator,
-    WindowRegressionPerformanceEvaluator,
-    BasicPredictionIntervalEvaluator,
     WindowPredictionIntervalEvaluator,
-    BasicAUCImbalancedPerformanceEvaluator,
+    WindowRegressionPerformanceEvaluator,
 )
-
-from java.util import ArrayList
-from moa.evaluation import EfficientEvaluationLoops
 from moa.streams import InstanceStream
+from tqdm import tqdm
+
+from capymoa._utils import _translate_metric_name, batched
+from capymoa.base import (
+    AnomalyDetector,
+    BatchClassifier,
+    BatchRegressor,
+    Classifier,
+    ClassifierSSL,
+    Clusterer,
+    MOAPredictionIntervalLearner,
+    Regressor,
+)
+from capymoa.evaluation._progress_bar import resolve_progress_bar
+from capymoa.evaluation.results import PrequentialResults
+from capymoa.instance import LabeledInstance, RegressionInstance
+from capymoa.stream import Schema, Stream
 
 
 def _is_fast_mode_compilable(stream: Stream, learner, optimise=True) -> bool:
@@ -922,6 +922,18 @@ def stop_time_measuring(start_wallclock_time, start_cpu_time):
     return elapsed_wallclock_time, elapsed_cpu_time
 
 
+def _get_target(
+    instance: Union[LabeledInstance, RegressionInstance],
+) -> Union[int, np.double]:
+    """Get the target value from an instance."""
+    if isinstance(instance, LabeledInstance):
+        return instance.y_index
+    elif isinstance(instance, RegressionInstance):
+        return instance.y_value
+    else:
+        raise ValueError("Unknown instance type")
+
+
 def prequential_evaluation(
     stream: Stream,
     learner: Union[Classifier, Regressor],
@@ -932,6 +944,7 @@ def prequential_evaluation(
     optimise: bool = True,
     restart_stream: bool = True,
     progress_bar: Union[bool, tqdm] = False,
+    batch_size: int = 1,
 ) -> PrequentialResults:
     """Run and evaluate a learner on a stream using prequential evaluation.
 
@@ -957,11 +970,16 @@ def prequential_evaluation(
         from the beginning of the stream.
     :param progress_bar: Enable, disable, or override the progress bar. Currently
         incompatible with ``optimize=True``.
+    :param mini_batch: The size of the mini-batch to use for the learner.
     :return: An object containing the results of the evaluation windowed metrics,
         cumulative metrics, ground truth targets, and predictions.
     """
     if restart_stream:
         stream.restart()
+    if batch_size != 1 and not isinstance(learner, (BatchClassifier, BatchRegressor)):
+        raise ValueError(
+            "The learner is not a batch learner, but mini_batch is set to a value greater than 1."
+        )
     if _is_fast_mode_compilable(stream, learner, optimise):
         return _prequential_evaluation_fast(
             stream,
@@ -1015,32 +1033,34 @@ def prequential_evaluation(
         "Eval", progress_bar, stream, learner, max_instances
     )
 
-    for i, instance in enumerate(stream):
-        prediction = learner.predict(instance)
+    for i, batch in enumerate(batched(islice(stream, max_instances), batch_size)):
+        yb_true = [_get_target(instance) for instance in batch]  # batch of targets
+        yb_pred = []
 
-        if stream.get_schema().is_classification():
-            y = instance.y_index
+        if isinstance(learner, (BatchClassifier, BatchRegressor)):
+            xb = [instance.x for instance in batch]  # batch of features
+            yb_pred = learner.batch_predict(np.stack(xb)).tolist()
+            learner.batch_train(np.stack(xb), np.stack(yb_true))
         else:
-            y = instance.y_value
+            for instance in batch:
+                yb_pred.append(learner.predict(instance))
+                learner.train(instance)
 
-        evaluator_cumulative.update(y, prediction)
-        if window_size is not None:
-            evaluator_windowed.update(y, prediction)
-        learner.train(instance)
+        for y_true, y_pred in zip(yb_true, yb_pred, strict=True):
+            evaluator_cumulative.update(y_true, y_pred)
+            if window_size is not None:
+                evaluator_windowed.update(y_true, y_pred)
 
-        # Storing predictions if store_predictions was set to True during initialisation
-        if predictions is not None:
-            predictions.append(prediction)
+            # Storing predictions if store_predictions was set to True during initialisation
+            if predictions is not None:
+                predictions.append(y_pred)
 
-        # Storing ground-truth if store_y was set to True during initialisation
-        if ground_truth_y is not None:
-            ground_truth_y.append(y)
+            # Storing ground-truth if store_y was set to True during initialisation
+            if ground_truth_y is not None:
+                ground_truth_y.append(y_true)
 
         if progress_bar is not None:
-            progress_bar.update(1)
-
-        if max_instances is not None and i >= (max_instances - 1):
-            break
+            progress_bar.update(len(batch))
 
     if progress_bar is not None:
         progress_bar.close()
@@ -1088,6 +1108,7 @@ def prequential_ssl_evaluation(
     optimise: bool = True,
     restart_stream: bool = True,
     progress_bar: Union[bool, tqdm] = False,
+    batch_size: int = 1,
 ):
     """Run and evaluate a learner on a semi-supervised stream using prequential evaluation.
 
