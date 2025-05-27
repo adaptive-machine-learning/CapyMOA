@@ -17,7 +17,7 @@ For example :class:`SplitMNIST` splits the MNIST dataset into five tasks where
 each task contains two classes:
 
 >>> from capymoa.ocl.datasets import SplitMNIST
->>> scenario = SplitMNIST()
+>>> scenario = SplitMNIST(preload_test=False)
 >>> scenario.task_schedule
 [{1, 4}, {5, 7}, {9, 3}, {0, 8}, {2, 6}]
 
@@ -64,6 +64,20 @@ from capymoa.instance import LabeledInstance
 from capymoa.ocl.util.data import class_incremental_schedule, partition_by_schedule
 from capymoa.stream import Stream, TorchClassifyStream
 from capymoa.stream._stream import Schema
+
+
+class PreloadedDataset(TensorDataset):
+    def __getitems__(self, indices: Sequence[int]) -> Tuple[Tensor, Tensor]:
+        """Get items from the preloaded dataset."""
+        return tuple(tensor[indices] for tensor in self.tensors)
+
+    def collate_fn(self, batch: Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
+        """Collate function for PyTorch ``DataLoader``.
+
+        Is the identity function, since the data is already preloaded
+        and batched correctly.
+        """
+        return batch
 
 
 class _BuiltInCIScenario(ABC):
@@ -118,6 +132,8 @@ class _BuiltInCIScenario(ABC):
         train_transform: Optional[Callable[[Any], Tensor]] = None,
         test_transform: Optional[Callable[[Any], Tensor]] = None,
         normalize_features: bool = False,
+        preload_test: bool = True,
+        preload_train: bool = False,
     ):
         """Create a new online continual learning datamodule.
 
@@ -137,6 +153,14 @@ class _BuiltInCIScenario(ABC):
             defaults to :attr:`default_test_transform`.
         :param normalize_features: Should the features be normalized. This
             normalization step is after all other transformations.
+        :param preload_test: Should the test dataset be preloaded into CPU memory.
+            Helps with memory locality and speed, but increases memory usage.
+            Preloading the test dataset is recommended since it is small
+            and is used multiple times in evaluation.
+        :param preload_train: Should the training dataset be preloaded into CPU memory.
+            Helps with memory locality and speed, but increases memory usage.
+            Preloading the training dataset is not recommended, since it is large
+            and each sample is only seen once in online continual learning.
         """
         assert self.num_classes
         assert self.default_task_count
@@ -175,6 +199,11 @@ class _BuiltInCIScenario(ABC):
         )
         self.test_tasks = partition_by_schedule(test_dataset, self.task_schedule)
 
+        if preload_train:
+            self.train_tasks = self._preload_datasets(self.train_tasks)
+        if preload_test:
+            self.test_tasks = self._preload_datasets(self.test_tasks)
+
         # Create streams for training and testing
         dataset_prefix = self.__class__.__name__
         self.train_streams = _tasks_to_streams(
@@ -191,6 +220,27 @@ class _BuiltInCIScenario(ABC):
         )
         self.schema = self.train_streams[0].get_schema()
         self.num_tasks = len(self.task_schedule)
+
+    @staticmethod
+    def _preload_datasets(
+        datasets: Sequence[Dataset[Tuple[Tensor, Tensor]]],
+    ) -> Sequence[TensorDataset]:
+        """Preload a sequence of datasets into memory.
+
+        :param datasets: A sequence of datasets to preload.
+        :return: A sequence of TensorDatasets containing the preloaded data.
+        """
+        return [_BuiltInCIScenario._preload_dataset(dataset) for dataset in datasets]
+
+    @staticmethod
+    def _preload_dataset(dataset: Dataset[Tuple[Tensor, Tensor]]) -> TensorDataset:
+        """Preload the dataset into memory.
+
+        :param dataset: The dataset to preload.
+        :return: A TensorDataset containing the preloaded data.
+        """
+        xs, ys = zip(*dataset)
+        return PreloadedDataset(torch.stack(xs), torch.tensor(ys))
 
     @classmethod
     @abstractmethod
@@ -226,6 +276,7 @@ class _BuiltInCIScenario(ABC):
                 batch_size=batch_size,
                 shuffle=False,
                 **kwargs,
+                collate_fn=getattr(task, "collate_fn", None),
             )
             for task in self.train_tasks
         ]
@@ -245,6 +296,7 @@ class _BuiltInCIScenario(ABC):
                 batch_size=batch_size,
                 shuffle=False,
                 **kwargs,
+                collate_fn=getattr(task, "collate_fn", None),
             )
             for task in self.test_tasks
         ]

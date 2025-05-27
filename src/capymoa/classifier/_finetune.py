@@ -51,7 +51,6 @@ class Finetune(BatchClassifier):
         self,
         schema: Schema,
         model: Union[nn.Module, Callable[[Schema], nn.Module]],
-        batch_size: int = 32,
         optimizer: Union[
             Optimizer, Callable[[Iterator[Tensor]], Optimizer]
         ] = optim.Adam,
