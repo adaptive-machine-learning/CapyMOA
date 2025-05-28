@@ -15,7 +15,7 @@ from torch.utils.data import TensorDataset
 
 from capymoa.datasets import ElectricityTiny, FriedTiny
 from capymoa.datasets._utils import get_download_dir
-from capymoa.instance import LabeledInstance, RegressionInstance
+from capymoa.instance import Instance, LabeledInstance, RegressionInstance
 from capymoa.stream import (
     ARFFStream,
     CSVStream,
@@ -69,6 +69,17 @@ REGRESSION_ARFF = get_download_dir() / "fried_tiny.arff"
 
 
 allclose = partial(np.allclose, atol=0.001)
+
+
+def check_java_instance(instance: Instance, x: np.ndarray, target: float):
+    assert instance.java_instance is not None
+    assert instance.java_instance.getData().classValue() == target
+    assert instance.java_instance.getData().classIndex() == len(x)
+    jxy = np.array(instance.java_instance.getData().toDoubleArray())
+    jx = jxy[: len(x)]  # Get the first elements for the features.
+    jy = jxy[len(x)]  # The last element is the label.
+    assert allclose(jx, x)
+    assert jy == target
 
 
 @pytest.mark.parametrize(
@@ -145,6 +156,7 @@ def test_stream_classification(stream: Stream[LabeledInstance], length: Optional
     assert isinstance(instance.x, np.ndarray)
     assert isinstance(instance.y_index, int)
     assert isinstance(instance.y_label, str)
+    check_java_instance(instance, CLASSIFICATION_X[0], CLASSIFICATION_Y[0])
 
     # Check python style next instance.
     instance = next(stream)
@@ -154,6 +166,7 @@ def test_stream_classification(stream: Stream[LabeledInstance], length: Optional
     assert isinstance(instance.x, np.ndarray)
     assert isinstance(instance.y_index, int)
     assert isinstance(instance.y_label, str)
+    check_java_instance(instance, CLASSIFICATION_X[1], CLASSIFICATION_Y[1])
 
     # Check stream iteration.
     stream.restart()
@@ -162,6 +175,7 @@ def test_stream_classification(stream: Stream[LabeledInstance], length: Optional
             break
         assert allclose(instance.x, CLASSIFICATION_X[i])
         assert allclose(instance.y_index, CLASSIFICATION_Y[i])
+        check_java_instance(instance, CLASSIFICATION_X[i], CLASSIFICATION_Y[i])
 
     # Check exhausting the stream.
     for _ in stream:
@@ -244,6 +258,7 @@ def test_stream_regression(stream: Stream[RegressionInstance], length: Optional[
     assert allclose(instance.y_value, REGRESSION_Y[0])
     assert isinstance(instance.y_value, float)
     assert isinstance(instance.x, np.ndarray)
+    check_java_instance(instance, REGRESSION_X[0], REGRESSION_Y[0])
 
     # Check python style next instance.
     instance = next(stream)
@@ -252,6 +267,7 @@ def test_stream_regression(stream: Stream[RegressionInstance], length: Optional[
     assert allclose(instance.y_value, REGRESSION_Y[1])
     assert isinstance(instance.y_value, float)
     assert isinstance(instance.x, np.ndarray)
+    check_java_instance(instance, REGRESSION_X[1], REGRESSION_Y[1])
 
     # Check stream iteration.
     stream.restart()
@@ -260,6 +276,7 @@ def test_stream_regression(stream: Stream[RegressionInstance], length: Optional[
             break
         assert allclose(instance.x, REGRESSION_X[i])
         assert allclose(instance.y_value, REGRESSION_Y[i])
+        check_java_instance(instance, REGRESSION_X[i], REGRESSION_Y[i])
 
     # Check exhausting the stream.
     for _ in stream:

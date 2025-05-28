@@ -434,6 +434,8 @@ class SplitCIFAR100ViT(_BuiltInCIScenario):
     _test_filename = "CIFAR100-vit_base_patch16_224_augreg_in21k-test.npz"
     _train_url = f"https://www.dropbox.com/scl/fi/42r7usdo41s7qigqwouh8/{_train_filename}?rlkey=nys3yxirtt84so9758t4kxrq8&st=71vcn6bu&dl=1"
     _test_url = f"https://www.dropbox.com/scl/fi/i4c778jj8w2flcvpze7tc/{_test_filename}?rlkey=0sbh56s8rpgox9rw7i8j0py9q&st=fe59x2n8&dl=1"
+    default_train_transform = None
+    default_test_transform = None
 
     @classmethod
     def _download_dataset(
@@ -486,6 +488,7 @@ class SplitCIFAR10ViT(SplitCIFAR100ViT):
     _test_filename = "CIFAR10-vit_base_patch16_224_augreg_in21k-test.npz"
     _train_url = f"https://www.dropbox.com/scl/fi/533la5ddo15644scyeklm/{_train_filename}?rlkey=lsesrbbd04uebtpepjx3g5c36&st=40lcnata&dl=1"
     _test_url = f"https://www.dropbox.com/scl/fi/cpvqxrzo9wywkmwy0pz8p/{_test_filename}?rlkey=wt0zn099cgbdyfgk39r0wlb4e&st=mhe9b1gh&dl=1"
+
 
 
 class SplitFashionMNIST(_BuiltInCIScenario):

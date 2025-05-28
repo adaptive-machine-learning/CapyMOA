@@ -4,6 +4,7 @@ import numpy as np
 from com.yahoo.labs.samoa.instances import DenseInstance
 from moa.core import InstanceExample
 from typing import Optional, Union, Tuple
+from jpype import JArray, JDouble
 
 from capymoa.type_alias import FeatureVector, Label, LabelIndex, TargetValue
 
@@ -140,12 +141,16 @@ class Instance:
         if self._java_instance is not None:
             return self._java_instance
         elif self._x is not None:
-            instance = DenseInstance(self.schema._moa_header.numAttributes())
-            assert self.x.ndim == 1, "Feature vector must be 1D"
-            for i, value in enumerate(self.x):
-                instance.setValue(i, value)
-            instance.setDataset(self.schema._moa_header)
-            instance.setWeight(1.0)
+            assert self._x.ndim == 1, "Feature vector must be 1D."
+            # Allocate Array of doubles for the Java instance.
+            # The number of attributes is the same as the number of features +
+            # one for the target value regardless of if the instance type or
+            # if it is labeled or not.
+            jx = JArray(JDouble)(len(self.x) + 1)  # type: ignore
+            # Set the values of the Java instance.
+            jx[: len(self.x)] = self.x
+            instance = DenseInstance(1.0, jx)
+            instance.setDataset(self.schema.get_moa_header())
             self._java_instance = InstanceExample(self._set_y(instance))
             return self._java_instance
 
