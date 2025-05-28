@@ -66,8 +66,8 @@ from capymoa.stream import Stream, TorchClassifyStream
 from capymoa.stream._stream import Schema
 
 
-class PreloadedDataset(TensorDataset):
-    def __getitems__(self, indices: Sequence[int]) -> Tuple[Tensor, Tensor]:
+class _PreloadedDataset(TensorDataset):
+    def __getitems__(self, indices: Sequence[int]) -> Tuple[Tensor, ...]:
         """Get items from the preloaded dataset."""
         return tuple(tensor[indices] for tensor in self.tensors)
 
@@ -106,10 +106,10 @@ class _BuiltInCIScenario(ABC):
     default_task_count: int
     """The default number of tasks in the dataset."""
 
-    mean: Sequence[float]
+    mean: Optional[Sequence[float]]
     """The mean of the features in the dataset used for normalization."""
 
-    std: Sequence[float]
+    std: Optional[Sequence[float]]
     """The standard deviation of the features in the dataset used for normalization."""
 
     default_train_transform: Callable[[Any], Tensor] = ToTensor()
@@ -164,8 +164,6 @@ class _BuiltInCIScenario(ABC):
         """
         assert self.num_classes
         assert self.default_task_count
-        assert self.mean
-        assert self.std
 
         if num_tasks is None:
             num_tasks = self.default_task_count
@@ -174,9 +172,13 @@ class _BuiltInCIScenario(ABC):
         if test_transform is None:
             test_transform = self.default_test_transform
 
-        if normalize_features:
+        if normalize_features and self.mean is not None and self.std is not None:
             normalize = Normalize(self.mean, self.std)
             train_transform = Compose((train_transform, normalize))
+        elif normalize_features:
+            raise ValueError(
+                "Cannot normalize features since mean and std are not defined."
+            )
 
         # Set the number of tasks
         generator = torch.Generator().manual_seed(seed)
@@ -240,7 +242,7 @@ class _BuiltInCIScenario(ABC):
         :return: A TensorDataset containing the preloaded data.
         """
         xs, ys = zip(*dataset)
-        return PreloadedDataset(torch.stack(xs), torch.tensor(ys))
+        return _PreloadedDataset(torch.stack(xs), torch.tensor(ys))
 
     @classmethod
     @abstractmethod
@@ -385,7 +387,7 @@ class TinySplitMNIST(_BuiltInCIScenario):
 
     @classmethod
     def _download_dataset(
-        self,
+        cls,
         train: bool,
         directory: Path,
         auto_download: bool,
@@ -395,19 +397,95 @@ class TinySplitMNIST(_BuiltInCIScenario):
         if not filename.exists():
             if not auto_download:
                 raise FileNotFoundError(f"Dataset not found at {filename}")
-            urlretrieve(self.url, filename)
+            urlretrieve(cls.url, filename)
 
         data = np.load(filename)
         if train:
-            return TensorDataset(
+            return TensorDataset(  # type: ignore[return-value]
                 torch.from_numpy(data["train_x"]).float() / 255,
                 torch.from_numpy(data["train_y"]).int(),
             )
         else:
-            return TensorDataset(
+            return TensorDataset(  # type: ignore[return-value]
                 torch.from_numpy(data["test_x"]).float() / 255,
                 torch.from_numpy(data["test_y"]).int(),
             )
+
+
+class SplitCIFAR100ViT(_BuiltInCIScenario):
+    """CIFAR100 encoded by a Vision Transformer (ViT).
+
+    * Encoded using the ``vit_base_patch16_224_augreg_in21k`` pre-trained
+      backbone [1]_.
+    * 768 dimensional features (extracted from the last layer of the ViT).
+    * 100 classes.
+    * 50,000 training samples
+    * 10,000 testing samples
+    * Useful for developing and evaluating prototype based continual
+      learning algorithms.
+
+    ..  [1] Model card for ``vit_base_patch16_224.augreg_in21k``
+        https://huggingface.co/timm/vit_base_patch16_224.augreg_in21k
+    """
+
+    num_classes = 100
+    default_task_count = 10
+    _train_filename = "CIFAR100-vit_base_patch16_224_augreg_in21k-train.npz"
+    _test_filename = "CIFAR100-vit_base_patch16_224_augreg_in21k-test.npz"
+    _train_url = f"https://www.dropbox.com/scl/fi/42r7usdo41s7qigqwouh8/{_train_filename}?rlkey=nys3yxirtt84so9758t4kxrq8&st=71vcn6bu&dl=1"
+    _test_url = f"https://www.dropbox.com/scl/fi/i4c778jj8w2flcvpze7tc/{_test_filename}?rlkey=0sbh56s8rpgox9rw7i8j0py9q&st=fe59x2n8&dl=1"
+
+    @classmethod
+    def _download_dataset(
+        cls,
+        train: bool,
+        directory: Path,
+        auto_download: bool,
+        transform: Optional[Any],
+    ) -> Dataset[Tuple[Tensor, Tensor]]:
+        if transform is not None:
+            raise NotImplementedError(
+                "Transformations are not supported for this dataset."
+            )
+
+        filename = cls._train_filename if train else cls._test_filename
+        url = cls._train_url if train else cls._test_url
+        filename = directory / filename
+
+        if not filename.exists():
+            if not auto_download:
+                raise FileNotFoundError(f"Dataset not found at {filename}")
+            urlretrieve(url, filename)
+
+        data = np.load(filename)
+        return TensorDataset(  # type: ignore[return-value]
+            torch.from_numpy(data["x"]).float(),
+            torch.from_numpy(data["y"]).int(),
+        )
+
+
+class SplitCIFAR10ViT(SplitCIFAR100ViT):
+    """CIFAR10 encoded by a Vision Transformer (ViT).
+
+    * Encoded using the ``vit_base_patch16_224_augreg_in21k`` pre-trained
+      backbone [1]_.
+    * 768 dimensional features (extracted from the last layer of the ViT).
+    * 10 classes.
+    * 50,000 training samples
+    * 10,000 testing samples
+    * Useful for developing and evaluating prototype based continual learning
+      algorithms.
+
+    ..  [1] Model card for ``vit_base_patch16_224.augreg_in21k``
+        https://huggingface.co/timm/vit_base_patch16_224.augreg_in21k
+    """
+
+    num_classes = 10
+    default_task_count = 5
+    _train_filename = "CIFAR10-vit_base_patch16_224_augreg_in21k-train.npz"
+    _test_filename = "CIFAR10-vit_base_patch16_224_augreg_in21k-test.npz"
+    _train_url = f"https://www.dropbox.com/scl/fi/533la5ddo15644scyeklm/{_train_filename}?rlkey=lsesrbbd04uebtpepjx3g5c36&st=40lcnata&dl=1"
+    _test_url = f"https://www.dropbox.com/scl/fi/cpvqxrzo9wywkmwy0pz8p/{_test_filename}?rlkey=wt0zn099cgbdyfgk39r0wlb4e&st=mhe9b1gh&dl=1"
 
 
 class SplitFashionMNIST(_BuiltInCIScenario):
