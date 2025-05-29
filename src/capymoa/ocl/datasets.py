@@ -490,7 +490,6 @@ class SplitCIFAR10ViT(SplitCIFAR100ViT):
     _test_url = f"https://www.dropbox.com/scl/fi/cpvqxrzo9wywkmwy0pz8p/{_test_filename}?rlkey=wt0zn099cgbdyfgk39r0wlb4e&st=mhe9b1gh&dl=1"
 
 
-
 class SplitFashionMNIST(_BuiltInCIScenario):
     """Split Fashion MNIST dataset for online class incremental learning.
 
