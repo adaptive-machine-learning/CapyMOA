@@ -1,12 +1,15 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
-from numpy.typing import NDArray
+import torch
 from sklearn.base import RegressorMixin as _SKRegressorMixin
+from torch import Tensor
 
 from capymoa.instance import Instance, RegressionInstance
 from capymoa.stream._stream import Schema
 from capymoa.type_alias import TargetValue
+
+from ._batch import Batch
 
 
 class Regressor(ABC):
@@ -26,7 +29,7 @@ class Regressor(ABC):
         pass
 
 
-class BatchRegressor(Regressor):
+class BatchRegressor(Regressor, Batch, ABC):
     """Base class for regressor that support mini-batches.
 
     Supported by:
@@ -44,27 +47,27 @@ class BatchRegressor(Regressor):
     >>> batch_size = 500
     >>> class MyBatchRegressor(BatchRegressor):
     ...     def batch_train(self, x, y):
-    ...         print(f"batch_train x.shape={x.shape} x.dtype={x.dtype}")
-    ...         print(f"batch_train y.shape={y.shape} y.dtype={y.dtype}")
+    ...         print(f"batch_train x: {x.shape} {x.dtype}")
+    ...         print(f"batch_train y: {y.shape} {y.dtype}")
     ...
     ...     def batch_predict(self, x):
-    ...         print(f"batch_predict x.shape={x.shape} x.dtype={x.dtype}")
+    ...         print(f"batch_predict x: {x.shape} {x.dtype}")
     ...         return np.zeros((x.shape[0],))
     ...
     >>> stream = FriedTiny()
-    >>> batch_regressor = MyBatchRegressor(stream.schema)
+    >>> learner = MyBatchRegressor(stream.schema)
     >>> _ = prequential_evaluation(
     ...     stream,
-    ...     batch_regressor,
+    ...     learner,
     ...     batch_size=batch_size,
     ...     max_instances=721
     ... )
-    batch_predict x.shape=(500, 10) x.dtype=float64
-    batch_train x.shape=(500, 10) x.dtype=float64
-    batch_train y.shape=(500,) y.dtype=float64
-    batch_predict x.shape=(221, 10) x.dtype=float64
-    batch_train x.shape=(221, 10) x.dtype=float64
-    batch_train y.shape=(221,) y.dtype=float64
+    batch_predict x: torch.Size([500, 10]) torch.float32
+    batch_train x: torch.Size([500, 10]) torch.float32
+    batch_train y: torch.Size([500]) torch.float32
+    batch_predict x: torch.Size([221, 10]) torch.float32
+    batch_train x: torch.Size([221, 10]) torch.float32
+    batch_train y: torch.Size([221]) torch.float32
 
     You can manually use ``itertools.batched`` (python 3.12) function and
     ``np.stack`` to collect batches of instances as a matrix:
@@ -74,10 +77,12 @@ class BatchRegressor(Regressor):
     >>> for i, batch in enumerate(batched(stream, 100)):
     ...     x = np.stack([instance.x for instance in batch])
     ...     y = np.stack([instance.y_value for instance in batch])
-    ...     batch_regressor.batch_train(x, y)
+    ...     x = torch.from_numpy(x).to(dtype=learner.x_dtype, device=learner.device)
+    ...     y = torch.from_numpy(y).to(dtype=learner.y_dtype, device=learner.device)
+    ...     learner.batch_train(x, y)
     ...     break
-    batch_train x.shape=(100, 10) x.dtype=float64
-    batch_train y.shape=(100,) y.dtype=float64
+    batch_train x: torch.Size([100, 10]) torch.float32
+    batch_train y: torch.Size([100]) torch.float32
 
     The default implementation of :func:`train` and :func:`predict` calls the
     batch variants with a batch of size 1. This is useful for parts of CapyMOA
@@ -85,43 +90,49 @@ class BatchRegressor(Regressor):
     instances.
 
     >>> instance = next(stream)
-    >>> batch_regressor.train(instance)
-    batch_train x.shape=(1, 10) x.dtype=float64
-    batch_train y.shape=(1,) y.dtype=float64
-    >>> batch_regressor.predict(instance)
-    batch_predict x.shape=(1, 10) x.dtype=float64
+    >>> learner.train(instance)
+    batch_train x: torch.Size([1, 10]) torch.float32
+    batch_train y: torch.Size([]) torch.float32
+    >>> learner.predict(instance)
+    batch_predict x: torch.Size([1, 10]) torch.float64
     np.float64(0.0)
     """
 
+    x_dtype: torch.dtype = torch.float32
+    y_dtype: torch.dtype = torch.float32
+
+    @abstractmethod
+    def batch_train(self, x: Tensor, y: Tensor) -> None:
+        """Train the classifier with a batch of instances.
+
+        :param x: Batch of :py:attr:`x_dtype` valued feature vectors
+            ``(batch_size, num_features)``
+        :param y: Batch of :py:attr:`y_dtype` valued targets ``(batch_size,)``.
+        """
+
+    @abstractmethod
+    def batch_predict(self, x: Tensor) -> Tensor:
+        """Return probability estimates for each label in a batch.
+
+        :param x: Batch of :py:attr:`x_dtype` valued feature vectors
+            ``(batch_size, num_features)``
+        :return: Predicted batch of :py:attr:`y_dtype` valued targets
+            ``(batch_size,)``.
+        """
+
     def train(self, instance: RegressionInstance) -> None:
         """Calls :func:`batch_train` with a batch of size 1."""
-        return self.batch_train(
-            x=instance.x.reshape(1, -1), y=np.array(instance.y_value).reshape(1)
+        x_ = torch.from_numpy(instance.x.reshape(1, -1))
+        x_ = x_.to(dtype=self.x_dtype, device=self.device)
+        y_ = torch.scalar_tensor(
+            instance.y_value, dtype=self.y_dtype, device=self.device
         )
+        return self.batch_train(x_, y_)
 
     def predict(self, instance: RegressionInstance) -> TargetValue:
         """Calls :func:`batch_predict` with a batch of size 1."""
-        return self.batch_predict(x=instance.x.reshape(1, -1))[0]
-
-    @abstractmethod
-    def batch_train(self, x: NDArray[np.number], y: NDArray[np.number]) -> None:
-        """Train the classifier with a batch of instances.
-
-        :param x: A real valued matrix of shape ``(batch_size, num_attributes)``
-            containing a batch of feature vectors.
-        :param y: A real valued vector of shape ``(batch_size,)`` containing a batch
-            of target values.
-        """
-
-    @abstractmethod
-    def batch_predict(self, x: NDArray[np.number]) -> NDArray[np.number]:
-        """Return probability estimates for each label in a batch.
-
-        :param x: A real valued matrix of shape ``(batch_size, num_attributes)``
-            containing a batch of feature vectors.
-        :return: An array of shape ``(batch_size, num_labels)`` containing the
-            probabilities for each label.
-        """
+        x_ = torch.from_numpy(instance.x.reshape(1, -1))
+        return np.float64(self.batch_predict(x_).item())
 
 
 class MOARegressor(Regressor):

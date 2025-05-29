@@ -1,46 +1,50 @@
 from typing import Tuple
 
-import numpy as np
 import torch
 from torch import Tensor
 
 from capymoa.base import BatchClassifier
-from capymoa.classifier import Finetune
 from capymoa.ocl.base import TaskAware, TaskBoundaryAware
 
 
 class _ReservoirSampler:
     def __init__(self, item_count: int, feature_count: int, rng: torch.Generator):
-        self.item_count = item_count
-        self.feature_count = feature_count
+        self.max_count = item_count
+        self.count = 0
+        self.in_features = feature_count
         self.reservoir_x = torch.zeros((item_count, feature_count))
         self.reservoir_y = torch.zeros((item_count,), dtype=torch.long)
         self.rng = rng
-        self.count = 0
 
     def update(self, x: Tensor, y: Tensor) -> None:
+        x = x.to(self.reservoir_x.device)
+        y = y.to(self.reservoir_y.device)
         batch_size = x.shape[0]
         assert x.shape == (
             batch_size,
-            self.feature_count,
+            self.in_features,
         )
         assert y.shape == (batch_size,)
 
         for i in range(batch_size):
-            if self.count < self.item_count:
+            if self.count < self.max_count:
                 # Fill the reservoir
                 self.reservoir_x[self.count] = x[i]
                 self.reservoir_y[self.count] = y[i]
             else:
                 # Reservoir sampling
                 index = torch.randint(0, self.count + 1, (1,), generator=self.rng)
-                if index < self.item_count:
+                if index < self.max_count:
                     self.reservoir_x[index] = x[i]
                     self.reservoir_y[index] = y[i]
             self.count += 1
 
+    @property
+    def is_empty(self) -> bool:
+        return self.count == 0
+
     def sample_n(self, n: int) -> Tuple[Tensor, Tensor]:
-        indices = torch.randint(0, min(self.count, self.item_count), (n,))
+        indices = torch.randint(0, min(self.count, self.max_count), (n,))
         return self.reservoir_x[indices], self.reservoir_y[indices]
 
 
@@ -61,7 +65,7 @@ class ExperienceReplay(BatchClassifier, TaskAware):
 
     def __init__(
         self,
-        learner: Finetune,
+        learner: BatchClassifier,
         buffer_size: int = 200,
     ) -> None:
         super().__init__(learner.schema, learner.random_seed)
@@ -73,24 +77,20 @@ class ExperienceReplay(BatchClassifier, TaskAware):
             rng=torch.Generator().manual_seed(learner.random_seed),
         )
 
-    def batch_train(self, x: np.ndarray, y: np.ndarray) -> None:
-        # preprocess the data
-        x_: Tensor = torch.from_numpy(x)
-        y_: Tensor = torch.from_numpy(y).long()
-
+    def batch_train(self, x: Tensor, y: Tensor) -> None:
         # update the buffer with the new data
-        self._buffer.update(x_, y_)
+        self._buffer.update(x, y)
 
         # sample from the buffer and construct training batch
-        replay_x, replay_y = self._buffer.sample_n(x_.shape[0])
-        train_x = torch.cat((x_, replay_x), dim=0).to(self.learner.device)
-        train_y = torch.cat((y_, replay_y), dim=0).to(self.learner.device)
-        return self.learner.torch_batch_train(train_x, train_y)
+        replay_x, replay_y = self._buffer.sample_n(x.shape[0])
+        train_x = torch.cat((x, replay_x), dim=0)
+        train_y = torch.cat((y, replay_y), dim=0)
+        train_x.to(self.learner.device, dtype=self.learner.x_dtype)
+        train_y.to(self.learner.device, dtype=self.learner.y_dtype)
+        return self.learner.batch_train(train_x, train_y)
 
-    def batch_predict_proba(self, x: np.ndarray) -> np.ndarray:
-        # preprocess the data
-        x_: Tensor = torch.from_numpy(x).to(self.learner.device)
-        return self.learner.torch_batch_predict_proba(x_)
+    def batch_predict_proba(self, x: Tensor) -> Tensor:
+        return self.learner.batch_predict_proba(x)
 
     def set_test_task(self, test_task_id: int):
         if isinstance(self.learner, TaskAware):
@@ -101,4 +101,4 @@ class ExperienceReplay(BatchClassifier, TaskAware):
             self.learner.set_train_task(train_task_id)
 
     def __str__(self) -> str:
-        return f"ExperienceReplay(buffer_size={self._buffer.item_count})"
+        return f"ExperienceReplay(buffer_size={self._buffer.max_count})"

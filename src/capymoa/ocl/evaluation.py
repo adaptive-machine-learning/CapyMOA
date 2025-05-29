@@ -291,8 +291,8 @@ def _batch_test(learner: Classifier, x: Tensor) -> np.ndarray:
     batch_size = x.shape[0]
     x = x.view(batch_size, -1)
     if isinstance(learner, BatchClassifier):
-        y_proba = learner.batch_predict_proba(x.numpy())
-        return np.argmax(y_proba, axis=1)
+        x = x.to(dtype=learner.x_dtype, device=learner.device)
+        return learner.batch_predict(x).numpy()
     else:
         yb_pred = np.zeros(batch_size, dtype=int)
         for i in range(batch_size):
@@ -306,7 +306,9 @@ def _batch_train(learner: Classifier, x: Tensor, y: Tensor):
     batch_size = x.shape[0]
     x = x.view(batch_size, -1)
     if isinstance(learner, BatchClassifier):
-        learner.batch_train(x.numpy(), y.numpy())
+        x = x.to(dtype=learner.x_dtype, device=learner.device)
+        y = y.to(dtype=learner.y_dtype, device=learner.device)
+        learner.batch_train(x, y)
     else:
         for i in range(batch_size):
             instance = LabeledInstance.from_array(

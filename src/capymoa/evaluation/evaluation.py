@@ -6,6 +6,8 @@ import warnings
 from itertools import islice
 from typing import Optional, Sized, Union
 
+from capymoa.base import Batch
+import torch
 import numpy as np
 import pandas as pd
 from com.yahoo.labs.samoa.instances import Attribute, DenseInstance, Instances
@@ -1037,10 +1039,17 @@ def prequential_evaluation(
         yb_true = [_get_target(instance) for instance in batch]  # batch of targets
         yb_pred = []
 
-        if isinstance(learner, (BatchClassifier, BatchRegressor)):
-            xb = [instance.x for instance in batch]  # batch of features
-            yb_pred = learner.batch_predict(np.stack(xb)).tolist()
-            learner.batch_train(np.stack(xb), np.stack(yb_true))
+        if isinstance(learner, Batch):
+            # Collect a batch of instances and predict them all at once
+            np_x = np.stack([instance.x for instance in batch])
+            torch_x = torch.from_numpy(np_x).to(
+                device=learner.device, dtype=learner.x_dtype
+            )
+            torch_y = torch.tensor(
+                yb_true, dtype=learner.y_dtype, device=learner.device
+            )
+            yb_pred = learner.batch_predict(torch_x).tolist()
+            learner.batch_train(torch_x, torch_y)
         else:
             for instance in batch:
                 yb_pred.append(learner.predict(instance))
