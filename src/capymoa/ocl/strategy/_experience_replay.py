@@ -51,10 +51,12 @@ class ExperienceReplay(BatchClassifier, TaskAware):
       training to mitigate catastrophic forgetting.
     * The replay buffer is implemented using reservoir sampling, which allows
       for uniform sampling over the entire stream [vitter1985]_.
-    * Not actually :class:`TaskAware`, but will proxy it to the wrapped learner.
+    * Not actually :class:`capymoa.ocl.base.TaskAware`, but will proxy it to the
+      wrapped learner.
 
-    .. [vitter1985] Jeffrey S. Vitter. 1985. Random sampling with a reservoir. ACM Trans.
-       Math. Softw. 11, 1 (March 1985), 37–57. https://doi.org/10.1145/3147.3165
+    .. [vitter1985] Jeffrey S. Vitter. 1985. Random sampling with a reservoir.
+       ACM Trans. Math. Softw. 11, 1 (March 1985), 37–57.
+       https://doi.org/10.1145/3147.3165
     """
 
     def __init__(
