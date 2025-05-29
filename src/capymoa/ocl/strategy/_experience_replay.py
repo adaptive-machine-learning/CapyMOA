@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 
 from capymoa.base import BatchClassifier
-from capymoa.ocl.base import TaskAware, TaskBoundaryAware
+from capymoa.ocl.base import TrainTaskAware, TestTaskAware
 
 
 class _ReservoirSampler:
@@ -48,7 +48,7 @@ class _ReservoirSampler:
         return self.reservoir_x[indices], self.reservoir_y[indices]
 
 
-class ExperienceReplay(BatchClassifier, TaskAware):
+class ExperienceReplay(BatchClassifier, TrainTaskAware, TestTaskAware):
     """Experience Replay (ER) strategy for continual learning.
 
     * Uses a replay buffer to store past experiences and samples from it during
@@ -92,13 +92,13 @@ class ExperienceReplay(BatchClassifier, TaskAware):
     def batch_predict_proba(self, x: Tensor) -> Tensor:
         return self.learner.batch_predict_proba(x)
 
-    def set_test_task(self, test_task_id: int):
-        if isinstance(self.learner, TaskAware):
-            self.learner.set_test_task(test_task_id)
+    def on_test_task(self, task_id: int):
+        if isinstance(self.learner, TestTaskAware):
+            self.learner.on_test_task(task_id)
 
-    def set_train_task(self, train_task_id: int):
-        if isinstance(self.learner, TaskBoundaryAware):
-            self.learner.set_train_task(train_task_id)
+    def on_train_task(self, task_id: int):
+        if isinstance(self.learner, TrainTaskAware):
+            self.learner.on_train_task(task_id)
 
     def __str__(self) -> str:
         return f"ExperienceReplay(buffer_size={self._buffer.max_count})"
