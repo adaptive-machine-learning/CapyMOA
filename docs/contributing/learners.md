@@ -36,8 +36,8 @@ A learner should implement the appropriate interface:
 * {py:class}`capymoa.base.AnomalyDetector` for anomaly detectors.
 * {py:class}`capymoa.base.ClassifierSSL` for semi-supervised classifiers.
 * {py:class}`capymoa.base.Classifier` for online continual learning classifiers.
-  Optionally also inheriting from {py:class}`capymoa.ocl.base.TaskAware` or
-  {py:class}`capymoa.ocl.base.TaskBoundaryAware` to support learners that are aware of
+  Optionally also inheriting from {py:class}`capymoa.ocl.base.TrainTaskAware` or
+  {py:class}`capymoa.ocl.base.TestTaskAware` to support learners that are aware of
   task identities or task boundaries.
 
 If your method is a wrapper around a MOA learner, you should use the appropriate
