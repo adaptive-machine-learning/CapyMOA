@@ -68,7 +68,15 @@ class ExperienceReplay(BatchClassifier, TrainTaskAware, TestTaskAware):
         self,
         learner: BatchClassifier,
         buffer_size: int = 200,
+        repeat: int = 1
     ) -> None:
+        """Initialize the Experience Replay strategy.
+
+        :param learner: The learner to be wrapped for experience replay.
+        :param buffer_size: The size of the replay buffer, defaults to 200.
+        :param repeat: The number of times to repeat the training data in each batch,
+            defaults to 1.
+        """
         super().__init__(learner.schema, learner.random_seed)
         #: The wrapped learner to be trained with experience replay.
         self.learner = learner
@@ -77,20 +85,23 @@ class ExperienceReplay(BatchClassifier, TrainTaskAware, TestTaskAware):
             feature_count=self.schema.get_num_attributes(),
             rng=torch.Generator().manual_seed(learner.random_seed),
         )
+        self.repeat = repeat
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         # update the buffer with the new data
         self._buffer.update(x, y)
 
-        # sample from the buffer and construct training batch
-        replay_x, replay_y = self._buffer.sample_n(x.shape[0])
-        train_x = torch.cat((x, replay_x), dim=0)
-        train_y = torch.cat((y, replay_y), dim=0)
-        train_x.to(self.learner.device, dtype=self.learner.x_dtype)
-        train_y.to(self.learner.device, dtype=self.learner.y_dtype)
-        return self.learner.batch_train(train_x, train_y)
+        for _ in range(self.repeat):
+            # sample from the buffer and construct training batch
+            replay_x, replay_y = self._buffer.sample_n(x.shape[0])
+            train_x = torch.cat((x, replay_x), dim=0)
+            train_y = torch.cat((y, replay_y), dim=0)
+            train_x = train_x.to(self.learner.device, dtype=self.learner.x_dtype)
+            train_y = train_y.to(self.learner.device, dtype=self.learner.y_dtype)
+            self.learner.batch_train(train_x, train_y)
 
     def batch_predict_proba(self, x: Tensor) -> Tensor:
+        x = x.to(self.learner.device, dtype=self.learner.x_dtype)
         return self.learner.batch_predict_proba(x)
 
     def on_test_task(self, task_id: int):

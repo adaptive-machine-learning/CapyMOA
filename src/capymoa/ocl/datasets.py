@@ -175,6 +175,7 @@ class _BuiltInCIScenario(ABC):
         if normalize_features and self.mean is not None and self.std is not None:
             normalize = Normalize(self.mean, self.std)
             train_transform = Compose((train_transform, normalize))
+            test_transform = Compose((test_transform, normalize))
         elif normalize_features:
             raise ValueError(
                 "Cannot normalize features since mean and std are not defined."
