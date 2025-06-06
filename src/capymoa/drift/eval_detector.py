@@ -21,12 +21,14 @@ class EvaluateDriftDetector:
 
     Key Features:
         - Handles both abrupt and gradual drifts:
+
             * Abrupt drifts: start_location = end_location, e.g., (100, 100)
             * Gradual drifts: start_location < end_location, e.g., (100, 150)
 
         - Considers maximum acceptable detection delay
 
         - Calculates comprehensive performance metrics (precision, recall, F1)
+
 
     Attributes:
 
@@ -61,6 +63,7 @@ class EvaluateDriftDetector:
 
             - n_alarms (int): Total number of alarms raised
 
+
     Examples:
         >>> import numpy as np
         >>>
@@ -94,6 +97,7 @@ class EvaluateDriftDetector:
         >>> metrics = evaluator.calc_performance(trues=trues, preds=preds, tot_n_instances=2000)
         >>> print(metrics['f1'])
         1.0
+
     """
 
     def __init__(
