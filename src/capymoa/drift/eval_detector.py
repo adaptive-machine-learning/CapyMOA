@@ -151,10 +151,10 @@ class EvaluateDriftDetector:
 
         :param trues: Array-like of true drift points represented as (start, end) tuples
             indicating drift intervals. Required if ``drift_episodes`` is not provided.
-        :type trues: ArrayLike
+        :type trues: ArrayorTupleOf
         :param preds: Array-like of predicted drift points (indices) where the detector
             signaled a drift. Required if ``drift_episodes`` is not provided.
-        :type preds: ArrayLike
+        :type preds: ArrayorTupleOf
         :param tot_n_instances: Total number of instances in the data stream, used to
             calculate alarm rate and false alarm rate. Always required.
         :type tot_n_instances: int
