@@ -29,23 +29,36 @@ class EvaluateDriftDetector:
         - Calculates comprehensive performance metrics (precision, recall, F1)
 
     Attributes:
+
         max_delay (int): Maximum allowable delay for drift detection
 
         rate_period (int): The period used for calculating rates (e.g., per 1000 instances)
 
         metrics (dict): Dictionary storing the latest calculated performance metrics
+
             - fp (int): False positive count
+
             - tp (int): True positive count
+
             - fn (int): False negative count
+
             - precision (float): Precision score
+
             - recall (float): Recall score
-            - episode_recall (float): Recall score for drift episodes
-            (in this case, a correct prediction of a drift episode is counted as 1 true positive)
+
+            - episode_recall (float): Recall score for drift episodes (in this case, a correct prediction of a drift
+            episode is counted as 1 true positive)
+
             - f1 (float): F1 score
+
             - mdt (float): Mean time to detection
+
             - far (float): False alarm rate per rate_period instances
+
             - ar (float): Alarm rate per rate_period instances
+
             - n_episodes (int): Number of drift episodes
+
             - n_alarms (int): Total number of alarms raised
 
     Examples:
