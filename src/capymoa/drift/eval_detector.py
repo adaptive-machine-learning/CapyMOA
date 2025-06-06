@@ -3,7 +3,7 @@ from typing import List, Union, Tuple, Dict, Optional, Any, Sequence
 
 import numpy as np
 
-ArrayLike = Union[Sequence[int], Sequence[Tuple[int, int]], np.ndarray]
+ArrayorTupleOf = Union[Sequence[int], Sequence[Tuple[int, int]], np.ndarray]
 
 
 class EvaluateDriftDetector:
@@ -119,8 +119,8 @@ class EvaluateDriftDetector:
 
     def calc_performance(
         self,
-        trues: ArrayLike,
-        preds: ArrayLike,
+        trues: ArrayorTupleOf,
+        preds: ArrayorTupleOf,
         tot_n_instances: int,
         drift_episodes: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
@@ -261,7 +261,7 @@ class EvaluateDriftDetector:
         return self.metrics
 
     def _get_drift_episodes(
-        self, trues: ArrayLike, preds: ArrayLike
+        self, trues: ArrayorTupleOf, preds: ArrayorTupleOf
     ) -> List[Dict[str, Any]]:
         """
         Process raw drift points and predictions into drift episodes.
@@ -326,7 +326,7 @@ class EvaluateDriftDetector:
             raise ValueError("rate_period must be a positive integer")
 
     @staticmethod
-    def _check_arrays(trues: ArrayLike, preds: ArrayLike) -> None:
+    def _check_arrays(trues: ArrayorTupleOf, preds: ArrayorTupleOf) -> None:
         """
         Validate input arrays for consistency and correctness.
 
