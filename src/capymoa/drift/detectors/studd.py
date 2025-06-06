@@ -8,8 +8,8 @@ from capymoa.drift.detectors import ADWIN
 from capymoa.drift.base_detector import BaseDriftDetector, MOADriftDetector
 from capymoa.instance import LabeledInstance, Instance
 
-ArrayLike = Union[np.ndarray, List[float]]
-ArrayOrInstance = Union[ArrayLike, Instance]
+ArrayOrList = Union[np.ndarray, List[float]]
+ArrayOrInstance = Union[ArrayOrList, Instance]
 
 
 class STUDD(BaseDriftDetector):
@@ -51,10 +51,11 @@ class STUDD(BaseDriftDetector):
     >>>     instances_processed += 1
 
     Reference:
-    ---------
+    ----------
     Cerqueira, V., Gomes, H. M., Bifet, A., & Torgo, L. (2023).
     STUDD: A student–teacher method for unsupervised concept drift detection.
     Machine Learning, 112(11), 4351-4378.
+
     """
 
     def __init__(
