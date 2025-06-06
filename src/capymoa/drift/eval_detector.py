@@ -25,14 +25,14 @@ class EvaluateDriftDetector:
             * Gradual drifts: start_location < end_location, e.g., (100, 150)
 
         - Considers maximum acceptable detection delay
-        
+
         - Calculates comprehensive performance metrics (precision, recall, F1)
 
     Attributes:
         max_delay (int): Maximum allowable delay for drift detection
 
         rate_period (int): The period used for calculating rates (e.g., per 1000 instances)
-        
+
         metrics (dict): Dictionary storing the latest calculated performance metrics
             - fp (int): False positive count
             - tp (int): True positive count
@@ -83,7 +83,9 @@ class EvaluateDriftDetector:
         1.0
     """
 
-    def __init__(self, max_delay: int, rate_period: int = 1000, max_early_detection: int = 0):
+    def __init__(
+        self, max_delay: int, rate_period: int = 1000, max_early_detection: int = 0
+    ):
         """
         Initialize the drift detector evaluator.
 
@@ -115,11 +117,13 @@ class EvaluateDriftDetector:
         self.rate_period = rate_period
         self.metrics: Dict[str, Any] = {}
 
-    def calc_performance(self,
-                         trues: ArrayLike,
-                         preds: ArrayLike,
-                         tot_n_instances: int,
-                         drift_episodes: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    def calc_performance(
+        self,
+        trues: ArrayLike,
+        preds: ArrayLike,
+        tot_n_instances: int,
+        drift_episodes: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         """
         Calculate performance metrics for drift detection.
 
@@ -169,7 +173,7 @@ class EvaluateDriftDetector:
         :raises AssertionError: If no drift points are given.
         """
         if tot_n_instances <= 0:
-            raise ValueError('Total number of instances must be positive')
+            raise ValueError("Total number of instances must be positive")
 
         if drift_episodes is not None:
             if not drift_episodes:
@@ -179,12 +183,14 @@ class EvaluateDriftDetector:
                 warnings.warn(
                     "Both drift_episodes and trues/preds were provided. "
                     "The trues and preds parameters will be ignored.",
-                    UserWarning
+                    UserWarning,
                 )
             drift_eps = drift_episodes
         else:
             if trues is None or preds is None:
-                raise ValueError("Either drift_episodes or both trues and preds must be provided")
+                raise ValueError(
+                    "Either drift_episodes or both trues and preds must be provided"
+                )
 
             self._check_arrays(trues, preds)
             drift_eps = self._get_drift_episodes(trues=trues, preds=preds)
@@ -200,18 +206,24 @@ class EvaluateDriftDetector:
             episode_detection_time = np.nan
 
             try:
-                drift_start, drift_end = episode['true']
+                drift_start, drift_end = episode["true"]
             except (ValueError, KeyError, TypeError) as e:
-                raise ValueError(f"Invalid episode format: {e}. Expected 'true' field with (start, end) tuple.")
+                raise ValueError(
+                    f"Invalid episode format: {e}. Expected 'true' field with (start, end) tuple."
+                )
 
-            episode_preds = episode.get('preds', np.array([]))
+            episode_preds = episode.get("preds", np.array([]))
             if not isinstance(episode_preds, np.ndarray):
                 episode_preds = np.asarray(episode_preds)
 
             for pred in episode_preds:
                 n_alarms += 1
 
-                if drift_start - self.max_early_detection <= pred <= drift_end + self.max_delay:
+                if (
+                    drift_start - self.max_early_detection
+                    <= pred
+                    <= drift_end + self.max_delay
+                ):
                     tp += 1
                     if not drift_detected:  # only counting first detection
                         drift_detected = True
@@ -232,23 +244,25 @@ class EvaluateDriftDetector:
         ep_recall = etp / max(1, n_episodes)
 
         self.metrics = {
-            'fp': fp,
-            'tp': tp,
-            'fn': fn,
-            'precision': precision,
-            'recall': recall,
-            'episode_recall': ep_recall,
-            'f1': f1,
-            'mdt': mean_detection_time,
-            'far': false_alarm_rate,
-            'ar': alarm_rate,
-            'n_episodes': n_episodes,
-            'n_alarms': n_alarms,
+            "fp": fp,
+            "tp": tp,
+            "fn": fn,
+            "precision": precision,
+            "recall": recall,
+            "episode_recall": ep_recall,
+            "f1": f1,
+            "mdt": mean_detection_time,
+            "far": false_alarm_rate,
+            "ar": alarm_rate,
+            "n_episodes": n_episodes,
+            "n_alarms": n_alarms,
         }
 
         return self.metrics
 
-    def _get_drift_episodes(self, trues: ArrayLike, preds: ArrayLike) -> List[Dict[str, Any]]:
+    def _get_drift_episodes(
+        self, trues: ArrayLike, preds: ArrayLike
+    ) -> List[Dict[str, Any]]:
         """
         Process raw drift points and predictions into drift episodes.
 
@@ -264,7 +278,9 @@ class EvaluateDriftDetector:
         if preds_array.ndim > 1:
             raise ValueError("preds must be a 1-dimensional array")
 
-        if trues_array.ndim not in (1, 2) or (trues_array.ndim == 2 and trues_array.shape[1] != 2):
+        if trues_array.ndim not in (1, 2) or (
+            trues_array.ndim == 2 and trues_array.shape[1] != 2
+        ):
             raise ValueError("trues must be an array of points or (start, end) tuples")
 
         if trues_array.ndim == 1:
@@ -281,11 +297,15 @@ class EvaluateDriftDetector:
 
             episode_preds = episode_preds - next_starting_point
 
-            drift_episodes.append({
-                'preds': episode_preds,
-                'true': (drift_start - next_starting_point,
-                         drift_end - next_starting_point)
-            })
+            drift_episodes.append(
+                {
+                    "preds": episode_preds,
+                    "true": (
+                        drift_start - next_starting_point,
+                        drift_end - next_starting_point,
+                    ),
+                }
+            )
 
             next_starting_point = drift_end + self.max_delay
 
@@ -300,10 +320,10 @@ class EvaluateDriftDetector:
         :param int rate_period: Period for rate calculations.
         """
         if not isinstance(max_delay, int) or max_delay <= 0:
-            raise ValueError('max_delay must be a positive integer')
+            raise ValueError("max_delay must be a positive integer")
 
         if not isinstance(rate_period, int) or rate_period <= 0:
-            raise ValueError('rate_period must be a positive integer')
+            raise ValueError("rate_period must be a positive integer")
 
     @staticmethod
     def _check_arrays(trues: ArrayLike, preds: ArrayLike) -> None:
@@ -314,7 +334,7 @@ class EvaluateDriftDetector:
         :param preds: Array of detection points.
         """
         if trues is None:
-            raise ValueError('No drift points given')
+            raise ValueError("No drift points given")
 
         preds_array = np.asarray(preds)
         trues_array = np.asarray(trues)
@@ -323,31 +343,37 @@ class EvaluateDriftDetector:
             raise ValueError("preds must be a 1-dimensional array of detection points")
 
         if trues_array.ndim not in (1, 2):
-            raise ValueError("trues must be a 1D array of points or a 2D array of (start, end) tuples")
+            raise ValueError(
+                "trues must be a 1D array of points or a 2D array of (start, end) tuples"
+            )
 
         if trues_array.ndim == 2 and trues_array.shape[1] != 2:
-            raise ValueError("When trues is 2D, it must have exactly 2 columns for (start, end)")
+            raise ValueError(
+                "When trues is 2D, it must have exactly 2 columns for (start, end)"
+            )
 
         if len(preds_array) > 1:
             diffs = np.diff(preds_array)
             if np.any(diffs < 0):
-                raise ValueError('Provide an ordered list of detections')
+                raise ValueError("Provide an ordered list of detections")
 
         if len(trues_array) > 1:
             if trues_array.ndim == 1:
                 tot_neg_drifts = np.sum(np.diff(trues_array) < 0)
                 if tot_neg_drifts > 0:
-                    raise ValueError('Provide an ordered list of drift points')
+                    raise ValueError("Provide an ordered list of drift points")
             else:
                 tot_neg_drifts = np.sum(np.diff(trues_array[:, 0]) < 0)
                 if tot_neg_drifts > 0:
-                    raise ValueError('Provide an ordered list of drift intervals')
+                    raise ValueError("Provide an ordered list of drift intervals")
 
                 if np.any(trues_array[:, 0] > trues_array[:, 1]):
-                    raise ValueError('For each drift interval, start must be <= end')
+                    raise ValueError("For each drift interval, start must be <= end")
 
     @staticmethod
-    def _calc_classification_metrics(tp: int, fp: int, fn: int) -> Tuple[float, float, float]:
+    def _calc_classification_metrics(
+        tp: int, fp: int, fn: int
+    ) -> Tuple[float, float, float]:
         """
         Calculate precision, recall, and F1 score with safeguards against division by zero.
 
