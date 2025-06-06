@@ -23,12 +23,16 @@ class EvaluateDriftDetector:
         - Handles both abrupt and gradual drifts:
             * Abrupt drifts: start_location = end_location, e.g., (100, 100)
             * Gradual drifts: start_location < end_location, e.g., (100, 150)
+
         - Considers maximum acceptable detection delay
+        
         - Calculates comprehensive performance metrics (precision, recall, F1)
 
     Attributes:
         max_delay (int): Maximum allowable delay for drift detection
+
         rate_period (int): The period used for calculating rates (e.g., per 1000 instances)
+        
         metrics (dict): Dictionary storing the latest calculated performance metrics
             - fp (int): False positive count
             - tp (int): True positive count
@@ -53,9 +57,9 @@ class EvaluateDriftDetector:
         >>> trues = np.array([1000, 2000])
         >>>
         >>> eval = EvaluateDriftDetector(max_delay=200)
-        >>> eval.calc_performance(preds=preds, trues=trues, tot_n_instances=200)
-        >>>
-        >>> print(eval.metrics)
+        >>> metrics = eval.calc_performance(preds=preds, trues=trues, tot_n_instances=200)
+        >>> print(metrics['f1'])
+        0.6666666666666666
 
         >>> # Example with actual detector
         >>> import numpy as np
@@ -75,7 +79,8 @@ class EvaluateDriftDetector:
         >>> preds = detector.detection_index
         >>> evaluator = EvaluateDriftDetector(max_delay=50)
         >>> metrics = evaluator.calc_performance(trues=trues, preds=preds, tot_n_instances=2000)
-        >>> print(metrics)
+        >>> print(metrics['f1'])
+        1.0
     """
 
     def __init__(self, max_delay: int, rate_period: int = 1000, max_early_detection: int = 0):
