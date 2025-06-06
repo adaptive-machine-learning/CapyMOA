@@ -57,10 +57,12 @@ class STUDD(BaseDriftDetector):
     Machine Learning, 112(11), 4351-4378.
     """
 
-    def __init__(self,
-                 student: MOAClassifier,
-                 min_n_instances: int = 500,
-                 detector: MOADriftDetector = ADWIN()):
+    def __init__(
+        self,
+        student: MOAClassifier,
+        min_n_instances: int = 500,
+        detector: MOADriftDetector = ADWIN(),
+    ):
         """
         :param student: Student model that mimics the teacher's predictions
         :param min_n_instances: Minimum number of instances before monitoring drift
@@ -79,7 +81,7 @@ class STUDD(BaseDriftDetector):
         self.data = self.detector.data
 
     def __str__(self):
-        return 'STUDD'
+        return "STUDD"
 
     @override
     def add_element(self, instance_x: ArrayOrInstance, teacher_prediction) -> None:
@@ -94,7 +96,7 @@ class STUDD(BaseDriftDetector):
         """
         self.idx += 1
 
-        if hasattr(instance_x, 'x'):
+        if hasattr(instance_x, "x"):
             # class Instance
             tmp_instance = self.instance_from_arr(instance_x.x, teacher_prediction)
         else:
@@ -146,11 +148,13 @@ class STUDD(BaseDriftDetector):
             min_n_instances and information about the student and detector.
         """
         params = self.detector.get_params()
-        params.update({
-            "min_n_instances": self.min_n_instances,
-            "student": str(self.student),
-            "detector_type": str(self.detector)
-        })
+        params.update(
+            {
+                "min_n_instances": self.min_n_instances,
+                "student": str(self.student),
+                "detector_type": str(self.detector),
+            }
+        )
 
         return params
 
