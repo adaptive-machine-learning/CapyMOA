@@ -48,8 +48,7 @@ class EvaluateDriftDetector:
 
             - recall (float): Recall score
 
-            - episode_recall (float): Recall score for drift episodes (in this case, a correct prediction of a drift
-            episode is counted as 1 true positive)
+            - episode_recall (float): Recall score for drift episodes (in this case, a correct prediction of a drift episode is counted as 1 true positive)
 
             - f1 (float): F1 score
 
