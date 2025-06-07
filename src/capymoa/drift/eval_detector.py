@@ -3,7 +3,7 @@ from typing import List, Union, Tuple, Dict, Optional, Any, Sequence
 
 import numpy as np
 
-ArrayorTupleOf = Union[Sequence[int], Sequence[Tuple[int, int]], np.ndarray]
+_ArrayOrTupleOf = Union[Sequence[int], Sequence[Tuple[int, int]], np.ndarray]
 
 
 class EvaluateDriftDetector:
@@ -21,45 +21,27 @@ class EvaluateDriftDetector:
 
     Key Features:
         - Handles both abrupt and gradual drifts:
-
             * Abrupt drifts: start_location = end_location, e.g., (100, 100)
             * Gradual drifts: start_location < end_location, e.g., (100, 150)
-
         - Considers maximum acceptable detection delay
-
         - Calculates comprehensive performance metrics (precision, recall, F1)
 
 
     Attributes:
-
-        max_delay (int): Maximum allowable delay for drift detection
-
-        rate_period (int): The period used for calculating rates (e.g., per 1000 instances)
-
-        metrics (dict): Dictionary storing the latest calculated performance metrics
-
+        * max_delay (int): Maximum allowable delay for drift detection
+        * rate_period (int): The period used for calculating rates (e.g., per 1000 instances)
+        * metrics (dict): Dictionary storing the latest calculated performance metrics
             - fp (int): False positive count
-
             - tp (int): True positive count
-
             - fn (int): False negative count
-
             - precision (float): Precision score
-
             - recall (float): Recall score
-
             - episode_recall (float): Recall score for drift episodes (in this case, a correct prediction of a drift episode is counted as 1 true positive)
-
             - f1 (float): F1 score
-
             - mdt (float): Mean time to detection
-
             - far (float): False alarm rate per rate_period instances
-
             - ar (float): Alarm rate per rate_period instances
-
             - n_episodes (int): Number of drift episodes
-
             - n_alarms (int): Total number of alarms raised
 
 
@@ -135,8 +117,8 @@ class EvaluateDriftDetector:
 
     def calc_performance(
         self,
-        trues: ArrayorTupleOf,
-        preds: ArrayorTupleOf,
+        trues: _ArrayOrTupleOf,
+        preds: _ArrayOrTupleOf,
         tot_n_instances: int,
         drift_episodes: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
@@ -154,17 +136,12 @@ class EvaluateDriftDetector:
 
         :param trues: Array-like of true drift points represented as (start, end) tuples
             indicating drift intervals. Required if ``drift_episodes`` is not provided.
-        :type trues: ArrayorTupleOf
         :param preds: Array-like of predicted drift points (indices) where the detector
             signaled a drift. Required if ``drift_episodes`` is not provided.
-        :type preds: ArrayorTupleOf
         :param tot_n_instances: Total number of instances in the data stream, used to
             calculate alarm rate and false alarm rate. Always required.
-        :type tot_n_instances: int
         :param drift_episodes: Optional list of drift episodes. If provided, the ``trues`` and ``preds``
             parameters will be ignored with a warning.
-        :type drift_episodes: Optional[List[Dict[str, Any]]]
-
         :returns: Dictionary containing the following metrics:
 
             - ``fp`` (int): False positives (incorrect detections)
@@ -180,8 +157,6 @@ class EvaluateDriftDetector:
             - ``ar`` (float): Alarm rate per ``rate_period`` instances
             - ``n_episodes`` (int): Total number of drift episodes
             - ``n_alarms`` (int): Total number of alarms raised
-
-        :rtype: Dict[str, Any]
 
         :raises ValueError: If arrays are not ordered or contain invalid values,
             if ``tot_n_instances`` is not positive, or if neither ``drift_episodes`` nor
@@ -277,7 +252,7 @@ class EvaluateDriftDetector:
         return self.metrics
 
     def _get_drift_episodes(
-        self, trues: ArrayorTupleOf, preds: ArrayorTupleOf
+        self, trues: _ArrayOrTupleOf, preds: _ArrayOrTupleOf
     ) -> List[Dict[str, Any]]:
         """
         Process raw drift points and predictions into drift episodes.
@@ -342,7 +317,7 @@ class EvaluateDriftDetector:
             raise ValueError("rate_period must be a positive integer")
 
     @staticmethod
-    def _check_arrays(trues: ArrayorTupleOf, preds: ArrayorTupleOf) -> None:
+    def _check_arrays(trues: _ArrayOrTupleOf, preds: _ArrayOrTupleOf) -> None:
         """
         Validate input arrays for consistency and correctness.
 
