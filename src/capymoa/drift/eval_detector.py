@@ -1,9 +1,43 @@
 import warnings
+from dataclasses import dataclass
 from typing import List, Union, Tuple, Dict, Optional, Any, Sequence
 
 import numpy as np
 
 _ArrayOrTupleOf = Union[Sequence[int], Sequence[Tuple[int, int]], np.ndarray]
+
+
+@dataclass
+class DriftDetectionMetrics:
+    """Metrics for evaluating drift detection performance.
+
+    :ivar fp (int): False positives (incorrect detections)
+    :ivar tp (int): True positives (correct detections)
+    :ivar fn (int): False negatives (missed drifts)
+    :ivar precision (float): Precision score (tp / (tp + fp))
+    :ivar recall (float): Recall score (tp / (tp + fn))
+    :ivar episode_recall (float): Recall score for drift episodes (in this case, a correct prediction of a drift episode is counted as 1 true positive)
+    :ivar f1  (float): F1 score (harmonic mean of precision and recall)
+    :ivar mtd  (float): Mean time to detect successful detections
+    :ivar far  (float): False alarm rate per ``rate_period`` instances
+    :ivar ar  (float): Alarm rate per ``rate_period`` instances
+    :ivar n_episodes  (int): Total number of drift episodes
+    :ivar n_alarms  (int): Total number of alarms raised
+
+    """
+
+    fp: int
+    tp: int
+    fn: int
+    precision: float
+    recall: float
+    episode_recall: float
+    f1: float
+    mdt: float
+    far: float
+    ar: float
+    n_episodes: int
+    n_alarms: int
 
 
 class EvaluateDriftDetector:
@@ -26,23 +60,10 @@ class EvaluateDriftDetector:
         - Considers maximum acceptable detection delay
         - Calculates comprehensive performance metrics (precision, recall, F1)
 
-
-    Attributes:
-        * max_delay (int): Maximum allowable delay for drift detection
-        * rate_period (int): The period used for calculating rates (e.g., per 1000 instances)
-        * metrics (dict): Dictionary storing the latest calculated performance metrics
-            - fp (int): False positive count
-            - tp (int): True positive count
-            - fn (int): False negative count
-            - precision (float): Precision score
-            - recall (float): Recall score
-            - episode_recall (float): Recall score for drift episodes (in this case, a correct prediction of a drift episode is counted as 1 true positive)
-            - f1 (float): F1 score
-            - mdt (float): Mean time to detection
-            - far (float): False alarm rate per rate_period instances
-            - ar (float): Alarm rate per rate_period instances
-            - n_episodes (int): Number of drift episodes
-            - n_alarms (int): Total number of alarms raised
+    :ivar max_delay (int): Maximum allowable delay for drift detection
+    :ivar max_early_detection (int): Maximum allowable earliness for drift detection. Defaults to 0
+    :ivar rate_period (int): The period used for calculating rates (e.g., per 1000 instances). Defaults to 1000.
+    :ivar metrics (DriftDetectionMetrics): Latest calculated performance metrics. See :class:`DriftDetectionMetrics` class for details.
 
 
     Examples:
@@ -55,7 +76,7 @@ class EvaluateDriftDetector:
         >>>
         >>> eval = EvaluateDriftDetector(max_delay=200)
         >>> metrics = eval.calc_performance(preds=preds, trues=trues, tot_n_instances=200)
-        >>> print(metrics['f1'])
+        >>> print(metrics.f1)
         0.6666666666666666
 
         >>> # Example with actual detector
@@ -76,7 +97,7 @@ class EvaluateDriftDetector:
         >>> preds = detector.detection_index
         >>> evaluator = EvaluateDriftDetector(max_delay=50)
         >>> metrics = evaluator.calc_performance(trues=trues, preds=preds, tot_n_instances=2000)
-        >>> print(metrics['f1'])
+        >>> print(metrics.f1)
         1.0
 
     """
@@ -101,7 +122,7 @@ class EvaluateDriftDetector:
         :raises ValueError: If max_delay is not a positive integer.
 
         .. note::
-            - The ``max_delay`` parameter is important for evaluating both the accuracy and speed
+            - The ``max_delay`` parameter is important for evaluating both the accuracy and timing
               of drift detection.
             - For gradual drifts (where ``start_location != end_location``), the detection
               window extends from (``start_location - max_delay``) to (``end_location + max_delay``).
@@ -113,7 +134,7 @@ class EvaluateDriftDetector:
         self.max_delay = max_delay
         self.max_early_detection = max_early_detection
         self.rate_period = rate_period
-        self.metrics: Dict[str, Any] = {}
+        self.metrics: Optional[DriftDetectionMetrics] = None
 
     def calc_performance(
         self,
@@ -121,7 +142,7 @@ class EvaluateDriftDetector:
         preds: _ArrayOrTupleOf,
         tot_n_instances: int,
         drift_episodes: Optional[List[Dict[str, Any]]] = None,
-    ) -> Dict[str, Any]:
+    ) -> DriftDetectionMetrics:
         """
         Calculate performance metrics for drift detection.
 
@@ -142,21 +163,8 @@ class EvaluateDriftDetector:
             calculate alarm rate and false alarm rate. Always required.
         :param drift_episodes: Optional list of drift episodes. If provided, the ``trues`` and ``preds``
             parameters will be ignored with a warning.
-        :returns: Dictionary containing the following metrics:
 
-            - ``fp`` (int): False positives (incorrect detections)
-            - ``tp`` (int): True positives (correct detections)
-            - ``fn`` (int): False negatives (missed drifts)
-            - ``precision`` (float): Precision score (tp / (tp + fp))
-            - ``recall`` (float): Recall score (tp / (tp + fn))
-            - ``episode_recall`` (float): Recall score for drift episodes
-              (in this case, a correct prediction of a drift episode is counted as 1 true positive)
-            - ``f1`` (float): F1 score (harmonic mean of precision and recall)
-            - ``mtd`` (float): Mean time to detect successful detections
-            - ``far`` (float): False alarm rate per ``rate_period`` instances
-            - ``ar`` (float): Alarm rate per ``rate_period`` instances
-            - ``n_episodes`` (int): Total number of drift episodes
-            - ``n_alarms`` (int): Total number of alarms raised
+        :returns: :class:`DriftDetectionMetrics` object containing the calculated metrics
 
         :raises ValueError: If arrays are not ordered or contain invalid values,
             if ``tot_n_instances`` is not positive, or if neither ``drift_episodes`` nor
@@ -234,20 +242,20 @@ class EvaluateDriftDetector:
         mean_detection_time = np.nanmean(detection_times) if detection_times else np.nan
         ep_recall = etp / max(1, n_episodes)
 
-        self.metrics = {
-            "fp": fp,
-            "tp": tp,
-            "fn": fn,
-            "precision": precision,
-            "recall": recall,
-            "episode_recall": ep_recall,
-            "f1": f1,
-            "mdt": mean_detection_time,
-            "far": false_alarm_rate,
-            "ar": alarm_rate,
-            "n_episodes": n_episodes,
-            "n_alarms": n_alarms,
-        }
+        self.metrics = DriftDetectionMetrics(
+            fp=fp,
+            tp=tp,
+            fn=fn,
+            precision=precision,
+            recall=recall,
+            episode_recall=ep_recall,
+            f1=f1,
+            mdt=mean_detection_time,
+            far=false_alarm_rate,
+            ar=alarm_rate,
+            n_episodes=n_episodes,
+            n_alarms=n_alarms,
+        )
 
         return self.metrics
 
