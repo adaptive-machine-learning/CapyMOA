@@ -87,12 +87,6 @@ class _BuiltInCIScenario(ABC):
     learning datasets.
     """
 
-    train_streams: Sequence[Stream[LabeledInstance]]
-    """A sequence of streams containing each task for training."""
-
-    test_streams: Sequence[Stream[LabeledInstance]]
-    """A sequence of streams containing each task for testing."""
-
     task_schedule: Sequence[Set[int]]
     """A sequence of sets containing the classes for each task.
 
@@ -209,19 +203,19 @@ class _BuiltInCIScenario(ABC):
 
         # Create streams for training and testing
         dataset_prefix = self.__class__.__name__
-        self.train_streams = _tasks_to_streams(
+        self._train_streams = _tasks_to_streams(
             self.train_tasks,
             num_classes=self.num_classes,
             shuffle=False,
             dataset_name=f"{dataset_prefix}Train",
         )
-        self.test_streams = _tasks_to_streams(
+        self._test_streams = _tasks_to_streams(
             self.test_tasks,
             num_classes=self.num_classes,
             shuffle=False,
             dataset_name=f"{dataset_prefix}Test",
         )
-        self.schema = self.train_streams[0].get_schema()
+        self.schema = self._train_streams[0].get_schema()
         self.num_tasks = len(self.task_schedule)
 
     @staticmethod
