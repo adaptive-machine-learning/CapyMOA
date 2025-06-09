@@ -65,10 +65,7 @@ class ExperienceReplay(BatchClassifier, TrainTaskAware, TestTaskAware):
     """
 
     def __init__(
-        self,
-        learner: BatchClassifier,
-        buffer_size: int = 200,
-        repeat: int = 1
+        self, learner: BatchClassifier, buffer_size: int = 200, repeat: int = 1
     ) -> None:
         """Initialize the Experience Replay strategy.
 

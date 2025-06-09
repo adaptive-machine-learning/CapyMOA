@@ -24,10 +24,10 @@ each task contains two classes:
 
 To get the usual CapyMOA stream object for training:
 
->>> instance = scenario.train_streams[0].next_instance()
+>>> instance = scenario.stream.next_instance()
 >>> instance
 LabeledInstance(
-    Schema(SplitMNISTTrain),
+    Schema(SplitMNIST10/5),
     x=[0. 0. 0. ... 0. 0. 0.],
     y_index=4,
     y_label='4'
@@ -49,13 +49,13 @@ torch.Size([1, 28, 28])
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Optional, Sequence, Set, Tuple
+from typing import Any, Callable, List, Optional, Sequence, Set, Tuple, cast
 from urllib.request import urlretrieve
 
 import numpy as np
 import torch
 from torch import Tensor
-from torch.utils.data import DataLoader, Dataset, TensorDataset
+from torch.utils.data import DataLoader, Dataset, TensorDataset, ConcatDataset
 from torchvision import datasets
 from torchvision.transforms import Compose, Normalize, ToTensor
 
@@ -115,6 +115,9 @@ class _BuiltInCIScenario(ABC):
     schema: Schema
     """A schema describing the format of the data."""
 
+    stream: Stream[LabeledInstance]
+    """Stream containing each task in sequence."""
+
     def __init__(
         self,
         num_tasks: Optional[int] = None,
@@ -165,7 +168,6 @@ class _BuiltInCIScenario(ABC):
             train_transform = self.default_train_transform
         if test_transform is None:
             test_transform = self.default_test_transform
-
         if normalize_features and self.mean is not None and self.std is not None:
             normalize = Normalize(self.mean, self.std)
             train_transform = Compose((train_transform, normalize))
@@ -174,6 +176,7 @@ class _BuiltInCIScenario(ABC):
             raise ValueError(
                 "Cannot normalize features since mean and std are not defined."
             )
+        self.num_tasks = num_tasks
 
         # Set the number of tasks
         generator = torch.Generator().manual_seed(seed)
@@ -202,21 +205,13 @@ class _BuiltInCIScenario(ABC):
             self.test_tasks = self._preload_datasets(self.test_tasks)
 
         # Create streams for training and testing
-        dataset_prefix = self.__class__.__name__
-        self._train_streams = _tasks_to_streams(
-            self.train_tasks,
+        self.stream = TorchClassifyStream(
+            ConcatDataset(self.train_tasks),
             num_classes=self.num_classes,
             shuffle=False,
-            dataset_name=f"{dataset_prefix}Train",
+            dataset_name=str(self),
         )
-        self._test_streams = _tasks_to_streams(
-            self.test_tasks,
-            num_classes=self.num_classes,
-            shuffle=False,
-            dataset_name=f"{dataset_prefix}Test",
-        )
-        self.schema = self._train_streams[0].get_schema()
-        self.num_tasks = len(self.task_schedule)
+        self.schema = self.stream.get_schema()
 
     @staticmethod
     def _preload_datasets(
@@ -267,16 +262,19 @@ class _BuiltInCIScenario(ABC):
         :param kwargs: Additional keyword arguments to pass to the DataLoader.
         :return: A data loader for each task.
         """
-        return [
-            DataLoader(
-                task,
-                batch_size=batch_size,
-                shuffle=False,
-                **kwargs,
-                collate_fn=getattr(task, "collate_fn", None),
-            )
-            for task in self.train_tasks
-        ]
+        return cast(
+            List[DataLoader[Tuple[Tensor, Tensor]]],
+            [
+                DataLoader(
+                    task,
+                    batch_size=batch_size,
+                    shuffle=False,
+                    **kwargs,
+                    collate_fn=getattr(task, "collate_fn", None),
+                )
+                for task in self.train_tasks
+            ],
+        )
 
     def test_loaders(
         self, batch_size: int, **kwargs: Any
@@ -287,48 +285,19 @@ class _BuiltInCIScenario(ABC):
         :param kwargs: Additional keyword arguments to pass to the DataLoader.
         :return: A data loader for each task.
         """
-        return [
-            DataLoader(
-                task,
-                batch_size=batch_size,
-                shuffle=False,
-                **kwargs,
-                collate_fn=getattr(task, "collate_fn", None),
-            )
-            for task in self.test_tasks
-        ]
-
-
-def _tasks_to_streams(
-    tasks: Sequence[Dataset[Tuple[Tensor, Tensor]]],
-    num_classes: int,
-    shuffle: bool = False,
-    seed: int = 0,
-    class_names: Optional[Sequence[str]] = None,
-    dataset_name: str = "OnlineContinualLearningDatastream",
-) -> Sequence[Stream[LabeledInstance]]:
-    """Convert a sequence of tasks into a stream.
-
-    :param tasks: A sequence of PyTorch datasets representing tasks.
-    :param num_classes: The number of classes in the dataset
-    :param shuffle: Should the tasks be shuffled, defaults to False
-    :param shuffle_seed: Seed for shuffling, defaults to 0
-    :param class_names: The names of the classes, defaults to None
-    :param dataset_name: The name of the dataset, defaults to
-        "OnlineContinualLearningDatastream"
-    :return: A sequence of streams representing the tasks
-    """
-    return [
-        TorchClassifyStream(
-            task,
-            num_classes=num_classes,
-            shuffle=shuffle,
-            shuffle_seed=seed,
-            class_names=class_names,
-            dataset_name=dataset_name,
+        return cast(
+            List[DataLoader[Tuple[Tensor, Tensor]]],
+            [
+                DataLoader(
+                    task,
+                    batch_size=batch_size,
+                    shuffle=False,
+                    **kwargs,
+                    collate_fn=getattr(task, "collate_fn", None),
+                )
+                for task in self.test_tasks
+            ],
         )
-        for task in tasks
-    ]
 
 
 class SplitMNIST(_BuiltInCIScenario):
@@ -347,7 +316,7 @@ class SplitMNIST(_BuiltInCIScenario):
 
     @classmethod
     def _download_dataset(
-        self,
+        cls,
         train: bool,
         directory: Path,
         auto_download: bool,

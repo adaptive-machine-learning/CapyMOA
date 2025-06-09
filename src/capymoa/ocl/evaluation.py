@@ -394,6 +394,10 @@ def ocl_train_eval_loop(
             if (step + 1) % evaluate_every == 0:
                 eval_step = step // evaluate_every
 
+                if eval_step >= continual_evaluations:
+                    # This can occur when not dropping the last incomplete batch.
+                    continue
+
                 for test_task_id, test_stream in enumerate(test_streams):
                     # Setup stream and inform learner of the test task
                     if isinstance(learner, TestTaskAware):
