@@ -39,10 +39,13 @@ jobs:
         run: python -m pip install ".[dev]"
 
       - name: PyTest
-        run:  python -m invoke test.unit
+        run: python -m invoke test.pytest
+
+      - name: Doctest
+        run: python -m invoke test.doctest
 
       - name: Notebooks
-        run:  python -m invoke test.nb
+        run: python -m invoke test.nb
 
   documentation:
     name: Documentation
