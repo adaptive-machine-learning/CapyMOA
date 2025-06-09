@@ -5,6 +5,7 @@ from capymoa.stream._stream import Schema
 import numpy as np
 import pytest
 import inspect
+import os
 
 ALL_OCL_SCENARIO = [
     cls
@@ -22,6 +23,10 @@ def test_ocl_split_datamodule_constructors(
     # Skip all except MNIST since downloading datasets can be slow on CI
     if scenario_type != datasets.TinySplitMNIST:
         pytest.skip("Skipping non-MNIST scenarios")
+
+    # Skip TinySplitMNIST if running in CI (e.g., GitHub Actions)
+    if os.environ.get("CI") == "true":
+        pytest.skip("Skipping TinySplitMNIST test in CI to avoid flaky download errors")
 
     scenario: datasets._BuiltInCIScenario = scenario_type()
     assert isinstance(scenario.train_tasks, list)
