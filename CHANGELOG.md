@@ -2,7 +2,80 @@
 
 
 
+## v0.10.0 (2025-06-09)
+
+### Ci
+
+* ci: skip slda tests on ci for time being ([`9cb4a92`](https://github.com/adaptive-machine-learning/CapyMOA/commit/9cb4a92095c72ad670622b9426454fab458ef029))
+
+* ci(release): update test steps ([`39b25d7`](https://github.com/adaptive-machine-learning/CapyMOA/commit/39b25d789f0f5c21b476af1ea1eed7aa72a6b819))
+
+* ci(tasks.py): propagate errors for CI/CD pipeline (#264) ([`6ed24d7`](https://github.com/adaptive-machine-learning/CapyMOA/commit/6ed24d79ce42a53fd978c2855c34796410ec998c))
+
+* ci: update pr workflow (#257) ([`9647866`](https://github.com/adaptive-machine-learning/CapyMOA/commit/964786607cc3dec3cca7c9a680fbe44fc47de0ac))
+
+### Feature
+
+* feat(anomaly): streaming isolation forest ([`de49daa`](https://github.com/adaptive-machine-learning/CapyMOA/commit/de49daaa9049c4c264e5929715068f8625a10ee0))
+
+* feat(ocl): improve batch support and add built-in ANN (#267) ([`4427e9f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/4427e9f9053e540036e2863a55a71fcc24f8a60e))
+
+* feat(ocl): add NCM and SLDA ([`05ed2e8`](https://github.com/adaptive-machine-learning/CapyMOA/commit/05ed2e83ce48300c951390494a77e6ca7572e8bc))
+
+* feat(ocl): add SplitCIFAR100ViT and SplitCIFAR10ViT ([`e337bde`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e337bde324c8a0abfb0566fc71ecb1d30c1ff937))
+
+* feat(BatchClassifier): improve mini-batch processing performance ([`0a8cea5`](https://github.com/adaptive-machine-learning/CapyMOA/commit/0a8cea5a45d2f93b7c4add371d714e2dfea8fbb1))
+
+* feat(classifier): add PyTorch batch finetune learner (#259) ([`4b40350`](https://github.com/adaptive-machine-learning/CapyMOA/commit/4b40350272dd2f48ba70c026e8e7971a9a25ed29))
+
+* feat: streaming random histogram forest for anomaly detection ([`7ada724`](https://github.com/adaptive-machine-learning/CapyMOA/commit/7ada72454ea314ddff042cfe364adf0c4b3a7113))
+
+* feat(ocl): add prequential evaluation to ocl (#250) ([`e1669fe`](https://github.com/adaptive-machine-learning/CapyMOA/commit/e1669fe1ce910d35584635953fcf35fd5fcf9869))
+
+### Fix
+
+* fix: remove debug print statement ([`52d0a6a`](https://github.com/adaptive-machine-learning/CapyMOA/commit/52d0a6ad2fa03c70110ba2555b46eb1ac0d094ce))
+
+* fix: remove debug print statement ([`ebb17d2`](https://github.com/adaptive-machine-learning/CapyMOA/commit/ebb17d232ddc1f6be3631615babee3724f7ddb42))
+
+* fix: update example ([`ab3b2f8`](https://github.com/adaptive-machine-learning/CapyMOA/commit/ab3b2f89759610c2663f10f297b942c01d25e751))
+
+* fix: correct import path ([`1c7fa0f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/1c7fa0f50051e5ea2e70cf70dfc47ff46c903d89))
+
+* fix: remove unused imports ([`6129d16`](https://github.com/adaptive-machine-learning/CapyMOA/commit/6129d1644fe675835d9b708d16d24ddb54c5f7d9))
+
+* fix: improve code formatting with ruff ([`7c41b9f`](https://github.com/adaptive-machine-learning/CapyMOA/commit/7c41b9f71a4fe3d47f88b6894f1987821dcb3cb7))
+
+* fix: correct anomaly score interpretation and type hint in StreamRHF ([`f792266`](https://github.com/adaptive-machine-learning/CapyMOA/commit/f7922666186f164d92a79a9d9cf655704c884296))
+
+### Performance
+
+* perf(instance): speed up copy to java instance ([`02dccca`](https://github.com/adaptive-machine-learning/CapyMOA/commit/02dcccaec2552c22cc0716aa59090d36af888559))
+
+* perf(ocl): add PyTorch dataset preloading ([`d91c36b`](https://github.com/adaptive-machine-learning/CapyMOA/commit/d91c36ba589e8059b6a1b594ce0022673b8071eb))
+
+### Refactor
+
+* refactor(ocl): change project structure ([`abb6458`](https://github.com/adaptive-machine-learning/CapyMOA/commit/abb645873fcea0b09579dcc75ef1f7863751f178))
+
+### Unknown
+
+* Revert &#34;Drift detector evaluation v1 + STUDD + fix HDDM&#34; (#258) ([`7888975`](https://github.com/adaptive-machine-learning/CapyMOA/commit/7888975d688fe4fb61d3369495720001fb50228f))
+
+* fix eval detector ([`559fb54`](https://github.com/adaptive-machine-learning/CapyMOA/commit/559fb54ce45b63ec75b4549028e3e82544fda81d))
+
+* reset detector fix ([`bcc9c56`](https://github.com/adaptive-machine-learning/CapyMOA/commit/bcc9c56918b04a5758fcd151917f0924a28ee12c))
+
+* fix hddm w ([`93b7796`](https://github.com/adaptive-machine-learning/CapyMOA/commit/93b7796b85c370d73946d629530aca5d06704f26))
+
+* updated drift evaluator + studd ([`0f3e2ef`](https://github.com/adaptive-machine-learning/CapyMOA/commit/0f3e2ef83d34f14f325bd5d5d7940c6a00affb48))
+
+
 ## v0.9.1 (2025-05-08)
+
+### Chore
+
+* chore(version): increment version to 0.9.1 ([`c2db396`](https://github.com/adaptive-machine-learning/CapyMOA/commit/c2db39611bdb383ed6e4d02790e7b85b198a9852))
 
 ### Ci
 
