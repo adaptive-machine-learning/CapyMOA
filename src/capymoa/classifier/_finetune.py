@@ -1,14 +1,11 @@
-from typing import Callable, Union, Iterator
+from typing import Callable, Iterator, Union
 
-import numpy as np
 import torch
 from torch import Tensor, device, nn, optim
 from torch.optim.optimizer import Optimizer
 
 from capymoa.base import BatchClassifier
-from capymoa.instance import Instance
 from capymoa.stream import Schema
-from capymoa.type_alias import LabelProbabilities
 
 
 class Finetune(BatchClassifier):
@@ -89,24 +86,7 @@ class Finetune(BatchClassifier):
         #: The data type to convert the input data to.
         self.dtype: torch.dtype = next(self.model.parameters()).dtype
 
-    def batch_train(self, x: np.ndarray, y: np.ndarray) -> None:
-        return self.torch_batch_train(
-            torch.from_numpy(x).to(self.device, self.dtype),
-            torch.from_numpy(y).long().to(self.device),
-        )
-
-    def batch_predict_proba(self, x: np.ndarray) -> np.ndarray:
-        assert x.ndim == 2
-        return self.torch_batch_predict_proba(
-            torch.from_numpy(x).to(self.device, self.dtype),
-        )
-
-    def torch_batch_train(self, x: Tensor, y: Tensor) -> None:
-        """Train the model on the given batch of data.
-
-        :param x: Input data of shape (batch_size, num_features).
-        :param y: Target labels of shape (batch_size,).
-        """
+    def batch_train(self, x: Tensor, y: Tensor) -> None:
         self.model.train()
         self.optimizer.zero_grad()
 
@@ -122,7 +102,7 @@ class Finetune(BatchClassifier):
         assert not loss.isnan(), "Loss is NaN"
 
     @torch.no_grad()
-    def torch_batch_predict_proba(self, x: Tensor) -> np.ndarray:
+    def batch_predict_proba(self, x: Tensor) -> Tensor:
         """Predict the probabilities of the classes for the given batch of data.
 
         :param x: Input data of shape (batch_size, num_features).
@@ -130,16 +110,7 @@ class Finetune(BatchClassifier):
         :return: Predicted probabilities of shape (batch_size, num_classes).
         """
         self.model.eval()
-        y_hat = self.model(x)
-        return y_hat.softmax(dim=1).cpu().numpy()
-
-    @torch.no_grad()
-    def predict_proba(self, instance: Instance) -> LabelProbabilities:
-        self.model.eval()
-        x = torch.from_numpy(instance.x).to(self.device, self.dtype)
-        x = x.view(1, -1)  # Add batch dimension
-        y_hat = self.model(x)
-        return y_hat.softmax(dim=1).cpu().numpy()
+        return self.model(x).softmax(dim=1)
 
     def __str__(self) -> str:
         model_name = str(self.model.__class__.__name__)

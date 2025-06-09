@@ -5,10 +5,8 @@ contains additional base classes for OCL learners that are aware of the task
 boundaries and/or the task identities during training and evaluation.
 """
 
-from abc import ABC, abstractmethod
 
-
-class TaskBoundaryAware(ABC):
+class TrainTaskAware:
     """Interface for learners that are aware of the transition between tasks.
 
     Knowing the transition between tasks is required by some algorithms, but is
@@ -17,11 +15,11 @@ class TaskBoundaryAware(ABC):
 
     >>> from capymoa.classifier import NoChange
     >>> from capymoa.ocl.datasets import TinySplitMNIST
-    >>> from capymoa.ocl.base import TaskBoundaryAware
+    >>> from capymoa.ocl.base import TrainTaskAware
     >>> from capymoa.ocl.evaluation import ocl_train_eval_loop
 
-    >>> class MyTaskBoundaryAware(TaskBoundaryAware, NoChange):
-    ...     def set_train_task(self, train_task_id: int):
+    >>> class MyTaskBoundaryAware(TrainTaskAware, NoChange):
+    ...     def on_train_task(self, train_task_id: int):
     ...         print(f"Training task {train_task_id}")
 
     >>> scenario = TinySplitMNIST()
@@ -34,15 +32,11 @@ class TaskBoundaryAware(ABC):
     Training task 4
     """
 
-    @abstractmethod
-    def set_train_task(self, train_task_id: int):
-        """Called when a new training task starts.
-
-        :param task_id: The ID of the new task.
-        """
+    def on_train_task(self, task_id: int):
+        """Called when a new training task starts."""
 
 
-class TaskAware(TaskBoundaryAware):
+class TestTaskAware:
     """Interface for learners that are aware of the task during evaluation.
 
     Knowing the task during inference greatly simplifies the learning problem.
@@ -51,14 +45,14 @@ class TaskAware(TaskBoundaryAware):
 
     >>> from capymoa.classifier import NoChange
     >>> from capymoa.ocl.datasets import TinySplitMNIST
-    >>> from capymoa.ocl.base import TaskAware
+    >>> from capymoa.ocl.base import TrainTaskAware, TestTaskAware
     >>> from capymoa.ocl.evaluation import ocl_train_eval_loop
 
-    >>> class MyTaskAware(TaskAware, NoChange):
-    ...     def set_train_task(self, train_task_id: int):
+    >>> class MyTaskAware(TestTaskAware, TrainTaskAware, NoChange):
+    ...     def on_train_task(self, train_task_id: int):
     ...         print(f"Training task {train_task_id}")
     ...
-    ...     def set_test_task(self, test_task_id: int):
+    ...     def on_test_task(self, test_task_id: int):
     ...         print(f"Testing task {test_task_id}")
 
     >>> scenario = TinySplitMNIST()
@@ -76,9 +70,5 @@ class TaskAware(TaskBoundaryAware):
     ...
     """
 
-    @abstractmethod
-    def set_test_task(self, test_task_id: int):
-        """Called when testing on a task starts.
-
-        :param task_id: The ID of the task.
-        """
+    def on_test_task(self, task_id: int):
+        """Called when testing on a task starts."""

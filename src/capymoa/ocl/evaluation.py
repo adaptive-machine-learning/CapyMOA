@@ -18,7 +18,7 @@ from capymoa.evaluation.evaluation import (
 )
 from capymoa.evaluation.results import PrequentialResults
 from capymoa.instance import Instance, LabeledInstance
-from capymoa.ocl.base import TaskAware, TaskBoundaryAware
+from capymoa.ocl.base import TestTaskAware, TrainTaskAware
 from capymoa.type_alias import LabelIndex
 
 
@@ -283,7 +283,7 @@ class _OCLEvaluator:
         )
 
 
-_OCLClassifier = Union[TaskBoundaryAware, TaskAware, Classifier]
+_OCLClassifier = Union[TrainTaskAware, TestTaskAware, Classifier]
 
 
 def _batch_test(learner: Classifier, x: Tensor) -> np.ndarray:
@@ -291,8 +291,8 @@ def _batch_test(learner: Classifier, x: Tensor) -> np.ndarray:
     batch_size = x.shape[0]
     x = x.view(batch_size, -1)
     if isinstance(learner, BatchClassifier):
-        y_proba = learner.batch_predict_proba(x.numpy())
-        return np.argmax(y_proba, axis=1)
+        x = x.to(dtype=learner.x_dtype, device=learner.device)
+        return learner.batch_predict(x).cpu().numpy()
     else:
         yb_pred = np.zeros(batch_size, dtype=int)
         for i in range(batch_size):
@@ -306,7 +306,9 @@ def _batch_train(learner: Classifier, x: Tensor, y: Tensor):
     batch_size = x.shape[0]
     x = x.view(batch_size, -1)
     if isinstance(learner, BatchClassifier):
-        learner.batch_train(x.numpy(), y.numpy())
+        x = x.to(dtype=learner.x_dtype, device=learner.device)
+        y = y.to(dtype=learner.y_dtype, device=learner.device)
+        learner.batch_train(x, y)
     else:
         for i in range(batch_size):
             instance = LabeledInstance.from_array(
@@ -325,8 +327,8 @@ def ocl_train_eval_loop(
 ) -> OCLMetrics:
     """Train and evaluate a learner on a sequence of tasks.
 
-    :param learner: A classifier that is possibly task-aware or
-        task-boundary-aware.
+    :param learner: A classifier that is possibly train task aware and/or
+        test task aware.
     :param train_streams: A sequence of streams containing the training tasks.
     :param test_streams: A sequence of streams containing the testing tasks.
     :param continual_evaluations: The number of times to evaluate the learner
@@ -372,8 +374,8 @@ def ocl_train_eval_loop(
     # Iterate over each task
     for train_task_id, train_stream in enumerate(train_streams):
         # Setup stream and inform learner of the test task
-        if isinstance(learner, TaskBoundaryAware):
-            learner.set_train_task(train_task_id)
+        if isinstance(learner, TrainTaskAware):
+            learner.on_train_task(train_task_id)
 
         # Train and evaluation loop for a single task
         for step, (xb, yb) in enumerate(train_stream):
@@ -392,10 +394,14 @@ def ocl_train_eval_loop(
             if (step + 1) % evaluate_every == 0:
                 eval_step = step // evaluate_every
 
+                if eval_step >= continual_evaluations:
+                    # This can occur when not dropping the last incomplete batch.
+                    continue
+
                 for test_task_id, test_stream in enumerate(test_streams):
                     # Setup stream and inform learner of the test task
-                    if isinstance(learner, TaskAware):
-                        learner.set_test_task(test_task_id)
+                    if isinstance(learner, TestTaskAware):
+                        learner.on_test_task(test_task_id)
 
                     # predict instances in the current task
                     for test_xb, test_yb in test_stream:

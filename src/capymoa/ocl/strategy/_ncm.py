@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from typing import Tuple
 from capymoa.base import BatchClassifier
@@ -59,33 +58,29 @@ class NCM(BatchClassifier):
         self._class_means = torch.zeros((n_classes, n_feats), device=device)
 
     @torch.no_grad()
-    def batch_train(self, x: np.ndarray, y: np.ndarray) -> None:
-        x_ = torch.from_numpy(x).to(self._device, self._dtype)  # (batch_size, features)
-        y_ = torch.from_numpy(y).to(self._device, self._dtype)  # (batch_size,)
-        x_ = self._pre_processor(x_)
+    def batch_train(self, x: Tensor, y: Tensor) -> None:
+        x = self._pre_processor(x)
 
         # Update mean and count
         for i in range(self.schema.get_num_classes()):
-            mask = y_ == i
+            mask = y == i
             self._class_counts[i], self._class_means[i] = _batch_cumulative_mean(
-                batch=x_[mask],
+                batch=x[mask],
                 count=int(self._class_counts[i].item()),
                 mean=self._class_means[i],
             )
 
     @torch.no_grad()
-    def batch_predict_proba(self, x: np.ndarray) -> np.ndarray:
+    def batch_predict_proba(self, x: Tensor) -> Tensor:
         assert x.ndim == 2, "Input must be a 2D array (batch_size, features)"
-        x_ = torch.from_numpy(x).to(self._device, self._dtype)
-        x_ = self._pre_processor(x_)
+        x = self._pre_processor(x)
 
         # Calculate distances to class means
-        distances = torch.cdist(
-            x_.unsqueeze(0), self._class_means.unsqueeze(0)
-        ).squeeze(0)
+        distances = torch.cdist(x.unsqueeze(0), self._class_means.unsqueeze(0))
+        distances = distances.squeeze(0)
 
         # Convert distances to pseudo-probabilities. Using the inverse weighted
         # distance method.
         inv_distances = 1 / (1 + distances)
         probabilities = inv_distances / inv_distances.sum(dim=1, keepdim=True)
-        return probabilities.cpu().numpy()
+        return probabilities

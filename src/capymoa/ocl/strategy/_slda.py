@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from typing import Tuple
 from capymoa.base import BatchClassifier
@@ -53,8 +52,6 @@ class SLDA(BatchClassifier):
     ..  [WikipediaILDA] https://en.wikipedia.org/wiki/Linear_discriminant_analysis#Incremental_LDA
     """
 
-    _dtype = torch.float32
-
     def __init__(
         self,
         schema: Schema,
@@ -78,7 +75,7 @@ class SLDA(BatchClassifier):
         self._pre_processor = pre_processor.to(device)
         self._n_classes = schema.get_num_classes()
         self._n_feats = num_features or schema.get_num_attributes()
-        self._device = device
+        self.device = torch.device(device)
 
         # Class means and counts
         self._class_counts = torch.zeros((self._n_classes,), device=device)
@@ -91,35 +88,35 @@ class SLDA(BatchClassifier):
         self._ridge = torch.eye(self._n_feats, device=device) * ridge
 
     @torch.no_grad()
-    def batch_train(self, x: np.ndarray, y: np.ndarray) -> None:
-        x_ = torch.from_numpy(x).to(self._device, self._dtype)  # (batch_size, features)
-        y_ = torch.from_numpy(y).to(self._device, self._dtype)  # (batch_size,)
-        x_ = self._pre_processor(x_)
+    def batch_train(self, x: Tensor, y: Tensor) -> None:
+        x = self._pre_processor(x)
 
         # Update class means and counts
         for i in range(self.schema.get_num_classes()):
             self._class_counts[i], self._class_means[i] = _batch_cumulative_mean(
-                x_[y_ == i], int(self._class_counts[i]), self._class_means[i]
+                x[y == i], int(self._class_counts[i]), self._class_means[i]
             )
 
         # Update joint cumulative mean and covariance
         self._count, self._mean, self._covariance = _batch_cumulative_covariance(
-            x_, self._count, self._mean, self._covariance
+            x, self._count, self._mean, self._covariance
         )
 
     @torch.no_grad()
-    def batch_predict_proba(self, x: np.ndarray) -> np.ndarray:
+    def batch_predict_proba(self, x: Tensor) -> Tensor:
         # Return uniform probabilities if no training has been done
         if self._count == 0:
-            return np.full((x.shape[0], self._n_classes), 1.0 / self._n_classes)
+            return torch.full(
+                (x.size(0), self._n_classes),
+                1.0 / self._n_classes,
+                dtype=self.x_dtype,
+                device=self.device,
+            )
 
-        x_ = torch.from_numpy(x).to(self._device, self._dtype)
-        x_ = self._pre_processor(x_)
-
+        x = self._pre_processor(x)
         covariance = self._covariance / self._count + self._ridge
         weights: Tensor = torch.linalg.solve(covariance, self._class_means.T).T
         bias = -0.5 * (self._class_means @ weights.T).diagonal()
         bias += torch.log(self._class_counts / self._count)
-        scores = x_ @ weights.T
-        proba = torch.softmax(scores, dim=1)
-        return proba.cpu().numpy()
+        scores = x @ weights.T
+        return torch.softmax(scores, dim=1)
