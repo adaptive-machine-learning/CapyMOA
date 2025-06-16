@@ -145,6 +145,12 @@ class MOACluster(Cluster):
 
     def _get_clusters_centers(self):
         ret = []
+        result = self.moa_learner.getClusteringResult()
+        if result is None:
+            return ret
+        clustering = result.getClustering()
+        if clustering is None or clustering.size() == 0:
+            return ret
         for c in self.moa_learner.getClusteringResult().getClustering():
             java_array = c.getCenter()[:-1]
             python_array = [
@@ -167,11 +173,14 @@ class MOACluster(Cluster):
 
     def get_clustering_result(self):
         if self.implements_macro_clusters():
+            centers = self._get_clusters_centers()
+            weights = self._get_clusters_weights()
+            radii = self._get_clusters_radii()
             # raise ValueError("This clusterer does not implement macro-clusters.")
             return ClusteringResult(
-                self._get_clusters_centers(),
-                self._get_clusters_weights(),
-                self._get_clusters_radii(),
+                centers,
+                weights,
+                radii,
                 [],
             )
         else:

@@ -13,6 +13,7 @@ class ConfStream(MOACluster):
 	def __init__(
 			self,
 			schema: typing.Union[Schema, None] = None,
+			filename: typing.Union[str, None] = None,
 		):
 			"""ConfStream clustering algorithm.
 
@@ -28,10 +29,15 @@ class ConfStream(MOACluster):
 
 			# config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
 			self.moa_learner = _MOA_ConfStream()
+			if filename is None:
+				raise ValueError("setting file is not specified, please provide a valid filename")
+
+			self.moa_learner.fileOption.setValue(filename)
 			super(ConfStream, self).__init__(
 				schema=schema, 
 				# CLI=config_str, 
-				moa_learner=self.moa_learner
+				moa_learner=self.moa_learner,
+
 			)
 
 	def implements_micro_clusters(self) -> bool:

@@ -40,6 +40,9 @@ class ClusteringEvaluator:
         else:
             centers = np.array(cluster._get_micro_clusters_centers())
 
+        if centers.size == 0 or centers is None:
+            return [0, 0]
+
         silhouette_scores = []
         # Assign each data point to the nearest cluster center
         if past_dps is not None and future_dps is not None:
@@ -87,6 +90,10 @@ class ClusteringEvaluator:
             centers = np.array(cluster._get_clusters_centers())
         else:
             centers = np.array(cluster._get_micro_clusters_centers())
+
+        if centers.size == 0 or centers is None:
+            return [0, 0]
+
         ssq_scores = []
         # Assign each data point to the nearest cluster center
         if past_dps is not None and future_dps is not None:
@@ -112,6 +119,10 @@ class ClusteringEvaluator:
             centers = np.array(cluster._get_clusters_centers())
         else:
             centers = np.array(cluster._get_micro_clusters_centers())
+
+        if centers.size == 0 or centers is None:
+            return [0, 0]
+
         bss_scores = []
         if past_dps is not None and future_dps is not None:
             for _ in [past_dps, future_dps]:
@@ -145,10 +156,13 @@ class ClusteringEvaluator:
 
     def _update_measurements(self, cluster: Cluster, past_dps=None, future_dps=None):
         # update centers, weights, sizes, and radii
-        if cluster.implements_macro_clusters():
-            macro = cluster.get_clustering_result()
-            if len(macro.get_centers()) > 0:
-                self.measurements["macros"].append(macro)
+        try:
+            if cluster.implements_macro_clusters():
+                macro = cluster.get_clustering_result()
+                if len(macro.get_centers()) > 0:
+                    self.measurements["macros"].append(macro)
+        except:
+            pass
 
         if cluster.implements_micro_clusters():
             micro = cluster.get_micro_clustering_result()

@@ -14,7 +14,7 @@ class CobWeb(MOACluster):
         self,
         schema: typing.Union[Schema, None] = None,
         acuity: int = 1,
-        cutoff: int = 0.002,
+        cutoff: float = 0.002,
         randomSeed: int = 1,
     ):
         """CobWeb clusterer.
