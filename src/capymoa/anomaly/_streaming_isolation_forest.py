@@ -410,7 +410,10 @@ class StreamingIsolationForest(AnomalyDetector):
     0 and 1, with higher values indicating greater anomaly likelihood.
 
     Reference:
-    None provided.
+    Liu, J.J., Cassales, G.W., Liu, F.T., Pfahringer, B., Bifet, A. (2025).
+    Streaming Isolation Forest. In: Wu, X., et al. Advances in Knowledge
+    Discovery and Data Mining . PAKDD 2025. Lecture Notes in Computer Science(),
+    vol 15870. Springer, Singapore. https://doi.org/10.1007/978-981-96-8170-9_8
 
     Example:
     >>> from capymoa.datasets import ElectricityTiny
