@@ -11,14 +11,10 @@ import moa.classifiers.trees as moa_trees
 
 
 class HoeffdingAdaptiveTree(HoeffdingTree):
-    """Hoeffding Adaptive Tree (HAT) classifier.
+    """Hoeffding Adaptive Tree (HAT).
 
-    Reference:
-
-    Bifet, A. and Gavalda, R., 2009. Adaptive learning from evolving data streams.
-    In Advances in Intelligent Data Analysis VIII: 8th International Symposium on Intelligent Data Analysis,
-    IDA 2009, Lyon, France, August 31-September 2, 2009. Proceedings 8 (pp. 249-260). Springer Berlin Heidelberg.
-    https://link.springer.com/chapter/10.1007/978-3-642-03915-7_22
+    HAT [#bifet2009]_ uses :class:`~capymoa.drift.detectors.ADWIN` to track the
+    performance of its tree branches allowing it to adapt to concept drift.
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import HoeffdingAdaptiveTree
@@ -29,6 +25,13 @@ class HoeffdingAdaptiveTree(HoeffdingTree):
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
     84.1
+
+    ..  [#bifet2009] Bifet, A. and Gavalda, R., 2009. Adaptive learning from
+        evolving data streams. In Advances in Intelligent Data Analysis VIII:
+        8th International Symposium on Intelligent Data Analysis, IDA 2009,
+        Lyon, France, August 31-September 2, 2009. Proceedings 8 (pp. 249-260).
+        Springer Berlin Heidelberg.
+        https://link.springer.com/chapter/10.1007/978-3-642-03915-7_22
     """
 
     def __init__(
@@ -39,7 +42,7 @@ class HoeffdingAdaptiveTree(HoeffdingTree):
         split_criterion: Union[str, SplitCriterion] = "InfoGainSplitCriterion",
         confidence: float = 1e-3,
         tie_threshold: float = 0.05,
-        leaf_prediction: int = "NaiveBayesAdaptive",
+        leaf_prediction: Union[str, int] = "NaiveBayesAdaptive",
         nb_threshold: int = 0,
         numeric_attribute_observer: str = "GaussianNumericAttributeClassObserver",
         binary_split: bool = False,

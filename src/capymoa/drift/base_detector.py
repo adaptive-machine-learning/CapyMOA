@@ -88,7 +88,7 @@ class MOADriftDetector(BaseDriftDetector):
         full_name = str(self.moa_detector.getClass().getCanonicalName())
         return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
 
-    def CLI_help(self):
+    def cli_help(self):
         return str(self.moa_detector.getOptions().getHelpString())
 
     @override

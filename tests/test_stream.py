@@ -146,7 +146,7 @@ def test_stream_classification(stream: Stream[LabeledInstance], length: Optional
     assert length is None or (isinstance(stream, Sized) and len(stream) == length)
     moa_stream = stream.get_moa_stream()
     assert moa_stream is None or isinstance(moa_stream, InstanceStream)
-    assert stream.CLI_help()
+    assert stream.cli_help()
 
     # Check java style next instance.
     instance = stream.next_instance()
@@ -247,7 +247,7 @@ def test_stream_regression(stream: Stream[RegressionInstance], length: Optional[
     assert length is None or (isinstance(stream, Sized) and len(stream) == length)
     moa_stream = stream.get_moa_stream()
     assert moa_stream is None or isinstance(moa_stream, InstanceStream)
-    assert stream.CLI_help()
+    assert stream.cli_help()
     assert stream.has_more_instances()
     assert iter(stream) == stream
 
