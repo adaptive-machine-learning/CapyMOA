@@ -212,7 +212,7 @@ class MOAAnomalyDetector(AnomalyDetector):
         full_name = str(self.moa_learner.getClass().getCanonicalName())
         return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
 
-    def CLI_help(self):
+    def cli_help(self):
         return self.moa_learner.getOptions().getHelpString()
 
     def train(self, instance):
@@ -365,7 +365,7 @@ class MOAClusterer(Clusterer):
         full_name = str(self.moa_learner.getClass().getCanonicalName())
         return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
 
-    def CLI_help(self):
+    def cli_help(self):
         return str(self.moa_learner.getOptions().getHelpString())
 
     def train(self, instance):

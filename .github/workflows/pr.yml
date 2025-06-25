@@ -103,3 +103,13 @@ jobs:
       run: invoke docs.coverage
     - name: Build Documentation
       run: invoke docs.build
+
+    - name: Artifact name
+      run: echo DOC_ARTIFACT_NAME=doc-${GITHUB_REF//\//-} >> $GITHUB_ENV
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.DOC_ARTIFACT_NAME }}
+        retention-days: 14
+        path: docs/_build
+        overwrite: true

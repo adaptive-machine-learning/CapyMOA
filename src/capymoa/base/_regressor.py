@@ -161,7 +161,7 @@ class MOARegressor(Regressor):
     # def describe(self):
     #     return str(self.moa_learner)
 
-    def CLI_help(self):
+    def cli_help(self):
         return self.moa_learner.getOptions().getHelpString()
 
     def train(self, instance):

@@ -321,7 +321,7 @@ class Stream(ABC, Generic[_AnyInstance], Iterator[_AnyInstance]):
             return str(moa_stream.getHeader().getRelationName()).replace(" ", "")
         return object.__str__(self)
 
-    def CLI_help(self) -> str:
+    def cli_help(self) -> str:
         """Return a help message"""
         if moa_stream := self.get_moa_stream():
             return str(moa_stream.getOptions().getHelpString())
@@ -407,7 +407,7 @@ class MOAStream(Stream[_AnyInstance]):
         """Return the name of the datastream from the schema."""
         return str(self.schema._moa_header.getRelationName()).replace(" ", "")
 
-    def CLI_help(self) -> str:
+    def cli_help(self) -> str:
         """Return cli help string for the stream."""
         return str(
             self.moa_stream.getOptions().getHelpString()

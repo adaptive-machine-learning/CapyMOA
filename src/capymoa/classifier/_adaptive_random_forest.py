@@ -1,13 +1,17 @@
+from typing import Optional
 from capymoa.base import (
     MOAClassifier,
     _extract_moa_learner_CLI,
     _extract_moa_drift_detector_CLI,
 )
 
+from capymoa.base._classifier import Classifier
+from capymoa.drift.base_detector import BaseDriftDetector
 from capymoa.drift.detectors import (
     ADWIN,
 )
 
+from capymoa.stream._stream import Schema
 from moa.classifiers.meta import AdaptiveRandomForest as _MOA_AdaptiveRandomForest
 from moa.classifiers.meta.minibatch import (
     AdaptiveRandomForestMB as _MOA_AdaptiveRandomForestMB,
@@ -16,25 +20,9 @@ import os
 
 
 class AdaptiveRandomForestClassifier(MOAClassifier):
-    """Adaptive Random Forest Classifier
+    """Adaptive Random Forest (ARF).
 
-    This class implements the Adaptive Random Forest (ARF) algorithm, which is
-    an ensemble classifier capable of adapting to concept drift.
-
-    ARF is implemented in MOA (Massive Online Analysis) and provides several
-    parameters for customization.
-
-    Reference:
-
-    `Adaptive random forests for evolving data stream classification.
-    Heitor Murilo Gomes, A. Bifet, J. Read, ..., B. Pfahringer, G. Holmes, T. Abdessalem.
-    Machine Learning, 106, 1469-1495, 2017.
-    <https://link.springer.com/article/10.1007/s10994-017-5642-8>`_
-
-    See also :py:class:`capymoa.regressor.AdaptiveRandomForestRegressor`
-    See :py:class:`capymoa.base.MOAClassifier` for train, predict and predict_proba.
-
-    Example usage:
+    ARF [#gomes2017]_ is an ensemble classifier capable of adapting to concept drift.
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import AdaptiveRandomForestClassifier
@@ -45,24 +33,29 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].accuracy()
     87.9
+
+    ..  [#gomes2017] `Gomes, H. M., Bifet, A., Read, J., Barddal, J. P.,
+        Enembreck, F., Pfharinger, B., ... & Abdessalem, T. (2017). Adaptive
+        random forests for evolving data stream classification. Machine
+        Learning, 106, 1469-1495. <https://link.springer.com/article/10.1007/s10994-017-5642-8>`_
     """
 
     def __init__(
         self,
-        schema=None,
-        CLI=None,
-        random_seed=1,
-        base_learner=None,
-        ensemble_size=100,
-        max_features=0.6,
-        lambda_param=6.0,
-        minibatch_size=None,
-        number_of_jobs=1,
-        drift_detection_method=None,
-        warning_detection_method=None,
-        disable_weighted_vote=False,
-        disable_drift_detection=False,
-        disable_background_learner=False,
+        schema: Optional[Schema] = None,
+        CLI: Optional[str] = None,
+        random_seed: int = 1,
+        base_learner: Optional[Classifier] = None,
+        ensemble_size: int = 100,
+        max_features: float = 0.6,
+        lambda_param: float = 6.0,
+        minibatch_size: Optional[int] = None,
+        number_of_jobs: int = 1,
+        drift_detection_method: Optional[BaseDriftDetector] = None,
+        warning_detection_method: Optional[BaseDriftDetector] = None,
+        disable_weighted_vote: bool = False,
+        disable_drift_detection: bool = False,
+        disable_background_learner: bool = False,
     ):
         """Construct an Adaptive Random Forest Classifier
 
