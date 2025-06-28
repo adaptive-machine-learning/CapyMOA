@@ -8,16 +8,28 @@ from moa.classifiers.meta.minibatch import OzaBagMB as _MOA_OzaBagMB
 
 
 class OnlineBagging(MOAClassifier):
-    """Incremental on-line bagging of Oza and Russell
+    """Incremental on-line bagging of Oza and Russell.
 
-    Oza and Russell developed online versions of bagging and boosting for Data Streams.
+    Incremental on-line bagging of Oza and Russell [#0]_ is a ensemble classifier. Oza
+    and Russell developed online versions of bagging and boosting for Data Streams. They
+    show how the process of sampling bootstrap replicates from training data can be
+    simulated in a data stream context. They observe that the probability that any
+    individual example will be chosen for a replicate tends to a Poisson(1)
+    distribution.
 
-    They show how the process of sampling bootstrap replicates from training data can be simulated in a data stream context.
+    >>> from capymoa.classifier import OnlineBagging
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.evaluation import prequential_evaluation
+    >>>
+    >>> stream = ElectricityTiny()
+    >>> classifier = OnlineBagging(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    85.3
 
-    They observe that the probability that any individual example will be chosen for a replicate tends to a Poisson(1) distribution.
-
-    Reference:
-    `[OR] N. Oza and S. Russell. Online bagging and boosting. In Artiﬁcial Intelligence and Statistics 2001, pages 105–112. Morgan Kaufmann, 2001.`
+    .. [#0] `Oza, N. C., & Russell, S. J. (2001, January). Online bagging and boosting.
+             In International workshop on artificial intelligence and statistics (pp.
+             229-236). PMLR. <https://proceedings.mlr.press/r3/oza01a.html>`_
     """
 
     def __init__(
