@@ -9,7 +9,7 @@ from capymoa.stream._stream import Schema
 class SGDClassifier(SKClassifier):
     """Streaming stochastic gradient descent classifier.
 
-    This wraps :class:`sklearn.linear_model.SGDClassifier` for
+    This wraps :class:`~sklearn.linear_model.SGDClassifier` for
     ease of use in the streaming context. Some options are missing because
     they are not relevant in the streaming context. Furthermore, the learning rate
     is constant.

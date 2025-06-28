@@ -55,7 +55,7 @@ class BatchRegressor(Regressor, Batch, ABC):
     ...         return np.zeros((x.shape[0],))
     ...
     >>> stream = FriedTiny()
-    >>> learner = MyBatchRegressor(stream.schema)
+    >>> learner = MyBatchRegressor(stream.get_schema())
     >>> _ = prequential_evaluation(
     ...     stream,
     ...     learner,
@@ -193,7 +193,7 @@ class SKRegressor(Regressor):
     >>> from capymoa.datasets import Fried
     >>> stream = Fried()
     >>> sklearner = SGDRegressor(random_state=1)
-    >>> learner = SKRegressor(sklearner, stream.schema)
+    >>> learner = SKRegressor(sklearner, stream.get_schema())
     >>> for _ in range(10):
     ...     instance = stream.next_instance()
     ...     prediction = learner.predict(instance)

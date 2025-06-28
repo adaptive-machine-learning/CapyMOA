@@ -7,25 +7,26 @@ from capymoa.stream._stream import Schema
 
 
 class PassiveAggressiveClassifier(SKClassifier):
-    """Streaming Passive Aggressive Classifier
+    """Streaming Passive Aggressive Classifier.
 
-    This wraps :sklearn:`linear_model.PassiveAggressiveClassifier` for
-    ease of use in the streaming context. Some options are missing because
-    they are not relevant in the streaming context.
+    Streaming Passive Aggressive Classifier [#0]_ is a classifier. This wraps
+    :class:`~sklearn.linear_model.PassiveAggressiveClassifier` for ease of use in the streaming
+    context. Some options are missing because they are not relevant in the streaming
+    context.
 
-    `Online Passive-Aggressive Algorithms K. Crammer, O. Dekel, J. Keshat, S.
-    Shalev-Shwartz, Y. Singer - JMLR (2006)
-    <http://jmlr.csail.mit.edu/papers/volume7/crammer06a/crammer06a.pdf>`_
-
-    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import PassiveAggressiveClassifier
+    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.evaluation import prequential_evaluation
+    >>>
     >>> stream = ElectricityTiny()
-    >>> schema = stream.get_schema()
-    >>> learner = PassiveAggressiveClassifier(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
+    >>> classifier = PassiveAggressiveClassifier(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
     84.3
+
+    .. [#0] `Online Passive-Aggressive Algorithms K. Crammer, O. Dekel, J. Keshat, S.
+             Shalev-Shwartz, Y. Singer - JMLR (2006)
+             <http://jmlr.csail.mit.edu/papers/volume7/crammer06a/crammer06a.pdf>`_
     """
 
     sklearner: _SKPassiveAggressiveClassifier
