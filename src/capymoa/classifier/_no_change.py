@@ -10,11 +10,9 @@ from moa.classifiers.functions import NoChange as _MOA_NoChange
 
 
 class NoChange(MOAClassifier):
-    """NoChange classifier.
+    """No change classifier.
 
     Always predicts the last class seen.
-
-    Example usages:
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import NoChange

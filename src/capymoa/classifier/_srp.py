@@ -12,31 +12,27 @@ import os
 
 
 class StreamingRandomPatches(MOAClassifier):
-    """Streaming Random Patches (SRP) Classifier
+    """Streaming Random Patches.
 
-    Streaming Random Patches (SRP). This ensemble method uses a hoeffding tree by default,
-    but it can be used with any other base model (differently from random forest variations).
-    This algorithm can be used to simulate bagging or random subspaces, see parameter training_method.
-    The default algorithm uses both bagging and random subspaces, namely Random Patches.
+    Streaming Random Patches (SRP) [#0]_ is a ensemble classifier. It uses a hoeffding
+    tree by default, but it can be used with any other base model (differently from
+    random forest variations). This algorithm can be used to simulate bagging or random
+    subspaces, see parameter training_method. The default algorithm uses both bagging
+    and random subspaces, namely Random Patches.
 
-    Reference:
-
-    `Streaming Random Patches for Evolving Data Stream Classification.
-    Heitor Murilo Gomes, Jesse Read, Albert Bifet.
-    IEEE International Conference on Data Mining (ICDM), 2019.
-    <https://doi.org/10.1109/ICDM.2019.00034>`_
-
-    Example usages:
-
-    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import StreamingRandomPatches
+    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.evaluation import prequential_evaluation
+    >>>
     >>> stream = ElectricityTiny()
-    >>> schema = stream.get_schema()
-    >>> learner = StreamingRandomPatches(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
+    >>> classifier = StreamingRandomPatches(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
     89.7
+
+    .. [#0] `Streaming Random Patches for Evolving Data Stream Classification. Heitor
+             Murilo Gomes, Jesse Read, Albert Bifet. IEEE International Conference on
+             Data Mining (ICDM), 2019. <https://doi.org/10.1109/ICDM.2019.00034>`_
     """
 
     def __init__(

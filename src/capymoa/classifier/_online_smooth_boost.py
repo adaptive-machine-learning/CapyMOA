@@ -10,28 +10,24 @@ from moa.classifiers.meta import OnlineSmoothBoost as _MOA_OnlineSmoothBoost
 
 
 class OnlineSmoothBoost(MOAClassifier):
-    """OnlineSmoothBoost Classifier
+    """Online Smooth Boost.
 
-    Incremental on-line boosting with Theoretical Justifications of Shang-Tse Chen
+    Online Smooth Boost [#0]_ is a ensemble classifier. Incremental on-line boosting
+    with Theoretical Justifications of Shang-Tse Chen.
 
-    Reference:
-
-    `An Online Boosting Algorithm with Theoretical Justifications.
-    Shang-Tse Chen, Hsuan-Tien Lin, Chi-Jen Lu.
-    ICML, 2012.
-    <https://icml.cc/2012/papers/538.pdf>`_
-
-    Example usages:
-
-    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import OnlineSmoothBoost
+    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.evaluation import prequential_evaluation
+    >>>
     >>> stream = ElectricityTiny()
-    >>> schema = stream.get_schema()
-    >>> learner = OnlineSmoothBoost(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
+    >>> classifier = OnlineSmoothBoost(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
     87.8
+
+    .. [#0] `An Online Boosting Algorithm with Theoretical Justifications. Shang-Tse
+             Chen, Hsuan-Tien Lin, Chi-Jen Lu. ICML, 2012.
+             <https://icml.cc/2012/papers/538.pdf>`_
     """
 
     def __init__(

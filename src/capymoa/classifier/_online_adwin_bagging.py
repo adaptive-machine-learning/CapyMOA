@@ -11,47 +11,56 @@ import os
 class OnlineAdwinBagging(MOAClassifier):
     """Bagging for evolving data streams using ADWIN.
 
-    ADWIN is a change detector and estimator that solves in
-    a well-speciﬁed way the problem of tracking the average of
-    a stream of bits or real-valued numbers. ADWIN keeps a
-    variable-length window of recently seen items, with the property
-    that the window has the maximal length statistically consistent
-    with the hypothesis “there has been no change in the average value
-    inside the window”.<br />
-    More precisely, an older fragment of the window is dropped if and only
-    if there is enough evidence that its average value differs from that of
-    the rest of the window. This has two consequences: one, that change
-    reliably declared whenever the window shrinks; and two, that at any time
-    the average over the existing window can be reliably taken as an estimation
-    of the current average in the stream (barring a very small or very recent
-    change that is still not statistically visible). A formal and quantitative
-    statement of these two points (a theorem) appears in the reference paper.
+    Bagging for evolving data streams using ADWIN [#f0]_ [#f1]_ is an ensemble
+    classifier. ADWIN is a change detector and estimator that solves in a well-specified
+    way the problem of tracking the average of a stream of bits or real-valued numbers.
+    ADWIN keeps a variable-length window of recently seen items, with the property that
+    the window has the maximal length statistically consistent with the hypothesis
+    “there has been no change in the average value inside the window”.
 
-    References:
-    `Albert Bifet and Ricard Gavaldà. Learning from time-changing data with
-    adaptive windowing. In SIAM International Conference on Data Mining, 2007.`
-    `[BHPKG] Albert Bifet, Geoff Holmes, Bernhard Pfahringer, Richard Kirkby,
-    and Ricard Gavaldà . New ensemble methods for evolving data streams.
-    In 15th ACM SIGKDD International Conference on Knowledge Discovery and
-    Data Mining, 2009.`
+    More precisely, an older fragment of the window is dropped if and only if there is
+    enough evidence that its average value differs from that of the rest of the window.
+    This has two consequences: one, that change reliably declared whenever the window
+    shrinks; and two, that at any time the average over the existing window can be
+    reliably taken as an estimation of the current average in the stream (barring a very
+    small or very recent change that is still not statistically visible). A formal and
+    quantitative statement of these two points (a theorem) appears in the reference
+    paper.
 
-    ADWIN is parameter- and assumption-free in the sense that it automatically
-    detects and adapts to the current rate of change. Its only parameter is a
-    conﬁdence bound δ, indicating how conﬁdent we want to be in the algorithm’s
-    output, inherent to all algorithms dealing with random processes. Also
-    important, ADWIN does not maintain the window explicitly, but compresses it
-    using a variant of the exponential histogram technique. This means that it
-    keeps a window of length W using only O(log W) memory and O(log W) processing
-    time per item.
+    ADWIN is parameter- and assumption-free in the sense that it automatically detects
+    and adapts to the current rate of change. Its only parameter is a confidence bound
+    δ, indicating how confident we want to be in the algorithm's output, inherent to all
+    algorithms dealing with random processes. Also important, ADWIN does not maintain
+    the window explicitly, but compresses it using a variant of the exponential
+    histogram technique. This means that it keeps a window of length W using only O(log
+    W) memory and O(log W) processing time per item.
 
-    ADWIN Bagging is the online bagging method of Oza and Rusell with the
-    addition of the ADWIN algorithm as a change detector and as an estimator for
-    the weights of the boosting method. When a change is detected, the worst
-    classiﬁer of the ensemble of classiﬁers is removed and a new classiﬁer is
-    added to the ensemble.
+    ADWIN Bagging is the online bagging method of Oza and Rusell with the addition of
+    the ADWIN algorithm as a change detector and as an estimator for the weights of the
+    boosting method. When a change is detected, the worst classifier of the ensemble of
+    classifier is removed and a new classifier is added to the ensemble.
 
-    See :py:class:`capymoa.base.MOAClassifier` for train, predict and predict_proba.
+    >>> from capymoa.classifier import OnlineAdwinBagging
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.evaluation import prequential_evaluation
+    >>>
+    >>> stream = ElectricityTiny()
+    >>> classifier = OnlineAdwinBagging(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    85.3
 
+    ..  [#f0] `Bifet, A., Holmes, G., Pfahringer, B., Kirkby, R., & Gavalda, R. (2009,
+        June). New ensemble methods for evolving data streams. In Proceedings of
+        the 15th ACM SIGKDD international conference on Knowledge discovery and
+        data mining (pp. 139-148).
+        <https://dl.acm.org/doi/10.1145/1557019.1557041>`_
+
+    ..  [#f1] `Bifet, A., & Gavalda, R. (2007, April). Learning from time-changing data
+        with adaptive windowing. In Proceedings of the 2007 SIAM international
+        conference on data mining (pp. 443-448). Society for Industrial and Applied
+        Mathematics.
+        <https://www.researchgate.net/publication/220907178_Learning_from_Time-Changing_Data_with_Adaptive_Windowing>`_
     """
 
     def __init__(
@@ -64,7 +73,7 @@ class OnlineAdwinBagging(MOAClassifier):
         minibatch_size=None,
         number_of_jobs=None,
     ):
-        """Construct an Online bagging classifier using online bootstrap sampling with the addition of ADWIN drift detector.
+        """Constructor for online ADWIN bagging.
 
         :param schema: The schema of the stream. If not provided, it will be inferred from the data.
         :param CLI: Command Line Interface (CLI) options for configuring the ARF algorithm.

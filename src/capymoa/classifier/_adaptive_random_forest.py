@@ -20,24 +20,30 @@ import os
 
 
 class AdaptiveRandomForestClassifier(MOAClassifier):
-    """Adaptive Random Forest (ARF).
+    """Adaptive Random Forest.
 
-    ARF [#gomes2017]_ is an ensemble classifier capable of adapting to concept drift.
+    Adaptive Random Forest (ARF) [#0]_ is a decsion tree ensemble classifier.
+    The 3 most important aspects of this ensemble classifier are: (1) inducing
+    diversity through resampling; (2) inducing diversity through randomly
+    selecting subsets of features for node splits; (3) drift detectors per base
+    tree, which cause selective resets in response to drifts. It also allows
+    training background trees, which start training if a warning is detected and
+    replace the active tree if the warning escalates to a drift.
 
-    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import AdaptiveRandomForestClassifier
+    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.evaluation import prequential_evaluation
+    >>>
     >>> stream = ElectricityTiny()
-    >>> schema = stream.get_schema()
-    >>> learner = AdaptiveRandomForestClassifier(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
+    >>> classifier = AdaptiveRandomForestClassifier(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
     87.9
 
-    ..  [#gomes2017] `Gomes, H. M., Bifet, A., Read, J., Barddal, J. P.,
-        Enembreck, F., Pfharinger, B., ... & Abdessalem, T. (2017). Adaptive
-        random forests for evolving data stream classification. Machine
-        Learning, 106, 1469-1495. <https://link.springer.com/article/10.1007/s10994-017-5642-8>`_
+    .. [#0] `Gomes, H. M., Bifet, A., Read, J., Barddal, J. P., Enembreck, F.,
+             Pfharinger, B., ... & Abdessalem, T. (2017). Adaptive random forests for
+             evolving data stream classification. Machine Learning, 106, 1469-1495.
+             <https://link.springer.com/content/pdf/10.1007/s10994-017-5642-8.pdf>`_
     """
 
     def __init__(
@@ -57,7 +63,7 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
         disable_drift_detection: bool = False,
         disable_background_learner: bool = False,
     ):
-        """Construct an Adaptive Random Forest Classifier
+        """Construct ARF.
 
         :param schema: The schema of the stream. If not provided, it will be inferred from the data.
         :param CLI: Command Line Interface (CLI) options for configuring the ARF algorithm.

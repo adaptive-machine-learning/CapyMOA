@@ -9,10 +9,22 @@ import moa.classifiers.bayes as moa_bayes
 
 class NaiveBayes(MOAClassifier):
     """Naive Bayes incremental learner.
-    Performs classic Bayesian prediction while making the naive assumption that all inputs are independent. Naive Bayes is a classifier algorithm known for its simplicity and low computational cost. Given n different classes, the trained Naive Bayes classifier predicts, for every unlabeled instance I, the class C to which it belongs with high accuracy.
 
-    :param schema: The schema of the stream, defaults to None.
-    :param random_seed: The random seed passed to the MOA learner, defaults to 0.
+    Performs classic Bayesian prediction while making the naive assumption that all
+    inputs are independent. Naive Bayes is a classifier algorithm known for its
+    simplicity and low computational cost. Given n different classes, the trained Naive
+    Bayes classifier predicts, for every unlabeled instance I, the class C to which it
+    belongs with high accuracy.
+
+    >>> from capymoa.classifier import NaiveBayes
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.evaluation import prequential_evaluation
+    >>>
+    >>> stream = ElectricityTiny()
+    >>> classifier = NaiveBayes(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    84.8
     """
 
     def __init__(self, schema: typing.Union[Schema, None] = None, random_seed: int = 0):

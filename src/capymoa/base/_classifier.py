@@ -99,7 +99,7 @@ class BatchClassifier(Classifier, Batch, ABC):
     ...         return torch.zeros((x.shape[0], self.schema.get_num_classes()))
     ...
     >>> stream = ElectricityTiny()
-    >>> learner = MyBatchClassifier(stream.schema)
+    >>> learner = MyBatchClassifier(stream.get_schema())
     >>> _ = prequential_evaluation(
     ...     stream,
     ...     learner,
@@ -269,7 +269,7 @@ class SKClassifier(Classifier):
     >>> from capymoa.datasets import ElectricityTiny
     >>> stream = ElectricityTiny()
     >>> sklearner = SGDClassifier(random_state=1)
-    >>> learner = SKClassifier(sklearner, stream.schema)
+    >>> learner = SKClassifier(sklearner, stream.get_schema())
     >>> for _ in range(10):
     ...     instance = stream.next_instance()
     ...     prediction = learner.predict(instance)

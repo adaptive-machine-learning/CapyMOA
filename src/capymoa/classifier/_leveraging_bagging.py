@@ -11,16 +11,22 @@ import os
 class LeveragingBagging(MOAClassifier):
     """Leveraging Bagging for evolving data streams using ADWIN.
 
-    Leveraging Bagging and Leveraging Bagging MC using Random Output Codes ( -o option).
+    Leveraging Bagging for evolving data streams using ADWIN [#0]_ is a meta-strategy.
 
-    Reference:
+    >>> from capymoa.classifier import LeveragingBagging
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.evaluation import prequential_evaluation
+    >>>
+    >>> stream = ElectricityTiny()
+    >>> classifier = LeveragingBagging(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    87.4
 
-    `Albert Bifet, Geoffrey Holmes, Bernhard Pfahringer.
-    Leveraging Bagging for Evolving Data Streams Machine Learning and Knowledge
-    Discovery in Databases, European Conference, ECML PKDD}, 2010.`
-
-    See :py:class:`capymoa.base.MOAClassifier` for train, predict and predict_proba.
-
+    .. [#0] `Albert Bifet, Geoffrey Holmes, Bernhard Pfahringer. Leveraging Bagging for
+             Evolving Data Streams Machine Learning and Knowledge Discovery in
+             Databases, European Conference, ECML PKDD}, 2010.
+             <https://link.springer.com/chapter/10.1007/978-3-642-15880-3_15>`_
     """
 
     def __init__(

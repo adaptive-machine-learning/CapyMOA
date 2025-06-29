@@ -12,9 +12,8 @@ from moa.classifiers.functions import MajorityClass as _MOA_MajorityClass
 class MajorityClass(MOAClassifier):
     """Majority class classifier.
 
-    Always predicts the class that has been observed most frequently the in the training data.
-
-    Example usages:
+    Always predicts the class that has been observed most frequently the in the training
+    data.
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import MajorityClass
