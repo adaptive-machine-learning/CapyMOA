@@ -136,8 +136,9 @@ class STUDD(BaseDriftDetector):
         """Get the parameters of the drift detector.
 
         :returns: Dictionary containing the detector parameters, including min_n_instances and
-        information about the student and detector.
+                 information about the student and detector.
         :rtype: dict
+
         """
         params = self.detector.get_params()
         params.update(
