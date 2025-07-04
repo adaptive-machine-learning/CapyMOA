@@ -30,24 +30,24 @@ class STUDD(BaseDriftDetector):
     >>> from capymoa.drift.detectors import STUDD
     >>> from capymoa.classifier import AdaptiveRandomForestClassifier as ARF
     >>> from capymoa.datasets import ElectricityTiny
-    >>> 
+    >>>
     >>> stream = ElectricityTiny()
-    >>> 
+    >>>
     >>> learner = ARF(schema=stream.get_schema())
     >>> student = ARF(schema=stream.get_schema())
-    >>> 
+    >>>
     >>> detector = STUDD(student=student, detector=ADWIN())
-    >>> 
+    >>>
     >>> instances_processed = 0
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
-    ... 
+    ...
     ...     prediction = learner.predict(instance)
     ...     detector.add_element(instance, prediction)
-    ... 
+    ...
     ...     if detector.detected_change():
     ...         print(f'Change detected at index: {instances_processed}')
-    ... 
+    ...
     ...     instances_processed += 1
 
     Reference:
@@ -59,10 +59,10 @@ class STUDD(BaseDriftDetector):
     """
 
     def __init__(
-            self,
-            student: MOAClassifier,
-            min_n_instances: int = 500,
-            detector: MOADriftDetector = ADWIN(),
+        self,
+        student: MOAClassifier,
+        min_n_instances: int = 500,
+        detector: MOADriftDetector = ADWIN(),
     ):
         """
         :param student: Student model that mimics the teacher's predictions
