@@ -29,6 +29,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
+      matrix:
+        # For Pull Requests we run tests on Ubuntu with Python 3.10.
+        # In releases we will test on more configurations.
+        operating-system:
+          - ubuntu-latest
+          # - windows-latest
+          # - macos-latest
+        python-version:
+          - '3.10'
+          # - '3.11'
+          # - '3.12'
 
     steps:
     - uses: actions/checkout@v3

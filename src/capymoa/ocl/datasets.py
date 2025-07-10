@@ -50,9 +50,8 @@ torch.Size([1, 28, 28])
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Sequence, Set, Tuple, cast
-from urllib.request import urlretrieve
 
-import numpy as np
+from capymoa.datasets._utils import download_numpy_dataset, TensorDatasetWithTransform
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, TensorDataset, ConcatDataset
@@ -64,6 +63,13 @@ from capymoa.instance import LabeledInstance
 from capymoa.ocl.util.data import class_incremental_schedule, partition_by_schedule
 from capymoa.stream import Stream, TorchClassifyStream
 from capymoa.stream._stream import Schema
+
+
+_SOURCES = {
+    "capymoa_tiny_mnist": "https://www.dropbox.com/scl/fi/ry3mqtic4gr02u8kux5yz/capymoa_tiny_mnist.tar.gz?rlkey=khdrktr0ulmjcpbkbhejwfq36&st=0icbomup&dl=1",
+    "CIFAR100-vit_base_patch16_224_augreg_in21k": "https://www.dropbox.com/scl/fi/twk8c21xgs5j13xxmcm7q/CIFAR100-vit_base_patch16_224_augreg_in21k.tar.gz?rlkey=xbg7olp440szekvooenes8dhp&st=cznv0q5t&dl=1",
+    "CIFAR10-vit_base_patch16_224_augreg_in21k": "https://www.dropbox.com/scl/fi/adxx5u399klcugqk3xlix/CIFAR10-vit_base_patch16_224_augreg_in21k.tar.gz?rlkey=ozfddbomkyt78oyco3c11hz4f&st=xd24ewmr&dl=1",
+}
 
 
 class _PreloadedDataset(TensorDataset):
@@ -106,10 +112,10 @@ class _BuiltInCIScenario(ABC):
     std: Optional[Sequence[float]]
     """The standard deviation of the features in the dataset used for normalization."""
 
-    default_train_transform: Callable[[Any], Tensor] = ToTensor()
+    default_train_transform: Optional[Callable[[Any], Tensor]] = ToTensor()
     """The default transform to apply to the dataset."""
 
-    default_test_transform: Callable[[Any], Tensor] = ToTensor()
+    default_test_transform: Optional[Callable[[Any], Tensor]] = ToTensor()
     """The default transform to apply to the dataset."""
 
     schema: Schema
@@ -170,8 +176,14 @@ class _BuiltInCIScenario(ABC):
             test_transform = self.default_test_transform
         if normalize_features and self.mean is not None and self.std is not None:
             normalize = Normalize(self.mean, self.std)
-            train_transform = Compose((train_transform, normalize))
-            test_transform = Compose((test_transform, normalize))
+            # If transforms are provided, compose them with the normalization
+            # transform. Otherwise, just use the normalization transform.
+            train_transform = (
+                Compose([train_transform, normalize]) if train_transform else normalize
+            )
+            test_transform = (
+                Compose([test_transform, normalize]) if test_transform else normalize
+            )
         elif normalize_features:
             raise ValueError(
                 "Cannot normalize features since mean and std are not defined."
@@ -347,7 +359,9 @@ class TinySplitMNIST(_BuiltInCIScenario):
     default_task_count = 5
     mean = [0.1307]
     std = [0.3081]
-    url = "https://www.dropbox.com/scl/fi/7ipn2j3r7okbtwyx7npi0/capymoa_tiny_mnist.npz?rlkey=4ujpsgu18s217hmqrka6acc9x&st=r3lehylt&dl=1"
+    default_train_transform = None
+    default_test_transform = None
+    _dataset_key = "capymoa_tiny_mnist"
 
     @classmethod
     def _download_dataset(
@@ -357,22 +371,23 @@ class TinySplitMNIST(_BuiltInCIScenario):
         auto_download: bool,
         transform: Optional[Any],
     ) -> Dataset[Tuple[Tensor, Tensor]]:
-        filename = directory / "capymoa_tiny_mnist.npz"
-        if not filename.exists():
-            if not auto_download:
-                raise FileNotFoundError(f"Dataset not found at {filename}")
-            urlretrieve(cls.url, filename)
-
-        data = np.load(filename)
+        ((train_x, train_y), (test_x, test_y)) = download_numpy_dataset(
+            dataset_name=cls._dataset_key,
+            url=_SOURCES[cls._dataset_key],
+            auto_download=auto_download,
+            output_directory=directory,
+        )
         if train:
-            return TensorDataset(  # type: ignore[return-value]
-                torch.from_numpy(data["train_x"]).float() / 255,
-                torch.from_numpy(data["train_y"]).int(),
+            return TensorDatasetWithTransform(
+                torch.from_numpy(train_x).float().unsqueeze(1) / 255.0,
+                torch.from_numpy(train_y).long(),
+                transform=transform,
             )
         else:
-            return TensorDataset(  # type: ignore[return-value]
-                torch.from_numpy(data["test_x"]).float() / 255,
-                torch.from_numpy(data["test_y"]).int(),
+            return TensorDatasetWithTransform(
+                torch.from_numpy(test_x).float().unsqueeze(1) / 255.0,
+                torch.from_numpy(test_y).long(),
+                transform=transform,
             )
 
 
@@ -394,12 +409,9 @@ class SplitCIFAR100ViT(_BuiltInCIScenario):
 
     num_classes = 100
     default_task_count = 10
-    _train_filename = "CIFAR100-vit_base_patch16_224_augreg_in21k-train.npz"
-    _test_filename = "CIFAR100-vit_base_patch16_224_augreg_in21k-test.npz"
-    _train_url = f"https://www.dropbox.com/scl/fi/42r7usdo41s7qigqwouh8/{_train_filename}?rlkey=nys3yxirtt84so9758t4kxrq8&st=71vcn6bu&dl=1"
-    _test_url = f"https://www.dropbox.com/scl/fi/i4c778jj8w2flcvpze7tc/{_test_filename}?rlkey=0sbh56s8rpgox9rw7i8j0py9q&st=fe59x2n8&dl=1"
     default_train_transform = None
     default_test_transform = None
+    _dataset_key = "CIFAR100-vit_base_patch16_224_augreg_in21k"
 
     @classmethod
     def _download_dataset(
@@ -409,25 +421,24 @@ class SplitCIFAR100ViT(_BuiltInCIScenario):
         auto_download: bool,
         transform: Optional[Any],
     ) -> Dataset[Tuple[Tensor, Tensor]]:
-        if transform is not None:
-            raise NotImplementedError(
-                "Transformations are not supported for this dataset."
-            )
-
-        filename = cls._train_filename if train else cls._test_filename
-        url = cls._train_url if train else cls._test_url
-        filename = directory / filename
-
-        if not filename.exists():
-            if not auto_download:
-                raise FileNotFoundError(f"Dataset not found at {filename}")
-            urlretrieve(url, filename)
-
-        data = np.load(filename)
-        return TensorDataset(  # type: ignore[return-value]
-            torch.from_numpy(data["x"]).float(),
-            torch.from_numpy(data["y"]).int(),
+        ((train_x, train_y), (test_x, test_y)) = download_numpy_dataset(
+            dataset_name=cls._dataset_key,
+            url=_SOURCES[cls._dataset_key],
+            auto_download=auto_download,
+            output_directory=directory,
         )
+        if train:
+            return TensorDatasetWithTransform(
+                torch.from_numpy(train_x).float(),
+                torch.from_numpy(train_y).long(),
+                transform=transform,
+            )
+        else:
+            return TensorDatasetWithTransform(
+                torch.from_numpy(test_x).float(),
+                torch.from_numpy(test_y).long(),
+                transform=transform,
+            )
 
 
 class SplitCIFAR10ViT(SplitCIFAR100ViT):
@@ -448,10 +459,6 @@ class SplitCIFAR10ViT(SplitCIFAR100ViT):
 
     num_classes = 10
     default_task_count = 5
-    _train_filename = "CIFAR10-vit_base_patch16_224_augreg_in21k-train.npz"
-    _test_filename = "CIFAR10-vit_base_patch16_224_augreg_in21k-test.npz"
-    _train_url = f"https://www.dropbox.com/scl/fi/533la5ddo15644scyeklm/{_train_filename}?rlkey=lsesrbbd04uebtpepjx3g5c36&st=40lcnata&dl=1"
-    _test_url = f"https://www.dropbox.com/scl/fi/cpvqxrzo9wywkmwy0pz8p/{_test_filename}?rlkey=wt0zn099cgbdyfgk39r0wlb4e&st=mhe9b1gh&dl=1"
 
 
 class SplitFashionMNIST(_BuiltInCIScenario):
@@ -470,7 +477,7 @@ class SplitFashionMNIST(_BuiltInCIScenario):
 
     @classmethod
     def _download_dataset(
-        self,
+        cls,
         train: bool,
         directory: Path,
         auto_download: bool,
@@ -500,7 +507,7 @@ class SplitCIFAR10(_BuiltInCIScenario):
 
     @classmethod
     def _download_dataset(
-        self,
+        cls,
         train: bool,
         directory: Path,
         auto_download: bool,
@@ -530,7 +537,7 @@ class SplitCIFAR100(_BuiltInCIScenario):
 
     @classmethod
     def _download_dataset(
-        self,
+        cls,
         train: bool,
         directory: Path,
         auto_download: bool,
