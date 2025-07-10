@@ -2,11 +2,15 @@ import gzip
 import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Optional, Union, Tuple
+from typing import Callable, Optional, Union, Tuple
+from urllib.request import urlretrieve
+import torch
 import wget
 from shutil import copyfileobj
 from capymoa.env import capymoa_datasets_dir
 from urllib.parse import urlsplit
+import tarfile
+import numpy as np
 
 
 def get_download_dir(download_dir: Optional[str] = None) -> Path:
@@ -115,3 +119,93 @@ def download_extract(url: str, output_directory: Path) -> Path:
         out_filename = output_directory / extracted.name
         shutil.move(extracted, out_filename)
     return out_filename
+
+
+def download_numpy_dataset(
+    dataset_name: str,
+    url: str,
+    auto_download: bool = True,
+    output_directory: Path | str = capymoa_datasets_dir(),
+) -> Tuple[
+    Tuple[np.ndarray, np.ndarray],
+    Tuple[np.ndarray, np.ndarray],
+]:
+    """Download, extract, and load a numpy dataset.
+
+    Assumes the dataset has been archived in a tar.gz file with the following
+    structure:
+
+    ..  code-block:: text
+
+        ${dataset_name}/
+            train_x.npy train_y.npy test_x.npy test_y.npy
+
+    :param dataset_name: Dataset name, used to create the directory and archive
+        filename.
+    :param url: URL pointing to the dataset archive.
+    :param auto_download: If True, the dataset will be downloaded if it does not
+        exist.
+    :param output_directory: Directory to download the dataset to. Defaults to
+        the CapyMOA datasets directory.
+    :raises FileNotFoundError: If the dataset is not found and `auto_download`
+        is False.
+    :return: A tuple containing the training and testing data as numpy arrays.
+    """
+    output_directory = Path(output_directory)
+    archive_filename = f"{dataset_name}.tar.gz"
+    dataset_path = output_directory / dataset_name
+
+    # Check if the dataset is already downloaded
+    if not dataset_path.exists():
+        if not auto_download:
+            raise FileNotFoundError(
+                f"Dataset {dataset_name} not found in {output_directory}. "
+                "Set auto_download=True to download it."
+            )
+        # Download and extract the dataset
+        with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+            archive_path = Path(temp_dir) / archive_filename
+            urlretrieve(url, archive_path)
+
+            # Extract the tar.gz file
+            with tarfile.open(archive_path, "r:gz") as tar:
+                tar.extractall(dataset_path)
+
+    return (
+        (
+            np.load(dataset_path / "train_x.npy"),
+            np.load(dataset_path / "train_y.npy"),
+        ),
+        (
+            np.load(dataset_path / "test_x.npy"),
+            np.load(dataset_path / "test_y.npy"),
+        ),
+    )
+
+
+class TensorDatasetWithTransform(
+    torch.utils.data.Dataset[Tuple[torch.Tensor, torch.Tensor]]
+):
+    """A PyTorch dataset that applies a transformation to the data."""
+
+    def __init__(
+        self,
+        data: torch.Tensor,
+        targets: torch.Tensor,
+        transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+    ):
+        self.data = data
+        self.targets = targets
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        x = self.data[idx]
+        y = self.targets[idx]
+
+        if self.transform:
+            x = self.transform(x)
+
+        return x, y
