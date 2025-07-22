@@ -457,6 +457,8 @@ class SplitCIFAR10ViT(SplitCIFAR100ViT):
         https://huggingface.co/timm/vit_base_patch16_224.augreg_in21k
     """
 
+    _dataset_key = "CIFAR10-vit_base_patch16_224_augreg_in21k"
+
     num_classes = 10
     default_task_count = 5
 
