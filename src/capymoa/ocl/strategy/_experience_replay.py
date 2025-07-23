@@ -1,51 +1,9 @@
-from typing import Tuple
-
 import torch
 from torch import Tensor
 
 from capymoa.base import BatchClassifier
 from capymoa.ocl.base import TrainTaskAware, TestTaskAware
-
-
-class _ReservoirSampler:
-    def __init__(self, item_count: int, feature_count: int, rng: torch.Generator):
-        self.max_count = item_count
-        self.count = 0
-        self.in_features = feature_count
-        self.reservoir_x = torch.zeros((item_count, feature_count))
-        self.reservoir_y = torch.zeros((item_count,), dtype=torch.long)
-        self.rng = rng
-
-    def update(self, x: Tensor, y: Tensor) -> None:
-        x = x.to(self.reservoir_x.device)
-        y = y.to(self.reservoir_y.device)
-        batch_size = x.shape[0]
-        assert x.shape == (
-            batch_size,
-            self.in_features,
-        )
-        assert y.shape == (batch_size,)
-
-        for i in range(batch_size):
-            if self.count < self.max_count:
-                # Fill the reservoir
-                self.reservoir_x[self.count] = x[i]
-                self.reservoir_y[self.count] = y[i]
-            else:
-                # Reservoir sampling
-                index = torch.randint(0, self.count + 1, (1,), generator=self.rng)
-                if index < self.max_count:
-                    self.reservoir_x[index] = x[i]
-                    self.reservoir_y[index] = y[i]
-            self.count += 1
-
-    @property
-    def is_empty(self) -> bool:
-        return self.count == 0
-
-    def sample_n(self, n: int) -> Tuple[Tensor, Tensor]:
-        indices = torch.randint(0, min(self.count, self.max_count), (n,))
-        return self.reservoir_x[indices], self.reservoir_y[indices]
+from capymoa.ocl.util._coreset import ReservoirSampler
 
 
 class ExperienceReplay(BatchClassifier, TrainTaskAware, TestTaskAware):
@@ -98,9 +56,9 @@ class ExperienceReplay(BatchClassifier, TrainTaskAware, TestTaskAware):
         super().__init__(learner.schema, learner.random_seed)
         #: The wrapped learner to be trained with experience replay.
         self.learner = learner
-        self._buffer = _ReservoirSampler(
-            item_count=buffer_size,
-            feature_count=self.schema.get_num_attributes(),
+        self._buffer = ReservoirSampler(
+            capacity=buffer_size,
+            features=self.schema.get_num_attributes(),
             rng=torch.Generator().manual_seed(learner.random_seed),
         )
         self.repeat = repeat
@@ -111,7 +69,7 @@ class ExperienceReplay(BatchClassifier, TrainTaskAware, TestTaskAware):
 
         for _ in range(self.repeat):
             # sample from the buffer and construct training batch
-            replay_x, replay_y = self._buffer.sample_n(x.shape[0])
+            replay_x, replay_y = self._buffer.sample(x.shape[0])
             train_x = torch.cat((x, replay_x), dim=0)
             train_y = torch.cat((y, replay_y), dim=0)
             train_x = train_x.to(self.learner.device, dtype=self.learner.x_dtype)
@@ -131,4 +89,4 @@ class ExperienceReplay(BatchClassifier, TrainTaskAware, TestTaskAware):
             self.learner.on_train_task(task_id)
 
     def __str__(self) -> str:
-        return f"ExperienceReplay(buffer_size={self._buffer.max_count})"
+        return f"ExperienceReplay(buffer_size={self._buffer.capacity})"
