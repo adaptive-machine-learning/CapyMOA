@@ -10,7 +10,7 @@ from capymoa.base import Classifier
 from capymoa.classifier import Finetune, HoeffdingTree
 from capymoa.ocl.datasets import TinySplitMNIST
 from capymoa.ocl.evaluation import ocl_train_eval_loop
-from capymoa.ocl.strategy import ExperienceReplay, SLDA, NCM
+from capymoa.ocl.strategy import ExperienceReplay, SLDA, NCM, GDumb
 from capymoa.stream import Schema
 
 import torch
@@ -70,6 +70,11 @@ TEST_CASES: List[Case] = [
         lambda schema: ExperienceReplay(Finetune(schema, Perceptron)),
         Result(30.0, 20.1, 3.0),
     ),
+    Case(
+        "GDumb",
+        lambda schema: GDumb(schema, Perceptron(schema), 2, 32, 200),
+        Result(38.5, 26.6, 0.0),
+    ),
 ]
 
 
@@ -78,6 +83,7 @@ def test_ocl_classifier(case: Case):
     if os.environ.get("CI") == "true" and "SLDA" in case.name:
         pytest.skip("Skipping SLDA case on CI due to unreliable dataset download")
     scenario = TinySplitMNIST()
+    torch.manual_seed(0)
     learner = case.constructor(scenario.schema)
     result = ocl_train_eval_loop(
         learner,
