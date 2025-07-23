@@ -24,11 +24,30 @@ def _batch_cumulative_mean(
 
 
 class NCM(BatchClassifier):
-    """Nearest Class Mean (NCM).
+    """Nearest Class Mean.
 
-    NCM is a simple classifier that uses the mean of each class as a prototype.
-    It calculates the distance from each input to the class means and assigns
-    the class with the closest mean as the predicted class.
+    Nearest Class Mean (NCM) [#f0]_ is a prototype based classifier that uses the mean
+    of each class as a prototype. It calculates the distance from each input to
+    the class means and assigns class with the closest mean as the predicted
+    class.
+
+    >>> from capymoa.ocl.strategy import NCM
+    >>> from capymoa.ocl.datasets import TinySplitMNIST
+    >>> from capymoa.ocl.evaluation import ocl_train_eval_loop
+    >>> scenario = TinySplitMNIST()
+    >>> learner = NCM(scenario.schema)
+    >>> results = ocl_train_eval_loop(
+    ...     learner,
+    ...     scenario.train_loaders(32),
+    ...     scenario.test_loaders(32),
+    ... )
+    >>> print(f"{results.accuracy_final*100:.1f}%")
+    71.5%
+
+    .. [#f0] `Rebuffi, S.-A., Kolesnikov, A., Sperl, G., & Lampert, C. H. (2017, July).
+             iCaRL: Incremental Classifier and Representation Learning. The IEEE
+             Conference on Computer Vision and Pattern Recognition (CVPR).
+             <https://arxiv.org/abs/1611.07725>`_
     """
 
     _dtype = torch.float32

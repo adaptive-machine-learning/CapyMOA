@@ -49,19 +49,40 @@ class _ReservoirSampler:
 
 
 class ExperienceReplay(BatchClassifier, TrainTaskAware, TestTaskAware):
-    """Experience Replay (ER) strategy for continual learning.
+    """Experience Replay.
 
-    * Uses a replay buffer to store past experiences and samples from it during
-      training to mitigate catastrophic forgetting.
-    * The replay buffer is implemented using reservoir sampling, which allows
-      for uniform sampling over the entire stream [vitter1985]_.
+    Experience Replay (ER) [#f0]_ is a replay continual learning strategy.
+
+    * Uses a replay buffer to store past experiences and samples from it during training
+      to mitigate catastrophic forgetting.
+    * The replay buffer is implemented using reservoir sampling, which allows for
+      uniform sampling over the entire stream [#f1]_.
     * Not :class:`capymoa.ocl.base.TrainTaskAware` or
-      :class:`capymoa.ocl.base.TestTaskAware`, but will proxy it to the wrapped
-      learner.
+      :class:`capymoa.ocl.base.TestTaskAware`, but will proxy it to the wrapped learner.
 
-    .. [vitter1985] Jeffrey S. Vitter. 1985. Random sampling with a reservoir.
-       ACM Trans. Math. Softw. 11, 1 (March 1985), 37–57.
-       https://doi.org/10.1145/3147.3165
+    >>> from capymoa.ann import Perceptron
+    >>> from capymoa.classifier import Finetune
+    >>> from capymoa.ocl.strategy import ExperienceReplay
+    >>> from capymoa.ocl.datasets import TinySplitMNIST
+    >>> from capymoa.ocl.evaluation import ocl_train_eval_loop
+    >>> import torch
+    >>> _ = torch.manual_seed(0)
+    >>> scenario = TinySplitMNIST()
+    >>> model = Perceptron(scenario.schema)
+    >>> learner = ExperienceReplay(Finetune(scenario.schema, model))
+    >>> results = ocl_train_eval_loop(
+    ...     learner,
+    ...     scenario.train_loaders(32),
+    ...     scenario.test_loaders(32),
+    ... )
+    >>> print(f"{results.accuracy_final*100:.1f}%")
+    33.0%
+
+    .. [#f0] `Rolnick, D., Ahuja, A., Schwarz, J., Lillicrap, T., & Wayne, G. (2019).
+              Experience replay for continual learning. Advances in neural information
+              processing systems, 32. <https://arxiv.org/abs/1811.11682>`_
+    .. [#f1] `Jeffrey S. Vitter. 1985. Random sampling with a reservoir. ACM Trans. Math.
+              Softw. 11, 1 (March 1985), 37–57. <https://doi.org/10.1145/3147.3165>`_
     """
 
     def __init__(

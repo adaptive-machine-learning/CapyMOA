@@ -35,21 +35,38 @@ def _batch_cumulative_covariance(
 
 
 class SLDA(BatchClassifier):
-    """Streaming Linear Discriminant Analysis (SLDA).
+    """Streaming Linear Discriminant Analysis.
 
-    SLDA incrementally accumulates the mean of each class and a joint mean and
-    covariance for all classes. Note that this method does not gracefully forget
-    and may not handle concept drift well.
+    Streaming Linear Discriminant Analysis (SLDA) [#f0]_ is a prototype classifier that
+    incrementally accumulates the mean of each class and the mean and covariance across
+    all classes. Note that this method does not gracefully forget and may not handle
+    concept drift well.
 
-    [Hayes20]_ uses SLDA ontop of a pre-trained model to perform continual
-    learning. See [WikipediaILDA]_ and [Ghassabeh2015]_ for more details on
-    incremental LDA outside of continual learning.
+    [#f0]_ uses SLDA ontop of a pre-trained model to perform continual learning. See
+    [#f1]_ and [#f2]_ for more details on incremental LDA outside of continual learning.
 
-    ..  [Hayes20] Hayes, T. L., & Kanan, C. (2020). Lifelong Machine Learning with Deep
-        Streaming Linear Discriminant Analysis. CLVision Workshop at CVPR 2020, 1–15.
-    ..  [Ghassabeh2015] Ghassabeh, Y. A., Rudzicz, F., & Moghaddam, H. A. (2015). Fast incremental
-        LDA feature extraction. Pattern Recognition, 48(6), 1999-2012.
-    ..  [WikipediaILDA] https://en.wikipedia.org/wiki/Linear_discriminant_analysis#Incremental_LDA
+    >>> from capymoa.ocl.strategy import SLDA
+    >>> from capymoa.ocl.datasets import TinySplitMNIST
+    >>> from capymoa.ocl.evaluation import ocl_train_eval_loop
+    >>> scenario = TinySplitMNIST()
+    >>> learner = SLDA(scenario.schema)
+    >>> results = ocl_train_eval_loop(
+    ...     learner,
+    ...     scenario.train_loaders(32),
+    ...     scenario.test_loaders(32),
+    ... )
+    >>> print(f"{results.accuracy_final*100:.1f}%")
+    75.5%
+
+    .. [#f0] `Hayes, T. L., & Kanan, C. (2020). Lifelong Machine Learning with Deep
+              Streaming Linear Discriminant Analysis. CLVision Workshop at CVPR 2020,
+              1–15. <https://arxiv.org/abs/1909.01520>`_
+    .. [#f1] `Ghassabeh, Y. A., Rudzicz, F., & Moghaddam, H. A. (2015). Fast incremental
+              LDA feature extraction. Pattern Recognition, 48(6), 1999-2012.
+              <https://doi.org/10.1016/j.patcog.2014.12.012>`_
+    .. [#f2] `Linear discriminant analysis. (2025). In Wikipedia.
+              <https://en.wikipedia.org/w/index.php?title=Linear_discriminant_anal
+              ysis&oldid=1295914652#Incremental_LDA>`_
     """
 
     def __init__(
