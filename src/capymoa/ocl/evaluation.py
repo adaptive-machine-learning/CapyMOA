@@ -112,7 +112,7 @@ class OCLMetrics:
         \bar{a}_\text{seen} = \frac{1}{T}\sum_{t=1}^T a_\text{seen}(t)
     """
     accuracy_final: float
-    r"""The accuracy on the final task after training on all tasks.
+    r"""The accuracy on all tasks after training on the final task.
 
     .. math::
     
