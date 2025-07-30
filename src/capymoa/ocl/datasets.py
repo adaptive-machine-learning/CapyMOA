@@ -375,7 +375,7 @@ class TinySplitMNIST(_BuiltInCIScenario):
             dataset_name=cls._dataset_key,
             url=_SOURCES[cls._dataset_key],
             auto_download=auto_download,
-            output_directory=directory,
+            downloads=directory,
         )
         if train:
             return TensorDatasetWithTransform(
@@ -425,7 +425,7 @@ class SplitCIFAR100ViT(_BuiltInCIScenario):
             dataset_name=cls._dataset_key,
             url=_SOURCES[cls._dataset_key],
             auto_download=auto_download,
-            output_directory=directory,
+            downloads=directory,
         )
         if train:
             return TensorDatasetWithTransform(
