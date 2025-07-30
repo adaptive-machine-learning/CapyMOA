@@ -7,7 +7,7 @@ import os
 from capymoa.datasets._source_list import SOURCE_LIST
 from capymoa.datasets._utils import (
     get_download_dir,
-    download_extract,
+    download_unpacked,
     is_already_downloaded,
 )
 
@@ -30,12 +30,12 @@ def download_required_testfiles():
     for dataset in csvs:
         url = SOURCE_LIST[dataset].csv
         if not is_already_downloaded(url, download_dir):
-            download_extract(url, download_dir)
+            download_unpacked(url, download_dir)
 
     for dataset in arffs:
         url = SOURCE_LIST[dataset].arff
         if not is_already_downloaded(url, download_dir):
-            download_extract(url, download_dir)
+            download_unpacked(url, download_dir)
 
 
 download_required_testfiles()
