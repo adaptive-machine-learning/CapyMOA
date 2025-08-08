@@ -155,7 +155,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
 
     def predict_proba(self, instance):
         if (len(self.estimators_)) == 0:
-            return 1.0 / self.n_classes_ * np.ones(self.n_classes_)
+            return None
         else:
             all_proba = self._individual_proba(np.array([instance.x]))
             scaled_prob = sum(
@@ -163,7 +163,3 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
             )
             combined_proba = np.sum(scaled_prob, axis=0)
             return combined_proba
-
-    def predict(self, instance):
-        # Return the index of the class with the highest probability
-        return self.predict_proba(instance).argmax(axis=0)
