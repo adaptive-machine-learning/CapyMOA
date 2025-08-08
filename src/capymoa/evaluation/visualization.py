@@ -1,21 +1,23 @@
-import matplotlib.pyplot as plt
+import glob
+import itertools
+import os
+import shutil
 from datetime import datetime
-from capymoa.stream.drift import DriftStream, RecurrentConceptDriftStream
-from com.yahoo.labs.samoa.instances import InstancesHeader
+from warnings import warn
+
+import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from com.yahoo.labs.samoa.instances import InstancesHeader
+from PIL import Image
+
+from capymoa.base import Clusterer, ClusteringResult
 from capymoa.evaluation.results import (
     # PrequentialPredictionIntervalResults,
     PrequentialResults,
     # PrequentialRegressionResults
 )
-from capymoa.base import Clusterer, ClusteringResult
-import os
-import shutil
-from PIL import Image
-import glob
-
-import itertools
+from capymoa.stream.drift import DriftStream, RecurrentConceptDriftStream
 
 
 def plot_windowed_results(
@@ -75,9 +77,9 @@ def plot_windowed_results(
     if ymin is None or ymax is None:
         all_values = np.concatenate([df[metric].values for df in dfs])
         if ymin is None:
-            ymin = all_values.min()
+            ymin = np.nanmin(all_values)
         if ymax is None:
-            ymax = all_values.max()
+            ymax = np.nanmax(all_values)
 
     # Add padding to ymin and ymax to prevent clipping
     padding = 0.05 * (ymax - ymin)
@@ -89,10 +91,11 @@ def plot_windowed_results(
 
     # Plot data from each DataFrame
     for i, df in enumerate(dfs):
+        y_values: np.ndarray = df[metric].values
         if num_instances is not None:
             plt.plot(
                 x_values,
-                df[metric],
+                y_values,
                 label=labels[i],
                 marker="o",
                 linestyle="-",
@@ -101,12 +104,16 @@ def plot_windowed_results(
         else:
             plt.plot(
                 df.index,
-                df[metric],
+                y_values,
                 label=labels[i],
                 marker="o",
                 linestyle="-",
                 markersize=5,
             )
+
+        # If any of y_values contains nan values lets print a warning
+        if np.isnan(y_values).any():
+            warn(f"Results for '{labels[i]}' contains NaNs.")
 
     if stream is not None and isinstance(stream, DriftStream):
         if not prevent_plotting_drifts:
