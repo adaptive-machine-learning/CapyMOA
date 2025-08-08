@@ -229,11 +229,16 @@ class LabeledInstance(Instance):
         >>> instance.java_instance.toString()
         '0.1,0.2,yes,'
 
-        :param schema: _description_
-        :param x: _description_
-        :param y_index: _description_
-        :return: _description_
+        :param schema: A schema describing the datastream the instance belongs to.
+        :param x: A vector of features.
+        :param y_index: An integer representing the index of the class label. Cannot be None.
+        :return: A new :class:`LabeledInstance` object.
         """
+        if y_index is None:
+            raise ValueError(
+                f"y_index cannot be `None` for `{LabeledInstance.__name__}`. "
+                f"Did you want `{Instance.__name__}` for unlabeled instances?"
+            )
         return cls(schema, (x, int(y_index)))
 
     @property

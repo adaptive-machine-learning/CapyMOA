@@ -4,7 +4,6 @@ from typing import Optional
 import numpy as np
 import torch
 from jpype import _jpype
-from moa.core import Utils
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
 from capymoa.instance import Instance, LabeledInstance
@@ -69,7 +68,7 @@ class Classifier(ABC):
             to make a prediction.
         """
         prediction = self.predict_proba(instance)
-        return np.argmax(prediction) if prediction is not None else None
+        return int(np.argmax(prediction)) if prediction is not None else None
 
 
 class BatchClassifier(Classifier, Batch, ABC):
@@ -140,10 +139,10 @@ class BatchClassifier(Classifier, Batch, ABC):
     batch_train y: torch.Size([1]) torch.int64
     >>> learner.predict(instance)
     batch_predict_proba x: torch.Size([1, 6]) torch.float32
-    np.int64(0)
+    0
     >>> learner.predict_proba(instance)
     batch_predict_proba x: torch.Size([1, 6]) torch.float32
-    array([0., 0.], dtype=float32)
+    array([0., 0.])
     """
 
     x_dtype: torch.dtype = torch.float32
@@ -191,7 +190,7 @@ class BatchClassifier(Classifier, Batch, ABC):
         """Calls :func:`batch_predict_proba` with a batch of size 1."""
         x = torch.from_numpy(instance.x.reshape(1, -1))
         x = x.to(self.device, self.x_dtype)
-        return self.batch_predict_proba(x).flatten().numpy()
+        return self.batch_predict_proba(x).flatten().numpy().astype(np.float64)
 
 
 class MOAClassifier(Classifier):
@@ -241,13 +240,12 @@ class MOAClassifier(Classifier):
     def train(self, instance):
         self.moa_learner.trainOnInstance(instance.java_instance)
 
-    def predict(self, instance):
-        return Utils.maxIndex(
-            self.moa_learner.getVotesForInstance(instance.java_instance)
-        )
-
-    def predict_proba(self, instance):
-        return self.moa_learner.getVotesForInstance(instance.java_instance)
+    def predict_proba(self, instance) -> Optional[LabelProbabilities]:
+        votes = np.array(self.moa_learner.getVotesForInstance(instance.java_instance))
+        total = sum(votes)
+        if total <= 1e-2 or np.isnan(total) or np.isinf(total):
+            return None
+        return votes / total
 
 
 class SKClassifier(Classifier):
@@ -330,14 +328,19 @@ class SKClassifier(Classifier):
         )
         self._trained_at_least_once = True
 
-    def predict(self, instance: Instance):
+    def predict(self, instance: Instance) -> Optional[LabelIndex]:
         if not self._trained_at_least_once:
             # scikit-learn does not allows invoking predict in a model that was not fit before
             return None
-        return self.sklearner.predict([instance.x])[0]
+        return int(self.sklearner.predict([instance.x])[0])
 
-    def predict_proba(self, instance: Instance):
+    def predict_proba(self, instance: Instance) -> Optional[LabelProbabilities]:
         if not self._trained_at_least_once:
             # scikit-learn does not allows invoking predict in a model that was not fit before
             return None
-        self.sklearner.predict_proba([instance.x])
+        if not hasattr(self.sklearner, "predict_proba"):
+            proba = np.zeros((self.schema.get_num_classes(),), dtype=np.float64)
+            proba[self.predict(instance)] = 1.0
+            return proba
+        else:
+            self.sklearner.predict_proba([instance.x])
