@@ -261,7 +261,7 @@ class _BuiltInCIScenario(ABC):
         return f"{self.__class__.__name__}{self.num_classes}/{self.num_tasks}"
 
     def train_loaders(
-        self, batch_size: int, **kwargs: Any
+        self, batch_size: int, shuffle: bool = False, **kwargs: Any
     ) -> Sequence[DataLoader[Tuple[Tensor, Tensor]]]:
         """Get the training streams for the scenario.
 
@@ -280,7 +280,7 @@ class _BuiltInCIScenario(ABC):
                 DataLoader(
                     task,
                     batch_size=batch_size,
-                    shuffle=False,
+                    shuffle=shuffle,
                     **kwargs,
                     collate_fn=getattr(task, "collate_fn", None),
                 )

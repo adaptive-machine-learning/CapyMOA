@@ -3,6 +3,7 @@ from functools import partial
 from typing import Callable, List
 import os
 
+import numpy as np
 import pytest
 
 from capymoa.ann import Perceptron
@@ -32,6 +33,8 @@ class Case:
     constructor: Callable[[Schema], Classifier]
     expected: Result
     batch_size: int = 32
+    epochs: int = 1
+    continual_evaluations: int = 1
 
 
 def pre_processor() -> nn.Module:
@@ -52,7 +55,13 @@ set.
 TEST_CASES: List[Case] = [
     Case("HoeffdingTree", HoeffdingTree, Result(69.0, 46.5, 57.0), batch_size=1),
     Case("HoeffdingTree", HoeffdingTree, Result(69.0, 46.5, 51.8), batch_size=32),
-    Case("Finetune", partial(Finetune, model=Perceptron), Result(30.5, 20.7, 2.9)),
+    Case(
+        "Finetune",
+        partial(Finetune, model=Perceptron),
+        Result(27.00, 24.70, 8.3),
+        epochs=2,
+        continual_evaluations=2,
+    ),
     Case("SLDA", SLDA, Result(75.5, 48.70, 74.2)),
     Case(
         "SLDA_with_preprocessor",
@@ -85,14 +94,42 @@ def test_ocl_classifier(case: Case):
     scenario = TinySplitMNIST()
     torch.manual_seed(0)
     learner = case.constructor(scenario.schema)
-    result = ocl_train_eval_loop(
+    r = ocl_train_eval_loop(
         learner,
         scenario.train_loaders(case.batch_size),
         scenario.test_loaders(case.batch_size),
+        epochs=case.epochs,
     )
     actual = Result(
-        result.accuracy_final * 100,
-        result.anytime_accuracy_all_avg * 100,
-        result.ttt.accuracy(),
+        r.accuracy_final * 100,
+        r.anytime_accuracy_all_avg * 100,
+        r.ttt.accuracy(),
     )
     assert asdict(actual) == approx(asdict(case.expected)), f"Case {case.name} failed."
+
+    def assert_ndarray(value: np.ndarray, shape: tuple, dtype: type = np.float32):
+        assert isinstance(value, np.ndarray), (
+            f"Expected np.ndarray but got {type(value)}"
+        )
+        assert value.shape == shape, f"Expected shape {shape} but got {value.shape}"
+
+    def assert_float(value: float):
+        assert isinstance(value, float), f"Expected float but got {type(value)}"
+
+    total_eval = r.n_continual_evaluations * r.n_tasks
+    assert_float(r.accuracy_all_avg)
+    assert_float(r.accuracy_final)
+    assert_float(r.accuracy_seen_avg)
+    assert_float(r.anytime_accuracy_all_avg)
+    assert_float(r.anytime_accuracy_seen_avg)
+    assert_float(r.backward_transfer)
+    assert_float(r.forward_transfer)
+    assert_ndarray(r.accuracy_all, (r.n_tasks,))
+    assert_ndarray(r.accuracy_matrix, (r.n_tasks, r.n_tasks))
+    assert_ndarray(r.accuracy_seen, (r.n_tasks,))
+    assert_ndarray(r.anytime_accuracy_all, (total_eval,))
+    assert_ndarray(r.anytime_accuracy_matrix, (total_eval, r.n_tasks))
+    assert_ndarray(r.anytime_task_index, (total_eval,), dtype=np.integer)
+    assert_ndarray(r.boundaries, (r.n_tasks + 1,), dtype=np.integer)
+    assert_ndarray(r.class_cm, (r.n_tasks, r.n_classes, r.n_classes), dtype=np.integer)
+    assert_ndarray(r.task_index, (r.n_tasks,), dtype=np.integer)
