@@ -5,6 +5,7 @@ from capymoa.anomaly import (
     Autoencoder,
     StreamRHF,
     StreamingIsolationForest,
+    RobustRandomCutForest,
 )
 from capymoa.base import AnomalyDetector
 from capymoa.base import MOAClassifier
@@ -52,6 +53,16 @@ from capymoa.stream._stream import Schema
             0.60,
             None,
         ),
+        (
+            partial(
+                RobustRandomCutForest,
+                tree_size=256,
+                n_trees=100,
+                random_state=42,
+            ),
+            0.56,
+            None,
+        ),
     ],
     ids=[
         "HalfSpaceTrees",
@@ -59,6 +70,7 @@ from capymoa.stream._stream import Schema
         "Autoencoder",
         "StreamRHF",
         "StreamingIsolationForest",
+        "RobustRandomCutForest",
     ],
 )
 def test_anomaly_detectors(
