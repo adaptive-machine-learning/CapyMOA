@@ -11,8 +11,8 @@ from typing import Any, Dict
 class OPTWIN(BaseDriftDetector):
     """Optimal Window Concept Drift Detector
 
-    Example usages:
-    ---------------
+    Drift Identification with Optimal Sub-Windows (OPTWIN) [#0]_ is a drift detection
+    method.
 
     >>> import numpy as np
     >>> from capymoa.drift.detectors import OPTWIN
@@ -30,13 +30,10 @@ class OPTWIN(BaseDriftDetector):
     ...         print('Change detected in data: ' + str(data_stream[i]) + ' - at index: ' + str(i))
     Change detected in data: 6 - at index: 1164
 
-    Reference:
-    ----------
 
-    Tosi, Mauro D. L., and Martin Theobald. “OPTWIN: Drift Identification
-    with Optimal Sub-Windows.” 2024 IEEE 40th International Conference on
-    Data Engineering Workshops (ICDEW), 2024.
-
+    .. [#0] Tosi, Mauro D. L., and Martin Theobald. “OPTWIN: Drift Identification with
+        Optimal Sub-Windows.” 2024 IEEE 40th International Conference on Data
+        Engineering Workshops (ICDEW), 2024.
     """
 
     class Circular_list:
@@ -88,7 +85,7 @@ class OPTWIN(BaseDriftDetector):
         drift_confidence: float = 0.999,
         warning_confidence: float = 0.9,
         empty_w: bool = True,
-        w_length_max: int = 25000,
+        w_length_max: int = 1_000,
         w_length_min: int = 30,
         minimum_noise: float = 1e-6,
     ):
@@ -98,7 +95,9 @@ class OPTWIN(BaseDriftDetector):
         :param drift_confidence: Confidence value chosen by user
         :param warning_confidence: Confidence value for warning zone
         :param empty_w: Empty window when drift is detected
-        :param w_length_max: Maximum window size
+        :param w_length_max: Maximum window size. 25000 is recommended but slows down
+            initialization as it pre-computes optimal cuts for all window sizes up to
+            ``w_length_max``.
         :param w_length_min: Minimum window size
         :param minimum_noise: Noise to be added to stdev in case it is 0
         """
