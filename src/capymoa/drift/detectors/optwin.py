@@ -36,7 +36,7 @@ class OPTWIN(BaseDriftDetector):
         Engineering Workshops (ICDEW), 2024.
     """
 
-    class Circular_list:
+    class _Circular_list:
         """Support class for OPTWIN, implements a circular list with fixed maximum size."""
 
         def __init__(self, maxSize: int):
@@ -123,7 +123,7 @@ class OPTWIN(BaseDriftDetector):
         self.empty_w = empty_w
 
         # Data storage
-        self.W = self.Circular_list(w_length_max)
+        self.W = self._Circular_list(w_length_max)
         self.opt_cut = []
         self.opt_phi = []
         self.t_stats = []
@@ -184,7 +184,7 @@ class OPTWIN(BaseDriftDetector):
 
         # Pre-compute optimal cut for all possible window sizes
         if self.pre_compute_optimal_cut:
-            self.pre_compute_cuts()
+            self._pre_compute_cuts()
 
         if len(self.opt_cut) == 0:
             self.opt_cut = [0 for i in range(w_length_min)]
@@ -196,7 +196,7 @@ class OPTWIN(BaseDriftDetector):
             self.pre_compute_optimal_cut = True
 
     # TODO: Add caching of cuts for standard parameters
-    def pre_compute_cuts(self) -> None:
+    def _pre_compute_cuts(self) -> None:
         """Pre-compute optimal cuts and phi values for all possible window sizes."""
 
         if (
@@ -207,7 +207,7 @@ class OPTWIN(BaseDriftDetector):
         ):
             return  # Already computed
 
-        self.W = self.Circular_list(self.w_length_max)
+        self.W = self._Circular_list(self.w_length_max)
         for i in range(self.w_length_max + 1):
             if i < self.w_length_min:
                 self.opt_cut.append(0)
@@ -235,7 +235,7 @@ class OPTWIN(BaseDriftDetector):
             # Dummy add to window to increase its size and continue pre-computation
             self.W.add(1)
 
-        self.W = self.Circular_list(self.w_length_max)
+        self.W = self._Circular_list(self.w_length_max)
 
     def _insert_to_W(self, element: float) -> None:
         self.W.add(element)
@@ -412,13 +412,13 @@ class OPTWIN(BaseDriftDetector):
                 self._drift_reaction("f")
                 return
             else:  # Performance is improving, no drift detected but we still empty the window
-                self.empty_window()
+                self._empty_window()
                 self.in_concept_change = False
                 self.in_warning_zone = False
 
-    def empty_window(self) -> None:
+    def _empty_window(self) -> None:
         """Empty the window, resetting all its parameters."""
-        self.W = self.Circular_list(self.w_length_max)
+        self.W = self._Circular_list(self.w_length_max)
         self.stdev_new = 0
         self.summation_new = 0
         self.count_new = 0
@@ -438,7 +438,7 @@ class OPTWIN(BaseDriftDetector):
         self.drift_type.append(drift_type)
         self.in_concept_change = True
         self.in_warning_zone = False
-        self.empty_window()
+        self._empty_window()
 
     def _warning_reaction(self, drift_type: str) -> None:
         """Reaction to a detected warning.
