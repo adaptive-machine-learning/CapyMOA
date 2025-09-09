@@ -52,6 +52,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
         sk_dt: DecisionTreeClassifier = DecisionTreeClassifier(
             splitter="best", criterion="gini", max_depth=None, random_state=1234
         ),
+        allow_abstaining: bool = True
     ):
 
         """Initializes the ShrubEnsemble classifier with the given parameters.
@@ -104,10 +105,13 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
         :param sk_dt: Base object which is used to clone any new decision trees
             from. Note, that if you set random_state to an integer the exact
             same clone is used for any DT object 
+        :param allow_abstaining: If true, then None is returned if there is no model in the ensemble 
+            (i.e. it was pruned away or no data has been seen yet). Otherwise a vector with (1/C,...,1/C), 
+            where C is the number of classes is returned.
         """
 
         Classifier.__init__(self, schema, sk_dt.random_state)
-        _ShrubEnsembles.__init__(self, schema, loss, step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg, l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt)
+        _ShrubEnsembles.__init__(self, schema, loss, step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg, l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt,allow_abstaining)
 
     def __str__(self):
         return str("ShrubsClassifier")
@@ -137,7 +141,10 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
 
     def predict_proba(self, instance):
         if (len(self.estimators_)) == 0:
-            return 1.0 / self.n_classes_ * np.ones(self.n_classes_)
+            if self.allow_abstaining:
+                return None 
+            else:
+                return 1.0 / self.n_classes_ * np.ones(self.n_classes_)
         else:
             all_proba = self._individual_proba(np.array([instance.x]))
             scaled_prob = sum([w * p for w,p in zip(all_proba, self.estimator_weights_)])
@@ -146,4 +153,9 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
 
     def predict(self, instance):
         # Return the index of the class with the highest probability
-        return self.predict_proba(instance).argmax(axis=0)
+        proba = self.predict_proba(instance)
+        if proba is None:
+            return None
+        else:
+            return proba.argmax(axis=0) 
+         

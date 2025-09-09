@@ -49,7 +49,8 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
         burnin_steps: int = 5,
         update_leaves: bool = False,
         batch_size: int = 32,
-        sk_dt: DecisionTreeRegressor = DecisionTreeRegressor(splitter="best", max_depth=None, random_state=1234)
+        sk_dt: DecisionTreeRegressor = DecisionTreeRegressor(splitter="best", max_depth=None, random_state=1234),
+        allow_abstaining: bool = True
     ):
         """ Initializes the ShrubEnsemble regressor with the given parameters.
 
@@ -99,9 +100,11 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
         :param sk_dt: Base object which is used to clone any new decision trees
             from. Note, that if you set random_state to an integer the exact
             same clone is used for any DT object 
+        :param allow_abstaining: If true, then None is returned if there is no model in the ensemble 
+            (i.e. it was pruned away or no data has been seen yet). Otherwise 0 is returned.
         """
         Regressor.__init__(self, schema, sk_dt.random_state)
-        _ShrubEnsembles.__init__(self, schema, "mse", step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg,  l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt)
+        _ShrubEnsembles.__init__(self, schema, "mse", step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg,  l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt,allow_abstaining)
 
     def __str__(self):
        return str("ShrubsRegressor")
@@ -118,8 +121,14 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
         return all_proba
 
     def predict(self, instance):
-        all_proba = self._individual_proba(np.array([instance.x]))
-        scaled_prob = sum([w * p for w,p in zip(all_proba, self.estimator_weights_)])
-        combined_proba = np.sum(scaled_prob, axis=0)
-        # combined_proba should be a (1,) array, but the remaining CapyMoa code expects scalars
-        return combined_proba.item()
+        if (len(self.estimators_)) == 0:
+            if self.allow_abstaining:
+                return None 
+            else:
+                return 0
+        else:
+            all_proba = self._individual_proba(np.array([instance.x]))
+            scaled_prob = sum([w * p for w,p in zip(all_proba, self.estimator_weights_)])
+            combined_proba = np.sum(scaled_prob, axis=0)
+            # combined_proba should be a (1,) array, but the remaining CapyMoa code expects scalars
+            return combined_proba.item()

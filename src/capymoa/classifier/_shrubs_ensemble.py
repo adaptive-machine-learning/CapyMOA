@@ -75,7 +75,8 @@ class _ShrubEnsembles(ABC):
         burnin_steps: int,
         update_leaves: bool,
         batch_size: int,
-        sk_dt: DecisionTreeClassifier|DecisionTreeRegressor
+        sk_dt: DecisionTreeClassifier|DecisionTreeRegressor,
+        allow_abstaining: bool = True
     ):
 
         """ Initializes the ShrubEnsemble ensemble with the given parameters.
@@ -91,7 +92,7 @@ class _ShrubEnsembles(ABC):
         :param update_leaves: bool - Whether to update the leaves of the trees as well using SGD.
         :param batch_size: int - The batch size for training each individual tree. Internally, a sliding window is stored. Must be greater than or equal to 1. 
         :param additional_tree_options: dict - Additional options for the trees, such as splitter, criterion, and max_depth. See sklearn.tree.DecisionTreeClassifier and sklearn.tree.DecisionTreeRegressor for details. An example would be additional_tree_options = {"splitter": "best", "criterion": "gini", "max_depth": None}
-
+        :param allow_abstaining: bool - If true, then None is returned if there is no model in the ensemble (i.e. it was pruned away or no data has been seen yet)
         """
 
         if loss not in ["mse", "ce", "h2"]:
@@ -136,7 +137,8 @@ class _ShrubEnsembles(ABC):
         self.batch_size = batch_size
         self.burnin_steps = burnin_steps
         self.l_l2_reg = l_l2_reg
-
+        self.allow_abstaining = allow_abstaining
+        
         # Number of classes. For regression we simply set this to 1
         if schema.is_regression():
             self.n_classes_ = 1
