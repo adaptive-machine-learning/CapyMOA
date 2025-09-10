@@ -72,7 +72,6 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
         :param l_ensemble_reg: The regularization strength. Depending on the
             value of ``ensemble_regularizer``, this parameter has different
             meanings:
-        
             * ``hard-L0``: then this parameter represent the total number of
               trees in the ensembles.
             * ``L0`` or ``L1``: then this parameter is the regularization
@@ -81,7 +80,7 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
               removed.
             * ``none``: then this parameter is ignored.
         :param l_l2_reg: The L2 regularization strength of the weights of each
-            tree. 
+            tree.
         :param l_tree_reg: The regularization parameter for individual trees.
             Must be greater than or equal to 0. ``l_tree_reg`` controls the
             number of (overly) large trees in the ensemble by punishing the

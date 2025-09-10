@@ -6,27 +6,41 @@ import os
 from moa.classifiers.meta import OzaBag as _MOA_OzaBag
 from moa.classifiers.meta.minibatch import OzaBagMB as _MOA_OzaBagMB
 
+
 class OnlineBagging(MOAClassifier):
-    """Incremental on-line bagging of Oza and Russell
-    
-    Oza and Russell developed online versions of bagging and boosting for Data Streams. 
-    
-    They show how the process of sampling bootstrap replicates from training data can be simulated in a data stream context. 
-    
-    They observe that the probability that any individual example will be chosen for a replicate tends to a Poisson(1) distribution.
-    
-    Reference:
-    `[OR] N. Oza and S. Russell. Online bagging and boosting. In Artiﬁcial Intelligence and Statistics 2001, pages 105–112. Morgan Kaufmann, 2001.`
- """
+    """Incremental on-line bagging of Oza and Russell.
+
+    Incremental on-line bagging of Oza and Russell [#0]_ is a ensemble classifier. Oza
+    and Russell developed online versions of bagging and boosting for Data Streams. They
+    show how the process of sampling bootstrap replicates from training data can be
+    simulated in a data stream context. They observe that the probability that any
+    individual example will be chosen for a replicate tends to a Poisson(1)
+    distribution.
+
+    >>> from capymoa.classifier import OnlineBagging
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.evaluation import prequential_evaluation
+    >>>
+    >>> stream = ElectricityTiny()
+    >>> classifier = OnlineBagging(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    85.3
+
+    .. [#0] `Oza, N. C., & Russell, S. J. (2001, January). Online bagging and boosting.
+             In International workshop on artificial intelligence and statistics (pp.
+             229-236). PMLR. <https://proceedings.mlr.press/r3/oza01a.html>`_
+    """
+
     def __init__(
-        self, 
-        schema=None, 
-        CLI=None, 
-        random_seed=1, 
-        base_learner=None, 
+        self,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        base_learner=None,
         ensemble_size=100,
         minibatch_size=None,
-        number_of_jobs=None
+        number_of_jobs=None,
     ):
         """Construct an Online bagging classifier using online bootstrap sampling.
 
@@ -52,14 +66,18 @@ class OnlineBagging(MOAClassifier):
             )
             self.ensemble_size = ensemble_size
             moa_learner = None
-            if (number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1) and (minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1):
-                #run the sequential version by default or when both parameters are None | 0 | 1
+            if (
+                number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1
+            ) and (
+                minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1
+            ):
+                # run the sequential version by default or when both parameters are None | 0 | 1
                 self.number_of_jobs = 1
                 self.minibatch_size = 1
                 moa_learner = _MOA_OzaBag()
                 CLI = f"-l {self.base_learner} -s {self.ensemble_size}"
             else:
-                #run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
+                # run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
                 if number_of_jobs == 0 or number_of_jobs is None:
                     self.number_of_jobs = 1
                 elif number_of_jobs < 0:
@@ -77,7 +95,7 @@ class OnlineBagging(MOAClassifier):
                     self.minibatch_size = int(minibatch_size)
                 moa_learner = _MOA_OzaBagMB()
                 CLI = f"-l {self.base_learner} -s {self.ensemble_size} -c {self.number_of_jobs} -b {self.minibatch_size} "
-            # print(CLI)            
+            # print(CLI)
 
         super().__init__(
             schema=schema, CLI=CLI, random_seed=random_seed, moa_learner=moa_learner

@@ -10,30 +10,28 @@ from sklearn.tree import DecisionTreeClassifier
 
 
 class ShrubsClassifier(_ShrubEnsembles, Classifier):
-    """ShrubsClassifier
+    """Shrubs Classifier.
 
-    This class implements the ShrubEnsembles algorithm for classification, which is
-    an ensemble classifier that continuously adds decision trees to the ensemble by training new trees over a sliding window while pruning unnecessary trees away using proximal (stochastic) gradient descent, hence allowing for adaptation to concept drift.
+    Shrubs Classifier [#0]_ is a ensemble classifier that continuously adds decision
+    trees to the ensemble by training new trees over a sliding window while pruning
+    unnecessary trees away using proximal (stochastic) gradient descent, hence allowing
+    for adaptation to concept drift.
 
-    Reference:
-    
-    `Shrub Ensembles for Online Classification
-    Sebastian Buschjäger, Sibylle Hess, and Katharina Morik
-    In Proceedings of the Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22), Jan 2022.
-    <https://aaai.org/papers/06123-shrub-ensembles-for-online-classification/>`_
-
-    Example usage:
-
-    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import ShrubsClassifier
+    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.evaluation import prequential_evaluation
+    >>>
     >>> stream = ElectricityTiny()
-    >>> schema = stream.get_schema()
-    >>> learner = ShrubsClassifier(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
-    85.5...
-    
+    >>> classifier = ShrubsClassifier(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    85.5
+
+    .. [#0] `Shrub Ensembles for Online Classification Sebastian Buschjäger, Sibylle
+             Hess, and Katharina Morik In Proceedings of the Thirty-Sixth AAAI
+             Conference on Artificial Intelligence (AAAI-22), Jan 2022.
+             <https://aaai.org/papers/06123-shrub-ensembles-for-online-
+             classification/>`_
     """
 
     def __init__(

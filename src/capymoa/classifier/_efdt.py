@@ -10,38 +10,35 @@ import moa.classifiers.trees as moa_trees
 
 
 class EFDT(MOAClassifier):
-    """Extremely Fast Decision Tree (EFDT) Classifier
+    """Extremely Fast Decision Tree.
 
-    Also referred to as the Hoeffding AnyTime Tree (HATT) classifier. In practice,
+    Extremely Fast Decision Tree (EFDT) [#0]_ is a decision tree classifier. Also
+    referred to as the Hoeffding AnyTime Tree (HATT) classifier. In practice,
     despite the name, EFDTs are typically slower than a vanilla Hoeffding Tree
-    to process data. The speed differences come from the mechanism of split
-    re-evaluation present in EFDT. Nonetheless, EFDT has theoretical properties
-    that ensure it converges faster than the vanilla Hoeffding Tree to the structure
-    that would be created by a batch decision tree model (such as Classification and
-    Regression Trees - CART). Keep in mind that such propositions hold when processing
-    a stationary data stream. When dealing with non-stationary data, EFDT is somewhat
-    robust to concept drifts as it continually revisits and updates its internal
-    decision tree structure. Still, in such cases, the Hoeffding Adaptive Tree might
-    be a better option, as it was specifically designed to handle non-stationarity.
+    to process data. The speed differences come from the mechanism of split re-
+    evaluation present in EFDT. Nonetheless, EFDT has theoretical properties
+    that ensure it converges faster than the vanilla Hoeffding Tree to the
+    structure that would be created by a batch decision tree model (such as
+    Classification and Regression Trees - CART). Keep in mind that such
+    propositions hold when processing a stationary data stream. When dealing
+    with non-stationary data, EFDT is somewhat robust to concept drifts as it
+    continually revisits and updates its internal decision tree structure.
+    Still, in such cases, the Hoeffding Adaptive Tree might be a better option,
+    as it was specifically designed to handle non-stationarity.
 
-    Reference:
-
-    `Extremely fast decision tree.
-    Manapragada, Chaitanya, G. I. Webb, M. Salehi.
-    ACM SIGKDD, pp. 1953-1962, 2018.
-    <https://dl.acm.org/doi/abs/10.1145/3219819.3220005>`_
-
-    Example usage:
-
-    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import EFDT
+    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.evaluation import prequential_evaluation
+    >>>
     >>> stream = ElectricityTiny()
-    >>> schema = stream.get_schema()
-    >>> learner = EFDT(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
-    84.39999999999999
+    >>> classifier = EFDT(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    84.4
+
+    .. [#0] `Extremely fast decision tree. Manapragada, Chaitanya, G. I. Webb, M.
+             Salehi. ACM SIGKDD, pp. 1953-1962, 2018.
+             <https://dl.acm.org/doi/abs/10.1145/3219819.3220005>`_
     """
 
     def __init__(

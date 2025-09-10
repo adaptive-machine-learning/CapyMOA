@@ -1,15 +1,18 @@
 """Generate artificial data streams."""
+
 import copy
 
-from capymoa.stream import Stream
-from capymoa.stream._stream import Schema
-from moa.streams import InstanceStream
+from capymoa.stream import MOAStream
 from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
 from moa.streams.generators import SEAGenerator as MOA_SEAGenerator
 from moa.streams.generators import HyperplaneGenerator as MOA_HyperplaneGenerator
-from moa.streams.generators import HyperplaneGeneratorForRegression as MOA_HyperplaneGeneratorForRegression
+from moa.streams.generators import (
+    HyperplaneGeneratorForRegression as MOA_HyperplaneGeneratorForRegression,
+)
 from moa.streams.generators import RandomRBFGenerator as MOA_RandomRBFGenerator
-from moa.streams.generators import RandomRBFGeneratorDrift as MOA_RandomRBFGeneratorDrift
+from moa.streams.generators import (
+    RandomRBFGeneratorDrift as MOA_RandomRBFGeneratorDrift,
+)
 from moa.streams.generators import AgrawalGenerator as MOA_AgrawalGenerator
 from moa.streams.generators import LEDGenerator as MOA_LEDGenerator
 from moa.streams.generators import LEDGeneratorDrift as MOA_LEDGeneratorDrift
@@ -20,8 +23,7 @@ from moa.streams.generators import SineGenerator as MOA_SineGenerator
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
-
-class RandomTreeGenerator(Stream):
+class RandomTreeGenerator(MOAStream):
     """Stream generator for a stream based on a randomly generated tree.
 
     >>> from capymoa.stream.generator import RandomTreeGenerator
@@ -30,7 +32,7 @@ class RandomTreeGenerator(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.RandomTreeGenerator ),
-        x=ndarray(..., 10),
+        x=[0.    3.    2.    3.    4.    0.036 0.659 0.711 0.153 0.16 ],
         y_index=0,
         y_label='class1'
     )
@@ -40,16 +42,16 @@ class RandomTreeGenerator(Stream):
     """
 
     def __init__(
-            self,
-            instance_random_seed: int = 1,
-            tree_random_seed: int = 1,
-            num_classes: int = 2,
-            num_nominals: int = 5,
-            num_numerics: int = 5,
-            num_vals_per_nominal: int = 5,
-            max_tree_depth: int = 5,
-            first_leaf_level: int = 3,
-            leaf_fraction: float = 0.15,
+        self,
+        instance_random_seed: int = 1,
+        tree_random_seed: int = 1,
+        num_classes: int = 2,
+        num_nominals: int = 5,
+        num_numerics: int = 5,
+        num_vals_per_nominal: int = 5,
+        max_tree_depth: int = 5,
+        first_leaf_level: int = 3,
+        leaf_fraction: float = 0.15,
     ):
         """Construct a random tree generator.
 
@@ -63,7 +65,9 @@ class RandomTreeGenerator(Stream):
         :param first_leaf_level: The first level of the tree above ``max_tree_depth`` that can have leaves
         :param leaf_fraction: The fraction of leaves per level from first leaf level onwards.
         """
-        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+        self.__init_args_kwargs__ = copy.copy(
+            locals()
+        )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
 
         self.moa_stream = MOA_RandomTreeGenerator()
 
@@ -126,7 +130,7 @@ class RandomTreeGenerator(Stream):
         return f"RTG({', '.join(non_default_attributes)})"
 
 
-class SEA(Stream):
+class SEA(MOAStream):
     """Generates SEA concepts functions.
 
     >>> from capymoa.stream.generator import SEA
@@ -135,7 +139,7 @@ class SEA(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.SEAGenerator ),
-        x=ndarray(..., 3),
+        x=[7.309 4.101 2.077],
         y_index=1,
         y_label='groupB'
     )
@@ -147,11 +151,11 @@ class SEA(Stream):
     """
 
     def __init__(
-            self,
-            instance_random_seed: int = 1,
-            function: int = 1,
-            balance_classes: bool = False,
-            noise_percentage: int = 10,
+        self,
+        instance_random_seed: int = 1,
+        function: int = 1,
+        balance_classes: bool = False,
+        noise_percentage: int = 10,
     ):
         """Construct a SEA datastream generator.
 
@@ -160,7 +164,9 @@ class SEA(Stream):
         :param balance_classes: Balance the number of instances of each class, defaults to False
         :param noise_percentage: Percentage of noise to add to the data, defaults to 10
         """
-        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+        self.__init_args_kwargs__ = copy.copy(
+            locals()
+        )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
 
         self.moa_stream = MOA_SEAGenerator()
 
@@ -193,7 +199,7 @@ class SEA(Stream):
         return f"SEA({', '.join(non_default_attributes)})"
 
 
-class HyperPlaneClassification(Stream):
+class HyperPlaneClassification(MOAStream):
     """Generates HyperPlane concepts functions.
 
     >>> from capymoa.stream.generator import HyperPlaneClassification
@@ -202,7 +208,7 @@ class HyperPlaneClassification(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.HyperplaneGenerator ),
-        x=ndarray(..., 10),
+        x=[0.397 0.348 0.294 0.506 0.116 0.771 0.66  0.157 0.378 0.14 ],
         y_index=0,
         y_label='class1'
     )
@@ -212,14 +218,14 @@ class HyperPlaneClassification(Stream):
     """
 
     def __init__(
-            self,
-            instance_random_seed: int = 1,
-            number_of_classes: int = 2,
-            number_of_attributes: int = 10,
-            number_of_drifting_attributes: int = 2,
-            magnitude_of_change: float = 0.0,
-            noise_percentage: int = 5,
-            sigma_percentage: int = 10,
+        self,
+        instance_random_seed: int = 1,
+        number_of_classes: int = 2,
+        number_of_attributes: int = 10,
+        number_of_drifting_attributes: int = 2,
+        magnitude_of_change: float = 0.0,
+        noise_percentage: int = 5,
+        sigma_percentage: int = 10,
     ):
         """Construct a HyperPlane Classification datastream generator.
 
@@ -231,7 +237,9 @@ class HyperPlaneClassification(Stream):
         :param noise_percentage: Percentage of noise to add to the data, defaults to 10
         :param sigma_percentage: Percentage of sigma to add to the data, defaults to 10
         """
-        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+        self.__init_args_kwargs__ = copy.copy(
+            locals()
+        )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
 
         mapping = {
             "instance_random_seed": "-i",
@@ -245,55 +253,54 @@ class HyperPlaneClassification(Stream):
         self.moa_stream = MOA_HyperplaneGenerator()
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
 
-
         super().__init__(
             moa_stream=self.moa_stream,
             CLI=config_str,
         )
 
     # def __str__(self):
-        # attributes = [
-        #     (
-        #         f"instance_random_seed={self.instance_random_seed}"
-        #         if self.instance_random_seed != 1
-        #         else None
-        #     ),
-        #     (
-        #         f"number_of_classes={self.number_of_classes}"
-        #         if self.number_of_classes != 2
-        #         else None
-        #     ),
-        #     (
-        #         f"number_of_attributes={self.number_of_attributes}"
-        #         if self.number_of_attributes != 10
-        #         else None
-        #     ),
-        #     (
-        #         f"number_of_drifting_attributes={self.number_of_drifting_attributes}"
-        #         if self.number_of_drifting_attributes != 2
-        #         else None
-        #     ),
-        #     (
-        #         f"magnitude_of_change={self.magnitude_of_change}"
-        #         if self.magnitude_of_change != 0.0
-        #         else None
-        #     ),
-        #     (
-        #         f"noise_percentage={self.noise_percentage}"
-        #         if self.noise_percentage != 5
-        #         else None
-        #     ),
-        #     (
-        #         f"sigma_percentage={self.sigma_percentage}"
-        #         if self.sigma_percentage != 10
-        #         else None
-        #     ),
-        # ]
-        # non_default_attributes = [attr for attr in attributes if attr is not None]
-        # return f"HyperPlaneClassification({', '.join(non_default_attributes)})"
+    # attributes = [
+    #     (
+    #         f"instance_random_seed={self.instance_random_seed}"
+    #         if self.instance_random_seed != 1
+    #         else None
+    #     ),
+    #     (
+    #         f"number_of_classes={self.number_of_classes}"
+    #         if self.number_of_classes != 2
+    #         else None
+    #     ),
+    #     (
+    #         f"number_of_attributes={self.number_of_attributes}"
+    #         if self.number_of_attributes != 10
+    #         else None
+    #     ),
+    #     (
+    #         f"number_of_drifting_attributes={self.number_of_drifting_attributes}"
+    #         if self.number_of_drifting_attributes != 2
+    #         else None
+    #     ),
+    #     (
+    #         f"magnitude_of_change={self.magnitude_of_change}"
+    #         if self.magnitude_of_change != 0.0
+    #         else None
+    #     ),
+    #     (
+    #         f"noise_percentage={self.noise_percentage}"
+    #         if self.noise_percentage != 5
+    #         else None
+    #     ),
+    #     (
+    #         f"sigma_percentage={self.sigma_percentage}"
+    #         if self.sigma_percentage != 10
+    #         else None
+    #     ),
+    # ]
+    # non_default_attributes = [attr for attr in attributes if attr is not None]
+    # return f"HyperPlaneClassification({', '.join(non_default_attributes)})"
 
 
-class HyperPlaneRegression(Stream):
+class HyperPlaneRegression(MOAStream):
     """Generates HyperPlane Regression concepts functions.
 
     >>> from capymoa.stream.generator import HyperPlaneRegression
@@ -302,7 +309,7 @@ class HyperPlaneRegression(Stream):
     >>> stream.next_instance()
     RegressionInstance(
         Schema(generators.HyperplaneGeneratorForRegression ),
-        x=ndarray(..., 10),
+        x=[0.397 0.348 0.294 0.506 0.116 0.771 0.66  0.157 0.378 0.14 ],
         y_value=205.17965508540908
     )
     >>> stream.next_instance().x
@@ -311,14 +318,14 @@ class HyperPlaneRegression(Stream):
     """
 
     def __init__(
-            self,
-            instance_random_seed: int = 1,
-            number_of_classes: int = 2,
-            number_of_attributes: int = 10,
-            number_of_drifting_attributes: int = 2,
-            magnitude_of_change: float = 0.0,
-            noise_percentage: int = 5,
-            sigma_percentage: int = 10,
+        self,
+        instance_random_seed: int = 1,
+        number_of_classes: int = 2,
+        number_of_attributes: int = 10,
+        number_of_drifting_attributes: int = 2,
+        magnitude_of_change: float = 0.0,
+        noise_percentage: int = 5,
+        sigma_percentage: int = 10,
     ):
         """Construct a HyperPlane Regression datastream generator.
 
@@ -330,7 +337,9 @@ class HyperPlaneRegression(Stream):
         :param noise_percentage: Percentage of noise to add to the data, defaults to 10
         :param sigma_percentage: Percentage of sigma to add to the data, defaults to 10
         """
-        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+        self.__init_args_kwargs__ = copy.copy(
+            locals()
+        )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
 
         mapping = {
             "instance_random_seed": "-i",
@@ -389,7 +398,7 @@ class HyperPlaneRegression(Stream):
     #     return f"HyperPlaneRegression({', '.join(non_default_attributes)})"
 
 
-class RandomRBFGenerator(Stream):
+class RandomRBFGenerator(MOAStream):
     """
     An Random RBF Generator
 
@@ -399,7 +408,7 @@ class RandomRBFGenerator(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.RandomRBFGenerator ),
-        x=ndarray(..., 10),
+        x=[0.21  1.01  0.092 0.272 0.45  0.226 0.212 0.373 0.583 0.297],
         y_index=1,
         y_label='class2'
     )
@@ -407,14 +416,14 @@ class RandomRBFGenerator(Stream):
     array([0.68807095, 0.62508298, 0.36161375, 0.29484898, 0.46067958,
            0.83491016, 0.69794979, 0.75702471, 0.79436834, 0.7605141 ])
     """
-    
+
     def __init__(
-            self,
-            model_random_seed: int = 1,
-            instance_random_seed: int = 1,
-            number_of_classes: int = 2,
-            number_of_attributes: int = 10,
-            number_of_centroids: int = 50
+        self,
+        model_random_seed: int = 1,
+        instance_random_seed: int = 1,
+        number_of_classes: int = 2,
+        number_of_attributes: int = 10,
+        number_of_centroids: int = 50,
     ):
         """Construct a Random RBF Generator .
 
@@ -429,17 +438,12 @@ class RandomRBFGenerator(Stream):
             "instance_random_seed": "-i",
             "number_of_classes": "-c",
             "number_of_attributes": "-a",
-            "number_of_centroids": "-n",           
+            "number_of_centroids": "-n",
         }
         self.moa_stream = MOA_RandomRBFGenerator()
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
 
-
-        super().__init__(
-            moa_stream=self.moa_stream,
-            CLI=config_str
-        )
-
+        super().__init__(moa_stream=self.moa_stream, CLI=config_str)
 
     def __str__(self):
         attributes = [
@@ -467,25 +471,26 @@ class RandomRBFGenerator(Stream):
                 f"number_of_centroids={self.number_of_centroids}"
                 if self.number_of_centroids != 50
                 else None
-            )
+            ),
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"RandomRBFGenerator({', '.join(non_default_attributes)})"
 
 
-class RandomRBFGeneratorDrift(Stream):
+class RandomRBFGeneratorDrift(MOAStream):
     """
     Generates Random RBF concepts functions.
     """
+
     def __init__(
-            self,
-            model_random_seed: int = 1,
-            instance_random_seed: int = 1,
-            number_of_classes: int = 2,
-            number_of_attributes: int = 10,
-            number_of_centroids: int = 50,
-            number_of_drifting_centroids: int = 2,
-            magnitude_of_change: float = 0.0
+        self,
+        model_random_seed: int = 1,
+        instance_random_seed: int = 1,
+        number_of_classes: int = 2,
+        number_of_attributes: int = 10,
+        number_of_centroids: int = 50,
+        number_of_drifting_centroids: int = 2,
+        magnitude_of_change: float = 0.0,
     ):
         """Construct a RBF Generator Classification/Clustering datastream generator.
 
@@ -505,16 +510,12 @@ class RandomRBFGeneratorDrift(Stream):
             "number_of_attributes": "-a",
             "number_of_centroids": "-n",
             "number_of_drifting_centroids": "-k",
-            "magnitude_of_change": "-s"            
+            "magnitude_of_change": "-s",
         }
         self.moa_stream = MOA_RandomRBFGeneratorDrift()
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
 
-
-        super().__init__(
-            moa_stream=self.moa_stream,
-            CLI=config_str
-        )
+        super().__init__(moa_stream=self.moa_stream, CLI=config_str)
 
     def __str__(self):
         attributes = [
@@ -556,9 +557,9 @@ class RandomRBFGeneratorDrift(Stream):
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"RandomRBFGeneratorDrift({', '.join(non_default_attributes)})"
-    
 
-class AgrawalGenerator(Stream):
+
+class AgrawalGenerator(MOAStream):
     """
     An Agrawal Generator
 
@@ -568,7 +569,8 @@ class AgrawalGenerator(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.AgrawalGenerator ),
-        x=ndarray(..., 9),
+        x=[1.105e+05 0.000e+00 5.400e+01 3.000e+00 1.400e+01 4.000e+00 1.350e+05
+            3.000e+01 3.547e+05],
         y_index=1,
         y_label='groupB'
     )
@@ -577,23 +579,25 @@ class AgrawalGenerator(Stream):
            1.90000000e+01, 7.00000000e+00, 1.35000000e+05, 2.00000000e+00,
            3.95015339e+05])
     """
-    
+
     def __init__(
-            self,
-            instance_random_seed: int = 1,
-            classification_function: int = 1,
-            peturbation: float = 0.05,
-            balance_classes: bool = False
+        self,
+        instance_random_seed: int = 1,
+        classification_function: int = 1,
+        peturbation: float = 0.05,
+        balance_classes: bool = False,
     ):
-        """ Construct an Agrawal Generator
+        """Construct an Agrawal Generator
 
         :param instance_random_seed: Seed for random generation of instances.
         :param classification_function: Classification function used, as defined in the original paper.
         :param peturbation: The amount of peturbation (noise) introduced to numeric values
         :param balance: Balance the number of instances of each class.
         """
-        self.__init_args_kwargs__ = copy.copy(locals())  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
-        
+        self.__init_args_kwargs__ = copy.copy(
+            locals()
+        )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+
         self.moa_stream = MOA_AgrawalGenerator()
 
         self.instance_random_seed = instance_random_seed
@@ -603,9 +607,8 @@ class AgrawalGenerator(Stream):
 
         self.CLI = f"-i {self.instance_random_seed} -f {self.classification_function} \
             -p {self.peturbation} {'-b' if self.balance_classes else ''}"
-    
-        super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
 
+        super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
 
     def __str__(self):
         attributes = [
@@ -614,26 +617,16 @@ class AgrawalGenerator(Stream):
                 if self.instance_random_seed != 1
                 else None
             ),
-            (
-                f"classification_function={self.classification_function}"
-            ),
-            (
-                f"peturbation={self.peturbation}"
-                if self.peturbation != 0.05
-                else None
-            ),
-            (
-                f"balance={self.balance}"
-                if self.balance
-                else None
-            )
+            (f"classification_function={self.classification_function}"),
+            (f"peturbation={self.peturbation}" if self.peturbation != 0.05 else None),
+            (f"balance={self.balance}" if self.balance else None),
         ]
 
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"AgrawalGenerator({', '.join(non_default_attributes)})"
-    
 
-class LEDGenerator(Stream):
+
+class LEDGenerator(MOAStream):
     """
     An LED Generator
 
@@ -643,7 +636,7 @@ class LEDGenerator(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.LEDGenerator ),
-        x=ndarray(..., 24),
+        x=[1. 1. 0. ... 0. 0. 0.],
         y_index=5,
         y_label='5'
     )
@@ -651,33 +644,32 @@ class LEDGenerator(Stream):
     array([1., 1., 1., 0., 1., 1., 0., 0., 0., 1., 0., 1., 0., 1., 1., 0., 1.,
            0., 0., 1., 1., 0., 1., 1.])
     """
-    
+
     def __init__(
-            self,
-            instance_random_seed: int = 1,
-            noise_percentage: int = 10,
-            reduce_data: bool = False,
+        self,
+        instance_random_seed: int = 1,
+        noise_percentage: int = 10,
+        reduce_data: bool = False,
     ):
-        """ Construct an LED Generator
+        """Construct an LED Generator
 
         :param instance_random_seed: Seed for random generation of instances.
         :param noise_percentage: Percentage of noise to add to the data
         :param reduce_data: Reduce the data to only contain 7 relevant binary attributes
-         """
+        """
         self.__init_args_kwargs__ = copy.copy(locals())
         # save init args for recreation. not a deep copy to avoid unnecessary use of memory
-        
+
         self.moa_stream = MOA_LEDGenerator()
 
         self.instance_random_seed = instance_random_seed
-        self.noise_percentage = noise_percentage 
+        self.noise_percentage = noise_percentage
         self.reduce_data = reduce_data
-        
+
         self.CLI = f"-i {self.instance_random_seed} -n {self.noise_percentage} \
             {'-s' if self.reduce_data else ''}"
-    
-        super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
 
+        super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
 
     def __str__(self):
         attributes = [
@@ -691,18 +683,14 @@ class LEDGenerator(Stream):
                 if self.noise_percentage != 10
                 else None
             ),
-            (
-                f"reduce_data={self.reduce_data}"
-                if self.reduce_data
-                else None
-            )
+            (f"reduce_data={self.reduce_data}" if self.reduce_data else None),
         ]
 
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"LEDGenerator({', '.join(non_default_attributes)})"
-    
 
-class LEDGeneratorDrift(Stream):
+
+class LEDGeneratorDrift(MOAStream):
     """
     An LED Generator Drift
 
@@ -712,7 +700,7 @@ class LEDGeneratorDrift(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.LEDGeneratorDrift -d 7),
-        x=ndarray(..., 24),
+        x=[1. 1. 0. ... 0. 0. 0.],
         y_index=5,
         y_label='5'
     )
@@ -720,36 +708,35 @@ class LEDGeneratorDrift(Stream):
     array([0., 0., 1., 0., 1., 0., 1., 1., 1., 1., 0., 1., 1., 0., 1., 0., 1.,
            0., 0., 1., 1., 0., 1., 1.])
     """
-    
+
     def __init__(
-            self,
-            instance_random_seed: int = 1,
-            noise_percentage: int = 10,
-            reduce_data: bool = False,
-            number_of_attributes_with_drift: int = 7,
+        self,
+        instance_random_seed: int = 1,
+        noise_percentage: int = 10,
+        reduce_data: bool = False,
+        number_of_attributes_with_drift: int = 7,
     ):
-        """ Construct an LED Generator Drift
+        """Construct an LED Generator Drift
 
         :param instance_random_seed: Seed for random generation of instances.
         :param noise_percentage: Percentage of noise to add to the data
         :param reduce_data: Reduce the data to only contain 7 relevant binary attributes
         :param number_of_attributes_with_drift: Number of attributes with drift
-         """
+        """
         self.__init_args_kwargs__ = copy.copy(locals())
         # save init args for recreation. not a deep copy to avoid unnecessary use of memory
-        
+
         self.moa_stream = MOA_LEDGeneratorDrift()
 
         self.instance_random_seed = instance_random_seed
-        self.noise_percentage = noise_percentage 
+        self.noise_percentage = noise_percentage
         self.reduce_data = reduce_data
         self.number_of_attributes_with_drift = number_of_attributes_with_drift
-        
+
         self.CLI = f"-i {self.instance_random_seed} -n {self.noise_percentage} \
             {'-s' if self.reduce_data else ''} -d {self.number_of_attributes_with_drift}"
-    
-        super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
 
+        super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
 
     def __str__(self):
         attributes = [
@@ -763,12 +750,7 @@ class LEDGeneratorDrift(Stream):
                 if self.percentage != 10
                 else None
             ),
-            (
-                f"reduce_data={self.reduce_data}"
-                if self.reduce_data
-                else None
-            )
-            (
+            (f"reduce_data={self.reduce_data}" if self.reduce_data else None)(
                 f"number_of_attributes_with_drift={self.number_of_attributes_with_drift}"
                 if self.number_of_attributes_with_drift != 7
                 else None
@@ -779,7 +761,7 @@ class LEDGeneratorDrift(Stream):
         return f"LEDGeneratorDrift({', '.join(non_default_attributes)})"
 
 
-class WaveformGenerator(Stream):
+class WaveformGenerator(MOAStream):
     """
     An Waveform Generator
 
@@ -789,7 +771,7 @@ class WaveformGenerator(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.WaveformGenerator ),
-        x=ndarray(..., 21),
+        x=[-0.092 -0.362  1.163 ...  2.825  0.765 -0.187],
         y_index=0,
         y_label='class1'
     )
@@ -800,11 +782,11 @@ class WaveformGenerator(Stream):
             0.75833533, -0.82178614, -1.23317608, -0.52710197, -0.44639196,
            -2.026593  ])
     """
-    
+
     def __init__(
-            self,
-            instance_random_seed: int = 1,
-            noise: bool = False,
+        self,
+        instance_random_seed: int = 1,
+        noise: bool = False,
     ):
         """Construct a WaveForm Generator .
 
@@ -819,12 +801,7 @@ class WaveformGenerator(Stream):
         self.moa_stream = MOA_WaveformGenerator()
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
 
-
-        super().__init__(
-            moa_stream=self.moa_stream,
-            CLI=config_str
-        )
-
+        super().__init__(moa_stream=self.moa_stream, CLI=config_str)
 
     def __str__(self):
         attributes = [
@@ -833,17 +810,13 @@ class WaveformGenerator(Stream):
                 if self.instance_random_seed != 1
                 else None
             ),
-            (
-                f"noise={self.noise}"
-                if self.noise
-                else None
-            )
+            (f"noise={self.noise}" if self.noise else None),
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"WaveformGenerator({', '.join(non_default_attributes)})"
-    
 
-class WaveformGeneratorDrift(Stream):
+
+class WaveformGeneratorDrift(MOAStream):
     """
     An Waveform Generator Drift
 
@@ -853,7 +826,7 @@ class WaveformGeneratorDrift(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.WaveformGeneratorDrift -d 10),
-        x=ndarray(..., 21),
+        x=[3.787 3.658 5.136 ... 5.723 2.665 2.681],
         y_index=1,
         y_label='class2'
     )
@@ -864,13 +837,12 @@ class WaveformGeneratorDrift(Stream):
             3.39751393,  2.90259886,  4.21403878,  1.98411715,  3.33956917,
             4.08153654])
     """
-    
-    def __init__(
-            self,
-            instance_random_seed: int = 1,
-            noise: bool = False,
-            number_of_attributes_with_drift: int = 10,
 
+    def __init__(
+        self,
+        instance_random_seed: int = 1,
+        noise: bool = False,
+        number_of_attributes_with_drift: int = 10,
     ):
         """Construct a WaveformGeneratorDrift Generator .
 
@@ -887,12 +859,7 @@ class WaveformGeneratorDrift(Stream):
         self.moa_stream = MOA_WaveformGeneratorDrift()
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
 
-
-        super().__init__(
-            moa_stream=self.moa_stream,
-            CLI=config_str
-        )
-
+        super().__init__(moa_stream=self.moa_stream, CLI=config_str)
 
     def __str__(self):
         attributes = [
@@ -901,11 +868,7 @@ class WaveformGeneratorDrift(Stream):
                 if self.instance_random_seed != 1
                 else None
             ),
-            (
-                f"noise={self.noise}"
-                if self.noise
-                else None
-            ),
+            (f"noise={self.noise}" if self.noise else None),
             (
                 f"number_of_attributes_with_drift={self.number_of_attributes_with_drift}"
                 if self.number_of_attributes_with_drift != 10
@@ -914,8 +877,9 @@ class WaveformGeneratorDrift(Stream):
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"WaveformGeneratorDrift({', '.join(non_default_attributes)})"
-    
-class STAGGERGenerator(Stream):
+
+
+class STAGGERGenerator(MOAStream):
     """
     An STAGGER Generator
 
@@ -925,19 +889,19 @@ class STAGGERGenerator(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.STAGGERGenerator ),
-        x=ndarray(..., 3),
+        x=[0. 1. 1.],
         y_index=0,
         y_label='false'
     )
     >>> stream.next_instance().x
     array([0., 2., 1.])
     """
-    
+
     def __init__(
-            self,
-            instance_random_seed: int = 1,
-            classification_function: int = 1,
-            balance_classes: bool = False
+        self,
+        instance_random_seed: int = 1,
+        classification_function: int = 1,
+        balance_classes: bool = False,
     ):
         """Construct a STAGGER Generator .
 
@@ -954,12 +918,7 @@ class STAGGERGenerator(Stream):
         self.moa_stream = MOA_STAGGERGenerator()
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
 
-
-        super().__init__(
-            moa_stream=self.moa_stream,
-            CLI=config_str
-        )
-
+        super().__init__(moa_stream=self.moa_stream, CLI=config_str)
 
     def __str__(self):
         attributes = [
@@ -977,13 +936,13 @@ class STAGGERGenerator(Stream):
                 f"balance_classes={self.balance_classes}"
                 if self.balance_classes
                 else None
-            )
+            ),
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"STAGGERGenerator({', '.join(non_default_attributes)})"
-    
 
-class SineGenerator(Stream):
+
+class SineGenerator(MOAStream):
     """
     An SineGenerator
 
@@ -993,20 +952,20 @@ class SineGenerator(Stream):
     >>> stream.next_instance()
     LabeledInstance(
         Schema(generators.SineGenerator ),
-        x=ndarray(..., 4),
+        x=[0.731 0.41  0.208 0.333],
         y_index=0,
         y_label='positive'
     )
     >>> stream.next_instance().x
     array([0.96775591, 0.00611718, 0.9637048 , 0.93986539])
     """
-    
+
     def __init__(
-            self,
-            instance_random_seed: int = 1,
-            classification_function: int = 1,
-            suppress_irrelevant_attributes: bool = False,
-            balance_classes: bool = False
+        self,
+        instance_random_seed: int = 1,
+        classification_function: int = 1,
+        suppress_irrelevant_attributes: bool = False,
+        balance_classes: bool = False,
     ):
         """Construct a SineGenerator .
 
@@ -1025,12 +984,7 @@ class SineGenerator(Stream):
         self.moa_stream = MOA_SineGenerator()
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
 
-
-        super().__init__(
-            moa_stream=self.moa_stream,
-            CLI=config_str
-        )
-
+        super().__init__(moa_stream=self.moa_stream, CLI=config_str)
 
     def __str__(self):
         attributes = [
@@ -1053,7 +1007,7 @@ class SineGenerator(Stream):
                 f"balance_classes={self.balance_classes}"
                 if self.balance_classes
                 else None
-            )
+            ),
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"SineGenerator({', '.join(non_default_attributes)})"

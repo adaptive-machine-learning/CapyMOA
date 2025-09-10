@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 
 from capymoa.base import (
     MOAClassifier,
@@ -11,11 +10,9 @@ from moa.classifiers.functions import NoChange as _MOA_NoChange
 
 
 class NoChange(MOAClassifier):
-    """NoChange classifier.
+    """No change classifier.
 
     Always predicts the last class seen.
-
-    Example usages:
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import NoChange
@@ -37,8 +34,7 @@ class NoChange(MOAClassifier):
         :param schema: The schema of the stream.
         """
 
-        mapping = {
-        }
+        mapping = {}
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(NoChange, self).__init__(

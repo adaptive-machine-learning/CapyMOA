@@ -7,30 +7,37 @@ from moa.classifiers.meta import LeveragingBag as _MOA_LeveragingBag
 from moa.classifiers.meta.minibatch import LeveragingBagMB as _MOA_LeveragingBagMB
 import os
 
+
 class LeveragingBagging(MOAClassifier):
-    """Leveraging Bagging for evolving data streams using ADWIN. 
-    
-    Leveraging Bagging and Leveraging Bagging MC using Random Output Codes ( -o option).
+    """Leveraging Bagging for evolving data streams using ADWIN.
 
-    Reference:
+    Leveraging Bagging for evolving data streams using ADWIN [#0]_ is a meta-strategy.
 
-    `Albert Bifet, Geoffrey Holmes, Bernhard Pfahringer.
-    Leveraging Bagging for Evolving Data Streams Machine Learning and Knowledge
-    Discovery in Databases, European Conference, ECML PKDD}, 2010.`
+    >>> from capymoa.classifier import LeveragingBagging
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.evaluation import prequential_evaluation
+    >>>
+    >>> stream = ElectricityTiny()
+    >>> classifier = LeveragingBagging(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    87.4
 
-    See :py:class:`capymoa.base.MOAClassifier` for train, predict and predict_proba.
-
+    .. [#0] `Albert Bifet, Geoffrey Holmes, Bernhard Pfahringer. Leveraging Bagging for
+             Evolving Data Streams Machine Learning and Knowledge Discovery in
+             Databases, European Conference, ECML PKDD}, 2010.
+             <https://link.springer.com/chapter/10.1007/978-3-642-15880-3_15>`_
     """
 
     def __init__(
-        self, 
-        schema=None, 
-        CLI=None, 
-        random_seed=1, 
-        base_learner=None, 
+        self,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        base_learner=None,
         ensemble_size=100,
         minibatch_size=None,
-        number_of_jobs=None
+        number_of_jobs=None,
     ):
         """Construct a Leveraging Bagging classifier.
 
@@ -67,32 +74,36 @@ class LeveragingBagging(MOAClassifier):
             )
             self.ensemble_size = ensemble_size
             moa_learner = None
-            if (number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1) and (minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1):
-                #run the sequential version by default or when both parameters are None | 0 | 1
+            if (
+                number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1
+            ) and (
+                minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1
+            ):
+                # run the sequential version by default or when both parameters are None | 0 | 1
                 self.number_of_jobs = 1
                 self.minibatch_size = 1
                 moa_learner = _MOA_LeveragingBag()
                 CLI = f"-l {self.base_learner} -s {self.ensemble_size}"
             else:
-                #run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
+                # run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
                 if number_of_jobs == 0 or number_of_jobs is None:
                     self.number_of_jobs = 1
                 elif number_of_jobs < 0:
                     self.number_of_jobs = os.cpu_count()
                 else:
                     self.number_of_jobs = int(min(number_of_jobs, os.cpu_count()))
-                if minibatch_size <= 1:
-                    # if the user sets the number of jobs and the minibatch_size less than 1 it is considered that the user wants a parallel execution of a single instance at a time
-                    self.minibatch_size = 1
-                elif minibatch_size is None:
+
+                if minibatch_size is None:
                     # if the user sets only the number_of_jobs, we assume he wants the parallel minibatch version and initialize minibatch_size to the default 25
                     self.minibatch_size = 25
+                elif minibatch_size <= 1:
+                    # if the user sets the number of jobs and the minibatch_size less than 1 it is considered that the user wants a parallel execution of a single instance at a time
+                    self.minibatch_size = 1
                 else:
                     # if the user sets both parameters to values greater than 1, we initialize the minibatch_size to the user's choice
                     self.minibatch_size = int(minibatch_size)
                 moa_learner = _MOA_LeveragingBagMB()
                 CLI = f"-l {self.base_learner} -s {self.ensemble_size} -c {self.number_of_jobs} -b {self.minibatch_size} "
-
 
         super().__init__(
             schema=schema, CLI=CLI, random_seed=random_seed, moa_learner=moa_learner

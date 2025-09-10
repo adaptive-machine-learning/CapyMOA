@@ -4,6 +4,7 @@ import numpy as np
 from com.yahoo.labs.samoa.instances import DenseInstance
 from moa.core import InstanceExample
 from typing import Optional, Union, Tuple
+from jpype import JArray, JDouble
 
 from capymoa.type_alias import FeatureVector, Label, LabelIndex, TargetValue
 
@@ -11,6 +12,27 @@ from capymoa.type_alias import FeatureVector, Label, LabelIndex, TargetValue
 # in this file, it would create a circular import.
 if TYPE_CHECKING:
     from capymoa.stream import Schema
+
+
+def _features_to_string(
+    x: np.ndarray, prefix: str = "\n    x=", suffix: str = ","
+) -> str:
+    """Return an array as a pretty string that shortens and wraps them.
+
+    Used for the ``__repr__`` methods of instances.
+    """
+    return (
+        prefix
+        + np.array2string(
+            x,
+            max_line_width=80,
+            threshold=10,
+            prefix=prefix,
+            suffix=suffix,
+            precision=3,
+        )
+        + suffix
+    )
 
 
 class Instance:
@@ -74,7 +96,7 @@ class Instance:
         >>> instance
         Instance(
             Schema(CustomDataset),
-            x=ndarray(..., 2)
+            x=[0.1 0.2],
         )
 
         :param schema: A schema that describes the datastream the instance belongs to.
@@ -119,12 +141,16 @@ class Instance:
         if self._java_instance is not None:
             return self._java_instance
         elif self._x is not None:
-            instance = DenseInstance(self.schema._moa_header.numAttributes())
-            assert self.x.ndim == 1, "Feature vector must be 1D"
-            for i, value in enumerate(self.x):
-                instance.setValue(i, value)
-            instance.setDataset(self.schema._moa_header)
-            instance.setWeight(1.0)
+            assert self._x.ndim == 1, "Feature vector must be 1D."
+            # Allocate Array of doubles for the Java instance.
+            # The number of attributes is the same as the number of features +
+            # one for the target value regardless of if the instance type or
+            # if it is labeled or not.
+            jx = JArray(JDouble)(len(self.x) + 1)  # type: ignore
+            # Set the values of the Java instance.
+            jx[: len(self.x)] = self.x
+            instance = DenseInstance(1.0, jx)
+            instance.setDataset(self.schema.get_moa_header())
             self._java_instance = InstanceExample(self._set_y(instance))
             return self._java_instance
 
@@ -132,7 +158,7 @@ class Instance:
         return (
             f"{self.__class__.__name__}("
             + f"\n    Schema({self.schema.dataset_name}),"
-            + f"\n    x={self.x.__class__.__name__}(..., {len(self.x)})"
+            + _features_to_string(self.x)
             + "\n)"
         )
 
@@ -194,7 +220,7 @@ class LabeledInstance(Instance):
         >>> instance
         LabeledInstance(
             Schema(CustomDataset),
-            x=ndarray(..., 2),
+            x=[0.1 0.2],
             y_index=0,
             y_label='yes'
         )
@@ -208,7 +234,7 @@ class LabeledInstance(Instance):
         :param y_index: _description_
         :return: _description_
         """
-        return cls(schema, (x, y_index))
+        return cls(schema, (x, int(y_index)))
 
     @property
     def y_label(self) -> Label:
@@ -237,7 +263,7 @@ class LabeledInstance(Instance):
         return (
             f"{self.__class__.__name__}("
             + f"\n    Schema({self.schema.dataset_name}),"
-            + f"\n    x={self.x.__class__.__name__}(..., {len(self.x)}),"
+            + _features_to_string(self.x)
             + f"\n    y_index={self.y_index},"
             + f"\n    y_label='{self.y_label}'"
             + "\n)"
@@ -298,7 +324,7 @@ class RegressionInstance(Instance):
         >>> instance
         RegressionInstance(
             Schema(CustomDataset),
-            x=ndarray(..., 2),
+            x=[0.1 0.2],
             y_value=0.5
         )
         >>> instance.y_value
@@ -328,7 +354,7 @@ class RegressionInstance(Instance):
         return (
             f"{self.__class__.__name__}("
             + f"\n    Schema({self.schema.dataset_name}),"
-            + f"\n    x={self.x.__class__.__name__}(..., {len(self.x)}),"
+            + _features_to_string(self.x)
             + f"\n    y_value={self.y_value}"
             + "\n)"
         )

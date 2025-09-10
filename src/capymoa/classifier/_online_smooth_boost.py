@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 
 from capymoa.base import (
     MOAClassifier,
@@ -11,37 +10,33 @@ from moa.classifiers.meta import OnlineSmoothBoost as _MOA_OnlineSmoothBoost
 
 
 class OnlineSmoothBoost(MOAClassifier):
-    """OnlineSmoothBoost Classifier
+    """Online Smooth Boost.
 
-    Incremental on-line boosting with Theoretical Justifications of Shang-Tse Chen
+    Online Smooth Boost [#0]_ is a ensemble classifier. Incremental on-line boosting
+    with Theoretical Justifications of Shang-Tse Chen.
 
-    Reference:
-
-    `An Online Boosting Algorithm with Theoretical Justifications.
-    Shang-Tse Chen, Hsuan-Tien Lin, Chi-Jen Lu.
-    ICML, 2012.
-    <https://icml.cc/2012/papers/538.pdf>`_
-
-    Example usages:
-
-    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import OnlineSmoothBoost
+    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.evaluation import prequential_evaluation
+    >>>
     >>> stream = ElectricityTiny()
-    >>> schema = stream.get_schema()
-    >>> learner = OnlineSmoothBoost(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
+    >>> classifier = OnlineSmoothBoost(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
     87.8
+
+    .. [#0] `An Online Boosting Algorithm with Theoretical Justifications. Shang-Tse
+             Chen, Hsuan-Tien Lin, Chi-Jen Lu. ICML, 2012.
+             <https://icml.cc/2012/papers/538.pdf>`_
     """
 
     def __init__(
         self,
         schema: Schema | None = None,
         random_seed: int = 0,
-        base_learner = 'trees.HoeffdingTree',
+        base_learner="trees.HoeffdingTree",
         boosting_iterations: int = 100,
-        gamma = 0.1,
+        gamma=0.1,
     ):
         """OnlineSmoothBoost Classifier
 
@@ -58,8 +53,9 @@ class OnlineSmoothBoost(MOAClassifier):
             "gamma": "-g",
         }
 
-        assert (type(base_learner) == str
-                ), "Only MOA CLI strings are supported for OnlineSmoothBoost base_learner, at the moment."
+        assert isinstance(base_learner, str), (
+            "Only MOA CLI strings are supported for OnlineSmoothBoost base_learner, at the moment."
+        )
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(OnlineSmoothBoost, self).__init__(

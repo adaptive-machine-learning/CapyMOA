@@ -9,13 +9,15 @@ For example, to build the project, you can run `invoke build`.
 from invoke import task
 from invoke.collection import Collection
 from invoke.context import Context
+from invoke.exceptions import UnexpectedExit
 from pathlib import Path
 from typing import List, Optional
 from subprocess import run
 import wget
-from os import cpu_count, environ
+from os import environ
 
-IS_CI = (environ.get("CI", "false").lower() == "true")
+IS_CI = environ.get("CI", "false").lower() == "true"
+
 
 def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
     """Check if all files and directories exist."""
@@ -35,36 +37,52 @@ def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
 @task()
 def docs_build(ctx: Context, ignore_warnings: bool = False):
     """Build the documentation using Sphinx."""
-    warn = "-W" if not ignore_warnings else ""
-    nitpicky = "-n" if not ignore_warnings else ""
+    cmd = []
+    cmd += "python -m sphinx build".split()
+    cmd += ["--color"]  # color output
+    cmd += ["-b", "html"]  # generate html
+    if not ignore_warnings:
+        cmd += ["-W"]  # warnings as errors
+        cmd += ["-n"]  # nitpicky mode
 
     doc_dir = Path("docs/_build")
     doc_dir.mkdir(exist_ok=True, parents=True)
-    cpu = cpu_count() // 2
-    print("Building documentation...")
+    cmd += ["docs", doc_dir.as_posix()]  # add source and output directories
 
-    ctx.run(f"python -m sphinx build {warn} {nitpicky} --color -E -b html docs {doc_dir}")
+    try:
+        ctx.run(" ".join(cmd), echo=True)
+        print("-" * 80)
+        print("Documentation is built and available at:")
+        print(f"  file://{doc_dir.resolve()}/index.html")
+        print("You can copy and paste this URL into your browser.")
+    except UnexpectedExit as err:
+        print("-" * 80)
+        print(
+            "Documentation build failed. Here are some tips:\n"
+            " - Check the Sphinx output for errors and warnings.\n"
+            " - Try running `invoke docs.clean` to remove cached files.\n"
+            " - Try running with `--ignore-warnings` to ignore warnings.\n"
+            "   The build in CI pipelines will still fail but this might\n"
+            "   help you fix the warnings locally.\n"
+        )
+        # Ensure error code is propagated for CI/CD pipelines
+        raise SystemExit(err.result.return_code)
 
-    print("-" * 80)
-    print("Documentation is built and available at:")
-    print(f"  file://{doc_dir.resolve()}/index.html")
-    print("You can copy and paste this URL into your browser.")
-    print("-" * 80)
 
 @task
 def docs_coverage(ctx: Context):
     """Check the coverage of the documentation.
-    
+
     Requires the `interrogate` package.
     """
     ctx.run("python -m interrogate -vv -c pyproject.toml || true")
+
 
 @task
 def docs_clean(ctx: Context):
     """Remove the built documentation."""
     ctx.run("rm -r docs/_build")
     ctx.run("rm docs/api/modules/*")
-
 
 
 @task
@@ -103,9 +121,11 @@ def build_stubs(ctx: Context):
         print("Nothing todo: Java stubs already exist.")
         return
 
-    result = run(
+    run(
         [
-            "python", "-m", "stubgenj",
+            "python",
+            "-m",
+            "stubgenj",
             f"--classpath={class_path}",
             "--output-dir=src",
             # Options
@@ -115,21 +135,18 @@ def build_stubs(ctx: Context):
             "moa",
             "com.yahoo.labs.samoa",
             "com.github.javacliparser",
-        ]
+        ],
+        check=True,
     )
-
-    if result.returncode != 0:
-        # If we are running in Github action we should be more strict.
-        if IS_CI:
-            raise Exception("Failed to generate Java stubs.")
-        else:
-            print("Optional step `invoke build.stubs` failed. Continuing anyway ...")
 
 
 @task
 def clean_stubs(ctx: Context):
     """Remove the Java stubs."""
-    ctx.run("rm -r src/moa-stubs src/com-stubs || echo 'Nothing to do: Java stubs do not exist.'")
+    ctx.run(
+        "rm -r src/moa-stubs src/com-stubs || echo 'Nothing to do: Java stubs do not exist.'"
+    )
+
 
 @task(pre=[clean_stubs])
 def clean_moa(ctx: Context):
@@ -140,6 +157,7 @@ def clean_moa(ctx: Context):
         print("Removed moa.jar.")
     else:
         print("Nothing todo: `moa.jar` does not exist.")
+
 
 @task(pre=[clean_stubs, clean_moa, download_moa, build_stubs])
 def refresh_moa(ctx: Context):
@@ -173,7 +191,7 @@ def clean(ctx: Context):
         "no_skip": "Do not skip any notebooks.",
     }
 )
-def test_notebooks(
+def notebooks(
     ctx: Context,
     parallel: bool = False,
     overwrite: bool = False,
@@ -185,7 +203,7 @@ def test_notebooks(
 
     Uses nbmake https://github.com/treebeardtech/nbmake to execute the notebooks
     and check for errors.
-    
+
     The `--overwrite` flag can be used to overwrite the notebooks with the
     executed output.
     """
@@ -207,7 +225,7 @@ def test_notebooks(
         "-x",  # Stop after the first failure
         f"--nbmake-timeout={timeout}",
         "notebooks",
-        "--durations=0",  # Show the duration of each notebook
+        "--durations=5",  # Show the duration of each notebook
     ]
     cmd += ["-n=auto"] if parallel else []  # Should we run in parallel?
     cmd += (
@@ -218,28 +236,50 @@ def test_notebooks(
     if k_pattern:
         cmd += [f"-k {k_pattern}"]
 
-    ctx.run(" ".join(cmd))
+    ctx.run(" ".join(cmd), echo=True)
 
 
 @task
-def unittest(ctx: Context, parallel: bool = True):
+def pytest(ctx: Context, parallel: bool = True):
     """Run the tests using pytest."""
     cmd = [
         "python -m pytest",
-        "--doctest-modules",  # Run tests defined in docstrings
-        "--durations=0",  # Show the duration of each test
-        "-x",  # Stop after the first failure
-        "-p no:faulthandler" #jpype can raise irrelevant warnings: https://github.com/jpype-project/jpype/issues/561
+        "--durations=5",  # Show the duration of each test
+        "--exitfirst",  # Exit instantly on first error or failed test
+        # jpype can raise irrelevant warnings:
+        # https://github.com/jpype-project/jpype/issues/561
+        "-p no:faulthandler",
     ]
     cmd += ["-n=auto"] if parallel else []
-    ctx.run(" ".join(cmd))
+    ctx.run(" ".join(cmd), echo=True)
+
+
+@task
+def doctest(ctx: Context, parallel: bool = True):
+    """Run tests defined in docstrings using pytest."""
+    cmd = [
+        "python -m pytest",
+        "--doctest-modules",  # Enable doctest tests
+        "--durations=5",  # Show the duration of each test
+        "--exitfirst",  # Exit instantly on first error or failed test
+        # jpype can raise irrelevant warnings:
+        # https://github.com/jpype-project/jpype/issues/561
+        "-p no:faulthandler",
+        "src/capymoa",  # Don't run tests in the `tests` directory
+    ]
+    cmd += ["-n=auto"] if parallel else []
+    ctx.run(" ".join(cmd), echo=True)
 
 
 @task
 def all_tests(ctx: Context, parallel: bool = True):
     """Run all the tests."""
-    unittest(ctx, parallel)
-    test_notebooks(ctx, parallel)
+    print("Running all pytest tests ...")
+    pytest(ctx, parallel)
+    print("Running all doctests ...")
+    doctest(ctx, parallel)
+    print("Running all notebooks ...")
+    notebooks(ctx, parallel)
 
 
 @task
@@ -248,10 +288,28 @@ def commit(ctx: Context):
 
     Utility wrapper around `python -m commitizen commit`.
     """
+    print("Running Lint Checks ...")
+    ctx.run("python -m ruff check")
+    print("Running Format Checks ...")
+    ctx.run("python -m ruff format --check")
     ctx.run("python -m commitizen commit", pty=True)
 
+
+@task
+def lint(ctx: Context):
+    """Lint the code using ruff."""
+    ctx.run("python -m ruff check --fix")
+
+
+@task(aliases=["fmt"])
+def format(ctx: Context):
+    """Format the code using ruff."""
+    ctx.run("python -m ruff format", echo=True)
+    ctx.run("python -m ruff check --fix", echo=True)
+
+
 docs = Collection("docs")
-docs.add_task(docs_build, "build")
+docs.add_task(docs_build, "build", default=True)
 docs.add_task(docs_clean, "clean")
 docs.add_task(docs_coverage, "coverage")
 
@@ -264,8 +322,9 @@ build.add_task(clean)
 
 test = Collection("test")
 test.add_task(all_tests, "all", default=True)
-test.add_task(test_notebooks, "nb")
-test.add_task(unittest, "unit")
+test.add_task(notebooks, "nb")
+test.add_task(pytest, "pytest")
+test.add_task(doctest, "doctest")
 
 ns = Collection()
 ns.add_collection(docs)
@@ -273,3 +332,5 @@ ns.add_collection(build)
 ns.add_collection(test)
 ns.add_task(commit)
 ns.add_task(refresh_moa)
+ns.add_task(lint)
+ns.add_task(format)

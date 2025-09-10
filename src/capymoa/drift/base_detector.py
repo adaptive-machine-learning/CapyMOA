@@ -63,13 +63,13 @@ class MOADriftDetector(BaseDriftDetector):
         """
         :param moa_detector: The MOA detector object or class identifier.
         :param CLI: The command-line interface (CLI) configuration for the MOA drift detector, defaults to None
-        """        
+        """
         super().__init__()
 
         self.CLI = CLI
 
         if isinstance(moa_detector, type):
-            if type(moa_detector) == _jpype._JClass:
+            if isinstance(moa_detector, _jpype._JClass):
                 moa_detector = moa_detector()
             else:  # this is not a Java object, thus it certainly isn't a MOA learner
                 raise ValueError("Invalid MOA detector provided.")
@@ -88,7 +88,7 @@ class MOADriftDetector(BaseDriftDetector):
         full_name = str(self.moa_detector.getClass().getCanonicalName())
         return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
 
-    def CLI_help(self):
+    def cli_help(self):
         return str(self.moa_detector.getOptions().getHelpString())
 
     @override
@@ -105,6 +105,21 @@ class MOADriftDetector(BaseDriftDetector):
 
         if self.in_concept_change:
             self.detection_index.append(self.idx)
+
+    def reset(self, clean_history: bool = False) -> None:
+        """Reset the drift detector.
+        :param clean_history: Whether to reset detection history, defaults to False
+        """
+        self.in_concept_change = False
+        self.in_warning_zone = False
+        self.moa_detector.prepareForUse()
+        self.moa_detector.resetLearning()
+
+        if clean_history:
+            self.detection_index = []
+            self.warning_index = []
+            self.data = []
+            self.idx = 0
 
     @override
     def get_params(self) -> Dict[str, Any]:

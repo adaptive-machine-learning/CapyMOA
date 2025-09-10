@@ -18,6 +18,8 @@ These tutorials will show you how to get started with the CapyMOA library.
    notebooks/06_advanced_API.ipynb
    notebooks/07_pipelines.ipynb
    notebooks/08_prediction_interval.ipynb
+   notebooks/09_automl.ipynb
+   notebooks/10_ocl.ipynb
 
 .. toctree::
    :maxdepth: 1
@@ -35,6 +37,7 @@ Talks
 
 Talks and workshops on CapyMOA:
 
+* `PAKDD 2025 "Practical Online Continual Learning" <https://github.com/adaptive-machine-learning/PAKDD2025>`_
 * `ECML/PAKDD 2024 "Navigating Complex Machine Learning Challenges in Streaming Data - A Hands-On Tutorial" <https://heymarco.github.io/ecml24-streamingchallenges/>`_
 * `Kiwi PyCon 2024 "Data Stream AI" <https://talks.kiwipycon.nz/kiwi-pycon-2024/talk/QCKFSS/>`_
 * IJCAI 2024 "Machine Learning for Streaming Data"

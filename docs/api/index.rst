@@ -37,33 +37,24 @@ includes utilities for simulating concept drifts.
     capymoa.datasets
     capymoa.stream
 
-Learners
---------
+Problem Settings
+----------------
 
-These modules implement learners for classification, regression, anomaly detection
-and semi-supervised learning.
+These modules provide classes for defining machine learning problem settings.
     
 ..  autosummary::
     :toctree: modules
-    :caption: Learners
+    :caption: Problem Settings
     :recursive:
 
     capymoa.classifier
     capymoa.regressor
     capymoa.anomaly
     capymoa.ssl
-
-Drift Detection
----------------
-
-These modules provide classes for detecting concept drifts.
-
-..  autosummary::
-    :toctree: modules
-    :caption: Drift Detection
-    :recursive:
-
+    capymoa.ocl
     capymoa.drift
+    capymoa.clusterers
+    capymoa.automl
 
 Evaluation
 ----------
@@ -75,7 +66,6 @@ These modules provide classes for evaluating learners.
     :caption: Evaluation
     :recursive:
 
-    capymoa.splitcriteria
     capymoa.evaluation
     capymoa.prediction_interval
 
@@ -89,6 +79,8 @@ These modules provide miscellaneous utilities.
     :caption: Miscellaneous
     :recursive:
 
+    capymoa.ann
+    capymoa.splitcriteria
     capymoa.misc
     capymoa.env
 

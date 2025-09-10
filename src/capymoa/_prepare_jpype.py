@@ -6,9 +6,14 @@ from pathlib import Path
 from hashlib import sha256
 import subprocess
 from .__about__ import __version__
-from .env import capymoa_datasets_dir, capymoa_jvm_args, capymoa_moa_jar, capymoa_datasets_dir
+from .env import (
+    capymoa_jvm_args,
+    capymoa_moa_jar,
+    capymoa_datasets_dir,
+)
 
 _CAPYMOA_PACKAGE_ROOT = Path(__file__).parent
+
 
 class CapymoaImportError(RuntimeError):
     pass
@@ -46,9 +51,9 @@ def _get_java_home() -> Path:
 
         java_home = Path(result.stdout.decode().strip())
 
-        assert (
-            java_home.exists()
-        ), f"The java.home reported by the java program does not exist: {java_home}"
+        assert java_home.exists(), (
+            f"The java.home reported by the java program does not exist: {java_home}"
+        )
 
     return java_home
 
@@ -65,7 +70,7 @@ def about():
     >>> capymoa.about() # doctest: +ELLIPSIS
     CapyMOA ...
     """
-    java_version = jpype.java.lang.System.getProperty('java.version')
+    java_version = jpype.java.lang.System.getProperty("java.version")
     print(f"CapyMOA {__version__}")
     print(f"  CAPYMOA_DATASETS_DIR: {capymoa_datasets_dir()}")
     print(f"  CAPYMOA_MOA_JAR:      {capymoa_moa_jar()}")
@@ -73,7 +78,6 @@ def about():
     print(f"  JAVA_HOME:            {_get_java_home()}")
     print(f"  MOA version:          {_moa_hash()}")
     print(f"  JAVA version:         {java_version}")
-
 
 
 def _start_jpype():

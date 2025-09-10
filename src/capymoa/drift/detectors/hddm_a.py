@@ -50,9 +50,7 @@ class HDDMAverage(MOADriftDetector):
         assert test_type in self.TEST_TYPES, "Wrong test type"
 
         if CLI is None:
-            CLI = (
-                f"-d {drift_confidence} " f"-w {warning_confidence} " f"-t {test_type}"
-            )
+            CLI = f"-d {drift_confidence} -w {warning_confidence} -t {test_type}"
 
         super().__init__(moa_detector=_HDDM_A_Test(), CLI=CLI)
 

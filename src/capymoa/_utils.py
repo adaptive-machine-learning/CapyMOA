@@ -1,64 +1,62 @@
 """Contains private utility functions used throughout the library."""
 
-from typing import Dict, Any
+from typing import Dict, Any, Iterator, Tuple, TypeVar
+from itertools import islice
+import sys
 import re
 
 # Create a single mapping dictionary
 _metrics_name_mapping = {
     # general
-    'instances': 'classified instances',
-
+    "instances": "classified instances",
     # accuracy
-    'accuracy': 'classifications correct (percent)',
-    'kappa': 'Kappa Statistic (percent)',
-    'kappa_t': 'Kappa Temporal Statistic (percent)',
-    'kappa_m': 'Kappa M Statistic (percent)',
-    'f1_score': 'F1 Score (percent)',
-    'f1_score_{N}': 'F1 Score for class {N} (percent)',
-    'precision': 'Precision (percent)',
-    'precision_{N}': 'Precision for class {N} (percent)',
-    'recall': 'Recall (percent)',
-    'recall_{N}': 'Recall for class {N} (percent)',
-
+    "accuracy": "classifications correct (percent)",
+    "kappa": "Kappa Statistic (percent)",
+    "kappa_t": "Kappa Temporal Statistic (percent)",
+    "kappa_m": "Kappa M Statistic (percent)",
+    "f1_score": "F1 Score (percent)",
+    "f1_score_{N}": "F1 Score for class {N} (percent)",
+    "precision": "Precision (percent)",
+    "precision_{N}": "Precision for class {N} (percent)",
+    "recall": "Recall (percent)",
+    "recall_{N}": "Recall for class {N} (percent)",
     # regression
-    'mae': 'mean absolute error',
-    'rmse': 'root mean squared error',
-    'rmae': 'relative mean absolute error',
-    'rrmse': 'relative root mean squared error',
-    'r2': 'coefficient of determination',
-    'adjusted_r2': 'adjusted coefficient of determination',
-
+    "mae": "mean absolute error",
+    "rmse": "root mean squared error",
+    "rmae": "relative mean absolute error",
+    "rrmse": "relative root mean squared error",
+    "r2": "coefficient of determination",
+    "adjusted_r2": "adjusted coefficient of determination",
     # prediction intervals
-    'coverage': 'coverage',
-    'average_length': 'average length',
-    'nmpiw': 'NMPIW',
-
+    "coverage": "coverage",
+    "average_length": "average length",
+    "nmpiw": "NMPIW",
     # anomaly
-    'auc': 'AUC',
-    's_auc': 'sAUC',
+    "auc": "AUC",
+    "s_auc": "sAUC",
 }
 
 # Create a reverse mapping for the metrics name
 _reverse_metrics_name_mapping = {v: k for k, v in _metrics_name_mapping.items()}
 
 
-def _translate_metric_name(metric_name, to='capymoa'):
+def _translate_metric_name(metric_name, to="capymoa"):
     # Function to handle template-based translation
     def translate_template(template_mapping, _metric_name):
         for template, value_template in template_mapping.items():
-            if '{N}' in template:
-                pattern = re.escape(template).replace(r'\{N\}', r'(\d+)')
+            if "{N}" in template:
+                pattern = re.escape(template).replace(r"\{N\}", r"(\d+)")
                 match = re.match(pattern, _metric_name)
                 if match:
-                    return value_template.replace('{N}', match.group(1))
+                    return value_template.replace("{N}", match.group(1))
         return _metric_name
 
-    if to == 'moa':
+    if to == "moa":
         translation = _metrics_name_mapping.get(metric_name)
         if translation is None:
             translation = translate_template(_metrics_name_mapping, metric_name)
         return translation
-    elif to == 'capymoa':
+    elif to == "capymoa":
         translation = _reverse_metrics_name_mapping.get(metric_name)
         if translation is None:
             translation = translate_template(_reverse_metrics_name_mapping, metric_name)
@@ -131,10 +129,54 @@ def _leaf_prediction(leaf_prediction):
     2
     """
     if isinstance(leaf_prediction, str):
-        leaf_prediction_mapping = {"MajorityClass": 0, "NaiveBayes": 1, "NaiveBayesAdaptive": 2}
+        leaf_prediction_mapping = {
+            "MajorityClass": 0,
+            "NaiveBayes": 1,
+            "NaiveBayesAdaptive": 2,
+        }
         leaf_prediction = leaf_prediction_mapping.get(leaf_prediction, None)
-    if not isinstance(leaf_prediction, int) or leaf_prediction < 0 or leaf_prediction > 2:
-        raise ValueError("Invalid value for leaf_prediction, valid options are 'MajorityClass' or 0, "
-                         "'NaiveBayes' or 1, 'NaiveBayesAdaptive' or 2,")
+    if (
+        not isinstance(leaf_prediction, int)
+        or leaf_prediction < 0
+        or leaf_prediction > 2
+    ):
+        raise ValueError(
+            "Invalid value for leaf_prediction, valid options are 'MajorityClass' or 0, "
+            "'NaiveBayes' or 1, 'NaiveBayesAdaptive' or 2,"
+        )
 
     return leaf_prediction
+
+
+T = TypeVar("T")
+
+
+def batched(iterable: Iterator[T], n: int = 1) -> Iterator[Tuple[T, ...]]:
+    """Yield successive n-sized chunks from an iterable.
+
+    Will be removed in a future release, use the built-in ``itertools.batched``
+    instead if available.
+
+    >>> list(batched(range(5), 2))
+    [(0, 1), (2, 3), (4,)]
+    >>> list(batched(range(5), 3))
+    [(0, 1, 2), (3, 4)]
+    >>> list(batched(range(5), 6))
+    [(0, 1, 2, 3, 4)]
+
+    :param iterable: The iterable to batch.
+    :param n: The size of each batch.
+    :return: A generator yielding tuples of size n.
+    """
+    # If Python 3.12 or later we can use the built-in batched function
+    if sys.version_info >= (3, 12):
+        from itertools import batched
+
+        yield from batched(iterable, n)
+    else:
+        # Fallback for Python versions < 3.12
+        if n < 1:
+            raise ValueError("n must be at least one")
+        iterator = iter(iterable)
+        while batch := tuple(islice(iterator, n)):
+            yield batch

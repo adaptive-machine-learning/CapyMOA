@@ -1,45 +1,47 @@
+import os
 from contextlib import nullcontext
 from dataclasses import dataclass
-from capymoa.evaluation import ClassificationEvaluator, ClassificationWindowedEvaluator
-from capymoa.classifier import (
-    EFDT,
-    HoeffdingTree,
-    AdaptiveRandomForestClassifier,
-    OnlineBagging,
-    NaiveBayes,
-    KNN,
-    StreamingGradientBoostedTrees,
-    OzaBoost,
-    MajorityClass,
-    NoChange,
-    OnlineSmoothBoost,
-    StreamingRandomPatches,
-    HoeffdingAdaptiveTree,
-    SAMkNN,
-    DynamicWeightedMajority,
-    CSMOTE,
-    LeveragingBagging,
-    OnlineAdwinBagging,
-    WeightedkNN,
-    ShrubsClassifier
-)
-from capymoa.base import Classifier
-from capymoa.base import MOAClassifier
-from capymoa.datasets import ElectricityTiny
-from capymoa.misc import save_model, load_model
-from java.lang import Exception as JException
-import pytest
 from functools import partial
-from typing import Callable, Optional
-from capymoa.base import _extract_moa_learner_CLI
-from capymoa.splitcriteria import GiniSplitCriterion
-
-from capymoa.stream import Schema, Stream
-
-from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
-from pytest_subtests import SubTests
 from tempfile import TemporaryDirectory
-import os
+from typing import Callable, Optional
+
+import pytest
+import torch
+from java.lang import Exception as JException
+from pytest_subtests import SubTests
+
+from capymoa.ann import Perceptron
+from capymoa.base import Classifier, MOAClassifier, _extract_moa_learner_CLI
+from capymoa.classifier import (
+    CSMOTE,
+    EFDT,
+    KNN,
+    AdaptiveRandomForestClassifier,
+    DynamicWeightedMajority,
+    Finetune,
+    HoeffdingAdaptiveTree,
+    HoeffdingTree,
+    LeveragingBagging,
+    MajorityClass,
+    NaiveBayes,
+    NoChange,
+    OnlineAdwinBagging,
+    OnlineBagging,
+    OnlineSmoothBoost,
+    OzaBoost,
+    PassiveAggressiveClassifier,
+    SAMkNN,
+    SGDClassifier,
+    ShrubsClassifier,
+    StreamingGradientBoostedTrees,
+    StreamingRandomPatches,
+    WeightedkNN,
+)
+from capymoa.datasets import ElectricityTiny
+from capymoa.evaluation import ClassificationEvaluator, prequential_evaluation
+from capymoa.misc import load_model, save_model
+from capymoa.splitcriteria import GiniSplitCriterion
+from capymoa.stream import Schema, Stream
 
 
 @dataclass
@@ -56,6 +58,7 @@ class ClassifierTestCase:
     """The expected CLI string of the learner."""
     is_serializable: bool = True
     """Whether the learner is serializable."""
+    batch_size: int = 1
 
 
 """
@@ -98,8 +101,8 @@ test_cases = [
             split_criterion=GiniSplitCriterion(),
             leaf_prediction="NaiveBayes",
         ),
-        87.8,
-        85.0,
+        87.35,
+        84.0,
         cli_string="trees.EFDT -R 200 -m 33554433 -g 10 -s GiniSplitCriterion -c 0.001 -z -p -l NB",
     ),
     ClassifierTestCase(
@@ -205,28 +208,30 @@ test_cases = [
         78.15,
         70,
     ),
+    ClassifierTestCase("ShrubsClassifier", partial(ShrubsClassifier), 89.6, 91),
     ClassifierTestCase(
-        "ShrubsClassifier",
-        partial(ShrubsClassifier),
-        89.6,
-        91
-        # 80,
+        "Finetune",
+        partial(
+            Finetune,
+            model=Perceptron,
+            optimizer=partial(torch.optim.Adam, lr=0.001),
+        ),
+        60.4,
+        66.0,
+        batch_size=32,
     ),
 ]
 
 
 def _score(classifier: Classifier, stream: Stream, limit=100) -> float:
     """Eval without training the classifier."""
-    stream.restart()
     evaluator = ClassificationEvaluator(schema=stream.get_schema())
-    i = 0
-    while stream.has_more_instances():
-        instance = stream.next_instance()
+    stream.restart()
+    for i, instance in enumerate(stream):
+        if i >= limit:
+            break
         prediction = classifier.predict(instance)
         evaluator.update(instance.y_index, prediction)
-        i += 1
-        if i > limit:
-            break
     return evaluator.accuracy()
 
 
@@ -241,18 +246,21 @@ def subtest_save_and_load(
         tmp_file = os.path.join(tmp_dir, "model.pkl")
         with pytest.raises(JException) if not is_serializable else nullcontext():
             # Save and load the model
-            save_model(classifier, tmp_file)
-            loaded_classifier: Classifier = load_model(tmp_file)
+            with open(tmp_file, "wb") as f:
+                save_model(classifier, f)
+
+            with open(tmp_file, "rb") as f:
+                loaded_classifier: Classifier = load_model(f)
 
             # Check that the saved and loaded model have the same accuracy
             expected_acc = _score(classifier, stream)
             loaded_acc = _score(loaded_classifier, stream)
-            assert (
-                expected_acc == loaded_acc
-            ), f"Original accuracy {expected_acc*100:.2f} != loaded accuracy {loaded_acc*100:.2f}"
+            assert expected_acc == loaded_acc, (
+                f"Original accuracy {expected_acc * 100:.2f} != loaded accuracy {loaded_acc * 100:.2f}"
+            )
 
             # Check that the loaded model can still be trained
-            loaded_classifier.train(stream.next_instance())
+            loaded_classifier.train(next(stream))
 
 
 @pytest.mark.parametrize(
@@ -269,32 +277,21 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     * Does the CLI string match the expected value?
     """
     stream = ElectricityTiny()
-    evaluator = ClassificationEvaluator(schema=stream.get_schema())
-    win_evaluator = ClassificationWindowedEvaluator(
-        schema=stream.get_schema(), window_size=100
-    )
     learner: Classifier = test_case.learner_constructor(schema=stream.get_schema())
-
-    while stream.has_more_instances():
-        instance = stream.next_instance()
-        prediction = learner.predict(instance)
-        evaluator.update(instance.y_index, prediction)
-        win_evaluator.update(instance.y_index, prediction)
-        learner.train(instance)
+    results = prequential_evaluation(
+        stream, learner, window_size=100, batch_size=test_case.batch_size
+    )
 
     # Check if the accuracy matches the expected value for both evaluator types
-    actual_acc = evaluator.accuracy()
-    actual_win_acc = win_evaluator.accuracy()[-1]
+    actual_acc = results.cumulative.accuracy()
+    actual_win_acc = results.windowed.accuracy()[-1]
 
-    print(f"{actual_acc}")
-    print(f"{actual_win_acc}")
-
-    assert actual_acc == pytest.approx(
-        test_case.accuracy, abs=0.1
-    ), f"Basic Eval: Expected accuracy of {test_case.accuracy:0.1f} got {actual_acc: 0.1f}"
-    assert actual_win_acc == pytest.approx(
-        test_case.win_accuracy, abs=0.1
-    ), f"Windowed Eval: Expected accuracy of {test_case.win_accuracy:0.1f} got {actual_win_acc:0.1f}"
+    assert actual_acc == pytest.approx(test_case.accuracy, abs=0.1), (
+        f"Basic Eval: Expected accuracy of {test_case.accuracy:0.1f} got {actual_acc: 0.1f}"
+    )
+    assert actual_win_acc == pytest.approx(test_case.win_accuracy, abs=0.1), (
+        f"Windowed Eval: Expected accuracy of {test_case.win_accuracy:0.1f} got {actual_win_acc:0.1f}"
+    )
 
     # Check if the classifier can be saved and loaded
     with subtests.test(msg="save_and_load"):
@@ -304,4 +301,3 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     if isinstance(learner, MOAClassifier) and test_case.cli_string is not None:
         cli_str = _extract_moa_learner_CLI(learner).strip("()")
         assert cli_str == test_case.cli_string, "CLI does not match expected value"
-

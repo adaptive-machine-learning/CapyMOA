@@ -1,13 +1,87 @@
 import gzip
-import shutil
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import Optional, Union, Tuple
-import wget
+from typing import Callable, Optional, Tuple
+from urllib.request import urlretrieve
+import torch
 from shutil import copyfileobj
-import os
 from capymoa.env import capymoa_datasets_dir
-from urllib.parse import urlsplit
+import numpy as np
+from urllib.parse import urlparse
+from os.path import basename
+from shutil import unpack_archive, get_unpack_formats, move
+from tqdm import tqdm
+
+_GZIP_SUFFIX = [".gz", ".gzip"]
+
+
+def _unpacked_format(filename: str) -> Tuple[str | None, str]:
+    for format, extensions, _ in get_unpack_formats():
+        for ext in extensions:
+            if filename.endswith(ext):
+                return format, filename.removesuffix(ext)
+    for ext in _GZIP_SUFFIX:
+        if filename.endswith(ext):
+            return "gzip", filename.removesuffix(ext)
+    return None, filename
+
+
+def _url_to_filename(url: str) -> str:
+    return basename(urlparse(url).path)
+
+
+def infer_unpacked_path(url: str, downloads: Path | str) -> Path:
+    _, filename = _unpacked_format(_url_to_filename(url))
+    return Path(downloads) / filename
+
+
+def is_already_downloaded(url: str, downloads: Path | str) -> bool:
+    return infer_unpacked_path(url, downloads).exists()
+
+
+class _TqdmUpTo(tqdm):
+    def update_to(self, b=1, bsize=1, tsize=None):
+        if tsize is not None:
+            self.total = tsize
+        return self.update(b * bsize - self.n)  # also sets self.n = b * bsize
+
+
+def download_unpacked(url: str, downloads: Path | str) -> Path:
+    """Download and unpack an archived/compressed file.
+
+    * ``https://example.com/mydir.tar.gz`` -> ``/downloads/mydir/``
+    * ``https://example.com/mydir.zip`` -> ``/downloads/mydir/``
+    * ``https://example.com/myfile.gz`` -> ``/downloads/myfile``
+
+    :param url: URL with a valid filename.
+    :param downloads: Base directory to download to.
+    :raises FileNotFoundError: If ``downloads`` does not exist.
+    :raises NotADirectoryError: If ``downloads`` is not a directory.
+    :raises FileExistsError: If the unpacked directory/file already exists.
+    :return: The unpacked directory/file.
+    """
+    downloads = Path(downloads)
+    format, filename = _unpacked_format(_url_to_filename(url))
+    path = downloads / filename
+    if not downloads.exists():
+        raise FileNotFoundError()
+    if not downloads.is_dir():
+        raise NotADirectoryError()
+    if path.exists():
+        raise FileExistsError(f"File or directory '{path}' already exists.")
+
+    with _TqdmUpTo(unit="B", unit_scale=True, unit_divisor=1024, desc=filename) as pbar:
+        tmpfile, _ = urlretrieve(url, reporthook=pbar.update_to)
+
+    # Unpack, decompress, or simply move to the path
+    if format == "gzip":
+        with gzip.open(tmpfile, "rb") as fin:
+            with open(path, "xb") as fdst:
+                copyfileobj(fin, fdst)
+    elif format is not None:
+        unpack_archive(tmpfile, path, format=format)
+    else:
+        move(tmpfile, path)
+    return path
 
 
 def get_download_dir(download_dir: Optional[str] = None) -> Path:
@@ -31,95 +105,82 @@ def get_download_dir(download_dir: Optional[str] = None) -> Path:
     return download_dir
 
 
-def extract(in_filename: Union[Path, str]) -> Path:
-    """Extract the given file.
+def download_numpy_dataset(
+    dataset_name: str,
+    url: str,
+    auto_download: bool = True,
+    downloads: Path | str = capymoa_datasets_dir(),
+) -> Tuple[
+    Tuple[np.ndarray, np.ndarray],
+    Tuple[np.ndarray, np.ndarray],
+]:
+    """Download, extract, and load a numpy dataset.
 
-    :param in_filename: A filename to extract with a known archive/compression/no extension.
-    :raises ValueError: If the file extension is unknown.
-    :return: The extracted filename without the archive/compression suffix.
+    Assumes the dataset has been archived in a tar.gz file with the following
+    structure:
+
+    ..  code-block:: text
+
+        ${dataset_name}/
+            train_x.npy train_y.npy test_x.npy test_y.npy
+
+    :param dataset_name: Dataset name, used to create the directory and archive
+        filename.
+    :param url: URL pointing to the dataset archive.
+    :param auto_download: If True, the dataset will be downloaded if it does not
+        exist.
+    :param output_directory: Directory to download the dataset to. Defaults to
+        the CapyMOA datasets directory.
+    :raises FileNotFoundError: If the dataset is not found and `auto_download`
+        is False.
+    :return: A tuple containing the training and testing data as numpy arrays.
     """
-    in_filename = Path(in_filename)
+    path = Path(downloads) / dataset_name
 
-    suffix, out_filename = identify_compressed_file(in_filename)
-    out_path = in_filename.parent / out_filename
+    # Check if the dataset is already downloaded
+    if not path.exists():
+        if not auto_download:
+            raise FileNotFoundError(
+                f"Dataset {dataset_name} not found in {downloads}. "
+                "Set auto_download=True to download it."
+            )
+        assert download_unpacked(url, downloads) == path
 
-    if suffix == ".gz":
-        with gzip.open(in_filename, "rb") as f_in:
-            with open(out_path, "wb") as f_out:
-                copyfileobj(f_in, f_out)
-    else:
-        raise ValueError(f"Unknown file extension: {suffix}")
-    return out_path
-
-
-def identify_compressed_file(path: Union[str, Path]) -> Tuple[str, str]:
-    """
-    Returns the name and suffix of a compressed file.
-
-    Useful to determine the name of a file after extraction.
-
-    >>> identify_compressed_file("file.csv.gz")
-    ('.gz', 'file.csv')
-    >>> identify_compressed_file("https://example.com/file.csv.gz")
-    ('.gz', 'file.csv')
-
-    :param filename: The filename or url to extract the suffix from.
-    :return: A tuple containing the suffix and the extracted filename.
-    """
-    # Convert to string to handle Path objects and URLs
-    path = Path(path)
-
-    suffix = path.suffixes[-1]
-    if suffix == ".gz":
-        return suffix, path.with_suffix("").name
-    else:
-        raise ValueError(f"Unknown file extension: {suffix}")
+    return (
+        (
+            np.load(path / "train_x.npy"),
+            np.load(path / "train_y.npy"),
+        ),
+        (
+            np.load(path / "test_x.npy"),
+            np.load(path / "test_y.npy"),
+        ),
+    )
 
 
-def identify_compressed_hosted_file(url: str) -> Tuple[str, str]:
-    """Returns the extracted filename of a given URL and its suffix.
+class TensorDatasetWithTransform(
+    torch.utils.data.Dataset[Tuple[torch.Tensor, torch.Tensor]]
+):
+    """A PyTorch dataset that applies a transformation to the data."""
 
-    >>> identify_compressed_hosted_file("https://example.com/file.csv.gz")
-    ('.gz', 'file.csv')
-    """
-    return identify_compressed_file(urlsplit(url).path)
+    def __init__(
+        self,
+        data: torch.Tensor,
+        targets: torch.Tensor,
+        transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+    ):
+        self.data = data
+        self.targets = targets
+        self.transform = transform
 
+    def __len__(self):
+        return len(self.data)
 
-def is_already_downloaded(url: str, output_directory: Union[str, Path]) -> bool:
-    """Check if a file has already been downloaded.
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        x = self.data[idx]
+        y = self.targets[idx]
 
-    This function checks if the url has already been downloaded by checking if the
-    extracted file exists in the output directory.
-    """
-    return (Path(output_directory) / identify_compressed_hosted_file(url)[1]).exists()
+        if self.transform:
+            x = self.transform(x)
 
-
-def download_extract(url: str, output_directory: Path) -> Path:
-    """Download and extract a file.
-
-    :param url: URL pointing to the file to download.
-    :param output_directory: A directory to download the file to.
-    :return: The path to the extracted file.
-    """
-    output_directory = Path(output_directory)
-    if not output_directory.exists():
-        raise FileNotFoundError(f"Output directory {output_directory} does not exist.")
-    if not output_directory.is_dir():
-        raise NotADirectoryError(
-            f"Output directory {output_directory} is not a directory."
-        )
-
-    # The wget download will add temporary files to the current working directory
-    # so we need to change the working directory to avoid cluttering the current
-    # directory with temporary files.
-    wd = os.getcwd()
-    with TemporaryDirectory() as working_directory:
-        working_directory = Path(working_directory)
-        os.chdir(working_directory)
-        archive = wget.download(url, working_directory.as_posix())
-        print()
-        extracted = extract(archive)
-        out_filename = output_directory / extracted.name
-        shutil.move(extracted, out_filename)
-    os.chdir(wd)
-    return out_filename
+        return x, y

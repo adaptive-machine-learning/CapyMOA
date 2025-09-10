@@ -12,6 +12,8 @@ name = "capymoa"
 dynamic = ['version']
 description = "Python wrapper for MOA to allow efficient use of existing algorithms with a more modern API."
 readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 homepage = "https://capymoa.org"
 repository = "https://github.com/adaptive-machine-learning/CapyMOA"
 authors = [
@@ -44,7 +46,7 @@ requires-python = ">=3.9"
 # as permissive as possible, since capymoa should collaborate with other
 # packages.
 dependencies = [
-    "jpype1",
+    "jpype1>=v1.5.1",
     "wget",
     "numpy",
     "pandas",
@@ -53,6 +55,8 @@ dependencies = [
     "scikit-learn",
     "click",
     "seaborn",
+    "tqdm",
+    "deprecated"
 ]
 
 [project.optional-dependencies]
@@ -64,13 +68,15 @@ dev=[
     "nbmake",
     "pytest-xdist",
     "invoke",
+    "stubgenj",
     "wget",
-    "commitizen~=3.24.0"
+    "commitizen~=3.24.0",
+    "ruff",
 ]
 
 doc=[
     # Documentation generator
-    "sphinx",
+    "sphinx==8.1.3",
     # Theme for the documentation
     "pydata-sphinx-theme",
     # Allows to include Jupyter notebooks in the documentation
@@ -198,3 +204,7 @@ style = "sphinx"
 fail-under = 80
 omit-covered-files = true
 ignore-module = true
+
+# Configuration for the formatter
+[tool.ruff]
+target-version = "py310"

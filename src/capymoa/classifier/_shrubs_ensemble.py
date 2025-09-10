@@ -11,17 +11,18 @@ from scipy.special import softmax
 
 from capymoa.stream._stream import Schema
 
-def to_prob_simplex(x:list|np.array):
+
+def to_prob_simplex(x: list | np.array):
     """
     Projects a given vector `x` onto the probability simplex.
     The function takes a vector `x` and projects it onto the probability simplex,
     ensuring that the resulting vector sums to 1 and all elements are non-negative.
     If `x` is None or empty, it returns `x` as is.
-    
+
     :param x (list or numpy array): The input vector to be projected.
     :return: The projected vector on the probability simplex.
     :rtype: list
-    
+
     Reference:
     `Projection onto the probability simplex: An efficient algorithm with a simple proof, and an application
     Weiran Wang, Miguel Á. Carreira-Perpiñán 2013
@@ -31,31 +32,32 @@ def to_prob_simplex(x:list|np.array):
         return x
     u = np.sort(x)[::-1]
 
-    l = None
+    l = None  # noqa
     u_sum = 0
-    for i in range(0,len(u)):
+    for i in range(0, len(u)):
         u_sum += u[i]
         tmp = 1.0 / (i + 1.0) * (1.0 - u_sum)
         if u[i] + tmp > 0:
-            l = tmp
-    
+            l = tmp  # noqa
+
     projected_x = [max(xi + l, 0.0) for xi in x]
     return projected_x
+
 
 class _ShrubEnsembles(ABC):
     """Base for shrub ensembles for classification and regression.
 
     This class implements the ShrubEnsembles algorithm for classification and regression, which is
-    an ensemble classifier that continuously adds decision trees to the ensemble by training 
-    new trees over a sliding window while pruning unnecessary trees away using proximal (stochastic) gradient descent, 
+    an ensemble classifier that continuously adds decision trees to the ensemble by training
+    new trees over a sliding window while pruning unnecessary trees away using proximal (stochastic) gradient descent,
     hence allowing for adaptation to concept drift.
 
-    **Note:** 
+    **Note:**
     This class should not be instantiated directly, but as it only implements the base algorithm. For classification tasks use :class:`capymoa.classifier.ShrubsClassifier` and for regression tasks use :class:`capymoa.regressor.ShrubsRegressor`.
-    
+
 
     Reference:
-    
+
     `Shrub Ensembles for Online Classification
     Sebastian Buschjäger, Sibylle Hess, and Katharina Morik
     In Proceedings of the Thirty-Sixth AAAI Conference on Artificial Intelligence (AAAI-22), Jan 2022.
@@ -63,12 +65,13 @@ class _ShrubEnsembles(ABC):
 
     """
 
-    def __init__(self,
-        schema: Schema, 
-        loss: Literal["mse","ce","h2"],
-        step_size: float|Literal["adaptive"],
-        ensemble_regularizer: Literal["hard-L0","L0","L1","none"],
-        l_ensemble_reg: float|int,  
+    def __init__(
+        self,
+        schema: Schema,
+        loss: Literal["mse", "ce", "h2"],
+        step_size: float | Literal["adaptive"],
+        ensemble_regularizer: Literal["hard-L0", "L0", "L1", "none"],
+        l_ensemble_reg: float | int,
         l_l2_reg: float,
         l_tree_reg: float,
         normalize_weights: bool,

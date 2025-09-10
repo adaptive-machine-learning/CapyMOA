@@ -1,69 +1,69 @@
+from typing import Optional
 from capymoa.base import (
     MOAClassifier,
     _extract_moa_learner_CLI,
-    _extract_moa_drift_detector_CLI
+    _extract_moa_drift_detector_CLI,
 )
 
-
+from capymoa.base._classifier import Classifier
+from capymoa.drift.base_detector import BaseDriftDetector
 from capymoa.drift.detectors import (
     ADWIN,
 )
 
-
+from capymoa.stream._stream import Schema
 from moa.classifiers.meta import AdaptiveRandomForest as _MOA_AdaptiveRandomForest
-from moa.classifiers.meta.minibatch import AdaptiveRandomForestMB as _MOA_AdaptiveRandomForestMB
+from moa.classifiers.meta.minibatch import (
+    AdaptiveRandomForestMB as _MOA_AdaptiveRandomForestMB,
+)
 import os
 
+
 class AdaptiveRandomForestClassifier(MOAClassifier):
-    """Adaptive Random Forest Classifier
+    """Adaptive Random Forest.
 
-    This class implements the Adaptive Random Forest (ARF) algorithm, which is
-    an ensemble classifier capable of adapting to concept drift.
+    Adaptive Random Forest (ARF) [#0]_ is a decsion tree ensemble classifier.
+    The 3 most important aspects of this ensemble classifier are: (1) inducing
+    diversity through resampling; (2) inducing diversity through randomly
+    selecting subsets of features for node splits; (3) drift detectors per base
+    tree, which cause selective resets in response to drifts. It also allows
+    training background trees, which start training if a warning is detected and
+    replace the active tree if the warning escalates to a drift.
 
-    ARF is implemented in MOA (Massive Online Analysis) and provides several
-    parameters for customization.
-
-    Reference:
-
-    `Adaptive random forests for evolving data stream classification.
-    Heitor Murilo Gomes, A. Bifet, J. Read, ..., B. Pfahringer, G. Holmes, T. Abdessalem.
-    Machine Learning, 106, 1469-1495, 2017.
-    <https://link.springer.com/article/10.1007/s10994-017-5642-8>`_
-
-    See also :py:class:`capymoa.regressor.AdaptiveRandomForestRegressor`
-    See :py:class:`capymoa.base.MOAClassifier` for train, predict and predict_proba.
-
-    Example usage:
-
-    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import AdaptiveRandomForestClassifier
+    >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.evaluation import prequential_evaluation
+    >>>
     >>> stream = ElectricityTiny()
-    >>> schema = stream.get_schema()
-    >>> learner = AdaptiveRandomForestClassifier(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
+    >>> classifier = AdaptiveRandomForestClassifier(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
     87.9
+
+    .. [#0] `Gomes, H. M., Bifet, A., Read, J., Barddal, J. P., Enembreck, F.,
+             Pfharinger, B., ... & Abdessalem, T. (2017). Adaptive random forests for
+             evolving data stream classification. Machine Learning, 106, 1469-1495.
+             <https://link.springer.com/content/pdf/10.1007/s10994-017-5642-8.pdf>`_
     """
 
     def __init__(
         self,
-        schema=None,
-        CLI=None,
-        random_seed=1,
-        base_learner=None,
-        ensemble_size=100,
-        max_features=0.6,
-        lambda_param=6.0,
-        minibatch_size=None,
-        number_of_jobs=1,
-        drift_detection_method=None,
-        warning_detection_method=None,
-        disable_weighted_vote=False,
-        disable_drift_detection=False,
-        disable_background_learner=False,
+        schema: Optional[Schema] = None,
+        CLI: Optional[str] = None,
+        random_seed: int = 1,
+        base_learner: Optional[Classifier] = None,
+        ensemble_size: int = 100,
+        max_features: float = 0.6,
+        lambda_param: float = 6.0,
+        minibatch_size: Optional[int] = None,
+        number_of_jobs: int = 1,
+        drift_detection_method: Optional[BaseDriftDetector] = None,
+        warning_detection_method: Optional[BaseDriftDetector] = None,
+        disable_weighted_vote: bool = False,
+        disable_drift_detection: bool = False,
+        disable_background_learner: bool = False,
     ):
-        """Construct an Adaptive Random Forest Classifier
+        """Construct ARF.
 
         :param schema: The schema of the stream. If not provided, it will be inferred from the data.
         :param CLI: Command Line Interface (CLI) options for configuring the ARF algorithm.
@@ -117,13 +117,13 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
                 self.m_features_per_tree_size = 60
             else:
                 # Raise an exception with information about valid options for max_features
-                raise ValueError("Invalid value for max_features. Valid options: float between 0.0 and 1.0 "
-                                 "representing percentage, integer specifying exact number, or 'sqrt' for "
-                                 "square root of total features.")
+                raise ValueError(
+                    "Invalid value for max_features. Valid options: float between 0.0 and 1.0 "
+                    "representing percentage, integer specifying exact number, or 'sqrt' for "
+                    "square root of total features."
+                )
 
             self.lambda_param = lambda_param
-            # old
-            # self.number_of_jobs = number_of_jobs
             self.drift_detection_method = (
                 _extract_moa_drift_detector_CLI(ADWIN(delta=0.001))
                 if drift_detection_method is None
@@ -137,42 +137,29 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
             self.disable_weighted_vote = disable_weighted_vote
             self.disable_drift_detection = disable_drift_detection
             self.disable_background_learner = disable_background_learner
-# new
-# ----------
-            if (number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1) and (minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1):
-                #run the sequential version by default or when both parameters are None | 0 | 1
+
+            if number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1:
                 self.number_of_jobs = 1
-                self.minibatch_size = 1
-                moa_learner = _MOA_AdaptiveRandomForest()
-                CLI = f"-l {self.base_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
-                    {self.m_features_per_tree_size} -a {self.lambda_param} -j {self.number_of_jobs} -x {self.drift_detection_method} -p \
-                    {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
-                    {'-q' if self.disable_background_learner else ''}"
+            elif number_of_jobs < 0:
+                self.number_of_jobs = os.cpu_count()
             else:
-                #run the minibatch parallel version when at least one of the number of jobs or the minibatch size parameters are greater than 1
-                if number_of_jobs == 0 or number_of_jobs is None:
-                    self.number_of_jobs = 1
-                elif number_of_jobs < 0:
-                    self.number_of_jobs = os.cpu_count()
-                else:
-                    self.number_of_jobs = int(min(number_of_jobs, os.cpu_count()))
-                if minibatch_size is None:
-                    # if the user sets only the number_of_jobs, we assume he wants the parallel minibatch version and initialize minibatch_size to the default 25
-                    self.minibatch_size = 25
-                elif minibatch_size <= 1:
-                    # if the user sets the number of jobs and the minibatch_size less than 1 it is considered that the user wants a parallel execution of a single instance at a time
-                    self.minibatch_size = 1
-                else:
-                    # if the user sets both parameters to values greater than 1, we initialize the minibatch_size to the user's choice
-                    self.minibatch_size = int(minibatch_size)
+                self.number_of_jobs = int(min(number_of_jobs, os.cpu_count()))
+
+            if minibatch_size is not None and minibatch_size > 1:
+                self.minibatch_size = int(minibatch_size)
                 moa_learner = _MOA_AdaptiveRandomForestMB()
                 CLI = f"-l {self.base_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
-                    {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
-                    {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
-                    {'-q' if self.disable_background_learner else ''}\
-                        -c {self.number_of_jobs} -b {self.minibatch_size}"
-# ----------
-# new end
+                                    {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
+                                    {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
+                                    {'-q' if self.disable_background_learner else ''}\
+                                    -c {self.number_of_jobs} -b {self.minibatch_size}"
+            else:
+                moa_learner = _MOA_AdaptiveRandomForest()
+                CLI = f"-l {self.base_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
+                                    {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
+                                    {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
+                                    {'-q' if self.disable_background_learner else ''}\
+                                    -j {self.number_of_jobs}"
 
         super().__init__(
             schema=schema,

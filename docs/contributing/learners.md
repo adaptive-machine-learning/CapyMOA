@@ -29,12 +29,16 @@ from capymoa.classifier import MyNewLearner
 ```
 
 ## What does a learner implement?
-<!-- TODO: Link to capymoa documentation -->
+
 A learner should implement the appropriate interface:
 * {py:class}`capymoa.base.Classifier` for classifiers.
 * {py:class}`capymoa.base.Regressor` for regressors.
 * {py:class}`capymoa.base.AnomalyDetector` for anomaly detectors.
 * {py:class}`capymoa.base.ClassifierSSL` for semi-supervised classifiers.
+* {py:class}`capymoa.base.Classifier` for online continual learning classifiers.
+  Optionally also inheriting from {py:class}`capymoa.ocl.base.TrainTaskAware` or
+  {py:class}`capymoa.ocl.base.TestTaskAware` to support learners that are aware of
+  task identities or task boundaries.
 
 If your method is a wrapper around a MOA learner, you should use the appropriate
 base class:
@@ -48,9 +52,11 @@ the expected performance in future versions. CapyMOA provides parametrized
 tests for classifiers, regressors, and semi-supervised classifiers. You should
 not need to write any new test code. Instead, you should add your test's
 parameters to the appropriate test file:
+
 - `tests/test_classifiers.py` for classifiers.
-- `tests/test_regressors.py` for regressors.
 - `tests/test_ssl_classifiers.py` for semi-supervised classifiers.
+- `tests/ocl/test_learners.py` for online continual learning learners.
+- `tests/test_regressors.py` for regressors.
 - `tests/test_anomaly.py` for anomaly detectors.
 
 To run your tests, use the following command:

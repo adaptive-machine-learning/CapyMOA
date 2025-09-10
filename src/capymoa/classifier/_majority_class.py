@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 
 from capymoa.base import (
     MOAClassifier,
@@ -13,9 +12,8 @@ from moa.classifiers.functions import MajorityClass as _MOA_MajorityClass
 class MajorityClass(MOAClassifier):
     """Majority class classifier.
 
-    Always predicts the class that has been observed most frequently the in the training data.
-
-    Example usages:
+    Always predicts the class that has been observed most frequently the in the training
+    data.
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import MajorityClass
@@ -37,8 +35,7 @@ class MajorityClass(MOAClassifier):
         :param schema: The schema of the stream.
         """
 
-        mapping = {
-        }
+        mapping = {}
 
         config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super(MajorityClass, self).__init__(

@@ -2,7 +2,7 @@ Installation
 ============
 
 This document describes how to install CapyMOA and its dependencies. CapyMOA is
-tested against Python 3.9, 3.10, and 3.11. Newer versions of Python will likely
+tested against Python 3.10, 3.11, and 3.12. Newer versions of Python will likely
 work but have yet to be tested.
 
 #. **Virtual Environment (Optional)**

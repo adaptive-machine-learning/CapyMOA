@@ -12,34 +12,34 @@ from moa.classifiers.meta import (
 class AdaptiveRandomForestRegressor(MOARegressor):
     """Adaptive Random Forest Regressor
 
-        This class implements the Adaptive Random Forest (ARF) algorithm, which is
-        an ensemble regressor capable of adapting to concept drift.
+    This class implements the Adaptive Random Forest (ARF) algorithm, which is
+    an ensemble regressor capable of adapting to concept drift.
 
-        ARF is implemented in MOA (Massive Online Analysis) and provides several
-        parameters for customization.
+    ARF is implemented in MOA (Massive Online Analysis) and provides several
+    parameters for customization.
 
-        See also :py:class:`capymoa.classifier.AdaptiveRandomForestClassifier`
-        See :py:class:`capymoa.base.MOARegressor` for train and predict.
+    See also :py:class:`capymoa.classifier.AdaptiveRandomForestClassifier`
+    See :py:class:`capymoa.base.MOARegressor` for train and predict.
 
-        Reference:
+    Reference:
 
-        `Adaptive random forests for data stream regression.
-        Heitor Murilo Gomes, J. P. Barddal, L. E. B. Ferreira, A. Bifet.
-        ESANN, pp. 267-272, 2018.
-        <https://www.esann.org/sites/default/files/proceedings/legacy/es2018-183.pdf>`_
+    `Adaptive random forests for data stream regression.
+    Heitor Murilo Gomes, J. P. Barddal, L. E. B. Ferreira, A. Bifet.
+    ESANN, pp. 267-272, 2018.
+    <https://www.esann.org/sites/default/files/proceedings/legacy/es2018-183.pdf>`_
 
-        Example usage:
+    Example usage:
 
-        >>> from capymoa.datasets import Fried
-        >>> from capymoa.regressor import AdaptiveRandomForestRegressor
-        >>> from capymoa.evaluation import prequential_evaluation
-        >>> stream = Fried()
-        >>> schema = stream.get_schema()
-        >>> learner = AdaptiveRandomForestRegressor(schema)
-        >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-        >>> results["cumulative"].rmse()
-        3.659072011685404
-        """
+    >>> from capymoa.datasets import Fried
+    >>> from capymoa.regressor import AdaptiveRandomForestRegressor
+    >>> from capymoa.evaluation import prequential_evaluation
+    >>> stream = Fried()
+    >>> schema = stream.get_schema()
+    >>> learner = AdaptiveRandomForestRegressor(schema)
+    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
+    >>> results["cumulative"].rmse()
+    3.659072011685404
+    """
 
     def __init__(
         self,
@@ -81,7 +81,9 @@ class AdaptiveRandomForestRegressor(MOARegressor):
         # Initialize instance attributes with default values, CLI was not set.
         if CLI is None:
             if tree_learner is None:
-                self.tree_learner = ARFFIMTDD(schema, grace_period=50, split_confidence=0.01)
+                self.tree_learner = ARFFIMTDD(
+                    schema, grace_period=50, split_confidence=0.01
+                )
             elif type(tree_learner) is str:
                 self.tree_learner = tree_learner
             else:
@@ -104,9 +106,11 @@ class AdaptiveRandomForestRegressor(MOARegressor):
                 self.m_features_per_tree_size = 60
             else:
                 # Raise an exception with information about valid options for max_features
-                raise ValueError("Invalid value for max_features. Valid options: float between 0.0 and 1.0 "
-                                 "representing percentage, integer specifying exact number, or 'sqrt' for "
-                                 "square root of total features.")
+                raise ValueError(
+                    "Invalid value for max_features. Valid options: float between 0.0 and 1.0 "
+                    "representing percentage, integer specifying exact number, or 'sqrt' for "
+                    "square root of total features."
+                )
 
             self.lambda_param = lambda_param
             self.drift_detection_method = (

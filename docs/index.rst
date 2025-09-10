@@ -73,6 +73,22 @@ features.  You can find the code to reproduce this benchmark in
 *CapyMOA has the speed of MOA with the flexibility of Python and the richness of
 Python's data science ecosystem.*
 
+📖 Cite Us
+--------------
+
+If you use CapyMOA in your research, please cite us using the following Bibtex entry::
+
+   @misc{
+      gomes2025capymoaefficientmachinelearning,
+      title={{CapyMOA}: Efficient Machine Learning for Data Streams in Python},
+      author={Heitor Murilo Gomes and Anton Lee and Nuwan Gunasekara and Yibin Sun and Guilherme Weigert Cassales and Justin Jia Liu and Marco Heyden and Vitor Cerqueira and Maroua Bahri and Yun Sing Koh and Bernhard Pfahringer and Albert Bifet},
+      year={2025},
+      eprint={2502.07432},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2502.07432}
+   }
+
 .. _installation:
 
 🚀 Installation
@@ -105,8 +121,8 @@ and modules.
 
    api/index
 
-About us
----------
+ℹ️ About us
+-----------
 
 .. toctree::
    about

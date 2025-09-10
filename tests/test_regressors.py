@@ -13,7 +13,7 @@ from capymoa.regressor import (
     SOKNL,
     PassiveAggressiveRegressor,
     SGDRegressor,
-    ShrubsRegressor
+    ShrubsRegressor,
 )
 from jpype import JException
 import pytest
@@ -24,6 +24,7 @@ from capymoa.stream import Schema, Stream
 from tempfile import TemporaryDirectory
 
 from pytest_subtests import SubTests
+
 
 def _score(classifier: Regressor, stream: Stream, limit=100) -> float:
     """Eval without training the classifier."""
@@ -52,18 +53,21 @@ def subtest_save_and_load(
         tmp_file = os.path.join(tmp_dir, "model.pkl")
         with pytest.raises(JException) if not is_serializable else nullcontext():
             # Save and load the model
-            save_model(regressor, tmp_file)
-            loaded_regressor: Regressor = load_model(tmp_file)
+            with open(tmp_file, "wb") as f:
+                save_model(regressor, f)
+            with open(tmp_file, "rb") as f:
+                loaded_regressor: Regressor = load_model(f)
 
             # Check that the saved and loaded model have the same accuracy
             expected_acc = _score(regressor, stream)
             loaded_acc = _score(loaded_regressor, stream)
-            assert (
-                expected_acc == loaded_acc
-            ), f"Original accuracy {expected_acc*100:.2f} != loaded accuracy {loaded_acc*100:.2f}"
+            assert expected_acc == loaded_acc, (
+                f"Original accuracy {expected_acc * 100:.2f} != loaded accuracy {loaded_acc * 100:.2f}"
+            )
 
             # Check that the loaded model can still be trained
             loaded_regressor.train(stream.next_instance())
+
 
 @pytest.mark.parametrize(
     "learner_constructor,rmse,win_rmse",
@@ -89,8 +93,8 @@ def subtest_save_and_load(
         "SOKNL",
         "PassiveAggressiveRegressor",
         "SGDRegressor",
-        "ShrubsRegressor"
-    ]
+        "ShrubsRegressor",
+    ],
 )
 def test_regressor(subtests: SubTests, learner_constructor, rmse, win_rmse):
     """Test on tiny is a fast running simple test to check if a learner's
@@ -102,7 +106,9 @@ def test_regressor(subtests: SubTests, learner_constructor, rmse, win_rmse):
     """
     stream = Fried()
     evaluator = RegressionEvaluator(schema=stream.get_schema())
-    win_evaluator = RegressionWindowedEvaluator(schema=stream.get_schema(), window_size=100)
+    win_evaluator = RegressionWindowedEvaluator(
+        schema=stream.get_schema(), window_size=100
+    )
     learner: Regressor = learner_constructor(schema=stream.get_schema())
 
     i = 0
@@ -118,19 +124,22 @@ def test_regressor(subtests: SubTests, learner_constructor, rmse, win_rmse):
 
     actual_rmse = evaluator.rmse()
     actual_win_rmse = win_evaluator.rmse()[-1]
-    assert actual_rmse == pytest.approx(rmse, abs=0.1), \
+    assert actual_rmse == pytest.approx(rmse, abs=0.1), (
         f"Basic Eval: Expected {rmse:0.1f} RMSE got {actual_rmse: 0.1f} RMSE"
-    assert actual_win_rmse == pytest.approx(win_rmse, abs=0.1), \
+    )
+    assert actual_win_rmse == pytest.approx(win_rmse, abs=0.1), (
         f"Windowed Eval: Expected {win_rmse:0.1f} RMSE got {actual_win_rmse:0.1f} RMSE"
-    
+    )
+
     with subtests.test(msg="save_and_load"):
         subtest_save_and_load(learner, stream, True)
 
 
-
 def test_none_predict():
     """Test that a prediction of None is handled."""
-    schema = Schema.from_custom(feature_names=["x"], target_attribute_name="y", target_type='numeric')
+    schema = Schema.from_custom(
+        feature_names=["x"], target_attribute_name="y", target_type="numeric"
+    )
     evaluator = RegressionEvaluator(schema=schema)
     win_evaluator = RegressionWindowedEvaluator(schema=schema, window_size=100)
     evaluator.update(1.0, None)

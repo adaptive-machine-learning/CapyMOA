@@ -16,7 +16,7 @@ Modules
 {%- endfor %}
 {%- endif %}
 {% endblock %}
-{%- block classes %}
+{% block classes %}
 {%- if classes %}
 Classes
 -------
@@ -30,7 +30,7 @@ Classes
 {%- endif %}
 {%- endblock %}
 
-{%- block attributes %}
+{% block attributes %}
 {%- if attributes %}
 Module Attributes
 -----------------
@@ -51,7 +51,7 @@ Functions
 {%- endif %}
 {%- endblock %}
 
-{%- block exceptions %}
+{% block exceptions %}
 {%- if exceptions %}
 Exceptions
 ----------

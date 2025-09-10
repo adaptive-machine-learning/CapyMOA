@@ -23,10 +23,11 @@ def assert_ssl_evaluation(
         max_instances=max_instances,
     )
 
-    assert results['cumulative'].accuracy() == pytest.approx(expectation), (
+    assert results["cumulative"].accuracy() == pytest.approx(expectation), (
         f"Expected accuracy of {expectation} but got {results['cumulative'].accuracy()}"
         + f" for learner {learner} on stream {stream}"
     )
+
 
 @pytest.mark.parametrize(
     "learner_constructor, stream_constructor, expectation, label_probability",
@@ -39,7 +40,9 @@ def assert_ssl_evaluation(
         "OSNN_CovtypeTiny",
     ],
 )
-def test_ssl_classifiers(learner_constructor, stream_constructor, expectation, label_probability):
+def test_ssl_classifiers(
+    learner_constructor, stream_constructor, expectation, label_probability
+):
     # The optimizer steps are set to 10 to speed up the test
     stream = stream_constructor()
     learner = learner_constructor(schema=stream.get_schema())

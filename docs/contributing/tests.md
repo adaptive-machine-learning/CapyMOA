@@ -32,7 +32,7 @@ pytest tests/test_*.py
 Or to run with the same configuration as continuous integration:
 
 ```bash
-invoke test.unit
+invoke test.pytest
 ```
 
 ## Doctest
@@ -66,5 +66,5 @@ if you only want to run doctests in source code but not PyTest tests.
 Alternatively, you can run all unit tests with the same configuration as continuous integration:
 
 ```bash
-invoke test.unit
+invoke test.doctest
 ```

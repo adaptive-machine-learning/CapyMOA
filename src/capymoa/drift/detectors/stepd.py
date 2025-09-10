@@ -43,7 +43,7 @@ class STEPD(MOADriftDetector):
         CLI: Optional[str] = None,
     ):
         if CLI is None:
-            CLI = f"-r {window_size} " f"-o {alpha_drift} " f"-w {alpha_warning}"
+            CLI = f"-r {window_size} -o {alpha_drift} -w {alpha_warning}"
 
         super().__init__(moa_detector=_STEPD(), CLI=CLI)
 

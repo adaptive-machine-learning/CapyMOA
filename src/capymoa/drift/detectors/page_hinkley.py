@@ -45,7 +45,7 @@ class PageHinkley(MOADriftDetector):
         CLI: Optional[str] = None,
     ):
         if CLI is None:
-            CLI = f"-n {min_n_instances} " f"-d {delta} " f"-l {lambda_} " f"-a {alpha}"
+            CLI = f"-n {min_n_instances} -d {delta} -l {lambda_} -a {alpha}"
 
         super().__init__(moa_detector=_PageHinkleyDM(), CLI=CLI)
 

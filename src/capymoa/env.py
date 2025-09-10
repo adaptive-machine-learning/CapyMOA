@@ -37,6 +37,7 @@ def capymoa_datasets_dir() -> Path:
     dataset_dir.mkdir(exist_ok=True)
     return dataset_dir
 
+
 def capymoa_jvm_args() -> List[str]:
     """Return the ``CAPYMOA_JVM_ARGS`` environment variable or the default value ``-Xmx8g -Xss10M``.
 
@@ -52,16 +53,17 @@ def capymoa_jvm_args() -> List[str]:
     """
     return environ.get("CAPYMOA_JVM_ARGS", "-Xmx8g -Xss10M").split()
 
+
 def capymoa_moa_jar() -> Path:
     """Return the ``CAPYMOA_MOA_JAR`` environment variable or the built-in MOA jar file.
 
-    **This is an advanced feature that is unnecessary for most users.** 
+    **This is an advanced feature that is unnecessary for most users.**
 
     The ``CAPYMOA_MOA_JAR`` environment variable can be used to specify a custom path to
     the MOA jar file. Set it to a custom value in bash like this:
 
     ..  code-block:: bash
-        
+
         export CAPYMOA_MOA_JAR=/path/to/moa.jar
         python my_capy_moa_script.py
 
