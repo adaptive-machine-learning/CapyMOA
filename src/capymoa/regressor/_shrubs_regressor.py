@@ -38,24 +38,21 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
     5.21...
 
     """
-
-    def __init__(
-        self,
-        schema: Schema,
-        step_size: float | Literal["adaptive"] = "adaptive",
-        ensemble_regularizer: Literal["hard-L0", "L0", "L1", "none"] = "hard-L0",
-        l_ensemble_reg: float | int = 32,
+    def __init__(self,
+        schema: Schema, 
+        step_size: float|Literal["adaptive"] = "adaptive",
+        ensemble_regularizer: Literal["hard-L0","L0","L1","none"] = "hard-L0",
+        l_ensemble_reg: float|int = 32, 
         l_l2_reg: float = 0,
         l_tree_reg: float = 0,
         normalize_weights: bool = True,
         burnin_steps: int = 5,
         update_leaves: bool = False,
         batch_size: int = 32,
-        sk_dt: DecisionTreeRegressor = DecisionTreeRegressor(
-            splitter="best", max_depth=None, random_state=1234
-        ),
+        sk_dt: DecisionTreeRegressor = DecisionTreeRegressor(splitter="best", max_depth=None, random_state=1234),
+        allow_abstaining: bool = True
     ):
-        """Initializes the ShrubEnsemble regressor with the given parameters.
+        """ Initializes the ShrubEnsemble regressor with the given parameters.
 
         :param step_size: The step size (i.e. learning rate of SGD) for updating
             the model. Can be a float or "adaptive". Adaptive reduces the step
@@ -68,14 +65,13 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
             * ``L0``: L0 regularization via projection.
             * ``L1``: L1 regularization via projection.
             * ``none``: No regularization.
-
+            
             Projection can be viewed as a softer regularization that drives the
             weights of each member towards 0, whereas ``hard-l0`` limits the
             number of trees in the entire ensemble.
         :param l_ensemble_reg: The regularization strength. Depending on the
             value of ``ensemble_regularizer``, this parameter has different
             meanings:
-
             * ``hard-L0``: then this parameter represent the total number of
               trees in the ensembles.
             * ``L0`` or ``L1``: then this parameter is the regularization
@@ -99,38 +95,24 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
             using SGD.
         :param batch_size: The batch size for training each individual tree.
             Internally, a sliding window is stored. Must be greater than or
-            equal to 1.
+            equal to 1. 
         :param sk_dt: Base object which is used to clone any new decision trees
             from. Note, that if you set random_state to an integer the exact
-            same clone is used for any DT object
+            same clone is used for any DT object 
+        :param allow_abstaining: If true, then None is returned if there is no model in the ensemble 
+            (i.e. it was pruned away or no data has been seen yet). Otherwise 0 is returned.
         """
         Regressor.__init__(self, schema, sk_dt.random_state)
-        _ShrubEnsembles.__init__(
-            self,
-            schema,
-            "mse",
-            step_size,
-            ensemble_regularizer,
-            l_ensemble_reg,
-            l_l2_reg,
-            l_tree_reg,
-            normalize_weights,
-            burnin_steps,
-            update_leaves,
-            batch_size,
-            sk_dt,
-        )
+        _ShrubEnsembles.__init__(self, schema, "mse", step_size, ensemble_regularizer, l_ensemble_reg, l_l2_reg,  l_tree_reg, normalize_weights, burnin_steps, update_leaves, batch_size, sk_dt,allow_abstaining)
 
     def __str__(self):
-        return str("ShrubsRegressor")
+       return str("ShrubsRegressor")
 
     def _individual_proba(self, X):
         if len(X.shape) < 2:
             all_proba = np.zeros(shape=(len(self.estimators_), 1, 1), dtype=np.float32)
         else:
-            all_proba = np.zeros(
-                shape=(len(self.estimators_), X.shape[0], 1), dtype=np.float32
-            )
+            all_proba = np.zeros(shape=(len(self.estimators_), X.shape[0], 1), dtype=np.float32)
 
         for i, e in enumerate(self.estimators_):
             all_proba[i, :, 0] += e.predict(X)
@@ -138,8 +120,14 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
         return all_proba
 
     def predict(self, instance):
-        all_proba = self._individual_proba(np.array([instance.x]))
-        scaled_prob = sum([w * p for w, p in zip(all_proba, self.estimator_weights_)])
-        combined_proba = np.sum(scaled_prob, axis=0)
-        # combined_proba should be a (1,) array, but the remaining CapyMoa code expects scalars
-        return combined_proba.item()
+        if (len(self.estimators_)) == 0:
+            if self.allow_abstaining:
+                return None 
+            else:
+                return 0
+        else:
+            all_proba = self._individual_proba(np.array([instance.x]))
+            scaled_prob = sum([w * p for w,p in zip(all_proba, self.estimator_weights_)])
+            combined_proba = np.sum(scaled_prob, axis=0)
+            # combined_proba should be a (1,) array, but the remaining CapyMoa code expects scalars
+            return combined_proba.item()

@@ -26,7 +26,6 @@ class SGDRegressor(SKRegressor):
     >>> results["cumulative"].rmse()
     4.62...
     """
-
     sklearner: _SKSGDRegressor
     """The underlying scikit-learn object"""
 
