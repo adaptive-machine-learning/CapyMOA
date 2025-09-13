@@ -21,5 +21,5 @@ __all__ = [
     "PassiveAggressiveRegressor",
     "SGDRegressor",
     "ShrubsRegressor",
-    "StreamingGradientBoostedRegression"
+    "StreamingGradientBoostedRegression",
 ]
