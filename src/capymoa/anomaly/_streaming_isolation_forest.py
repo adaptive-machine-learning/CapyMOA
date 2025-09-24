@@ -401,21 +401,15 @@ class StreamingIsolationTree:
 
 class StreamingIsolationForest(AnomalyDetector):
     """Streaming Isolation Forest anomaly detector.
-    This detector constructs an ensemble of isolation trees incrementally
-    in a streaming manner. Each tree employs reservoir sampling to
-    maintain a fixed-size window of training instances. The anomaly score
-    of an instance is calculated as the average path length across all
-    trees, normalized by the expected path length for a randomly chosen
-    instance in a tree of equivalent size. Scores are scaled between
-    0 and 1, with higher values indicating greater anomaly likelihood.
 
-    Reference:
-    Liu, J.J., Cassales, G.W., Liu, F.T., Pfahringer, B., Bifet, A. (2025).
-    Streaming Isolation Forest. In: Wu, X., et al. Advances in Knowledge
-    Discovery and Data Mining . PAKDD 2025. Lecture Notes in Computer Science(),
-    vol 15870. Springer, Singapore. https://doi.org/10.1007/978-981-96-8170-9_8
+    Streaming Isolation Forest anomaly detector [#f0]_ constructs an ensemble of
+    isolation trees incrementally in a streaming manner to perform anomaly detection.
+    Each tree employs reservoir sampling to maintain a fixed-size window of training
+    instances. The anomaly score of an instance is calculated as the average path length
+    across all trees, normalized by the expected path length for a randomly chosen
+    instance in a tree of equivalent size. Scores are scaled between 0 and 1, with
+    higher values indicating greater anomaly likelihood.
 
-    Example:
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.anomaly import StreamingIsolationForest
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
@@ -431,6 +425,11 @@ class StreamingIsolationForest(AnomalyDetector):
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
     AUC: 0.61
+
+    ..  [#f0] Liu, J.J., Cassales, G.W., Liu, F.T., Pfahringer, B., Bifet, A. (2025).
+        Streaming Isolation Forest. In: Wu, X., et al. Advances in Knowledge Discovery
+        and Data Mining . PAKDD 2025. Lecture Notes in Computer Science(), vol 15870.
+        Springer, Singapore. https://doi.org/10.1007/978-981-96-8170-9_8
     """
 
     def __init__(

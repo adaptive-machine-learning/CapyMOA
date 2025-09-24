@@ -499,24 +499,16 @@ class RCTree:
 
 
 class RobustRandomCutForest(AnomalyDetector):
-    """
-    Robust Random Cut Forest (RRCF)
+    """Robust Random Cut Forest.
 
-    RRCF is an algorithm for anomaly detection in dynamic data streams.
-    It maintains a random cut-based data structure (the forest) that
-    acts as a compact sketch or synopsis of the input stream. Anomalies
-    are defined non-parametrically in terms of the "externality" a new
-    point imposes on the existing data—that is, how much the new point
-    influences the structure of the forest.
+    Robust Random Cut Forest (RRCF) [#f0]_ is an algorithm for anomaly detection in
+    dynamic data streams. It maintains a random cut-based data structure (the forest)
+    that acts as a compact sketch or synopsis of the input stream. Anomalies are defined
+    non-parametrically in terms of the "externality" a new point imposes on the existing
+    data—that is, how much the new point influences the structure of the forest.
 
     This implementation is adapted from https://klabum.github.io/rrcf/
 
-    Reference:
-    Guha, S., Mishra, N., Roy, G., & Schrijvers, O. (2016, June). Robust
-    random cut forest based anomaly detection on streams. In International
-    conference on machine learning (pp. 2712-2721). PMLR.
-
-    Example:
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.anomaly import RobustRandomCutForest
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
@@ -533,6 +525,11 @@ class RobustRandomCutForest(AnomalyDetector):
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
     AUC: 0.56
+
+
+    .. [#f0] Guha, S., Mishra, N., Roy, G., & Schrijvers, O. (2016, June). Robust random
+        cut forest based anomaly detection on streams. In International conference on
+        machine learning (pp. 2712-2721). PMLR.
     """
 
     def __init__(self, schema: Schema, tree_size=1000, n_trees=100, random_state=42):
