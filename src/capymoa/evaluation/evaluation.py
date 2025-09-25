@@ -1096,8 +1096,8 @@ def prequential_evaluation(
         max_instances=max_instances,
         cumulative_evaluator=evaluator_cumulative,
         windowed_evaluator=evaluator_windowed,
-        ground_truth_y=ground_truth_y,
-        predictions=predictions,
+        ground_truth_y=np.array(ground_truth_y) if ground_truth_y else None,
+        predictions=np.array(predictions) if predictions else None,
     )
 
     return results
@@ -1167,6 +1167,8 @@ def prequential_ssl_evaluation(
             delay_length,
             label_probability,
             random_seed,
+            store_y,
+            store_predictions,
         )
 
     # IMPORTANT: delay_length and initial_window_size have not been implemented in python yet
@@ -1269,7 +1271,7 @@ def prequential_ssl_evaluation(
     ):
         evaluator_windowed.result_windows.append(evaluator_windowed.metrics())
 
-    results = PrequentialResults(
+    return PrequentialResults(
         learner=str(learner),
         stream=stream,
         wallclock=elapsed_wallclock_time,
@@ -1277,15 +1279,13 @@ def prequential_ssl_evaluation(
         max_instances=max_instances,
         cumulative_evaluator=evaluator_cumulative,
         windowed_evaluator=evaluator_windowed,
-        ground_truth_y=ground_truth_y,
-        predictions=predictions,
+        ground_truth_y=np.array(ground_truth_y) if ground_truth_y else None,
+        predictions=np.array(predictions) if predictions else None,
         other_metrics={
             "unlabeled": unlabeled_counter,
             "unlabeled_ratio": unlabeled_counter / i,
         },
     )
-
-    return results
 
 
 def prequential_evaluation_anomaly(
@@ -1407,14 +1407,6 @@ def _prequential_evaluation_fast(
     Prequential evaluation fast. This function should not be used directly, users should use prequential_evaluation.
     """
 
-    predictions = None
-    if store_predictions:
-        predictions = []
-
-    ground_truth_y = None
-    if store_y:
-        ground_truth_y = []
-
     if not _is_fast_mode_compilable(stream, learner):
         raise ValueError(
             "`prequential_evaluation_fast` requires the stream object to have a`Stream.moa_stream`"
@@ -1470,19 +1462,6 @@ def _prequential_evaluation_fast(
         start_wallclock_time, start_cpu_time
     )
 
-    if store_y or store_predictions:
-        for i in range(
-            len(
-                moa_results.targets
-                if len(moa_results.targets) != 0
-                else moa_results.predictions
-            )
-        ):
-            if store_y:
-                ground_truth_y.append(moa_results.targets[i])
-            if store_predictions:
-                predictions.append(moa_results.predictions[i])
-
     results = PrequentialResults(
         learner=str(learner),
         stream=stream,
@@ -1491,8 +1470,8 @@ def _prequential_evaluation_fast(
         max_instances=max_instances,
         cumulative_evaluator=basic_evaluator,
         windowed_evaluator=windowed_evaluator,
-        ground_truth_y=ground_truth_y,
-        predictions=predictions,
+        ground_truth_y=np.array(moa_results.targets) if store_y else None,
+        predictions=np.array(moa_results.predictions) if store_predictions else None,
     )
 
     return results
@@ -1501,14 +1480,14 @@ def _prequential_evaluation_fast(
 def _prequential_ssl_evaluation_fast(
     stream,
     learner,
-    max_instances=None,
-    window_size=1000,
-    initial_window_size=0,
-    delay_length=0,
-    label_probability=0.01,
-    random_seed=1,
-    store_y=False,
-    store_predictions=False,
+    max_instances,
+    window_size,
+    initial_window_size,
+    delay_length,
+    label_probability,
+    random_seed,
+    store_y,
+    store_predictions,
 ):
     """
     Prequential SSL evaluation fast.
@@ -1517,14 +1496,6 @@ def _prequential_ssl_evaluation_fast(
         raise ValueError(
             "`prequential_evaluation_fast` requires the stream object to have a`Stream.moa_stream`"
         )
-
-    predictions = None
-    if store_predictions:
-        predictions = []
-
-    ground_truth_y = None
-    if store_y:
-        ground_truth_y = []
 
     if max_instances is None:
         max_instances = -1
@@ -1552,8 +1523,8 @@ def _prequential_ssl_evaluation_fast(
         label_probability,
         random_seed,
         True,
-        # store_y,
-        # store_predictions,
+        store_y,
+        store_predictions,
     )
 
     # Reset the windowed_evaluator result_windows
@@ -1570,20 +1541,7 @@ def _prequential_ssl_evaluation_fast(
         start_wallclock_time, start_cpu_time
     )
 
-    if store_y or store_predictions:
-        for i in range(
-            len(
-                moa_results.targets
-                if len(moa_results.targets) != 0
-                else moa_results.predictions
-            )
-        ):
-            if store_y:
-                ground_truth_y.append(moa_results.targets[i])
-            if store_predictions:
-                predictions.append(moa_results.predictions[i])
-
-    results = PrequentialResults(
+    return PrequentialResults(
         learner=str(learner),
         stream=stream,
         wallclock=elapsed_wallclock_time,
@@ -1591,12 +1549,10 @@ def _prequential_ssl_evaluation_fast(
         max_instances=max_instances,
         cumulative_evaluator=basic_evaluator,
         windowed_evaluator=windowed_evaluator,
-        ground_truth_y=ground_truth_y,
-        predictions=predictions,
         other_metrics=dict(moa_results.otherMeasurements),
+        ground_truth_y=np.array(moa_results.targets) if store_y else None,
+        predictions=np.array(moa_results.predictions) if store_predictions else None,
     )
-
-    return results
 
 
 def _prequential_evaluation_anomaly_fast(

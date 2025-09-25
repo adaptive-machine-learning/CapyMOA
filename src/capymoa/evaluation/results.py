@@ -4,6 +4,7 @@ import json
 import csv
 import os
 from datetime import datetime
+import numpy as np
 
 
 class PrequentialResults:
@@ -16,9 +17,9 @@ class PrequentialResults:
         max_instances: int = None,
         cumulative_evaluator=None,
         windowed_evaluator=None,
-        ground_truth_y=None,
-        predictions=None,
-        other_metrics=None,
+        ground_truth_y: np.ndarray | None = None,
+        predictions: np.ndarray | None = None,
+        other_metrics: dict | None = None,
     ):
         # protected attributes accessible through methods
         self._wallclock = wallclock
@@ -74,10 +75,10 @@ class PrequentialResults:
     def max_instances(self):
         return self._max_instances
 
-    def ground_truth_y(self):
+    def ground_truth_y(self) -> np.ndarray | None:
         return self._ground_truth_y
 
-    def predictions(self):
+    def predictions(self) -> np.ndarray | None:
         return self._predictions
 
     def other_metrics(self):
