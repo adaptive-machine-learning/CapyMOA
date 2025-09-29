@@ -80,6 +80,7 @@ class TorchClassifyStream(Stream[LabeledInstance]):
         shuffle_seed: int = 0,
         class_names: Optional[Sequence[str]] = None,
         dataset_name: str = "PytorchDataset",
+        shape: Optional[Sequence[int]] = None,
     ):
         """Create a stream from a PyTorch dataset.
 
@@ -122,6 +123,8 @@ class TorchClassifyStream(Stream[LabeledInstance]):
             target_type="categorical",
         )
         self._schema = Schema(moa_header=header)
+        if shape is not None:
+            self._schema.shape = shape
 
     def has_more_instances(self):
         return len(self._dataset) > self._index
