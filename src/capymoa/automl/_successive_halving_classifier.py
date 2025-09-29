@@ -11,13 +11,37 @@ will be performed in total.
 """
 
 # Import all classifier classes to be able to instantiate them by name
-from capymoa.classifier import *
+from capymoa.classifier import (
+    AdaptiveRandomForestClassifier,
+    EFDT,
+    HoeffdingTree,
+    NaiveBayes,
+    OnlineBagging,
+    OnlineAdwinBagging,
+    LeveragingBagging,
+    KNN,
+    PassiveAggressiveClassifier,
+    SGDClassifier,
+    StreamingGradientBoostedTrees,
+    OzaBoost,
+    MajorityClass,
+    NoChange,
+    OnlineSmoothBoost,
+    StreamingRandomPatches,
+    HoeffdingAdaptiveTree,
+    SAMkNN,
+    DynamicWeightedMajority,
+    CSMOTE,
+    WeightedkNN,
+    ShrubsClassifier,
+)
 from capymoa.base import (
     Classifier,
-    MOAClassifier,
 )
-from typing import List, Dict, Any, Optional, Union
+from typing import Dict, Any
 import math
+import json
+import itertools
 from capymoa.evaluation import ClassificationEvaluator
 
 
@@ -35,7 +59,7 @@ class SuccessiveHalvingClassifier(Classifier):
         eta: float = 2.0,
         min_models: int = 1,
         evaluation_metric: str = "accuracy",
-        verbose: bool = False
+        verbose: bool = False,
     ):
         """
         Initialize the Successive Halving Classifier.
@@ -73,7 +97,9 @@ class SuccessiveHalvingClassifier(Classifier):
             self.budget = math.ceil((2 * self._n * self.max_instances) / self.eta)
             if self.verbose:
                 print(f"Budget automatically calculated: {self.budget} total updates")
-                print(f"Formula: (2 * {self._n} models * {self.max_instances} instances) / {self.eta}")
+                print(
+                    f"Formula: (2 * {self._n} models * {self.max_instances} instances) / {self.eta}"
+                )
         elif self.budget is None:
             # Default budget if neither max_instances nor budget is provided
             self.budget = 10000
@@ -81,7 +107,9 @@ class SuccessiveHalvingClassifier(Classifier):
                 print(f"Using default budget: {self.budget}")
 
         # Recalculate resource allocation based on final budget
-        self._r = math.floor(self.budget / (self._s * math.ceil(math.log(max(2, self._n), self.eta))))
+        self._r = math.floor(
+            self.budget / (self._s * math.ceil(math.log(max(2, self._n), self.eta)))
+        )
 
         # Track the best model
         self._best_model_idx = 0
@@ -129,7 +157,7 @@ class SuccessiveHalvingClassifier(Classifier):
     def _load_model_configurations(self):
         """Load model configurations from a JSON file."""
         try:
-            with open(self.config_file, 'r') as f:
+            with open(self.config_file, "r") as f:
                 config = json.load(f)
 
             # Process algorithms section of the config
@@ -155,13 +183,21 @@ class SuccessiveHalvingClassifier(Classifier):
 
                         if clf is not None:
                             self.active_models.append(clf)
-                            self.metrics.append(ClassificationEvaluator(schema=self.schema))
+                            self.metrics.append(
+                                ClassificationEvaluator(schema=self.schema)
+                            )
 
                             if self.verbose:
-                                param_str = ", ".join([f"{p['parameter']}={p['value']}" for p in params])
-                                print(f"Added model: {algorithm_name} with parameters: {param_str}")
+                                param_str = ", ".join(
+                                    [f"{p['parameter']}={p['value']}" for p in params]
+                                )
+                                print(
+                                    f"Added model: {algorithm_name} with parameters: {param_str}"
+                                )
                     except Exception as e:
-                        print(f"Warning: Failed to create model {algorithm_name} with parameters {params}: {str(e)}")
+                        print(
+                            f"Warning: Failed to create model {algorithm_name} with parameters {params}: {str(e)}"
+                        )
 
         except (json.JSONDecodeError, FileNotFoundError) as e:
             raise ValueError(f"Error loading configuration file: {str(e)}")
@@ -187,7 +223,6 @@ class SuccessiveHalvingClassifier(Classifier):
         #     "moa.classifiers.meta.OnlineBagging": OnlineBagging
         # }
 
-
         moa_to_capymoa = {
             "moa.classifiers.meta.AdaptiveRandomForest": AdaptiveRandomForestClassifier,
             "moa.classifiers.trees.ExtremelyFastDecisionTree": EFDT,
@@ -210,7 +245,7 @@ class SuccessiveHalvingClassifier(Classifier):
             "moa.classifiers.meta.DynamicWeightedMajority": DynamicWeightedMajority,
             "moa.classifiers.meta.CSMOTE": CSMOTE,
             "moa.classifiers.lazy.WeightedkNN": WeightedkNN,
-            "moa.classifiers.trees.Shrub": ShrubsClassifier
+            "moa.classifiers.trees.Shrub": ShrubsClassifier,
         }
         # Find matching classifier in CapyMOA
         # First try exact match, then try partial match
@@ -218,7 +253,7 @@ class SuccessiveHalvingClassifier(Classifier):
             clf_class = moa_to_capymoa[algorithm_name]
         else:
             # Try to find a matching classifier by the last part of the name
-            classifier_name = algorithm_name.split('.')[-1]
+            classifier_name = algorithm_name.split(".")[-1]
             matching_class = None
 
             # Search for matching class by name
@@ -228,7 +263,9 @@ class SuccessiveHalvingClassifier(Classifier):
                     break
 
             if matching_class is None:
-                print(f"Warning: No matching CapyMOA classifier found for {algorithm_name}")
+                print(
+                    f"Warning: No matching CapyMOA classifier found for {algorithm_name}"
+                )
                 return None
 
             clf_class = matching_class
@@ -238,13 +275,13 @@ class SuccessiveHalvingClassifier(Classifier):
 
         # Set parameters on the classifier instance
         for param in params:
-            param_name = param['parameter']
-            param_value = param['value']
+            param_name = param["parameter"]
+            param_value = param["value"]
 
             try:
                 # Try using setattr
                 setattr(classifier, param_name, param_value)
-            except (AttributeError, Exception) as e:
+            except (AttributeError, Exception):
                 # If setattr fails, try using a setter method
                 try:
                     setter_name = f"set{param_name.capitalize()}"
@@ -252,9 +289,13 @@ class SuccessiveHalvingClassifier(Classifier):
                         setter = getattr(classifier, setter_name)
                         setter(param_value)
                     else:
-                        print(f"Warning: Parameter '{param_name}' not found on {classifier.__class__.__name__}")
+                        print(
+                            f"Warning: Parameter '{param_name}' not found on {classifier.__class__.__name__}"
+                        )
                 except Exception as e:
-                    print(f"Warning: Failed to set parameter '{param_name}' on {classifier.__class__.__name__}: {str(e)}")
+                    print(
+                        f"Warning: Failed to set parameter '{param_name}' on {classifier.__class__.__name__}: {str(e)}"
+                    )
 
         return classifier
 
@@ -281,7 +322,10 @@ class SuccessiveHalvingClassifier(Classifier):
                 elif param_type == "float":
                     # Take a few values across the range
                     num_values = 5
-                    values = [min_val + (max_val - min_val) * i / (num_values - 1) for i in range(num_values)]
+                    values = [
+                        min_val + (max_val - min_val) * i / (num_values - 1)
+                        for i in range(num_values)
+                    ]
                 else:
                     # Default to the provided value
                     values = [param.get("value")]
@@ -299,7 +343,7 @@ class SuccessiveHalvingClassifier(Classifier):
 
     def train(self, instance):
         # Train only active models
-        for i in self._rankings[:self._s]:
+        for i in self._rankings[: self._s]:
             model = self.active_models[i]
             metric = self.metrics[i]
 
@@ -325,10 +369,10 @@ class SuccessiveHalvingClassifier(Classifier):
             self._budget_used += self._s * self._r
 
             # Rank models by their performance
-            self._rankings[:self._s] = sorted(
-                self._rankings[:self._s],
+            self._rankings[: self._s] = sorted(
+                self._rankings[: self._s],
                 key=lambda i: self.metrics[i].accuracy(),
-                reverse=True  # Higher accuracy is better
+                reverse=True,  # Higher accuracy is better
             )
 
             # self._best_model_idx = self._rankings[0]
@@ -356,7 +400,7 @@ class SuccessiveHalvingClassifier(Classifier):
                 # Show the top 3 models if there are many
                 if self._s > 3:
                     print("Top models:")
-                    for i, idx in enumerate(self._rankings[:min(3, cutoff)]):
+                    for i, idx in enumerate(self._rankings[: min(3, cutoff)]):
                         model = self.active_models[idx]
                         accuracy = self.metrics[idx].accuracy()
                         print(f"  {i+1}. {model} - Accuracy: {accuracy:.4f}")
@@ -365,10 +409,11 @@ class SuccessiveHalvingClassifier(Classifier):
             self._s = cutoff
 
             # Recalculate the number of instances for the next rung
-            remaining_rungs = max(1, math.ceil(math.log(self._n, self.eta)) - self._n_rungs)
+            remaining_rungs = max(
+                1, math.ceil(math.log(self._n, self.eta)) - self._n_rungs
+            )
             self._r = math.floor(
-                (self.budget - self._budget_used) /
-                (self._s * remaining_rungs)
+                (self.budget - self._budget_used) / (self._s * remaining_rungs)
             )
 
             # Reset iteration counter for the next rung
@@ -376,14 +421,18 @@ class SuccessiveHalvingClassifier(Classifier):
 
     def predict(self, instance):
         if not self.active_models:
-            raise ValueError("No active models available. Please train the classifier first.")
+            raise ValueError(
+                "No active models available. Please train the classifier first."
+            )
 
         # Use the best performing model for predictions
         return self.active_models[self._best_model_idx].predict(instance)
 
     def predict_proba(self, instance):
         if not self.active_models:
-            raise ValueError("No active models available. Please train the classifier first.")
+            raise ValueError(
+                "No active models available. Please train the classifier first."
+            )
 
         # Use the best performing model for predictions
         return self.active_models[self._best_model_idx].predict_proba(instance)
@@ -405,7 +454,7 @@ class SuccessiveHalvingClassifier(Classifier):
             Dictionary containing classifier information
         """
         # Calculate active models based on rankings
-        active_models = [self.active_models[i] for i in self._rankings[:self._s]]
+        # active_models = [self.active_models[i] for i in self._rankings[:self._s]]
         # Get performance metrics for all models
         model_performances = {
             str(self.active_models[i]): self.metrics[i].accuracy()
@@ -417,10 +466,12 @@ class SuccessiveHalvingClassifier(Classifier):
         for i in range(min(5, self._s)):
             if i < len(self._rankings):
                 idx = self._rankings[i]
-                top_models.append({
-                    "model": str(self.active_models[idx]),
-                    "accuracy": self.metrics[idx].accuracy()
-                })
+                top_models.append(
+                    {
+                        "model": str(self.active_models[idx]),
+                        "accuracy": self.metrics[idx].accuracy(),
+                    }
+                )
 
         return {
             "active_models": self._s,
@@ -433,6 +484,8 @@ class SuccessiveHalvingClassifier(Classifier):
             "iterations_in_current_rung": self._iterations,
             "best_model_index": self._best_model_idx,
             "model_performances": model_performances,
-            "best_model_accuracy": self.metrics[self._best_model_idx].accuracy() if self.metrics else None,
-            "top_models": top_models
+            "best_model_accuracy": (
+                self.metrics[self._best_model_idx].accuracy() if self.metrics else None
+            ),
+            "top_models": top_models,
         }

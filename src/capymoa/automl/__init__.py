@@ -6,5 +6,5 @@ __all__ = [
     "AutoClass",
     "BanditClassifier",
     "SuccessiveHalvingClassifier",
-    "EpsilonGreedy"
+    "EpsilonGreedy",
 ]

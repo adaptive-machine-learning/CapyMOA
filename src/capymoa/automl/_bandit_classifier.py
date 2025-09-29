@@ -1,11 +1,35 @@
 import random
 from capymoa.base import (
     Classifier,
-    MOAClassifier,
 )
-from typing import List, Dict, Any, Optional, Union
-import math
+from typing import Dict, Any
 from capymoa.evaluation import ClassificationEvaluator
+from capymoa.classifier import (
+    AdaptiveRandomForestClassifier,
+    EFDT,
+    HoeffdingTree,
+    NaiveBayes,
+    OnlineBagging,
+    OnlineAdwinBagging,
+    LeveragingBagging,
+    KNN,
+    PassiveAggressiveClassifier,
+    SGDClassifier,
+    StreamingGradientBoostedTrees,
+    OzaBoost,
+    MajorityClass,
+    NoChange,
+    OnlineSmoothBoost,
+    StreamingRandomPatches,
+    HoeffdingAdaptiveTree,
+    SAMkNN,
+    DynamicWeightedMajority,
+    CSMOTE,
+    WeightedkNN,
+    ShrubsClassifier,
+)
+import json
+import itertools
 
 
 class EpsilonGreedy:
@@ -39,9 +63,11 @@ class EpsilonGreedy:
         self.total_pulls = 0
 
     def get_best_arm_idx(self, available_arms):
-        best_arm = max(available_arms, key=lambda arm: self.arm_rewards[arm] / max(1, self.arm_counts[arm]))
+        best_arm = max(
+            available_arms,
+            key=lambda arm: self.arm_rewards[arm] / max(1, self.arm_counts[arm]),
+        )
         return best_arm
-
 
     def pull(self, available_arms):
         """Select which arms to pull based on the epsilon-greedy policy."""
@@ -54,7 +80,10 @@ class EpsilonGreedy:
             return [random.choice(available_arms)]
 
         # Otherwise, exploit the best arm
-        best_arm = max(available_arms, key=lambda arm: self.arm_rewards[arm] / max(1, self.arm_counts[arm]))
+        best_arm = max(
+            available_arms,
+            key=lambda arm: self.arm_rewards[arm] / max(1, self.arm_counts[arm]),
+        )
         return [best_arm]
 
     def update(self, arm, reward):
@@ -66,10 +95,11 @@ class EpsilonGreedy:
     def get_arm_stats(self):
         """Get statistics about each arm's performance."""
         return {
-            'rewards': self.arm_rewards.copy(),
-            'counts': self.arm_counts.copy(),
-            'means': [r / max(1, c) for r, c in zip(self.arm_rewards, self.arm_counts)]
+            "rewards": self.arm_rewards.copy(),
+            "counts": self.arm_counts.copy(),
+            "means": [r / max(1, c) for r, c in zip(self.arm_rewards, self.arm_counts)],
         }
+
 
 class BanditClassifier(Classifier):
     """Bandit-based model selection for classification in streaming scenarios.
@@ -96,7 +126,7 @@ class BanditClassifier(Classifier):
         config_file=None,
         metric="accuracy",
         policy=None,
-        verbose=False
+        verbose=False,
     ):
         super().__init__(schema=schema, random_seed=random_seed)
 
@@ -156,7 +186,7 @@ class BanditClassifier(Classifier):
     def _load_model_configurations(self):
         """Load model configurations from a JSON file."""
         try:
-            with open(self.config_file, 'r') as f:
+            with open(self.config_file, "r") as f:
                 config = json.load(f)
 
             # Process algorithms section of the config
@@ -182,13 +212,21 @@ class BanditClassifier(Classifier):
 
                         if clf is not None:
                             self.active_models.append(clf)
-                            self.metrics.append(ClassificationEvaluator(schema=self.schema))
+                            self.metrics.append(
+                                ClassificationEvaluator(schema=self.schema)
+                            )
 
                             if self.verbose:
-                                param_str = ", ".join([f"{p['parameter']}={p['value']}" for p in params])
-                                print(f"Added model: {algorithm_name} with parameters: {param_str}")
+                                param_str = ", ".join(
+                                    [f"{p['parameter']}={p['value']}" for p in params]
+                                )
+                                print(
+                                    f"Added model: {algorithm_name} with parameters: {param_str}"
+                                )
                     except Exception as e:
-                        print(f"Warning: Failed to create model {algorithm_name} with parameters {params}: {str(e)}")
+                        print(
+                            f"Warning: Failed to create model {algorithm_name} with parameters {params}: {str(e)}"
+                        )
 
         except (json.JSONDecodeError, FileNotFoundError) as e:
             raise ValueError(f"Error loading configuration file: {str(e)}")
@@ -218,7 +256,7 @@ class BanditClassifier(Classifier):
             "moa.classifiers.meta.DynamicWeightedMajority": DynamicWeightedMajority,
             "moa.classifiers.meta.CSMOTE": CSMOTE,
             "moa.classifiers.lazy.WeightedkNN": WeightedkNN,
-            "moa.classifiers.trees.Shrub": ShrubsClassifier
+            "moa.classifiers.trees.Shrub": ShrubsClassifier,
         }
 
         # Find matching classifier in CapyMOA
@@ -226,7 +264,7 @@ class BanditClassifier(Classifier):
             clf_class = moa_to_capymoa[algorithm_name]
         else:
             # Try to find a matching classifier by the last part of the name
-            classifier_name = algorithm_name.split('.')[-1]
+            classifier_name = algorithm_name.split(".")[-1]
             matching_class = None
 
             # Search for matching class by name
@@ -236,7 +274,9 @@ class BanditClassifier(Classifier):
                     break
 
             if matching_class is None:
-                print(f"Warning: No matching CapyMOA classifier found for {algorithm_name}")
+                print(
+                    f"Warning: No matching CapyMOA classifier found for {algorithm_name}"
+                )
                 return None
 
             clf_class = matching_class
@@ -246,13 +286,13 @@ class BanditClassifier(Classifier):
 
         # Set parameters on the classifier instance
         for param in params:
-            param_name = param['parameter']
-            param_value = param['value']
+            param_name = param["parameter"]
+            param_value = param["value"]
 
             try:
                 # Try using setattr
                 setattr(classifier, param_name, param_value)
-            except (AttributeError, Exception) as e:
+            except (AttributeError, Exception):
                 # If setattr fails, try using a setter method
                 try:
                     setter_name = f"set{param_name.capitalize()}"
@@ -260,9 +300,13 @@ class BanditClassifier(Classifier):
                         setter = getattr(classifier, setter_name)
                         setter(param_value)
                     else:
-                        print(f"Warning: Parameter '{param_name}' not found on {classifier.__class__.__name__}")
+                        print(
+                            f"Warning: Parameter '{param_name}' not found on {classifier.__class__.__name__}"
+                        )
                 except Exception as e:
-                    print(f"Warning: Failed to set parameter '{param_name}' on {classifier.__class__.__name__}: {str(e)}")
+                    print(
+                        f"Warning: Failed to set parameter '{param_name}' on {classifier.__class__.__name__}: {str(e)}"
+                    )
 
         return classifier
 
@@ -289,7 +333,10 @@ class BanditClassifier(Classifier):
                 elif param_type == "float":
                     # Take a few values across the range
                     num_values = 5
-                    values = [min_val + (max_val - min_val) * i / (num_values - 1) for i in range(num_values)]
+                    values = [
+                        min_val + (max_val - min_val) * i / (num_values - 1)
+                        for i in range(num_values)
+                    ]
                 else:
                     # Default to the provided value
                     values = [param.get("value")]
@@ -336,7 +383,9 @@ class BanditClassifier(Classifier):
             self.log_cnt = 0
             current_accuracy = metric.accuracy()
             model_performances = [(i, self.metrics[i].accuracy()) for i in arm_ids]
-            top_models = sorted(model_performances, key=lambda x: x[1], reverse=True)[:3]
+            top_models = sorted(model_performances, key=lambda x: x[1], reverse=True)[
+                :3
+            ]
 
             print(f"\nChosen model: {model}")
             print(f"Current accuracy: {current_accuracy:.4f}")
@@ -348,11 +397,12 @@ class BanditClassifier(Classifier):
                     model_name = str(self.active_models[model_idx])
                     print(f"  {i+1}. {model_name} - Accuracy: {acc:.4f}")
 
-
     def predict(self, instance):
         """Predict the class label for the given instance using the best model."""
         if not self.active_models:
-            raise ValueError("No active models available. Please train the classifier first.")
+            raise ValueError(
+                "No active models available. Please train the classifier first."
+            )
         idx = self.policy.get_best_arm_idx(range(len(self.active_models)))
         # Use the best performing model for predictions
         # idx = self._best_model_idx
@@ -361,7 +411,9 @@ class BanditClassifier(Classifier):
     def predict_proba(self, instance):
         """Predict class probabilities for the given instance using the best model."""
         if not self.active_models:
-            raise ValueError("No active models available. Please train the classifier first.")
+            raise ValueError(
+                "No active models available. Please train the classifier first."
+            )
 
         idx = self.policy.get_best_arm_idx(range(len(self.active_models)))
         # Use the best performing model for predictions
@@ -390,20 +442,19 @@ class BanditClassifier(Classifier):
             str(self.active_models[i]): self.metrics[i].accuracy()
             for i in range(len(self.active_models))
         }
-        sorted_dict = dict(sorted(model_performances.items(), key=lambda item: item[1], reverse=True))
+        sorted_dict = dict(
+            sorted(model_performances.items(), key=lambda item: item[1], reverse=True)
+        )
         # Get top-performing models
         top_models = []
         max_models = min(5, len(self.active_models))
         i = 0
-        idx = self.policy.get_best_arm_idx(range(len(self.active_models)))
+        # idx = self.policy.get_best_arm_idx(range(len(self.active_models)))
         for key, value in sorted_dict.items():
-          if i >= max_models:
-            break
-          top_models.append({
-                "model": key,
-                "accuracy": value
-          })
-          i += 1
+            if i >= max_models:
+                break
+            top_models.append({"model": key, "accuracy": value})
+            i += 1
         # for i in range(min(5, len(self.active_models))):
         #     # top_models.append({
         #     #     "model": str(self.active_models[i]),
@@ -418,6 +469,8 @@ class BanditClassifier(Classifier):
             "total_models": len(self.active_models),
             "best_model_index": self._best_model_idx,
             "model_performances": sorted_dict,
-            "best_model_accuracy": self.metrics[self._best_model_idx].accuracy() if self.metrics else None,
-            "top_models": top_models
+            "best_model_accuracy": (
+                self.metrics[self._best_model_idx].accuracy() if self.metrics else None
+            ),
+            "top_models": top_models,
         }
