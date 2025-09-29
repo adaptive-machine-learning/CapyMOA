@@ -64,20 +64,32 @@ class SuccessiveHalvingClassifier(Classifier):
         """
         Initialize the Successive Halving Classifier.
 
-        Args:
-            schema: The stream schema
-            random_seed: Random seed for reproducibility
-            base_classifiers: List of base classifier classes to consider
-            config_file: Path to a JSON configuration file with model hyperparameters
-            max_instances: Maximum number of instances to process per model
-                           (if provided, budget will be calculated as 2*n_models*max_instances/eta)
-            budget: Total budget (number of training instances across all models)
-                   (if max_instances is provided, this value will be ignored)
-            eta: Reduction factor for the number of models in each round
-            min_models: Minimum number of models to maintain
-            evaluation_metric: Metric to use for model evaluation
-            verbose: Whether to print progress information
+        Parameters
+        ----------
+        schema : Schema, optional
+            The stream schema.
+        random_seed : int, default=1
+            Random seed for reproducibility.
+        base_classifiers : list of Classifier, optional
+            List of base classifier classes to consider.
+        config_file : str, optional
+            Path to a JSON configuration file with model hyperparameters.
+        max_instances : int, optional
+            Maximum number of instances to process per model.
+            If provided, the budget will be calculated as 2 * n_models * max_instances / eta.
+        budget : int, optional
+            Total budget (number of training instances across all models).
+            If `max_instances` is provided, this value will be ignored.
+        eta : float, default=2.0
+            Reduction factor for the number of models in each round.
+        min_models : int, default=1
+            Minimum number of models to maintain.
+        evaluation_metric : str, default="accuracy"
+            Metric to use for model evaluation.
+        verbose : bool, default=False
+            Whether to print progress information.
         """
+
         super().__init__(schema=schema, random_seed=random_seed)
 
         self.config_file = config_file
