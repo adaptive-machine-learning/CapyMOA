@@ -415,7 +415,7 @@ class SuccessiveHalvingClassifier(Classifier):
                     for i, idx in enumerate(self._rankings[: min(3, cutoff)]):
                         model = self.active_models[idx]
                         accuracy = self.metrics[idx].accuracy()
-                        print(f"  {i+1}. {model} - Accuracy: {accuracy:.4f}")
+                        print(f"  {i + 1}. {model} - Accuracy: {accuracy:.4f}")
 
             # Update the number of active models
             self._s = cutoff

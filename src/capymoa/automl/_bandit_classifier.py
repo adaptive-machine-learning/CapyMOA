@@ -395,7 +395,7 @@ class BanditClassifier(Classifier):
                 print("\nTop models:")
                 for i, (model_idx, acc) in enumerate(top_models):
                     model_name = str(self.active_models[model_idx])
-                    print(f"  {i+1}. {model_name} - Accuracy: {acc:.4f}")
+                    print(f"  {i + 1}. {model_name} - Accuracy: {acc:.4f}")
 
     def predict(self, instance):
         """Predict the class label for the given instance using the best model."""
