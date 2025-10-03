@@ -1013,22 +1013,22 @@ class SineGenerator(MOAStream):
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"SineGenerator({', '.join(non_default_attributes)})"
 
-
 class MixedGenerator(MOAStream):
-    """Generates MixedGenerator.
+    """
+    Generates MixedGenerator
 
     >>> from capymoa.stream.generator import MixedGenerator
     ...
     >>> stream = MixedGenerator()
     >>> stream.next_instance()
-        LabeledInstance(
-            Schema(generators.MixedGenerator ),
-            x=[1.    0.    0.208 0.333],
-            y_index=0,
-            y_label='positive'
-        )
+    LabeledInstance(
+        Schema(generators.MixedGenerator ),
+        x=[1.    0.    0.208 0.333],
+        y_index=0,
+        y_label='positive'
+    )
     >>> stream.next_instance().x
-    array([1.        , 0.        , 0.20771484, 0.33271706])
+    array([1.        , 0.        , 0.9637048 , 0.93986539])
 
     Proposed by "Gama, Joao, et al. "Learning with drift detection." Advances in artificial intelligence–SBIA 2004. 
     Springer Berlin Heidelberg, 2004. 286-295."
