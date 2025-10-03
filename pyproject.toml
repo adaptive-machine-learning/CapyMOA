@@ -96,7 +96,7 @@ Documentation = "https://capymoa.org"
 Source = "https://github.com/adaptive-machine-learning/CapyMOA"
 
 [tool.pytest.ini_options]
-addopts = ["--import-mode=importlib"]
+addopts = ["--import-mode=importlib", "-p no:faulthandler"]
 pythonpath = ["src"]
 testpaths = ["tests", "src"]
 norecursedirs = [

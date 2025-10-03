@@ -5,7 +5,7 @@ moa_path: "src/capymoa/jar/moa.jar"
 # DROPBOX: When using a dropbox link, ensure that the dl=1 query parameter is 
 # present in the link. This ensures  the file is downloaded directly instead
 # of going to the dropbox page
-moa_url: "https://www.dropbox.com/scl/fi/pdo2eqrmx04hdgduwy6qa/250328_moa.jar?rlkey=k1jyudsqlm89fzemndw75u4rn&st=9s4zpubi&dl=1"
+moa_url: "https://www.dropbox.com/scl/fi/yoa2g5ldm0ueyxs1tbvsa/250926_moa.jar?rlkey=kes1hcqj7i4an8f74jgh9xx9x&st=2tk6p0ny&dl=1"
 
 # What notebooks to skip when running them as tests.
 # YOU SHOULD NOT SKIP NOTEBOOKS!

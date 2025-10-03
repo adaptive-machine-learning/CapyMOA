@@ -3,7 +3,7 @@ from pathlib import Path
 from hashlib import sha256
 import capymoa
 
-_MOA_JAR_HASH = "b14be3c1df87aa5bf37f24c9a35258ab1f9a941897e61294701c43c0141dc2b7"
+_MOA_JAR_HASH = "fa5fd4fcc4dad46734149f97b69a309bd2ff57d1f6227879f40cce239cf6be35"
 
 
 def test_imports() -> None:

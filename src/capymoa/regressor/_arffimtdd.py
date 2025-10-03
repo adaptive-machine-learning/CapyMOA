@@ -9,8 +9,20 @@ from moa.classifiers.trees import ARFFIMTDD as _MOA_ARFFIMTDD
 
 
 class ARFFIMTDD(MOARegressor):
-    """Modified Fast Incremental Model Tree with Drift Detection for basic
-    learner for ARF-Regas described by Ikonomovska et al."""
+    """Adaptive Random Forest Fast Incremental Model Tree with Drift Detection.
+
+    Adaptive Random Forest Fast Incremental Model Tree with Drift Detection (ARFFIMT-DD)
+    [#f0]_ is a model tree. It an extension of the Fast Incremental Model Tree with Drift
+    Detection (FIMT-DD) [#f1]_.
+
+    ..  [#f0] Heitor Murilo Gomes, Jean Paul Barddal, Luis Eduardo Boiko Ferreira, Albert
+        Bifet. Adaptive random forests for data stream regression. In European Symposium
+        on Artificial Neural Networks, Computational Intelligence and Machine Learning
+        (ESANN), 2018.
+        https://www.elen.ucl.ac.be/Proceedings/esann/esannpdf/es2018-183.pdf
+    ..  [#f1] Elena Ikonomovska, João Gama, and Saso Dzeroski. Learning model trees from
+        evolving data streams. Data Min. Knowl. Discov. , 23(1):128–168, 2011.
+    """
 
     def __init__(
         self,

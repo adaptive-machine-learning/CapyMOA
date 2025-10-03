@@ -74,6 +74,7 @@ class Schema:
         # Internally, we store the number of attributes + the class/target.
         # This is because MOA methods expect the numAttributes to also account for the class/target.
         self._regression = not self._moa_header.outputAttribute(1).isNominal()
+        self._shape = (self.get_num_numeric_attributes(),)
         self._label_values: Optional[Sequence[str]] = None
         self._label_index_map: Optional[Dict[str, int]] = None
 
@@ -192,6 +193,27 @@ class Schema:
     def dataset_name(self) -> str:
         """Returns the name of the dataset."""
         return self._moa_header.getRelationName()
+
+    @property
+    def shape(self) -> Sequence[int]:
+        """The shape of the input ``x`` instances.
+
+        Usually :py:attr:`capymoa.instance.Instance.x` is a vector but some learners
+        need to know the shape of the input. For example, a CNN needs to know the height
+        and width of an image.
+        """
+        return self._shape
+
+    @shape.setter
+    def shape(self, value: Sequence[int]):
+        """Set the shape of the input ``x`` instances."""
+        n_attr = self.get_num_numeric_attributes()
+        # ensure the product of the shape matches the number of attributes
+        if np.prod(value) != n_attr:
+            raise ValueError(
+                f"Shape {value} is incompatible with number of attributes {n_attr}"
+            )
+        self._shape = value
 
     @staticmethod
     def from_custom(
