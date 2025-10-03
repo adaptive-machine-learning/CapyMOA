@@ -96,7 +96,12 @@ Documentation = "https://capymoa.org"
 Source = "https://github.com/adaptive-machine-learning/CapyMOA"
 
 [tool.pytest.ini_options]
-addopts = ["--import-mode=importlib", "-p no:faulthandler"]
+addopts = [
+    "--import-mode=importlib",
+    # pytest and jpype can raise irrelevant warnings and segfault when faulthandler is used.
+    # https://github.com/jpype-project/jpype/issues/561
+    "-p no:faulthandler"
+]
 pythonpath = ["src"]
 testpaths = ["tests", "src"]
 norecursedirs = [
