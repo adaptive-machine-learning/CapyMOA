@@ -84,6 +84,8 @@ class AdaptiveRandomForestRegressor(MOARegressor):
                 self.tree_learner = ARFFIMTDD(
                     schema, grace_period=50, split_confidence=0.01
                 )
+            elif isinstance(tree_learner, ARFFIMTDD):
+                self.tree_learner = tree_learner
             elif type(tree_learner) is str:
                 self.tree_learner = tree_learner
             else:
@@ -127,7 +129,7 @@ class AdaptiveRandomForestRegressor(MOARegressor):
             self.disable_background_learner = disable_background_learner
 
             self.moa_learner.getOptions().setViaCLIString(
-                f"-l {self.tree_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
+                f"-l ({self.tree_learner.__class__.__name__} {self.tree_learner.CLI}) -s {self.ensemble_size} -o {self.m_features_mode} -m \
                 {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
                 {self.warning_detection_method} {'-u' if self.disable_drift_detection else ''}  {'-q' if self.disable_background_learner else ''}"
             )
