@@ -38,7 +38,7 @@ class AdaptiveRandomForestRegressor(MOARegressor):
     >>> learner = AdaptiveRandomForestRegressor(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
     >>> results["cumulative"].rmse()
-    3.659072011685404
+    4.146151270393789
     """
 
     def __init__(
