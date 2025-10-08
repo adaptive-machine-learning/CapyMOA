@@ -3,6 +3,7 @@ from capymoa.base import (
     Classifier,
 )
 from typing import Dict, Any
+from capymoa.stream import Schema
 from capymoa.evaluation import ClassificationEvaluator
 from capymoa.classifier import (
     AdaptiveRandomForestClassifier,
@@ -35,25 +36,43 @@ import itertools
 class EpsilonGreedy:
     """Epsilon-Greedy bandit policy for model selection.
 
-    This policy selects the best model with probability 1-epsilon and explores
-    other models with probability epsilon. During the burn-in period, it always
+    This policy selects the best model with probability ``1 - epsilon`` and explores
+    other models with probability ``epsilon``. During the burn-in period, it always
     explores to gather initial information about all models.
 
-    Parameters
-    ----------
-    epsilon: float
-        The probability of exploring a random model (default: 0.1)
-    burn_in: int
-        Number of initial rounds where all models are explored (default: 100)
+    >>> from capymoa.automl import EpsilonGreedy
+    >>> policy = EpsilonGreedy(epsilon=0.1, burn_in=50)
+    >>> policy.epsilon
+    0.1
+
+    .. seealso::
+
+        :class:`~capymoa.automl.BanditClassifier`
     """
 
-    def __init__(self, epsilon=0.1, burn_in=100):
+    def __init__(self, epsilon: float = 0.1, burn_in: int = 100):
+        """Construct a new Epsilon-Greedy policy.
+
+        :param epsilon: Probability of exploring a random model (default: ``0.1``).
+        :param burn_in: Number of initial rounds dedicated to exploration (default: ``100``).
+        """
         self.epsilon = epsilon
+        """Probability of exploring a random model."""
+
         self.burn_in = burn_in
+        """Number of initial rounds where all models are explored to collect initial statistics."""
+
         self.n_arms = 0
+        """Number of available models (arms)."""
+
         self.arm_rewards = []
+        """Cumulative reward values for each model (arm)."""
+
         self.arm_counts = []
+        """Number of times each arm has been pulled."""
+
         self.total_pulls = 0
+        """Total number of model selections performed."""
 
     def initialize(self, n_arms):
         """Initialize the policy with a given number of arms."""
@@ -102,32 +121,55 @@ class EpsilonGreedy:
 
 
 class BanditClassifier(Classifier):
-    """Bandit-based model selection for classification in streaming scenarios.
+    """Bandit-based model selection for streaming classification.
 
-    Each model is associated with an arm. At each train call, the policy decides which arm/model to pull.
-    The reward is the performance of the model on the provided sample. The predict and predict_proba
-    methods use the current best model.
+    Each base classifier is associated with an arm of a multi-armed bandit.
+    At each training step, the bandit policy selects which model to train
+    (i.e., which arm to pull). The reward corresponds to the model's
+    performance on the current instance. The best-performing model is then
+    used for prediction [#robbins1952]_.
 
-    Parameters
-    ----------
-    schema: The stream schema
-    base_classifiers: List of base classifier classes to consider
-    config_file: Path to a JSON configuration file with model hyperparameters
-    metric: The metric that is used to measure the performance of each model
-    policy: The bandit policy to use (e.g., EpsilonGreedy, UCB, etc.)
-    verbose: Whether to print progress information
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.classifier import HoeffdingTree
+    >>> from capymoa.automl import BanditClassifier, EpsilonGreedy
+    >>> stream = ElectricityTiny()
+    >>> schema = stream.get_schema()
+    >>> learner = BanditClassifier(
+    ...     schema=schema,
+    ...     base_classifiers=[HoeffdingTree],
+    ...     policy=EpsilonGreedy(epsilon=0.1, burn_in=100)
+    ... )
+    >>> result = next(stream)
+    >>> learner.train(result[0], result[1])
+
+    .. seealso::
+
+        :class:`~capymoa.automl.EpsilonGreedy`
+
+    .. [#robbins1952] Robbins, H. (1952). *Some aspects of the sequential design of experiments.*
+       Bulletin of the American Mathematical Society, 58(5), 527–535.
     """
 
     def __init__(
         self,
-        schema=None,
-        random_seed=1,
-        base_classifiers=None,
-        config_file=None,
-        metric="accuracy",
-        policy=None,
-        verbose=False,
+        schema: Schema = None,
+        random_seed: int = 1,
+        base_classifiers: list = None,
+        config_file: str = None,
+        metric: str = "accuracy",
+        policy: EpsilonGreedy = None,
+        verbose: bool = False,
     ):
+        """Construct a Bandit-based model selector.
+
+        :param schema: The schema of the stream.
+        :param random_seed: Random seed used for initialization.
+        :param base_classifiers: List of base classifier classes to consider.
+        :param config_file: Path to a JSON configuration file with model hyperparameters.
+        :param metric: The metric used to evaluate model performance. Defaults to ``"accuracy"``.
+        :param policy: The bandit policy used to choose which model to train (e.g., :class:`~capymoa.automl.EpsilonGreedy`).
+        :param verbose: If True, print progress information during training.
+        """
         super().__init__(schema=schema, random_seed=random_seed)
 
         self.config_file = config_file
@@ -234,41 +276,44 @@ class BanditClassifier(Classifier):
     def _create_capymoa_classifier(self, algorithm_name, params):
         """Create a CapyMOA classifier instance with the specified parameters."""
         # Map MOA class names to CapyMOA classifier classes
-        moa_to_capymoa = {
-            "moa.classifiers.meta.AdaptiveRandomForest": AdaptiveRandomForestClassifier,
-            "moa.classifiers.trees.ExtremelyFastDecisionTree": EFDT,
-            "moa.classifiers.trees.HoeffdingTree": HoeffdingTree,
-            "moa.classifiers.bayes.NaiveBayes": NaiveBayes,
-            "moa.classifiers.meta.OnlineBagging": OnlineBagging,
-            "moa.classifiers.meta.OnlineBoosting": OnlineAdwinBagging,
-            "moa.classifiers.meta.LeveragingBag": LeveragingBagging,
-            "moa.classifiers.lazy.kNN": KNN,
-            "moa.classifiers.functions.PassiveAggressive": PassiveAggressiveClassifier,
-            "moa.classifiers.functions.SGD": SGDClassifier,
-            "moa.classifiers.meta.StreamingGradientBoostedTrees": StreamingGradientBoostedTrees,
-            "moa.classifiers.meta.OzaBoost": OzaBoost,
-            "moa.classifiers.rules.MajorityClass": MajorityClass,
-            "moa.classifiers.rules.NoChange": NoChange,
-            "moa.classifiers.meta.OnlineSmoothBoost": OnlineSmoothBoost,
-            "moa.classifiers.meta.StreamingRandomPatches": StreamingRandomPatches,
-            "moa.classifiers.trees.HoeffdingAdaptiveTree": HoeffdingAdaptiveTree,
-            "moa.classifiers.lazy.SAMkNN": SAMkNN,
-            "moa.classifiers.meta.DynamicWeightedMajority": DynamicWeightedMajority,
-            "moa.classifiers.meta.CSMOTE": CSMOTE,
-            "moa.classifiers.lazy.WeightedkNN": WeightedkNN,
-            "moa.classifiers.trees.Shrub": ShrubsClassifier,
+        capymoa_classifiers = {
+            cls.__name__: cls
+            for cls in [
+                AdaptiveRandomForestClassifier,
+                EFDT,
+                HoeffdingTree,
+                NaiveBayes,
+                OnlineBagging,
+                OnlineAdwinBagging,
+                LeveragingBagging,
+                KNN,
+                PassiveAggressiveClassifier,
+                SGDClassifier,
+                StreamingGradientBoostedTrees,
+                OzaBoost,
+                MajorityClass,
+                NoChange,
+                OnlineSmoothBoost,
+                StreamingRandomPatches,
+                HoeffdingAdaptiveTree,
+                SAMkNN,
+                DynamicWeightedMajority,
+                CSMOTE,
+                WeightedkNN,
+                ShrubsClassifier,
+            ]
         }
 
         # Find matching classifier in CapyMOA
-        if algorithm_name in moa_to_capymoa:
-            clf_class = moa_to_capymoa[algorithm_name]
+        if algorithm_name in capymoa_classifiers:
+            clf_class = capymoa_classifiers[algorithm_name]
         else:
             # Try to find a matching classifier by the last part of the name
             classifier_name = algorithm_name.split(".")[-1]
             matching_class = None
 
             # Search for matching class by name
-            for moa_name, capymoa_class in moa_to_capymoa.items():
+            for moa_name, capymoa_class in capymoa_classifiers.items():
                 if moa_name.endswith(classifier_name):
                     matching_class = capymoa_class
                     break
@@ -455,15 +500,6 @@ class BanditClassifier(Classifier):
                 break
             top_models.append({"model": key, "accuracy": value})
             i += 1
-        # for i in range(min(5, len(self.active_models))):
-        #     # top_models.append({
-        #     #     "model": str(self.active_models[i]),
-        #     #     "accuracy": self.metrics[i].accuracy()
-        #     # })
-        #       top_models.append({
-        #         "model": str(self.active_models[i]),
-        #         "accuracy": self.metrics[i].accuracy()
-        #     })
 
         return {
             "total_models": len(self.active_models),

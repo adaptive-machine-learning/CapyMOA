@@ -1,16 +1,3 @@
-"""
-Successive Halving Classifier implementation for CapyMOA.
-
-This module implements the Successive Halving algorithm for model selection in streaming data scenarios.
-The algorithm progressively eliminates poorly performing models while allocating more resources to promising ones.
-
-Successive halving is a method for performing model selection without having to train each model on all the dataset.
-At certain points in time (called "rungs"), the worst performing models will be discarded and the best ones
-will keep competing between each other. The rung values are designed so that at most 'budget' model updates
-will be performed in total.
-"""
-
-# Import all classifier classes to be able to instantiate them by name
 from capymoa.classifier import (
     AdaptiveRandomForestClassifier,
     EFDT,
@@ -39,6 +26,7 @@ from capymoa.base import (
     Classifier,
 )
 from typing import Dict, Any
+from capymoa.stream import Schema
 import math
 import json
 import itertools
@@ -46,50 +34,66 @@ from capymoa.evaluation import ClassificationEvaluator
 
 
 class SuccessiveHalvingClassifier(Classifier):
-    """Successive Halving Classifier for model selection in streaming scenarios."""
+    """Successive Halving Classifier for model selection in streaming scenarios.
+
+    This method applies the principle of *Successive Halving* [#jamieson2016]_
+    to incrementally allocate more computational budget to the most promising
+    models while discarding poorly performing ones. It progressively narrows
+    the pool of candidates as more data is observed, improving efficiency in
+    streaming model selection.
+
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.classifier import HoeffdingTree
+    >>> from capymoa.automl import SuccessiveHalvingClassifier
+    >>> stream = ElectricityTiny()
+    >>> schema = stream.get_schema()
+    >>> learner = SuccessiveHalvingClassifier(
+    ...     schema=schema,
+    ...     base_classifiers=[HoeffdingTree],
+    ...     eta=2.0,
+    ...     evaluation_metric="accuracy"
+    ... )
+    >>> result = next(stream)
+    >>> learner.train(result[0], result[1])
+
+    .. seealso::
+
+        :class:`~capymoa.automl.BanditClassifier`
+
+    .. [#jamieson2016] Jamieson, K. & Talwalkar, A. (2016, May).
+       *Non-stochastic best arm identification and hyperparameter optimization.*
+       In Artificial Intelligence and Statistics (pp. 240–248). PMLR.
+       https://proceedings.mlr.press/v51/jamieson16.html
+    """
 
     def __init__(
         self,
-        schema=None,
-        random_seed=1,
-        base_classifiers=None,
-        config_file=None,
-        max_instances: int = None,
-        budget: int = None,
+        schema: Schema | None = None,
+        random_seed: int = 1,
+        base_classifiers: list[type[Classifier]] | None = None,
+        config_file: str | None = None,
+        max_instances: int | None = None,
+        budget: int | None = None,
         eta: float = 2.0,
         min_models: int = 1,
         evaluation_metric: str = "accuracy",
         verbose: bool = False,
     ):
-        """
-        Initialize the Successive Halving Classifier.
+        """Construct a Successive Halving Classifier.
 
-        Parameters
-        ----------
-        schema : Schema, optional
-            The stream schema.
-        random_seed : int, default=1
-            Random seed for reproducibility.
-        base_classifiers : list of Classifier, optional
-            List of base classifier classes to consider.
-        config_file : str, optional
-            Path to a JSON configuration file with model hyperparameters.
-        max_instances : int, optional
-            Maximum number of instances to process per model.
-            If provided, the budget will be calculated as 2 * n_models * max_instances / eta.
-        budget : int, optional
-            Total budget (number of training instances across all models).
-            If `max_instances` is provided, this value will be ignored.
-        eta : float, default=2.0
-            Reduction factor for the number of models in each round.
-        min_models : int, default=1
-            Minimum number of models to maintain.
-        evaluation_metric : str, default="accuracy"
-            Metric to use for model evaluation.
-        verbose : bool, default=False
-            Whether to print progress information.
+        :param schema: The schema of the stream.
+        :param random_seed: Random seed used for reproducibility.
+        :param base_classifiers: List of base classifier classes to consider.
+        :param config_file: Path to a JSON configuration file with model hyperparameters.
+        :param max_instances: Maximum number of instances to process per model.
+            If provided, the total budget is computed as ``2 * n_models * max_instances / eta``.
+        :param budget: Total training budget (number of instances across all models).
+            Ignored if ``max_instances`` is provided.
+        :param eta: Reduction factor controlling how many models advance to the next round.
+        :param min_models: Minimum number of models to maintain in successive rounds.
+        :param evaluation_metric: Metric used to evaluate models. Defaults to ``"accuracy"``.
+        :param verbose: Whether to print progress information during training.
         """
-
         super().__init__(schema=schema, random_seed=random_seed)
 
         self.config_file = config_file
@@ -215,61 +219,46 @@ class SuccessiveHalvingClassifier(Classifier):
             raise ValueError(f"Error loading configuration file: {str(e)}")
 
     def _create_capymoa_classifier(self, algorithm_name, params):
-        """
-        Create a CapyMOA classifier instance with the specified parameters.
-
-        Args:
-            algorithm_name: MOA algorithm name (e.g., "moa.classifiers.trees.HoeffdingTree")
-            params: List of parameter dictionaries
-
-        Returns:
-            CapyMOA classifier instance
-        """
+        """Create a CapyMOA classifier instance with the specified parameters."""
         # Map MOA class names to CapyMOA classifier classes
-        # moa_to_capymoa = {
-        #     "moa.classifiers.trees.HoeffdingTree": HoeffdingTree,
-        #     "moa.classifiers.bayes.NaiveBayes": NaiveBayes,
-        #     "moa.classifiers.lazy.kNN": KNN,
-        #     "moa.classifiers.meta.AdaptiveRandomForest": AdaptiveRandomForestClassifier,
-        #     "moa.classifiers.trees.HoeffdingAdaptiveTree": HoeffdingAdaptiveTree,
-        #     "moa.classifiers.meta.OnlineBagging": OnlineBagging
-        # }
-
-        moa_to_capymoa = {
-            "moa.classifiers.meta.AdaptiveRandomForest": AdaptiveRandomForestClassifier,
-            "moa.classifiers.trees.ExtremelyFastDecisionTree": EFDT,
-            "moa.classifiers.trees.HoeffdingTree": HoeffdingTree,
-            "moa.classifiers.bayes.NaiveBayes": NaiveBayes,
-            "moa.classifiers.meta.OnlineBagging": OnlineBagging,
-            "moa.classifiers.meta.OnlineBoosting": OnlineAdwinBagging,
-            "moa.classifiers.meta.LeveragingBag": LeveragingBagging,
-            "moa.classifiers.lazy.kNN": KNN,
-            "moa.classifiers.functions.PassiveAggressive": PassiveAggressiveClassifier,
-            "moa.classifiers.functions.SGD": SGDClassifier,
-            "moa.classifiers.meta.StreamingGradientBoostedTrees": StreamingGradientBoostedTrees,
-            "moa.classifiers.meta.OzaBoost": OzaBoost,
-            "moa.classifiers.rules.MajorityClass": MajorityClass,
-            "moa.classifiers.rules.NoChange": NoChange,
-            "moa.classifiers.meta.OnlineSmoothBoost": OnlineSmoothBoost,
-            "moa.classifiers.meta.StreamingRandomPatches": StreamingRandomPatches,
-            "moa.classifiers.trees.HoeffdingAdaptiveTree": HoeffdingAdaptiveTree,
-            "moa.classifiers.lazy.SAMkNN": SAMkNN,
-            "moa.classifiers.meta.DynamicWeightedMajority": DynamicWeightedMajority,
-            "moa.classifiers.meta.CSMOTE": CSMOTE,
-            "moa.classifiers.lazy.WeightedkNN": WeightedkNN,
-            "moa.classifiers.trees.Shrub": ShrubsClassifier,
+        capymoa_classifiers = {
+            cls.__name__: cls
+            for cls in [
+                AdaptiveRandomForestClassifier,
+                EFDT,
+                HoeffdingTree,
+                NaiveBayes,
+                OnlineBagging,
+                OnlineAdwinBagging,
+                LeveragingBagging,
+                KNN,
+                PassiveAggressiveClassifier,
+                SGDClassifier,
+                StreamingGradientBoostedTrees,
+                OzaBoost,
+                MajorityClass,
+                NoChange,
+                OnlineSmoothBoost,
+                StreamingRandomPatches,
+                HoeffdingAdaptiveTree,
+                SAMkNN,
+                DynamicWeightedMajority,
+                CSMOTE,
+                WeightedkNN,
+                ShrubsClassifier,
+            ]
         }
+
         # Find matching classifier in CapyMOA
-        # First try exact match, then try partial match
-        if algorithm_name in moa_to_capymoa:
-            clf_class = moa_to_capymoa[algorithm_name]
+        if algorithm_name in capymoa_classifiers:
+            clf_class = capymoa_classifiers[algorithm_name]
         else:
             # Try to find a matching classifier by the last part of the name
             classifier_name = algorithm_name.split(".")[-1]
             matching_class = None
 
             # Search for matching class by name
-            for moa_name, capymoa_class in moa_to_capymoa.items():
+            for moa_name, capymoa_class in capymoa_classifiers.items():
                 if moa_name.endswith(classifier_name):
                     matching_class = capymoa_class
                     break
