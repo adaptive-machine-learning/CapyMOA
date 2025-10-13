@@ -53,6 +53,9 @@ nitpick_ignore_regex = [
     ("py:class", r"tqdm\..*"),
 ]
 
+# These warnings are usually false positives.
+suppress_warnings = ["myst.xref_missing"]
+
 toc_object_entries_show_parents = "hide"
 autosummary_ignore_module_all = False
 autosummary_generate = True

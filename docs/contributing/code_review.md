@@ -1,33 +1,19 @@
-# Version Control
+# Code Review
+This document describes the code review process for CapyMOA. It is intended for reviewers only.
 
-This document outlines the version control practices used in the CapyMOA project.
+## Checklist
 
-## Linting and Formatting
-
-Linting is the process of automatically checking code for style, syntax, and other issues.
-Code formatting ensures code meets a consistent style.
-Together they help ensure the codebase is consistent and clean.
-Developers don't have to worry about formatting and reviewers can focus on code rather than style preferences.
-
-CapyMOA uses the [ruff](https://astral.sh/ruff) linter to enforce both.
-Checks are run automatically using GitHub actions on every pull request.
-
-You will need to run `ruff` locally before committing changes.  
-Ruff is installed as part of the [development dependencies](../installation.rst). 
-
-To format files run:
-```bash
-ruff format # or python -m invoke format
-```
-
-To lint files run:
-```bash
-ruff check # or python -m invoke lint
-```
-
-Furthermore, `python -m invoke commit` will run the linter and check that 
-formatting is correct before committing.
-
+1. Check that all automated checks pass.
+2. Download the built documentation [pull request
+   artifact](./docs.rst#pull-request-artifact) and check it renders nicely.
+3. If the PR adds new methods these should be cited in the documentation.
+4. Does the PR test added code?
+5. Manually review the code changes.
+6. If everything is good **squash and merge** the PR using the GitHub interface and add
+   a meaningful commit message. See [commit messages](#commit-messages) below for more
+   information. These commit messages generate the changelog and release notes! You
+   could use this [semantic commit
+   generator](https://jadsonlucena.github.io/semantic-commit-generator/) to help you.
 
 ## Commit Messages
 
@@ -84,7 +70,7 @@ Where:
 
 * `<description>` This should be a short, concise lowercase description of the change in the imperative mood (e.g. "add ...", "change ...", "fix", "remove...").
 
-## Breaking Changes
+### Breaking Changes
 
 If the API changes in a way that is not backwards-compatible, the commit message
 should include a `!` after the type/scope, e.g. `feat(classifiers)!: ...`.

@@ -4,10 +4,15 @@ Contributing
 This part of the documentation is for developers and contributors.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   learners
    tests
    docs
-   vcs
-   updating_moajar
+   git
+   update_moa
+   code_review
+
+.. toctree::
+   :maxdepth: 2
+
+   faq

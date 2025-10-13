@@ -1,4 +1,4 @@
-# Updating CapyMOA's `moa.jar` version
+# Update MOA
 
 This document describes how to change the version of MOA that the CapyMOA
 project uses. **It is only intended for developers who are contributing to
@@ -52,7 +52,7 @@ they need to follow these steps:
       CAPYMOA_MOA_JAR:      .../CapyMOA/src/capymoa/jar/moa.jar
       CAPYMOA_JVM_ARGS:     ['-Xmx8g', '-Xss10M']
       JAVA_HOME:            ...
-      MOA version:          A SHA256 hash of the actual
+      MOA version:          A SHA256 hash of the new MOA version
       JAVA version:         ...
    ```
 

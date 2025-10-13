@@ -7,6 +7,7 @@ in the [installation guide](../installation.rst). To run all tests, use the foll
 invoke test
 ```
 
+(pytest)=
 ## PyTest
 
 Tests can be added to the ``tests`` directory. PyTest will automatically discover
@@ -30,11 +31,11 @@ pytest tests/test_*.py
 ```
 
 Or to run with the same configuration as continuous integration:
-
 ```bash
 invoke test.pytest
 ```
 
+(doctest)=
 ## Doctest
 
 [Doctest](https://docs.python.org/3/library/doctest.html) allows you to write
@@ -57,14 +58,29 @@ def hello_world():
 You can run this test with:
 
 ```bash
-pytest --doctest-modules -k src
+pytest --doctest-modules path/to/your/module.py
 ```
-
-The `-k src` flag tells PyTest to run tests only in the `src` directory. This is useful
-if you only want to run doctests in source code but not PyTest tests.
 
 Alternatively, you can run all unit tests with the same configuration as continuous integration:
 
 ```bash
 invoke test.doctest
 ```
+
+(notebooks)=
+## Notebooks
+We use [nbmake](https://github.com/treebeardtech/nbmake) to test that all notebooks in
+the `notebooks` directory run without error. This ensures that the notebooks are always
+up-to-date and working correctly.
+
+You can a notebook as a test with:
+```bash
+pytest --nbmake notebooks/my_notebook.ipynb
+
+# Often the examples take too long to run regularly as tests. To speed up testing some
+# notebooks use the `NB_FAST` environment variable to run the notebook faster by using
+# smaller datasets or fewer iterations. To run them in this mode use:
+NB_FAST=true pytest --nbmake notebooks/my_notebook.ipynb
+```
+
+For more about `NB_FAST` read the [notebooks documentation](../docs.rst#notebooks).

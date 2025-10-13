@@ -1,7 +1,4 @@
-# Adding Learners
-This document describes adding a new classifier, regressor, or 
-another learner to CapyMOA. Before doing this, you should have read the
-[installation guide](../installation.rst) to set up your development environment.
+# FAQ
 
 ## Where does my new learner go?
 You should add your new learner to the appropriate directory:
@@ -76,13 +73,32 @@ You should add a docstring to your learner that describes the learner and its
 parameters. The docstring should be in the Sphinx format. Check the 
 [documentation guide](docs.rst) for more information and an example.
 
-## How to debug failed GitHub Actions?
-Before submitting your pull request, you may wish to run all tests to
-ensure your changes will succeed in GitHub Actions. You can run all tests with:
-```bash
-invoke test
-```
-If you run into issues with GitHub actions failing to build documentation.
-Follow the instructions in the [documentation guide](docs.rst) to build the
-documentation locally. The documentation build settings are intentionally strict
-to ensure the documentation builds correctly.
+## How do I fix failing automated checks?
+
+When a pull request is opened, automated checks are triggered to prevent breaking changes and maintain code quality. These checks are configured in the `.github/workflows/pr.yml` file using [GitHub Actions](https://docs.github.com/en/actions). The workflow runs tests, linters, and documentation builds automatically.
+
+If a check fails, review the error messages and try to reproduce the issue locally. If you need help, ask in the pull request or join the Discord server.
+
+**Automated Checks:**
+
+- **Tests:**  
+    - **PyTest** (`invoke test.pytest`): Runs all unit tests in the `/tests` directory. See the [pytest guide](./tests.md#pytest).
+    - **Doctest** (`invoke test.doctest`): Runs documentation tests. See the [doctest guide](./tests.md#doctest).
+    - **Notebooks** (`invoke test.nb`): Executes all notebooks in `/notebooks` to ensure they run without errors. See the [notebook guide](./tests.md#notebooks).
+- **Code Style:**  
+    - **Formatting** (`invoke fmt`): Checks code formatting and style.
+- **Documentation:**  
+    - **Build** (`invoke docs.build`): Verifies that documentation builds successfully.
+      See the [documentation guide](./docs.rst).
+
+## How do I format my code?
+`invoke fmt` will format and check your code using `ruff`. Ruff is installed as part of
+the [development dependencies](../installation.rst). Formatting helps make diff reviews
+easier and keeps the codebase consistent.
+
+## How do I write a commit message?
+
+Don't worry about this too much as reviewers will **squash and merge** your PR with
+a meaningful commit message using the [conventional
+commit](https://www.conventionalcommits.org) style. We use this style to automate
+versioning and changelog generation.
