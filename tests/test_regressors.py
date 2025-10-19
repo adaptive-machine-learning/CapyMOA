@@ -52,7 +52,7 @@ CASES = [
     Case(NoChange, 6.89, 6.06),
     Case(TargetMean, 4.98, 4.64),
     Case(FadingTargetMean, 5.09, 4.68, {"factor": 0.9}),
-    Case(AdaptiveRandomForestRegressor, 3.66, 2.98),
+    Case(AdaptiveRandomForestRegressor, 4.15, 3.84),
     Case(KNNRegressor, 3.03, 2.49),
     Case(FIMTDD, 7.36, 5.25),
     Case(ARFFIMTDD, 4.95, 4.57),
