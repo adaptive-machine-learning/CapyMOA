@@ -177,4 +177,4 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
         if proba is None:
             return None
         else:
-            return proba.argmax(axis=0)
+            return int(proba.argmax(axis=0))

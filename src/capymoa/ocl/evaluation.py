@@ -321,7 +321,11 @@ class _OCLEvaluator:
 _OCLClassifier = Union[TrainTaskAware, TestTaskAware, Classifier]
 
 
-def _batch_test(learner: Classifier, x: Tensor) -> np.ndarray:
+def _abstain_prediction_uniform(rng: np.random.Generator, n_classes: int) -> LabelIndex:
+    return int(rng.integers(0, n_classes))
+
+
+def _batch_test(rng: np.random.Generator, learner: Classifier, x: Tensor) -> np.ndarray:
     """Test a batch of instances using the learner."""
     batch_size = x.shape[0]
     x = x.view(batch_size, -1)
@@ -332,7 +336,12 @@ def _batch_test(learner: Classifier, x: Tensor) -> np.ndarray:
         yb_pred = np.zeros(batch_size, dtype=int)
         for i in range(batch_size):
             instance = Instance.from_array(learner.schema, x[i].numpy())
-            yb_pred[i] = learner.predict(instance)
+            y_pred = learner.predict(instance)
+            if y_pred is None:
+                y_pred = _abstain_prediction_uniform(
+                    rng, learner.schema.get_num_classes()
+                )
+            yb_pred[i] = y_pred
         return yb_pred
 
 
@@ -363,17 +372,20 @@ def ocl_train_eval_loop(
 ) -> OCLMetrics:
     """Train and evaluate a learner on a sequence of tasks.
 
-    :param learner: A classifier that is possibly train task aware and/or
-        test task aware.
+    * When a learn abstains prediction (i.e., returns `None`), we return a random
+      prediction from a uniform distribution over all classes.
+
+    :param learner: A classifier that is possibly train task aware and/or test task
+        aware.
     :param train_streams: A sequence of streams containing the training tasks.
     :param test_streams: A sequence of streams containing the testing tasks.
-    :param continual_evaluations: The number of times to evaluate the learner
-        during each task. If 1, the learner is only evaluated at the end of each task.
-    :param progress_bar: Whether to display a progress bar. The bar displayed
-        will show the progress over all training and evaluation steps including
-        the continual evaluations.
-    :param epochs: The number of times to repeat the training stream for each task. **This
-        violates the online learning experimental setting**, since each instance
+    :param continual_evaluations: The number of times to evaluate the learner during
+        each task. If 1, the learner is only evaluated at the end of each task.
+    :param progress_bar: Whether to display a progress bar. The bar displayed will show
+        the progress over all training and evaluation steps including the continual
+        evaluations.
+    :param epochs: The number of times to repeat the training stream for each task.
+        **This violates the online learning experimental setting**, since each instance
         is seen multiple times. However, it can be useful for offline continual learning
         experiments.
     :return: A collection of metrics evaluating the learner's performance.
@@ -402,6 +414,8 @@ def ocl_train_eval_loop(
     )
     boundary_instances = torch.zeros(len(train_streams) + 1)
     start_wallclock_time, start_cpu_time = start_time_measuring()
+    # Random number generator for reproducible abstained predictions
+    rng = np.random.default_rng(learner.random_seed)
 
     # Setup progress bar
     train_len = sum(len(stream) for stream in train_streams)
@@ -426,7 +440,7 @@ def ocl_train_eval_loop(
                 xb: Tensor
                 yb: Tensor
                 pbar.update(1)
-                yb_pred = _batch_test(learner, xb)
+                yb_pred = _batch_test(rng, learner, xb)
                 _batch_train(learner, xb, yb)
 
                 for y, y_pred in zip(yb, yb_pred, strict=True):
@@ -450,7 +464,7 @@ def ocl_train_eval_loop(
                         # predict instances in the current task
                         for test_xb, test_yb in test_stream:
                             pbar.update(1)
-                            yb_pred = _batch_test(learner, test_xb)
+                            yb_pred = _batch_test(rng, learner, test_xb)
 
                             for y, y_pred in zip(test_yb, yb_pred):
                                 metrics.holdout_update(
