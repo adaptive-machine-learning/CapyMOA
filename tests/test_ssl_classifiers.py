@@ -34,8 +34,18 @@ def assert_ssl_evaluation(
     [
         (partial(OSNN, optim_steps=10), ElectricityTiny, 46.1, None),
         (partial(OSNN, optim_steps=10), CovtypeTiny, 26.3, None),
-        (partial(SLEADE, base_ensemble="StreamingRandomPatches -s 3"), ElectricityTiny, 50.8, None),
-        (partial(SLEADE, base_ensemble="StreamingRandomPatches -s 3"), CovtypeTiny, 44.7, None),
+        (
+            partial(SLEADE, base_ensemble="StreamingRandomPatches -s 3"),
+            ElectricityTiny,
+            50.8,
+            None,
+        ),
+        (
+            partial(SLEADE, base_ensemble="StreamingRandomPatches -s 3"),
+            CovtypeTiny,
+            44.7,
+            None,
+        ),
     ],
     ids=[
         "OSNN_ElectricityTiny",
