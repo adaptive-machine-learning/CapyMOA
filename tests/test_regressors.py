@@ -58,7 +58,7 @@ CASES = [
     Case(ARFFIMTDD, 4.95, 4.57),
     Case(ORTO, 9.23, 7.51),
     Case(SOKNLBT, 4.95, 4.57),
-    Case(SOKNL, 3.37, 2.72),
+    Case(SOKNL, 3.35, 2.69),
     Case(PassiveAggressiveRegressor, 3.70, 3.68),
     Case(SGDRegressor, 4.63, 3.61),
     Case(ShrubsRegressor, 5.21, 4.76),
