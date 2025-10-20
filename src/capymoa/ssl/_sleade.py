@@ -9,9 +9,7 @@ import moa.classifiers.semisupervised as moa_ssl
 class SLEADE(MOAClassifierSSL):
     """Semi-supervised SLEADE ensemble.
 
-    SLEADE (Semi-supervised Learning with Ensemble Agreement and Drift Estimation)
-    extends streaming ensemble methods to handle partially labelled data and
-    unsupervised drift detection.
+    SLEADE method handles partially labelled data and unsupervised drift detection.
 
     >>> from capymoa.ssl import SLEADE
     >>> from capymoa.datasets import ElectricityTiny
