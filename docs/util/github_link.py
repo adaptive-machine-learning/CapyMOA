@@ -66,7 +66,7 @@ def _linkcode_resolve(domain, info, package, url_fmt, revision):
     if not fn:
         return
 
-    fn = os.path.relpath(fn, start=os.path.dirname(__import__(package).__file__))
+    fn = os.path.abspath(fn)
     try:
         lineno = inspect.getsourcelines(obj)[1]
     except Exception:
