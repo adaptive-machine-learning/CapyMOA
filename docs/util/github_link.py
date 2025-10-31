@@ -66,7 +66,15 @@ def _linkcode_resolve(domain, info, package, url_fmt, revision):
     if not fn:
         return
 
-    fn = os.path.abspath(fn)
+    try:
+        fn = os.path.relpath(fn, start=os.path.dirname(__import__(package).__file__))
+    except:
+        # In some circumstances, you may get an error while building docs
+        # if components cross drives (I.e., C:/ and D:/)
+        # We need to use absolute paths in that case
+        abspath = os.path.abspath(fn)
+        fn = abspath[abspath.find('capymoa')+8:].replace('\\', '/')
+
     try:
         lineno = inspect.getsourcelines(obj)[1]
     except Exception:
