@@ -6,9 +6,13 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
+import sys
 from pathlib import Path
 from capymoa.__about__ import __version__
 from docs.util.github_link import make_linkcode_resolve
+
+# Any subprocesses created during document building should use the same python environment
+os.environ["PYTHONEXECUTABLE"] = sys.executable
 
 discord_link = "https://discord.gg/spd2gQJGAb"
 contact_email = "heitor.gomes@vuw.ac.nz"
