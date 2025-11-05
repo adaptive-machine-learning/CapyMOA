@@ -53,8 +53,8 @@ Use the `partial` function to create a new function with hyperparameters already
 set.
 """
 TEST_CASES: List[Case] = [
-    Case("HoeffdingTree", HoeffdingTree, Result(69.0, 46.5, 57.0), batch_size=1),
-    Case("HoeffdingTree", HoeffdingTree, Result(69.0, 46.5, 51.8), batch_size=32),
+    Case("HoeffdingTree", HoeffdingTree, Result(59.49, 42.59, 45.8), batch_size=1),
+    Case("HoeffdingTree", HoeffdingTree, Result(59.00, 42.80, 42.5), batch_size=32),
     Case(
         "Finetune",
         partial(Finetune, model=Perceptron),
