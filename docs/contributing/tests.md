@@ -15,7 +15,7 @@ and run these tests. They should be named ``test_*.py``, and the test functions
 should be named ``test_*``. See the [PyTest documentation](https://docs.pytest.org)
 for more information.
 
-Use this PyTest style tests for parameterized tests, tests that require fixtures,
+Use PyTest style tests for parameterised tests, tests that require fixtures,
 and tests that require setup.
 
 These tests can be run with:
@@ -42,7 +42,7 @@ invoke test.pytest
 tests directly in the docstrings of your code, making it easier to keep documentation
 up-to-date. The tests are written as examples in a Python interactive shell.
 
-Use doctest style test to document code with simple tested examples.
+Use doctest style tests to document code with simple tested examples.
 
 Here's an example of a function with a doctest:
 
@@ -73,7 +73,7 @@ We use [nbmake](https://github.com/treebeardtech/nbmake) to test that all notebo
 the `notebooks` directory run without error. This ensures that the notebooks are always
 up-to-date and working correctly.
 
-You can a notebook as a test with:
+You can run a notebook as a test with:
 ```bash
 pytest --nbmake notebooks/my_notebook.ipynb
 

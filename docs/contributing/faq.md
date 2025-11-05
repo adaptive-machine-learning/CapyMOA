@@ -26,7 +26,6 @@ from capymoa.classifier import MyNewLearner
 ```
 
 ## What does a learner implement?
-
 A learner should implement the appropriate interface:
 * {py:class}`capymoa.base.Classifier` for classifiers.
 * {py:class}`capymoa.base.Regressor` for regressors.
@@ -44,8 +43,8 @@ base class:
 * {py:class}`capymoa.base.MOAAnomalyDetector` for anomaly detectors.
 
 ## How do I test my new learner?
-You should add a test to ensure your learner achieves and continues to achieves
-the expected performance in future versions. CapyMOA provides parametrized
+You should add a test to ensure your learner achieves and continues to achieve
+the expected performance in future versions. CapyMOA provides parameterised
 tests for classifiers, regressors, and semi-supervised classifiers. You should
 not need to write any new test code. Instead, you should add your test's
 parameters to the appropriate test file:
@@ -74,22 +73,19 @@ parameters. The docstring should be in the Sphinx format. Check the
 [documentation guide](docs.rst) for more information and an example.
 
 ## How do I fix failing automated checks?
-
 When a pull request is opened, automated checks are triggered to prevent breaking changes and maintain code quality. These checks are configured in the `.github/workflows/pr.yml` file using [GitHub Actions](https://docs.github.com/en/actions). The workflow runs tests, linters, and documentation builds automatically.
 
 If a check fails, review the error messages and try to reproduce the issue locally. If you need help, ask in the pull request or join the Discord server.
 
 **Automated Checks:**
-
 - **Tests:**  
-    - **PyTest** (`invoke test.pytest`): Runs all unit tests in the `/tests` directory. See the [pytest guide](./tests.md#pytest).
+    - **PyTest** (`invoke test.pytest`): Runs all unit tests in the `/tests` directory. See the [PyTest guide](./tests.md#pytest).
     - **Doctest** (`invoke test.doctest`): Runs documentation tests. See the [doctest guide](./tests.md#doctest).
     - **Notebooks** (`invoke test.nb`): Executes all notebooks in `/notebooks` to ensure they run without errors. See the [notebook guide](./tests.md#notebooks).
 - **Code Style:**  
     - **Formatting** (`invoke fmt`): Checks code formatting and style.
 - **Documentation:**  
-    - **Build** (`invoke docs.build`): Verifies that documentation builds successfully.
-      See the [documentation guide](./docs.rst).
+    - **Build** (`invoke docs.build`): Verifies that the documentation builds successfully. See the [documentation guide](./docs.rst).
 
 ## How do I format my code?
 `invoke fmt` will format and check your code using `ruff`. Ruff is installed as part of
@@ -97,7 +93,6 @@ the [development dependencies](../installation.rst). Formatting helps make diff 
 easier and keeps the codebase consistent.
 
 ## How do I write a commit message?
-
 Don't worry about this too much as reviewers will **squash and merge** your PR with
 a meaningful commit message using the [conventional
 commit](https://www.conventionalcommits.org) style. We use this style to automate

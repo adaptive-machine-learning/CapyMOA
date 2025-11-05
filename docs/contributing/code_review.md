@@ -68,7 +68,7 @@ Where:
 
   Its okay to leave out the scope if its not obvious or not applicable.
 
-* `<description>` This should be a short, concise lowercase description of the change in the imperative mood (e.g. "add ...", "change ...", "fix", "remove...").
+* `<description>` This should be a short, concise lowercase description of the change in the imperative mood (e.g. "add ...", "change ...", "fix ...", "remove...").
 
 ### Breaking Changes
 

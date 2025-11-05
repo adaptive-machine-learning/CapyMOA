@@ -35,7 +35,7 @@ work but have yet to be tested.
    Development Kit) from `this link <https://openjdk.org/install/>`__, or
    alternatively the Oracle JDK from `this
    link <https://www.oracle.com/java>`__. Linux users can also install
-   OpenJDK using their distribution’s package manager.
+   OpenJDK using their distribution's package manager.
 
    Now that Java is installed, you should see an output similar to the
    following when you run the command ``java -version``:
@@ -54,7 +54,7 @@ work but have yet to be tested.
    different hardware. If you want to use these algorithms, follow the
    instructions `here <https://pytorch.org/get-started/locally/>`__ to get
    the correct version for your hardware. Ensure that you install PyTorch in
-   the same environment virtual environment where you want to install CapyMOA.
+   the same virtual environment where you want to install CapyMOA.
 
    For CPU only, you can install PyTorch with:
 
@@ -88,7 +88,7 @@ dependencies.
 
 #. **Pandoc** 
    
-   Ensure that you have `Pandoc <https://pandoc.org/>`_ installed on your system.
+   Ensure that you have `Pandoc <https://pandoc.org/>`__ installed on your system.
    If it's not installed, you can install it by running the following command on
 
    .. tab-set::
@@ -105,9 +105,9 @@ dependencies.
 
                sudo brew install pandoc
 
-      .. tab-item:: Window/Other
+      .. tab-item:: Windows/Other
 
-         Follow the instructions on the `Pandoc website <https://pandoc.org/installing.html>`_.
+         Follow the instructions on the `Pandoc website <https://pandoc.org/installing.html>`__.
 
       .. tab-item:: conda
 
@@ -158,7 +158,11 @@ dependencies.
 
    .. program-output:: python -m invoke --list
 
+   Each of these tasks can be run in the terminal through ``invoke <task>``. Running the task to build documentation would look like this:
+
+   .. code-block:: bash
+
+      invoke docs.build
+
    See the :doc:`contributing/index` guide for more information on how to
    contribute to CapyMOA.
-
-
