@@ -2,19 +2,16 @@ from ._stream import (
     Stream,
     Schema,
     ARFFStream,
-    stream_from_file,
-    CSVStream,
     NumpyStream,
     MOAStream,
-    ConcatStream,
 )
+from ._csv_stream import CSVStream
 from .torch import TorchClassifyStream
 from . import drift, generator, preprocessing
 
 __all__ = [
     "Stream",
     "Schema",
-    "stream_from_file",
     "ARFFStream",
     "TorchClassifyStream",
     "CSVStream",
@@ -23,5 +20,4 @@ __all__ = [
     "preprocessing",
     "NumpyStream",
     "MOAStream",
-    "ConcatStream",
 ]

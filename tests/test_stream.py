@@ -3,7 +3,6 @@
 from functools import partial
 from typing import Optional, Sized
 
-from capymoa.stream._stream import ConcatStream
 import numpy as np
 import pytest
 import torch
@@ -22,7 +21,6 @@ from capymoa.stream import (
     NumpyStream,
     Stream,
     TorchClassifyStream,
-    stream_from_file,
 )
 
 CLASSIFICATION_X = np.array(
@@ -85,28 +83,18 @@ def check_java_instance(instance: Instance, x: np.ndarray, target: float):
 @pytest.mark.parametrize(
     ["stream", "length"],
     [
-        (stream_from_file(CLASSIFICATION_CSV), None),
-        (CSVStream(CLASSIFICATION_CSV), None),
-        (stream_from_file(CLASSIFICATION_ARFF), None),
+        (
+            CSVStream(
+                CLASSIFICATION_CSV, target="class", categories={"class": ["0", "1"]}
+            ),
+            None,
+        ),
         (ARFFStream(CLASSIFICATION_ARFF), None),
         (ElectricityTiny(get_download_dir()), 2_000),
         (TorchClassifyStream(CLASSIFICATION_TENSOR_DATASET, 2), 10),
         (
             NumpyStream(CLASSIFICATION_X, CLASSIFICATION_Y, target_type="categorical"),
             10,
-        ),
-        (
-            ConcatStream(
-                [
-                    NumpyStream(
-                        CLASSIFICATION_X, CLASSIFICATION_Y, target_type="categorical"
-                    ),
-                    NumpyStream(
-                        CLASSIFICATION_X, CLASSIFICATION_Y, target_type="categorical"
-                    ),
-                ]
-            ),
-            20,
         ),
         # Add new stream types here.
     ],
@@ -132,7 +120,7 @@ def test_stream_classification(stream: Stream[LabeledInstance], length: Optional
     assert schema.dataset_name is not None
 
     # Check attribute names.
-    if not isinstance(stream, (TorchClassifyStream, NumpyStream, ConcatStream)):
+    if not isinstance(stream, (TorchClassifyStream, NumpyStream)):
         assert schema.get_numeric_attributes() == [
             "period",
             "nswprice",
@@ -187,25 +175,10 @@ def test_stream_classification(stream: Stream[LabeledInstance], length: Optional
     ["stream", "length"],
     [
         (FriedTiny(), 1_000),
-        (stream_from_file(REGRESSION_CSV, target_type="numeric"), None),
-        (CSVStream(REGRESSION_CSV, target_type="numeric"), None),
-        (stream_from_file(REGRESSION_ARFF, target_type="numeric"), None),
+        (CSVStream(REGRESSION_CSV, target="target"), None),
         (ARFFStream(REGRESSION_ARFF), None),
         (
             NumpyStream(REGRESSION_X, REGRESSION_Y, target_type="numeric"),
-            10,
-        ),
-        (
-            ConcatStream(
-                [
-                    NumpyStream(
-                        REGRESSION_X[:5], REGRESSION_Y[:5], target_type="numeric"
-                    ),
-                    NumpyStream(
-                        REGRESSION_X[5:], REGRESSION_Y[5:], target_type="numeric"
-                    ),
-                ]
-            ),
             10,
         ),
         # Add new stream types here.
@@ -240,7 +213,7 @@ def test_stream_regression(stream: Stream[RegressionInstance], length: Optional[
         schema.is_y_index_in_range(0)
 
     # Check attribute names.
-    if not isinstance(stream, (TorchClassifyStream, NumpyStream, ConcatStream)):
+    if not isinstance(stream, (TorchClassifyStream, NumpyStream)):
         assert schema.get_numeric_attributes() == [f"attr_{i}" for i in range(10)]
 
     # Check the stream interface.
@@ -282,3 +255,29 @@ def test_stream_regression(stream: Stream[RegressionInstance], length: Optional[
     for _ in stream:
         pass
     assert stream.has_more_instances() is False
+
+
+def test_non_default_target():
+    """Regression test for a bug where using any column other than the last one created issues."""
+    target_index = 0
+    target = "attr_0"
+
+    X = np.concatenate(
+        [
+            REGRESSION_X[:, :target_index],
+            REGRESSION_X[:, target_index + 1 :],
+            REGRESSION_Y[:, None],
+        ],
+        axis=1,
+    )
+    y = REGRESSION_X[:, target_index]
+
+    csv_stream = CSVStream(REGRESSION_CSV, target=target)
+    instance = next(csv_stream)
+    assert allclose(instance.y_value, y[0])
+    assert allclose(instance.x, X[0])
+
+    arff_stream = ARFFStream(REGRESSION_ARFF, class_index=target_index + 1)
+    instance = next(arff_stream)
+    assert allclose(instance.x, X[0])
+    assert allclose(instance.y_value, y[0])
