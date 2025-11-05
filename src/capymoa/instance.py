@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
 import numpy as np
-from com.yahoo.labs.samoa.instances import DenseInstance
+from com.yahoo.labs.samoa.instances import DenseInstance, InstancesHeader
 from moa.core import InstanceExample
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, Tuple, Sequence
 from jpype import JArray, JDouble
 
 from capymoa.type_alias import FeatureVector, Label, LabelIndex, TargetValue
@@ -86,16 +86,12 @@ class Instance:
         ...
         >>> from capymoa.instance import Instance
         >>> import numpy as np
-        >>> schema = Schema.from_custom(
-        ...     ["f1", "f2"],
-        ...     dataset_name="CustomDataset",
-        ...     values_for_class_label=["yes", "no"]
-        ... )
+        >>> schema = Schema.from_custom(["f1", "f2", "target"], "target")
         >>> x = np.array([0.1, 0.2])
         >>> instance = Instance.from_array(schema, x)
         >>> instance
         Instance(
-            Schema(CustomDataset),
+            Schema(unnamed),
             x=[0.1 0.2],
         )
 
@@ -104,6 +100,71 @@ class Instance:
         :return: A new :class:`Instance` object
         """
         return cls(schema, instance)
+
+    @classmethod
+    def from_csv_row(cls, schema: "Schema", row: Sequence[str]) -> "Instance":
+        """Create an instance from a CSV row.
+
+        >>> from capymoa.stream import Schema
+        >>> from capymoa.instance import Instance
+        >>> schema = Schema.from_custom(
+        ...     ["feature1", "feature2", "target"],
+        ...     target="target",
+        ...     categories={"feature2": ["A", "B"], "target": ["yes", "no"]},
+        ...     name="classification-example"
+        ... )
+        >>> row = ["1.0", "A", "yes"]
+        >>> instance = Instance.from_csv_row(schema, row)
+        >>> instance
+        Instance(
+            Schema(classification-example),
+            x=[1. 0.],
+        )
+        >>> instance.x
+        array([1., 0.])
+
+        :param schema: A schema providing the structure of each row. Like the header of the CSV.
+        :param row: A sequence of strings representing a CSV row.
+        :raises ValueError: If an attribute type is unsupported.
+        :return: A new :class:`Instance` object.
+        """
+        header: InstancesHeader = schema.get_moa_header()
+
+        instance = DenseInstance(header.numAttributes())
+        instance.setDataset(header)
+
+        for attr_idx, value in zip(range(header.numAttributes()), row, strict=True):
+            attr = header.attribute(attr_idx)
+
+            if value == "?":
+                instance.setMissing(attr_idx)
+            elif attr.isNumeric():
+                try:
+                    instance.setValue(attr_idx, float(value))
+                except ValueError as e:
+                    raise ValueError(
+                        f"Expected numeric value for attribute '{attr.name()}', got '{value}'."
+                    ) from e
+            elif attr.isNominal() and value.isdigit():
+                try:
+                    instance.setValue(attr_idx, int(value))
+                except ValueError as e:
+                    raise ValueError(
+                        f"Expected nominal index for attribute '{attr.name()}', got '{value}'."
+                    ) from e
+            elif attr.isNominal():
+                try:
+                    instance.setValue(attr_idx, attr.indexOfValue(value))
+                except ValueError as e:
+                    raise ValueError(
+                        f"Expected nominal value for attribute '{attr.name()}', got '{value}'."
+                    ) from e
+            else:
+                raise ValueError(
+                    f"Unsupported attribute type for attribute '{attr.name()}'."
+                )
+
+        return cls.from_java_instance(schema, InstanceExample(instance))
 
     @property
     def schema(self) -> "Schema":
@@ -116,10 +177,17 @@ class Instance:
         if self._x is not None:
             return self._x
         elif self._java_instance is not None:
+            # Fill the feature vector with values from the Java instance. But skip the
+            # target attribute!
+            # This will need to be changed if we ever support multi-target instances.
             moa_instance = self.java_instance.getData()
-            self._x = np.empty(moa_instance.numInputAttributes())
-            for i in range(0, moa_instance.numInputAttributes()):
-                self._x[i] = moa_instance.value(i)
+            target_index = moa_instance.classIndex()
+            values = [
+                moa_instance.value(i)
+                for i in range(moa_instance.numAttributes())
+                if target_index != i
+            ]
+            self._x = np.array(values)
             return self._x
         else:
             raise ValueError("Instance has no feature vector")
@@ -211,9 +279,10 @@ class LabeledInstance(Instance):
         >>> from capymoa.instance import LabeledInstance
         >>> import numpy as np
         >>> schema = Schema.from_custom(
-        ...     ["f1", "f2"],
-        ...     dataset_name="CustomDataset",
-        ...     values_for_class_label=["yes", "no"]
+        ...     ["f1", "f2", "class"],
+        ...     target="class",
+        ...     name="CustomDataset",
+        ...     categories={"class": ["yes", "no"]}
         ... )
         >>> x = np.array([0.1, 0.2])
         >>> instance = LabeledInstance.from_array(schema, x, 0)
@@ -229,10 +298,6 @@ class LabeledInstance(Instance):
         >>> instance.java_instance.toString()
         '0.1,0.2,yes,'
 
-        :param schema: _description_
-        :param x: _description_
-        :param y_index: _description_
-        :return: _description_
         """
         return cls(schema, (x, int(y_index)))
 
@@ -315,9 +380,9 @@ class RegressionInstance(Instance):
         >>> from capymoa.instance import LabeledInstance
         >>> import numpy as np
         >>> schema = Schema.from_custom(
-        ...     ["f1", "f2"],
-        ...     dataset_name="CustomDataset",
-        ...     target_type='numeric'
+        ...     ["f1", "f2", "target"],
+        ...     target="target",
+        ...     name="CustomDataset",
         ... )
         >>> x = np.array([0.1, 0.2])
         >>> instance = RegressionInstance.from_array(schema, x, 0.5)

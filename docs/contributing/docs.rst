@@ -186,8 +186,8 @@ attribute, or other programming constructs using the `sphinx cross-reference syn
       - | ``:meth:`capymoa.stream.Stream.next_instance```
         | :meth:`capymoa.stream.Stream.next_instance`
     * - Function
-      - | ``:func:`capymoa.stream.stream_from_file```
-        | :func:`capymoa.stream.stream_from_file`
+      - | ``:func:`capymoa.misc.load_model```
+        | :func:`capymoa.misc.load_model`
     * - Attribute
       - | ``:attr:`capymoa.stream.Schema.dataset_name```
         | :attr:`capymoa.stream.Schema.dataset_name`
