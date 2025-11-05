@@ -2,8 +2,7 @@
 
 CapyMOA uses git for version control and GitHub for hosting the repository. We follow a
 forking workflow, which is common for open source projects. It allows anyone to
-contribute changes while keeping the main repository clean and stable. If you're familiar
-with git, you can safely skip this guide, as it is intended for beginners.
+contribute changes while keeping the main repository clean and stable. If you're familiar with git, you can safely skip this guide, as it is intended for beginners.
 
 ## Contributing Changes
 
@@ -16,7 +15,7 @@ GitHub account (your "fork"). You can make changes here without affecting the or
 project.
 
 ### 2. Download Your Copy (Cloning) and Set Up Tracking
-Now you'll download your new fork to your local computer and tell Git about the original
+Now you'll download your new fork to your local computer and tell git about the original
 project. 
 ```bash
 # Download your fork to your computer (this is your 'origin').
@@ -95,7 +94,7 @@ It helps to review the diffs to ensure you committed what you wanted to. A clean
 makes targeted changes is easier to review and is less likely to break things. If you
 push changes to your branch they will update on GitHub.
 
-A PR may start some automated checks of your proposed changes.  If any checks fail
+A PR may start some automated checks of your proposed changes. If any checks fail
 you'll need to add additional commits to fix that.
 
 ### Staying Current and Resolving Conflicts (Rebasing)
@@ -107,19 +106,20 @@ accepted. If those changes conflict with yours, you'll need to update your branc
 # Fetch and apply the latest changes from upstream main onto your current branch
 git pull upstream main --rebase
 ```
+
 Rebasing is a clean way to update your branch. It takes all of your commits, temporarily
 removes them, updates your base branch to the latest `upstream main`, and then reapplies
 your commits _on top_ of the new code. This keeps your commit history clean and linear. 
 
 You must **force** push the rebase changes to the remote repository. This is because it
 must override the history. **Force pushing can overwrite remote history and cause data
-loss, especially if others are working on the same branch. This overwrites history so
+loss, especially if others are working on the same branch.** This overwrites history so
 it's possible to lose work by doing this incorrectly.
+
 ```bash
 git push --force-with-lease origin my-branch
 ```
-git push --force-with-lease origin my-feature
-(`origin/my-branch`) if it is ahead of the local branch (`my-branch`).
+
 For example, if someone else has pushed new commits to `origin/my-branch` after you last
 pulled, `git push --force-with-lease` will refuse to overwrite those changes, helping
 prevent accidental data loss. This is safer than `--force`, which will overwrite the

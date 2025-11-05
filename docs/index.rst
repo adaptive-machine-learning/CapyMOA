@@ -30,7 +30,7 @@ field of data streams.
 
 To setup CapyMOA, simply install it via pip. If you have any issues with the
 installation (like not having Java installed) or if you want GPU support, please
-refer to the :ref:`installation`. Once installed take a look at the
+refer to :ref:`installation`. Once installed take a look at the
 :ref:`tutorials` to get started.
 
 
@@ -53,7 +53,7 @@ refer to the :ref:`installation`. Once installed take a look at the
    CapyMOA is still in the early stages of development. The API is subject to
    change until version 1.0.0. If you encounter any issues, please report them
    on the `GitHub Issues <https://github.com/adaptive-machine-learning/CapyMOA/issues>`_
-   or talk to us on `Discord <https://discord.gg/spd2gQJGAb>`_.
+   page or talk to us on `Discord <https://discord.gg/spd2gQJGAb>`_.
 
 .. image:: /images/arf100_cpu_time.png
    :alt: Performance plot
