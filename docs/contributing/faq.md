@@ -61,7 +61,7 @@ python -m pytest -k MyNewLearner
 ```
 The `-k MyNewLearner` flag tells PyTest to run tests containing `MyNewLearner` in the test ID.
 
-* If you want to add documented exemplar usage of your learner, you can add it to doctests.
+* If you want to add documented exemplar usage of your learner, you can add doctests.
 See the [testing guide](tests.md) for more information.
 
 * If you need custom test code for your learner, you can add a new test file in
