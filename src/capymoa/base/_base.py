@@ -167,7 +167,7 @@ class AnomalyDetector(ABC):
             raise ValueError("Schema must be initialised")
 
     def __str__(self):
-        pass
+        return str(self.__class__.__name__)
 
     @abstractmethod
     def train(self, instance: Instance):
