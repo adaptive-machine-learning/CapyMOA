@@ -22,6 +22,7 @@ from capymoa.anomaly import (
 )
 from numpy.testing import assert_array_equal
 import numpy as np
+from capymoa.exception import StreamTypeError
 
 
 def test_prequential_evaluation():
@@ -283,7 +284,9 @@ def test_restart_stream_flag(restart_stream, optimise, regression, evaluation):
 
     # Consume the first 10 instances
     _take_y(10)
-    with pytest.raises((RuntimeError, ValueError)) if expect_error else nullcontext():
+    with (
+        pytest.raises((StreamTypeError, ValueError)) if expect_error else nullcontext()
+    ):
         # Consume either the next 5 instances or the same 5 instances again
         # depending on the ``restart_stream`` flag
         evaluation(

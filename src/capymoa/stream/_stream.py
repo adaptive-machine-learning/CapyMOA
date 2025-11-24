@@ -1,8 +1,9 @@
 import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Generic, Iterator, Optional, Sequence, TypeVar, Union
+from typing import Dict, Generic, Iterator, Literal, Optional, Sequence, TypeVar, Union
 
+from capymoa.exception import StreamTypeError
 import numpy as np
 from com.yahoo.labs.samoa.instances import (
     Attribute,
@@ -10,9 +11,8 @@ from com.yahoo.labs.samoa.instances import (
     Instances,
     InstancesHeader,
 )
-from moa.core import FastVector, InstanceExample
+from moa.core import FastVector
 from moa.streams import ArffFileStream, InstanceStream
-from numpy.lib import recfunctions as rfn
 
 from capymoa.instance import (
     Instance,
@@ -90,7 +90,7 @@ class Schema:
 
     def _assert_classification(self):
         if not self.is_classification():
-            raise RuntimeError("Should only be called for classification problems.")
+            raise StreamTypeError("Schema is not for a classification task.")
 
     def get_label_values(self) -> Sequence[str]:
         """Return the possible values for the class label."""
@@ -105,7 +105,7 @@ class Schema:
     def get_value_for_index(self, y_index: Optional[int]) -> Optional[str]:
         """Return the value for the class label index y_index."""
         self._assert_classification()
-        if y_index is None:
+        if y_index is None or y_index < 0:
             return None
         return self._label_values[y_index]
 
@@ -128,47 +128,40 @@ class Schema:
 
     def get_num_nominal_attributes(self) -> int:
         """Return the number of nominal attributes."""
-        num_features = self.get_num_attributes()
-        num_nominal = 0
-        for i in range(num_features):
-            if self._moa_header.attribute(i).isNominal():
-                num_nominal += 1
-        return num_nominal
+        return sum(
+            1
+            for i in range(self._moa_header.numAttributes())
+            if self._moa_header.attribute(i).isNominal()
+            and self._moa_header.classIndex() != i
+        )
 
     def get_num_numeric_attributes(self) -> int:
         """Return the number of numeric attributes."""
-        num_features = self.get_num_attributes()
-        num_numeric = 0
-        for i in range(num_features):
-            if self._moa_header.attribute(i).isNumeric():
-                num_numeric += 1
-        return num_numeric
+        return sum(
+            1
+            for i in range(self._moa_header.numAttributes())
+            if self._moa_header.attribute(i).isNumeric()
+            and self._moa_header.classIndex() != i
+        )
 
-    def get_nominal_attributes(self) -> dict | None:
+    def get_nominal_attributes(self) -> Dict[str, Sequence[str]]:
         """Return a dict of nominal attributes."""
-        num_features = self.get_num_attributes()
-        if self.get_num_nominal_attributes() <= 0:
-            return None
-        else:
-            nominal_attributes = {}
-            for i in range(num_features):
-                if self._moa_header.attribute(i).isNominal():
-                    nominal_attributes[self._moa_header.attribute(i).name()] = list(
-                        self._moa_header.attribute(i).getAttributeValues()
-                    )
-            return nominal_attributes
+        nominal_attributes = {}
+        for i in range(self._moa_header.numAttributes()):
+            attr = self._moa_header.attribute(i)
+            if attr.isNominal() and self._moa_header.classIndex() != i:
+                values = attr.getAttributeValues()
+                nominal_attributes[attr.name()] = list(map(str, values))
+        return nominal_attributes
 
-    def get_numeric_attributes(self) -> list | None:
+    def get_numeric_attributes(self) -> Sequence[str]:
         """Return a list of numeric attribute names."""
-        num_features = self.get_num_attributes()
-        if self.get_num_numeric_attributes() <= 0:
-            return None
-        else:
-            numeric_attributes = []
-            for i in range(num_features):
-                if self._moa_header.attribute(i).isNumeric():
-                    numeric_attributes.append(self._moa_header.attribute(i).name())
-            return numeric_attributes
+        numeric_attributes = []
+        for i in range(self._moa_header.numAttributes()):
+            attr = self._moa_header.attribute(i)
+            if attr.isNumeric() and self._moa_header.classIndex() != i:
+                numeric_attributes.append(attr.name())
+        return numeric_attributes
 
     def get_num_classes(self) -> int:
         """Return the number of possible classes. If regression, returns 1."""
@@ -217,71 +210,70 @@ class Schema:
 
     @staticmethod
     def from_custom(
-        feature_names: Sequence[str],
-        values_for_nominal_features: Dict[str, Sequence[str]] = {},
-        values_for_class_label: Sequence[str] = None,
-        dataset_name="No_Name",
-        target_attribute_name=None,
-        target_type=None,
+        features: Sequence[str],
+        target: str,
+        categories: Optional[Dict[str, Sequence[str]]] = None,
+        name: str = "unnamed",
     ):
         """Create a CapyMOA Schema that defines each attribute in the stream.
 
-        The following example shows how to use this method to create a classification schema:
+        The following example shows how to use this method to create a classification
+        schema:
 
         >>> from capymoa.stream import Schema
-        ...
-        >>> Schema.from_custom(
-        ...     feature_names=["attrib_1", "attrib_2"],
-        ...     dataset_name="MyClassification",
-        ...     target_attribute_name="class",
-        ...     values_for_class_label=["yes", "no"])
-        @relation MyClassification
+        >>> schema = Schema.from_custom(
+        ...     features=["f1", "f2", "class"],
+        ...     target="class",
+        ...     categories={"class": ["yes", "no"], "f1": ["low", "medium", "high"]},
+        ...     name="classification-example"
+        ... )
+        >>> print(schema)
+        @relation classification-example
         <BLANKLINE>
-        @attribute attrib_1 numeric
-        @attribute attrib_2 numeric
+        @attribute f1 {low,medium,high}
+        @attribute f2 numeric
         @attribute class {yes,no}
         <BLANKLINE>
         @data
+        >>> print(schema.is_classification())
+        True
 
-        The following example shows how to use this method to create a regression schema:
+        The following example shows how to use this method to create a regression
+        schema:
 
-        >>> Schema.from_custom(
-        ...     feature_names=["attrib_1", "attrib_2"],
-        ...     values_for_nominal_features={"attrib_1": ["a", "b"]},
-        ...     dataset_name="MyRegression",
-        ...     target_attribute_name="target",
-        ...     target_type='numeric')
-        @relation MyRegression
+        >>> schema = Schema.from_custom(
+        ...     features=["f1", "f2", "target"],
+        ...     target="target",
+        ...     categories={"f1": ["A", "B", "C"]},
+        ...     name="regression-example"
+        ... )
+        >>> print(schema)
+        @relation regression-example
         <BLANKLINE>
-        @attribute attrib_1 {a,b}
-        @attribute attrib_2 numeric
+        @attribute f1 {A,B,C}
+        @attribute f2 numeric
         @attribute target numeric
         <BLANKLINE>
         @data
+        >>> print(schema.is_regression())
+        True
 
-        Sample code to get relevant information from two Numpy arrays: X[rows][features] and y[rows]
-
-        :param feature_names: A list containing names of features. if none sets
-            a default name.
-        :param values_for_nominal_features: Possible values of each nominal feature.
-        :param values_for_class_label: Possible values for class label. Values
-            are turned into strings.
-        :param dataset_name: Name of the dataset. Default is "No_Name".
-        :param target_attribute_name: Name of the target/class attribute.
-            Default is None.
-        :param target_type: Set the target type as 'categorical' or 'numeric', None to detect automatically.
-        :return CayMOA Schema: Initialized CapyMOA Schema which contain all
-            necessary attribute information for all features and the class label
+        :param features: A list of feature names.
+        :param target: The name of the target attribute. Must be in features as well.
+        :param categories: A dictionary mapping feature names to their possible values.
+            When the target attribute is included in this dictionary the task is
+            considered classification.
+        :param name: The name of the dataset.
+        :return: A CapyMOA Schema object.
         """
-        _, moa_header = _init_moa_stream_and_create_moa_header(
-            feature_names=feature_names,
-            values_for_nominal_features=values_for_nominal_features,
-            values_for_class_label=values_for_class_label,
-            dataset_name=dataset_name,
-            target_attribute_name=target_attribute_name,
-            target_type=target_type,
+        return Schema(
+            _new_instances_header(
+                relation=name,
+                target=target,
+                attributes=features,
+                nominals=categories or {},
+            )
         )
-        return Schema(moa_header=moa_header)
 
     def __repr__(self) -> str:
         """Return a string representation of the schema as an ARFF header."""
@@ -290,22 +282,6 @@ class Schema:
     def __str__(self):
         """Return a string representation of the schema as an ARFF header."""
         return str(self._moa_header.toString()).strip()
-
-    def __eq__(self, other: "Schema") -> bool:
-        """Return True if the schema is equal to another schema.
-
-        This is used by :meth:`ConcatStream` to check if the schemas are compatible
-        before concatenating the streams.
-        """
-        if self.is_classification() and other.is_classification():
-            return (
-                self.get_num_classes() == other.get_num_classes()
-                and self.get_num_attributes() == other.get_num_attributes()
-            )
-        elif self.is_regression() and other.is_regression():
-            return self.get_num_attributes() == other.get_num_attributes()
-        else:
-            return False
 
 
 _AnyInstance = TypeVar("_AnyInstance", bound=Instance)
@@ -333,8 +309,6 @@ class Stream(ABC, Generic[_AnyInstance], Iterator[_AnyInstance]):
 
         :return: The next instance in the stream.
         """
-        if not self.has_more_instances():
-            raise StopIteration()
         return self.next_instance()
 
     def __str__(self):
@@ -393,8 +367,9 @@ class MOAStream(Stream[_AnyInstance]):
     ):
         """Construct a Stream from a MOA stream object.
 
-        Usually, you will want to construct a Stream using the :func:`capymoa.stream.stream_from_file`
-        function.
+        Usually, you will want to construct a Stream using :class:`ARFFStream`,
+        :class:`NumpyStream`, or :class:`CSVStream`.
+
 
         :param moa_stream: The MOA stream object to read instances from. Is None
             if the stream is created from a numpy array.
@@ -448,6 +423,8 @@ class MOAStream(Stream[_AnyInstance]):
             nor a classification task.
         :return: A labeled instances or a regression depending on the schema.
         """
+        if not self.has_more_instances():
+            raise StopIteration()
         java_instance = self.moa_stream.nextInstance()
         if self.schema.is_regression():
             return RegressionInstance.from_java_instance(self.schema, java_instance)
@@ -483,6 +460,12 @@ class ARFFStream(MOAStream[_AnyInstance]):
         :param path: A filepath
         :param CLI: Additional command line arguments to pass to the MOA stream.
         """
+        # convert 0-based index to 1-based index for MOA
+        if class_index >= 0:
+            class_index += 1
+        elif class_index != -1:
+            raise ValueError("class_index must be -1 (last attribute) or >= 0")
+
         moa_stream = ArffFileStream(str(path), class_index)
         super().__init__(moa_stream=moa_stream, CLI=CLI)
 
@@ -518,10 +501,10 @@ class NumpyStream(Stream[_AnyInstance]):
         self,
         X: np.ndarray,
         y: np.ndarray,
-        dataset_name="No_Name",
-        feature_names=None,
-        target_name=None,
-        target_type: str = None,  # numeric or categorical
+        dataset_name: str = "No_Name",
+        feature_names: Sequence[str] | None = None,
+        target_name: str | None = None,
+        target_type: Literal["numeric", "categorical"] = "categorical",
     ):
         """Construct a NumpyStream object from a numpy array.
 
@@ -532,43 +515,50 @@ class NumpyStream(Stream[_AnyInstance]):
         :param target_name: The name given to target values, defaults to None
         :param target_type: 'categorical' or 'numeric' target, defaults to None
         """
-        self.current_instance_index = 0
 
-        self.arff_instances_data, self.arff_instances_header, class_labels = (
-            _numpy_to_arff(
-                X,
-                y,
-                dataset_name,
-                feature_names=feature_names,
-                target_name=target_name,
-                target_type=target_type,
-            )
+        features = []
+        if feature_names is None:
+            features = [f"{i}" for i in range(X.shape[1])]
+        else:
+            features = list(feature_names)
+
+        if target_name is None:
+            target_name = "target"
+        features.append(target_name)
+
+        categories: Dict[str, Sequence[str]] = {}
+        if target_type == "categorical":
+            n_classes = np.sum(~np.isnan(np.unique(y, equal_nan=True)))
+            categories[target_name] = [str(i) for i in range(n_classes)]
+
+        self.schema = Schema.from_custom(
+            features=features,
+            target=target_name,
+            categories=categories,
+            name=dataset_name,
         )
-
-        self.schema = Schema(moa_header=self.arff_instances_header)
+        self._index = 0
+        self._len = X.shape[0]
+        self._x_data = X
+        self._y_data = y
 
     def has_more_instances(self):
-        return self.arff_instances_data.numInstances() > self.current_instance_index
+        return self._len > self._index
 
     def next_instance(self) -> _AnyInstance:
-        # Return None if all instances have been read already.
+        # Raise StopIteration if there are no more instances
         if not self.has_more_instances():
-            return None
+            raise StopIteration()
 
-        instance = self.arff_instances_data.instance(self.current_instance_index)
-        self.current_instance_index += 1
+        # Get the next instance
+        x = self._x_data[self._index]
+        y = self._y_data[self._index]
+        self._index += 1
 
-        # TODO: We should natively support Numpy as a type of instance, rather
-        # than converting it to a Java instance. We can probably combine the logic
-        # for pytorch and numpy into a single method.
         if self.schema.is_classification():
-            return LabeledInstance.from_java_instance(
-                self.schema, InstanceExample(instance)
-            )
+            return LabeledInstance.from_array(self.schema, x, y)  # type: ignore
         elif self.schema.is_regression():
-            return RegressionInstance.from_java_instance(
-                self.schema, InstanceExample(instance)
-            )
+            return RegressionInstance.from_array(self.schema, x, y)  # type: ignore
         else:
             raise ValueError(
                 "Unknown machine learning task must be a regression or "
@@ -579,60 +569,10 @@ class NumpyStream(Stream[_AnyInstance]):
         return self.schema
 
     def restart(self):
-        self.current_instance_index = 0
+        self._index = 0
 
     def __len__(self) -> int:
-        return self.arff_instances_data.numInstances()
-
-
-def stream_from_file(
-    path_to_csv_or_arff: Union[str, Path],
-    dataset_name: str = "NoName",
-    class_index: int = -1,
-    target_type: str = None,  # "numeric" or "categorical"
-) -> Stream:
-    """Create a datastream from a csv or arff file.
-
-    >>> from capymoa.stream import stream_from_file
-    >>> stream = stream_from_file("data/electricity_tiny.csv", dataset_name="Electricity")
-    >>> stream.next_instance()
-    LabeledInstance(
-        Schema(Electricity),
-        x=[0.    0.056 0.439 0.003 0.423 0.415],
-        y_index=1,
-        y_label='1'
-    )
-    >>> stream.next_instance().x
-    array([0.021277, 0.051699, 0.415055, 0.003467, 0.422915, 0.414912])
-
-    :param path_to_csv_or_arff: A file path to a CSV or ARFF file.
-    :param dataset_name: A descriptive name given to the dataset, defaults to "NoName"
-    :param class_index: The index of the column containing the class label. By default, the algorithm assumes that the
-        class label is located in the column specified by this index. However, if the class label is located in a
-        different column, you can specify its index using this parameter.
-    :param target_type: When working with a CSV file, this parameter
-        allows the user to specify the target values in the data to be interpreted as categorical or numeric.
-        Defaults to None to detect automatically.
-    """
-    filename = Path(path_to_csv_or_arff)
-    if not filename.exists():
-        raise FileNotFoundError(f"No such file or directory: '{filename}'")
-    if filename.is_dir():
-        raise IsADirectoryError(f"Is a directory: '{filename}'")
-
-    if filename.suffix == ".arff":
-        return ARFFStream(path=filename.as_posix(), class_index=class_index)
-    elif filename.suffix == ".csv":
-        return CSVStream(
-            filename.as_posix(),
-            dataset_name=dataset_name,
-            class_index=class_index,
-            target_type=target_type,
-        )
-    else:
-        raise ValueError(
-            f"Unsupported file type: expected '.arff' or '.csv', but got '{filename.suffix}'"
-        )
+        return self._len
 
 
 def _numpy_to_arff(
@@ -670,11 +610,30 @@ def _numpy_to_arff(
     return moa_stream, moa_header, class_labels
 
 
-def _create_nominal_attribute(attribute_name=None, possible_values: list = None):
+def _create_nominal_attribute(name: str, values: Sequence[str]):
     value_list = FastVector()
-    for value in possible_values:
+    for value in values:
         value_list.addElement(str(value))
-    return Attribute(attribute_name, value_list)
+    return Attribute(name, value_list)
+
+
+def _new_instances_header(
+    relation: str,
+    target: str,
+    attributes: Sequence[str],
+    nominals: Dict[str, Sequence[str]],
+) -> InstancesHeader:
+    attributes_ = FastVector()
+    for attribute in attributes:
+        if attribute in nominals:
+            attr = _create_nominal_attribute(attribute, nominals[attribute])
+        else:
+            attr = Attribute(attribute)
+        attributes_.addElement(attr)
+
+    moa_stream = Instances(relation, attributes_, 0)
+    moa_stream.setClassIndex(attributes.index(target))
+    return InstancesHeader(moa_stream)
 
 
 def _init_moa_stream_and_create_moa_header(
@@ -723,10 +682,8 @@ def _init_moa_stream_and_create_moa_header(
             target_attribute = Attribute(target_attribute_name)
     elif target_type == "categorical" or target_type is None:
         target_attribute = _create_nominal_attribute(
-            attribute_name=(
-                "class" if target_attribute_name is None else target_attribute_name
-            ),
-            possible_values=values_for_class_label,
+            ("class" if target_attribute_name is None else target_attribute_name),
+            values_for_class_label,
         )
     else:
         raise ValueError("target_type must be either `numeric` or `categorical`")
@@ -738,8 +695,8 @@ def _init_moa_stream_and_create_moa_header(
     for name in feature_names:
         if name in values_for_nominal_features:
             attribute = _create_nominal_attribute(
-                attribute_name=name,
-                possible_values=values_for_nominal_features.get(name),
+                name,
+                values_for_nominal_features.get(name),
             )
         else:
             attribute = Attribute(name)
@@ -769,274 +726,3 @@ def _add_instances_to_moa_stream(moa_stream, moa_header, X, y):
         instance.setClassValue(y[instance_index])  # set class value
 
         moa_stream.add(instance)
-
-
-class CSVStream(Stream[_AnyInstance]):
-    def __init__(
-        self,
-        csv_file_path,
-        dtypes: list = None,  # [('column1', np.float64), ('column2', np.int32), ('column3', np.float64), ('column3', str)] reads nomonal attributes as str
-        values_for_nominal_features={},  # {i: [1,2,3], k: [Aa, BB]}. Key is integer. Values are turned into strings
-        class_index: int = -1,
-        values_for_class_label: list = None,
-        target_attribute_name=None,
-        target_type: str = None,
-        skip_header: bool = False,
-        delimiter=",",
-        dataset_name: Optional[str] = None,
-    ):
-        self.csv_file_path = csv_file_path
-        self.values_for_nominal_features = values_for_nominal_features
-        self.class_index = class_index
-        self.values_for_class_label = values_for_class_label
-        self.target_attribute_name = target_attribute_name
-        self.target_type = target_type
-        self.skip_header = skip_header
-        self.delimiter = delimiter
-
-        if dataset_name is None:
-            dataset_name = f"CSVStream({csv_file_path})"
-
-        self.dtypes = []  # [('column1', np.float64), ('column2', np.int32), ('column3', np.float64), ('column3', str)] reads nomonal attributes as str
-        if (
-            dtypes is None or len(dtypes) == 0
-        ):  # data definition for each column not provided
-            if (
-                len(self.values_for_nominal_features) == 0
-            ):  # data definition for nominal features are given
-                # need to infer number of columns, then generate full data definition using nominal information
-                # LOADS FIRST TWO ROWS INTO THE MEMORY
-                data = np.genfromtxt(
-                    self.csv_file_path,
-                    delimiter=self.delimiter,
-                    dtype=None,
-                    names=True,
-                    skip_header=0,
-                    max_rows=2,
-                )
-                if (
-                    not self.target_type == "numeric"
-                    and self.values_for_class_label is None
-                ):
-                    # LOADS THE FULL FILE INTO THE MEMORY
-                    data = np.genfromtxt(
-                        self.csv_file_path,
-                        delimiter=self.delimiter,
-                        dtype=None,
-                        names=True,
-                        skip_header=1 if skip_header else 0,
-                    )
-                    y = data[data.dtype.names[self.class_index]]
-                    self.values_for_class_label = [str(value) for value in np.unique(y)]
-                for i, data_info in enumerate(data.dtype.descr):
-                    column_name, data_type = data_info
-                    if (
-                        self.values_for_nominal_features.get(i) is not None
-                    ):  # i is in nominal feature keys
-                        self.dtypes.append((column_name, "str"))
-                    else:
-                        self.dtypes.append((column_name, data_type))
-            else:  # need to infer data definitions
-                # LOADS THE FULL FILE INTO THE MEMORY
-                data = np.genfromtxt(
-                    self.csv_file_path,
-                    delimiter=self.delimiter,
-                    dtype=None,
-                    names=True,
-                    skip_header=1 if skip_header else 0,
-                )
-                self.dtypes = data.dtype
-                if (
-                    not self.target_type == "numeric"
-                    and self.values_for_class_label is None
-                ):
-                    y = data[data.dtype.names[self.class_index]]
-                    self.values_for_class_label = [str(value) for value in np.unique(y)]
-        else:  # data definition for each column are provided
-            self.dtypes = dtypes
-
-        self.total_number_of_lines = 0
-        if self.skip_header:
-            self.n_lines_to_skip = 1
-        else:
-            row1_data = np.genfromtxt(
-                self.csv_file_path,
-                delimiter=self.delimiter,
-                dtype=None,
-                names=True,
-                skip_header=0,
-                max_rows=1,
-            )
-            row2_data = np.genfromtxt(
-                self.csv_file_path,
-                delimiter=self.delimiter,
-                dtype=None,
-                names=True,
-                skip_header=1,
-                max_rows=1,
-            )
-            if row1_data.dtype.names != row2_data.dtype.names:
-                self.n_lines_to_skip = 1
-            else:
-                self.n_lines_to_skip = 0
-
-        self.__moa_stream_with_only_header, self.moa_header = (
-            _init_moa_stream_and_create_moa_header(
-                number_of_instances=1,  # we only need this to initialize the MOA header
-                feature_names=[data_info[0] for data_info in self.dtypes],
-                values_for_nominal_features=self.values_for_nominal_features,
-                values_for_class_label=self.values_for_class_label,
-                dataset_name=dataset_name,
-                target_attribute_name=self.target_attribute_name,
-                target_type=self.target_type,
-            )
-        )
-
-        self.schema = Schema(moa_header=self.moa_header)
-        self.count_number_of_lines()
-
-    def count_number_of_lines(self):
-        with open(self.csv_file_path, "r") as file:
-            for line in file:
-                # Process each line here
-                self.total_number_of_lines += 1
-
-    def has_more_instances(self):
-        return self.total_number_of_lines > self.n_lines_to_skip
-
-    def next_instance(self) -> _AnyInstance:
-        if not self.has_more_instances():
-            return None
-        # skip header
-        data = np.genfromtxt(
-            self.csv_file_path,
-            delimiter=self.delimiter,
-            dtype=self.dtypes,
-            names=None,
-            skip_header=self.n_lines_to_skip,
-            max_rows=1,
-        )
-        self.n_lines_to_skip += 1
-
-        y = rfn.structured_to_unstructured(data[[data.dtype.names[self.class_index]]])[
-            0
-        ]
-        # X = data[[item for item in data.dtype.names if item != data.dtype.names[self.class_index]]].view('f4')
-        X = rfn.structured_to_unstructured(
-            data[
-                [
-                    item
-                    for item in data.dtype.names
-                    if item != data.dtype.names[self.class_index]
-                ]
-            ]
-        )
-
-        if self.schema.is_classification():
-            return LabeledInstance.from_array(self.schema, X, int(y))
-        elif self.schema.is_regression():
-            return RegressionInstance.from_array(self.schema, X, float(y))
-        else:
-            raise ValueError(
-                "Unknown machine learning task must be a regression or "
-                "classification task"
-            )
-
-    def get_schema(self):
-        return self.schema
-
-    def restart(self):
-        self.total_number_of_lines = 0
-        self.n_lines_to_skip = 1 if self.skip_header else 0
-
-
-class ConcatStream(Stream[_AnyInstance]):
-    """Concatenate multiple streams into a single stream.
-
-    When the end of a stream is reached, the next stream in the list is used.
-
-    >>> from capymoa.stream import ConcatStream, NumpyStream
-    >>> import numpy as np
-    >>> X1 = np.array([[1, 2, 3]])
-    >>> X2 = np.array([[4, 5, 6]])
-    >>> y1 = np.array([0])
-    >>> y2 = np.array([0])
-    >>> stream1 = NumpyStream(X1, y1)
-    >>> stream2 = NumpyStream(X2, y2)
-    >>> concat_stream = ConcatStream([stream1, stream2])
-    >>> for instance in concat_stream:
-    ...     print(instance)
-    LabeledInstance(
-        Schema(No_Name),
-        x=[1. 2. 3.],
-        y_index=0,
-        y_label='0'
-    )
-    LabeledInstance(
-        Schema(No_Name),
-        x=[4. 5. 6.],
-        y_index=0,
-        y_label='0'
-    )
-
-    """
-
-    def __init__(self, streams: Sequence[Stream]):
-        """Construct a ConcatStream object from a list of streams.
-        :param streams: A list of streams to chain together.
-        """
-        super().__init__()
-        # Check that all streams have the same schema.
-        schema = streams[0].get_schema()
-        for stream in streams[1:]:
-            if stream.get_schema() != schema:
-                raise ValueError("All streams must have the same schema.")
-
-        self.streams = streams
-        self.stream_index = 0
-
-        self._length: Optional[int] = None
-        if all(hasattr(stream, "__len__") for stream in streams):
-            self._length = sum(len(stream) for stream in streams)
-
-    def has_more_instances(self) -> bool:
-        """Return ``True`` if the stream have more instances to read."""
-        return any(s.has_more_instances() for s in self.streams[self.stream_index :])
-
-    def next_instance(self) -> _AnyInstance:
-        """Return the next instance in the stream.
-
-        :raises ValueError: If the machine learning task is neither a regression
-            nor a classification task.
-        :return: A labeled instances or a regression depending on the schema.
-        """
-        stream = self.streams[self.stream_index]
-        if not stream.has_more_instances():
-            self.stream_index += 1
-
-        if not self.has_more_instances():
-            raise StopIteration()
-
-        return self.streams[self.stream_index].next_instance()
-
-    def get_schema(self) -> Schema:
-        """Return the schema of the stream."""
-        return self.streams[self.stream_index].get_schema()
-
-    def get_moa_stream(self) -> Optional[InstanceStream]:
-        """Get the MOA stream object if it exists."""
-        return self.streams[self.stream_index].get_moa_stream()
-
-    def restart(self):
-        """Restart the stream to read instances from the beginning."""
-        for stream in self.streams:
-            stream.restart()
-        self.stream_index = 0
-
-    def __len__(self) -> None:
-        """Return the length of the stream."""
-        if self._length is None:
-            raise RuntimeError(
-                "Only supports ``len()`` if contained streams have a length."
-            )
-        return self._length

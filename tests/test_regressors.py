@@ -97,9 +97,7 @@ def test_regressor(case: Case):
 
 def test_none_predict():
     """Test that a prediction of None is handled."""
-    schema = Schema.from_custom(
-        feature_names=["x"], target_attribute_name="y", target_type="numeric"
-    )
+    schema = Schema.from_custom(features=["x", "y"], target="y")
     evaluator = RegressionEvaluator(schema=schema)
     win_evaluator = RegressionWindowedEvaluator(schema=schema, window_size=100)
     evaluator.update(1.0, None)

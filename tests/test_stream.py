@@ -1,9 +1,9 @@
 """This module is for testing the speeds of different stream implementations."""
 
 from functools import partial
-from typing import Optional, Sized
+from typing import Optional
 
-from capymoa.stream._stream import ConcatStream
+from capymoa.exception import StreamTypeError
 import numpy as np
 import pytest
 import torch
@@ -13,8 +13,6 @@ from com.yahoo.labs.samoa.instances import (
 from moa.streams import InstanceStream
 from torch.utils.data import TensorDataset
 
-from capymoa.datasets import ElectricityTiny, FriedTiny
-from capymoa.datasets._utils import get_download_dir
 from capymoa.instance import Instance, LabeledInstance, RegressionInstance
 from capymoa.stream import (
     ARFFStream,
@@ -24,261 +22,222 @@ from capymoa.stream import (
     TorchClassifyStream,
     stream_from_file,
 )
+from pathlib import Path
 
-CLASSIFICATION_X = np.array(
-    [
-        [0.0, 0.056, 0.439, 0.003, 0.423, 0.415],
-        [0.021, 0.052, 0.415, 0.003, 0.423, 0.415],
-        [0.043, 0.051, 0.385, 0.003, 0.423, 0.415],
-        [0.064, 0.045, 0.315, 0.003, 0.423, 0.415],
-        [0.085, 0.042, 0.251, 0.003, 0.423, 0.415],
-        [0.106, 0.041, 0.208, 0.003, 0.423, 0.415],
-        [0.128, 0.041, 0.172, 0.003, 0.423, 0.415],
-        [0.149, 0.041, 0.153, 0.003, 0.423, 0.415],
-        [0.17, 0.041, 0.135, 0.003, 0.423, 0.415],
-        [0.191, 0.041, 0.141, 0.003, 0.423, 0.415],
-    ]
-)
-
-CLASSIFICATION_Y = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 0])
-CLASSIFICATION_TENSOR_DATASET = TensorDataset(
-    torch.tensor(CLASSIFICATION_X), torch.tensor(CLASSIFICATION_Y)
-)
-CLASSIFICATION_CSV = get_download_dir() / "electricity_tiny.csv"
-CLASSIFICATION_ARFF = get_download_dir() / "electricity_tiny.arff"
-
-REGRESSION_X = np.array(
-    [
-        [0.487, 0.072, 0.004, 0.833, 0.765, 0.6, 0.132, 0.886, 0.073, 0.342],
-        [0.223, 0.401, 0.659, 0.528, 0.843, 0.713, 0.58, 0.473, 0.572, 0.528],
-        [0.903, 0.913, 0.94, 0.979, 0.561, 0.744, 0.627, 0.818, 0.309, 0.51],
-        [0.791, 0.857, 0.359, 0.844, 0.155, 0.948, 0.114, 0.292, 0.412, 0.991],
-        [0.326, 0.593, 0.085, 0.927, 0.926, 0.633, 0.431, 0.326, 0.031, 0.73],
-        [0.562, 0.89, 0.006, 0.691, 0.72, 0.208, 0.279, 0.283, 0.116, 0.882],
-        [0.481, 0.613, 0.499, 0.572, 0.914, 0.783, 0.204, 0.428, 0.828, 0.487],
-        [0.625, 0.197, 0.725, 0.628, 0.541, 0.481, 0.46, 0.021, 0.765, 0.392],
-        [0.21, 0.519, 0.029, 0.61, 0.724, 0.515, 0.371, 0.731, 0.575, 0.73],
-        [0.084, 0.496, 0.486, 0.813, 0.406, 0.491, 0.418, 0.344, 0.978, 0.409],
-    ]
-)
-REGRESSION_Y = np.array(
-    [17.949, 13.815, 20.766, 18.301, 22.989, 25.986, 17.15, 14.006, 18.566, 12.107]
-)
-REGRESSION_CSV = get_download_dir() / "fried_tiny.csv"
-REGRESSION_ARFF = get_download_dir() / "fried_tiny.arff"
+allclose = partial(np.allclose, atol=0.001, equal_nan=True)
 
 
-allclose = partial(np.allclose, atol=0.001)
-
-
-def check_java_instance(instance: Instance, x: np.ndarray, target: float):
+def check_instance(instance: Instance, x: np.ndarray, target: float):
+    # Verify that the java instance is created correctly
     assert instance.java_instance is not None
-    assert instance.java_instance.getData().classValue() == target
-    assert instance.java_instance.getData().classIndex() == len(x)
-    jxy = np.array(instance.java_instance.getData().toDoubleArray())
-    jx = jxy[: len(x)]  # Get the first elements for the features.
-    jy = jxy[len(x)]  # The last element is the label.
+    instance_data = instance.java_instance.getData()
+    class_index = instance_data.classIndex()  # index of class attribute
+    jxy = np.array(instance_data.toDoubleArray())
+    jx = np.delete(jxy, class_index)
+    jy = jxy[class_index]
     assert allclose(jx, x)
-    assert jy == target
+
+    # Verify that the python instance is created correctly
+    if instance.schema.is_classification():
+        assert isinstance(instance, LabeledInstance)
+        assert allclose(instance.x, x)
+        assert allclose(instance.y_index, target)
+        assert isinstance(instance.x, np.ndarray)
+        assert isinstance(instance.y_index, int)
+        if np.isnan(jy) or jy == -1:
+            assert target == -1
+            assert instance.y_label is None
+            assert instance_data.classIsMissing()
+        else:
+            assert target != -1
+            assert isinstance(instance.y_label, str)
+            assert allclose(jy, target)
+            assert instance_data.classValue() == target
+    elif instance.schema.is_regression():
+        assert isinstance(instance, RegressionInstance)
+        assert isinstance(instance.x, np.ndarray)
+        assert isinstance(instance.y_value, float)
+        assert allclose(instance.x, x)
+        assert allclose(instance.y_value, target)
+        assert allclose(jy, target)
+    else:
+        assert False
+
+
+def check_attributes(numeric_attributes, nominal_attributes, num_attributes, schema):
+    assert isinstance(schema.get_moa_header(), InstancesHeader)
+    assert len(schema.get_nominal_attributes()) == len(nominal_attributes)
+    assert len(schema.get_numeric_attributes()) == len(numeric_attributes)
+    assert schema.get_nominal_attributes() == nominal_attributes
+    assert schema.get_num_attributes() == num_attributes
+    assert schema.get_num_nominal_attributes() == len(nominal_attributes)
+    assert schema.get_num_numeric_attributes() == len(numeric_attributes)
+    assert schema.get_numeric_attributes() == numeric_attributes
+
+
+FEATURES = ["num1", "num2", "cat1", "cat2"]
+NUMERIC_ATTRS = ["num1", "num2"]
+NOMINAL_ATTRS = {"cat1": ["A", "B", "C"], "cat2": ["X", "Y"]}
+RESOURCES = Path("tests/resources/stream")
+
+
+DATA = np.array(
+    [
+        [-1.10, -1.00, 0.00, 0.00],
+        [0.10, 1.00, 1.00, 1.00],
+        [1.10, 0.00, 2.00, np.nan],
+        [np.nan, np.nan, np.nan, np.nan],
+        [np.nan, np.nan, np.nan, np.nan],
+    ]
+)
+XN1 = np.delete(DATA, 0, axis=1)
+YN1 = DATA[:, 0]
+XN2 = np.delete(DATA, 1, axis=1)
+YN2 = DATA[:, 1]
+XC1 = np.delete(DATA, 2, axis=1)
+YC1 = DATA[:, 2]
+XC2 = np.delete(DATA, 3, axis=1)
+YC2 = DATA[:, 3]
+DATASET_C1 = TensorDataset(torch.tensor(XC1), torch.tensor(YC1))
+DATASET_C2 = TensorDataset(torch.tensor(XC2), torch.tensor(YC2))
+ARFF = RESOURCES / "stream_test.arff"
+CSV = RESOURCES / "stream_test.csv"
 
 
 @pytest.mark.parametrize(
-    ["stream", "length"],
+    ["stream", "target", "length"],
     [
-        (stream_from_file(CLASSIFICATION_CSV), None),
-        (CSVStream(CLASSIFICATION_CSV), None),
-        (stream_from_file(CLASSIFICATION_ARFF), None),
-        (ARFFStream(CLASSIFICATION_ARFF), None),
-        (ElectricityTiny(get_download_dir()), 2_000),
-        (TorchClassifyStream(CLASSIFICATION_TENSOR_DATASET, 2), 10),
-        (
-            NumpyStream(CLASSIFICATION_X, CLASSIFICATION_Y, target_type="categorical"),
-            10,
-        ),
-        (
-            ConcatStream(
-                [
-                    NumpyStream(
-                        CLASSIFICATION_X, CLASSIFICATION_Y, target_type="categorical"
-                    ),
-                    NumpyStream(
-                        CLASSIFICATION_X, CLASSIFICATION_Y, target_type="categorical"
-                    ),
-                ]
-            ),
-            20,
-        ),
-        # Add new stream types here.
+        (ARFFStream(ARFF, class_index=2), "cat1", None),
+        (ARFFStream(ARFF, class_index=-1), "cat2", None),
+        (stream_from_file(ARFF, class_index=2), "cat1", None),
+        (stream_from_file(ARFF, class_index=-1), "cat2", None),
+        (CSVStream(CSV, "cat1", NOMINAL_ATTRS), "cat1", None),
+        (CSVStream(CSV, "cat2", NOMINAL_ATTRS), "cat2", None),
+        (stream_from_file(CSV, class_index=2), "cat1", 5),
+        (stream_from_file(CSV, class_index=3), "cat2", 5),
+        (NumpyStream(XC1, YC1, target_type="categorical"), "cat1", 5),
+        (NumpyStream(XC2, YC2, target_type="categorical"), "cat2", 5),
+        (TorchClassifyStream(DATASET_C1, 3), "cat1", 5),  # type: ignore
+        (TorchClassifyStream(DATASET_C2, 2), "cat2", 5),  # type: ignore
     ],
 )
-def test_stream_classification(stream: Stream[LabeledInstance], length: Optional[int]):
+def test_stream_classification(
+    stream: Stream[LabeledInstance], target: str, length: Optional[int]
+):
     """Test the classification stream interface for a variety of stream types."""
-    # Check the stream schema.
+
+    # Expected schema/attributes
+    numeric_attributes = NUMERIC_ATTRS.copy()
+    nominal_attributes = NOMINAL_ATTRS.copy()
+
+    label_values = nominal_attributes.pop(target)
+    label_indexes = list(range(len(label_values)))
+    num_attributes = len(numeric_attributes) + len(nominal_attributes)
+
+    # NumpyStream and PyTorch streams do not have nominal labels by default.
+    if isinstance(stream, (NumpyStream, TorchClassifyStream)):
+        numeric_attributes = list(map(str, range(num_attributes)))
+        nominal_attributes = {}
+        label_values = [str(i) for i in label_indexes]
+
+    # Expected data
+    target_index = FEATURES.index(target)
+    X = np.delete(DATA, target_index, axis=1)
+    Y = np.nan_to_num(DATA[:, target_index], nan=-1).astype(int)
+
     schema = stream.get_schema()
-    assert schema.get_label_values() == ["0", "1"]
-    assert schema.get_label_indexes() == [0, 1]
-    assert schema.get_value_for_index(0) == "0"
-    assert schema.get_index_for_label("0") == 0
-    assert isinstance(schema.get_moa_header(), InstancesHeader)
-    assert schema.get_num_attributes() == 6
-    assert schema.get_num_nominal_attributes() == 0
-    assert schema.get_num_numeric_attributes() == 6
-    assert schema.get_nominal_attributes() is None
-    assert len(schema.get_numeric_attributes()) == 6
-    assert schema.get_num_classes() == 2
+
+    # Label values/indexes
+    assert schema.get_label_values() == label_values
+    assert schema.get_label_indexes() == label_indexes
+    assert schema.get_num_classes() == len(label_values)
+    for i, label in enumerate(label_values):
+        assert schema.get_value_for_index(i) == label
+        assert schema.get_index_for_label(label) == i
+
+    # Check attributes
+    check_attributes(numeric_attributes, nominal_attributes, num_attributes, schema)
+
+    # Check regression/classification methods
     assert schema.is_regression() is False
     assert schema.is_classification() is True
-    assert schema.is_y_index_in_range(2) is False
+    assert schema.is_y_index_in_range(schema.get_num_classes() - 1) is True
+    assert schema.is_y_index_in_range(schema.get_num_classes()) is False
+    assert schema.is_y_index_in_range(-1) is False
     assert schema.dataset_name is not None
 
-    # Check attribute names.
-    if not isinstance(stream, (TorchClassifyStream, NumpyStream, ConcatStream)):
-        assert schema.get_numeric_attributes() == [
-            "period",
-            "nswprice",
-            "nswdemand",
-            "vicprice",
-            "vicdemand",
-            "transfer",
-        ]
-
     # Check the stream interface.
-    assert length is None or (isinstance(stream, Sized) and len(stream) == length)
+    assert length is None or len(stream) == length  # type: ignore
     moa_stream = stream.get_moa_stream()
     assert moa_stream is None or isinstance(moa_stream, InstanceStream)
     assert stream.cli_help()
 
-    # Check java style next instance.
-    instance = stream.next_instance()
-    assert isinstance(instance, LabeledInstance)
-    assert allclose(instance.x, CLASSIFICATION_X[0])
-    assert allclose(instance.y_index, CLASSIFICATION_Y[0])
-    assert isinstance(instance.x, np.ndarray)
-    assert isinstance(instance.y_index, int)
-    assert isinstance(instance.y_label, str)
-    check_java_instance(instance, CLASSIFICATION_X[0], CLASSIFICATION_Y[0])
-
-    # Check python style next instance.
-    instance = next(stream)
-    assert isinstance(instance, LabeledInstance)
-    assert allclose(instance.x, CLASSIFICATION_X[1])
-    assert allclose(instance.y_index, CLASSIFICATION_Y[1])
-    assert isinstance(instance.x, np.ndarray)
-    assert isinstance(instance.y_index, int)
-    assert isinstance(instance.y_label, str)
-    check_java_instance(instance, CLASSIFICATION_X[1], CLASSIFICATION_Y[1])
-
-    # Check stream iteration.
+    # Python style iterator
     stream.restart()
     for i, instance in enumerate(stream):
-        if i >= len(CLASSIFICATION_X):
-            break
-        assert allclose(instance.x, CLASSIFICATION_X[i])
-        assert allclose(instance.y_index, CLASSIFICATION_Y[i])
-        check_java_instance(instance, CLASSIFICATION_X[i], CLASSIFICATION_Y[i])
+        check_instance(instance, X[i], Y[i])
 
-    # Check exhausting the stream.
-    for _ in stream:
-        pass
-    assert stream.has_more_instances() is False
+    # Java style iterator
+    stream.restart()
+    i = 0
+    while stream.has_more_instances():
+        instance = stream.next_instance()
+        check_instance(instance, X[i], Y[i])
+        i += 1
 
 
 @pytest.mark.parametrize(
-    ["stream", "length"],
+    ["stream", "target"],
     [
-        (FriedTiny(), 1_000),
-        (stream_from_file(REGRESSION_CSV, target_type="numeric"), None),
-        (CSVStream(REGRESSION_CSV, target_type="numeric"), None),
-        (stream_from_file(REGRESSION_ARFF, target_type="numeric"), None),
-        (ARFFStream(REGRESSION_ARFF), None),
-        (
-            NumpyStream(REGRESSION_X, REGRESSION_Y, target_type="numeric"),
-            10,
-        ),
-        (
-            ConcatStream(
-                [
-                    NumpyStream(
-                        REGRESSION_X[:5], REGRESSION_Y[:5], target_type="numeric"
-                    ),
-                    NumpyStream(
-                        REGRESSION_X[5:], REGRESSION_Y[5:], target_type="numeric"
-                    ),
-                ]
-            ),
-            10,
-        ),
-        # Add new stream types here.
+        (ARFFStream(ARFF, class_index=0), "num1"),
+        (ARFFStream(ARFF, class_index=1), "num2"),
+        (stream_from_file(ARFF, class_index=0), "num1"),
+        (stream_from_file(ARFF, class_index=1), "num2"),
+        (CSVStream(CSV, "num1", NOMINAL_ATTRS), "num1"),
+        (CSVStream(CSV, "num2", NOMINAL_ATTRS), "num2"),
+        (stream_from_file(CSV, class_index=0), "num1"),
+        (stream_from_file(CSV, class_index=1), "num2"),
+        (NumpyStream(XN1, YN1, target_type="numeric"), "num1"),
+        (NumpyStream(XN2, YN2, target_type="numeric"), "num2"),
     ],
 )
-def test_stream_regression(stream: Stream[RegressionInstance], length: Optional[int]):
-    """Test the regression stream interface for a variety of stream types."""
+def test_regression_stream(stream: Stream[RegressionInstance], target: str):
+    numeric_attributes = NUMERIC_ATTRS.copy()
+    numeric_attributes.remove(target)
+    nominal_attributes = NOMINAL_ATTRS.copy()
+    num_attributes = len(numeric_attributes) + len(nominal_attributes)
 
-    # Check the stream schema.
+    # Stream treats nominal attributes as numeric
+    if isinstance(stream, NumpyStream):
+        numeric_attributes = list(map(str, range(num_attributes)))
+        nominal_attributes = {}
+
+    target_index = FEATURES.index(target)
+    X = np.delete(DATA, target_index, axis=1)
+    Y = DATA[:, target_index]
+
     schema = stream.get_schema()
-    assert isinstance(schema.get_moa_header(), InstancesHeader)
-    assert schema.get_num_attributes() == 10
-    assert schema.get_num_nominal_attributes() == 0
-    assert schema.get_num_numeric_attributes() == 10
-    assert schema.get_nominal_attributes() is None
-    assert len(schema.get_numeric_attributes()) == 10
+
+    # Check label methods raise StreamTypeError
+    with pytest.raises(StreamTypeError):
+        schema.get_label_values()
+    with pytest.raises(StreamTypeError):
+        schema.get_label_indexes()
     assert schema.get_num_classes() == 1
     assert schema.is_regression() is True
     assert schema.is_classification() is False
     assert schema.dataset_name is not None
-    # Some schema methods are regression specific.
-    ex = RuntimeError
-    with pytest.raises(ex):
-        schema.get_label_values()
-    with pytest.raises(ex):
-        schema.get_label_indexes()
-    with pytest.raises(ex):
-        schema.get_value_for_index(0)
-    with pytest.raises(ex):
-        schema.get_index_for_label("0")
-    with pytest.raises(ex):
-        schema.is_y_index_in_range(0)
+    check_attributes(numeric_attributes, nominal_attributes, num_attributes, schema)
 
-    # Check attribute names.
-    if not isinstance(stream, (TorchClassifyStream, NumpyStream, ConcatStream)):
-        assert schema.get_numeric_attributes() == [f"attr_{i}" for i in range(10)]
-
-    # Check the stream interface.
-    assert length is None or (isinstance(stream, Sized) and len(stream) == length)
-    moa_stream = stream.get_moa_stream()
-    assert moa_stream is None or isinstance(moa_stream, InstanceStream)
-    assert stream.cli_help()
-    assert stream.has_more_instances()
-    assert iter(stream) == stream
-
-    # Check java style next instance.
-    instance = stream.next_instance()
-    assert isinstance(instance, RegressionInstance)
-    assert allclose(instance.x, REGRESSION_X[0])
-    assert allclose(instance.y_value, REGRESSION_Y[0])
-    assert isinstance(instance.y_value, float)
-    assert isinstance(instance.x, np.ndarray)
-    check_java_instance(instance, REGRESSION_X[0], REGRESSION_Y[0])
-
-    # Check python style next instance.
-    instance = next(stream)
-    assert isinstance(instance, RegressionInstance)
-    assert allclose(instance.x, REGRESSION_X[1])
-    assert allclose(instance.y_value, REGRESSION_Y[1])
-    assert isinstance(instance.y_value, float)
-    assert isinstance(instance.x, np.ndarray)
-    check_java_instance(instance, REGRESSION_X[1], REGRESSION_Y[1])
-
-    # Check stream iteration.
+    # Python style iterator
     stream.restart()
     for i, instance in enumerate(stream):
-        if i >= len(CLASSIFICATION_X):
-            break
-        assert allclose(instance.x, REGRESSION_X[i])
-        assert allclose(instance.y_value, REGRESSION_Y[i])
-        check_java_instance(instance, REGRESSION_X[i], REGRESSION_Y[i])
+        check_instance(instance, X[i], Y[i])
 
-    # Check exhausting the stream.
-    for _ in stream:
-        pass
-    assert stream.has_more_instances() is False
+    # Java style iterator
+    stream.restart()
+    i = 0
+    while stream.has_more_instances():
+        instance = stream.next_instance()
+        check_instance(instance, X[i], Y[i])
+        i += 1

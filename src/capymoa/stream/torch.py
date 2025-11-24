@@ -4,7 +4,6 @@ from typing import Optional, Sequence, Tuple
 import torch
 
 from capymoa.stream import Stream, Schema
-from capymoa.stream._stream import _init_moa_stream_and_create_moa_header
 from capymoa.instance import (
     LabeledInstance,
 )
@@ -31,10 +30,10 @@ class TorchClassifyStream(Stream[LabeledInstance]):
     >>> pytorch_stream.get_schema()
     @relation PytorchDataset
     <BLANKLINE>
-    @attribute attrib_0 numeric
-    @attribute attrib_1 numeric
+    @attribute 0 numeric
+    @attribute 1 numeric
     ...
-    @attribute attrib_783 numeric
+    @attribute 783 numeric
     @attribute class {T-shirt/top,Trouser,Pullover,Dress,Coat,Sandal,Shirt,Sneaker,Bag,'Ankle boot'}
     <BLANKLINE>
     @data
@@ -57,9 +56,9 @@ class TorchClassifyStream(Stream[LabeledInstance]):
     >>> pytorch_stream = TorchClassifyStream(dataset=dataset, num_classes=3, shuffle=True)
     >>> for instance in pytorch_stream:
     ...     print(instance.x)
-    [3]
-    [1]
-    [2]
+    [3.]
+    [1.]
+    [2.]
 
     Importantly you can restart the stream to iterate over the dataset in
     the same order again:
@@ -67,9 +66,9 @@ class TorchClassifyStream(Stream[LabeledInstance]):
     >>> pytorch_stream.restart()
     >>> for instance in pytorch_stream:
     ...     print(instance.x)
-    [3]
-    [1]
-    [2]
+    [3.]
+    [1.]
+    [2.]
     """
 
     def __init__(
@@ -110,19 +109,15 @@ class TorchClassifyStream(Stream[LabeledInstance]):
 
         # Use the first instance to infer the number of attributes
         X, _ = self._dataset[0]
-        X_numpy = torch.flatten(X).view(1, -1).detach().numpy()
+        n_features = X.numel()
 
         # Create a header describing the dataset for MOA
-        _, header = _init_moa_stream_and_create_moa_header(
-            number_of_instances=X_numpy.shape[0],
-            feature_names=[f"attrib_{i}" for i in range(X_numpy.shape[1])],
-            values_for_nominal_features={},
-            values_for_class_label=class_names or [str(i) for i in range(num_classes)],
-            dataset_name=dataset_name,
-            target_attribute_name="class",
-            target_type="categorical",
+        self._schema = Schema.from_custom(
+            features=[f"{f}" for f in range(n_features)] + ["class"],
+            target="class",
+            categories={"class": class_names or [str(i) for i in range(num_classes)]},
+            name=dataset_name,
         )
-        self._schema = Schema(moa_header=header)
         if shape is not None:
             self._schema.shape = shape
 
@@ -131,7 +126,7 @@ class TorchClassifyStream(Stream[LabeledInstance]):
 
     def next_instance(self):
         if not self.has_more_instances():
-            return None
+            raise StopIteration()
 
         X, y = self._dataset[self._permutation[self._index]]
         self._index += 1  # increment counter for next call
@@ -140,7 +135,9 @@ class TorchClassifyStream(Stream[LabeledInstance]):
         # We should prefer numpy over tensors in instances to improve compatibility
         # See: https://pytorch.org/tutorials/beginner/blitz/tensor_tutorial.html#bridge-to-np-label
         X = X.view(-1).numpy()
-        return LabeledInstance.from_array(self._schema, X, y)
+        if isinstance(y, torch.Tensor) and torch.isnan(y):
+            y = -1
+        return LabeledInstance.from_array(self._schema, X, int(y))
 
     def get_schema(self):
         return self._schema
