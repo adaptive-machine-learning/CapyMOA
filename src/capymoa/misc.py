@@ -108,9 +108,9 @@ def save_stream_arff(file: TextIO | Path | str, stream: Stream) -> None:
     >>> print(fd.getvalue())
     @relation SimpleDataset
     <BLANKLINE>
-    @attribute attrib_0 numeric
-    @attribute attrib_1 numeric
-    @attribute class {0,1}
+    @attribute 0 numeric
+    @attribute 1 numeric
+    @attribute target {0,1}
     <BLANKLINE>
     @data
     0.0,1.0,0,
@@ -131,8 +131,8 @@ def save_stream_arff(file: TextIO | Path | str, stream: Stream) -> None:
     >>> print(fd.getvalue())
     @relation SimpleDataset
     <BLANKLINE>
-    @attribute attrib_0 numeric
-    @attribute attrib_1 numeric
+    @attribute 0 numeric
+    @attribute 1 numeric
     @attribute target numeric
     <BLANKLINE>
     @data
