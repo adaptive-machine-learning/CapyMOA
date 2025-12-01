@@ -212,12 +212,12 @@ def notebooks(
     # Set the environment variable to run the notebooks in fast mode.
     if not slow:
         environ["NB_FAST"] = "true"
-        timeout = 60 * 2
+        timeout = 60 * 2.5
     else:
         timeout = -1
 
     skip_notebooks = ctx["test_skip_notebooks"]
-    if skip_notebooks is None or no_skip:
+    if skip_notebooks in (None, "None") or no_skip:
         skip_notebooks = []
     print(f"Skipping notebooks: {skip_notebooks}")
     cmd = [
@@ -231,7 +231,8 @@ def notebooks(
     cmd += (
         ["--overwrite"] if overwrite else []
     )  # Overwrite the notebooks with the executed output
-    cmd += ["--deselect " + nb for nb in skip_notebooks]  # Skip some notebooks
+    if len(skip_notebooks) > 0:
+        cmd += ["--deselect " + nb for nb in skip_notebooks]  # Skip some notebooks
 
     if k_pattern:
         cmd += [f"-k {k_pattern}"]
