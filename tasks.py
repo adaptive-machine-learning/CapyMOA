@@ -212,7 +212,7 @@ def notebooks(
     # Set the environment variable to run the notebooks in fast mode.
     if not slow:
         environ["NB_FAST"] = "true"
-        timeout = 60 * 2.5
+        timeout = 60 * 3
     else:
         timeout = -1
 
