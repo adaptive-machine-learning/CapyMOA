@@ -217,9 +217,10 @@ def notebooks(
         timeout = -1
 
     skip_notebooks = ctx["test_skip_notebooks"]
-    if skip_notebooks in (None, "None") or no_skip:
+    if skip_notebooks is None or no_skip:
         skip_notebooks = []
     print(f"Skipping notebooks: {skip_notebooks}")
+
     cmd = [
         "python -m pytest --nbmake",
         "-x",  # Stop after the first failure
