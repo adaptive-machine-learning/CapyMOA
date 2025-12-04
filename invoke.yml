@@ -10,5 +10,5 @@ moa_url: "https://www.dropbox.com/scl/fi/tgu2ig3p3wj4k6kio3lpl/251020_moa.jar?rl
 # What notebooks to skip when running them as tests.
 # YOU SHOULD NOT SKIP NOTEBOOKS!
 # Your notebook will eventually break and we need to know when it does.
-test_skip_notebooks:
-  - notebooks/anomaly_detection.ipynb
+test_skip_notebooks: null
+#    - notebooks/anomaly_detection.ipynb
