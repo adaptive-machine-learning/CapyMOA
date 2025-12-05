@@ -11,7 +11,7 @@ from capymoa.base import Classifier
 from capymoa.classifier import Finetune, HoeffdingTree
 from capymoa.ocl.datasets import TinySplitMNIST
 from capymoa.ocl.evaluation import ocl_train_eval_loop
-from capymoa.ocl.strategy import ExperienceReplay, SLDA, NCM, GDumb
+from capymoa.ocl.strategy import ExperienceReplay, SLDA, NCM, GDumb, RAR
 from capymoa.stream import Schema
 
 import torch
@@ -46,6 +46,15 @@ def pre_processor() -> nn.Module:
     )
 
 
+def _new_rar(schema):
+    # RAR test case constructor
+    return RAR(
+        Finetune(schema, Perceptron(schema)),
+        augment=nn.Dropout(p=0.2),
+        repeats=2,
+    )
+
+
 """
 Add new test cases here.
 
@@ -55,6 +64,7 @@ set.
 TEST_CASES: List[Case] = [
     Case("HoeffdingTree", HoeffdingTree, Result(59.49, 42.59, 45.8), batch_size=1),
     Case("HoeffdingTree", HoeffdingTree, Result(59.00, 42.80, 42.5), batch_size=32),
+    Case("RAR", _new_rar, Result(41.50, 28.20, 8.20)),
     Case(
         "Finetune",
         partial(Finetune, model=Perceptron),
@@ -92,7 +102,12 @@ def test_ocl_classifier(case: Case):
     if os.environ.get("CI") == "true" and "SLDA" in case.name:
         pytest.skip("Skipping SLDA case on CI due to unreliable dataset download")
     scenario = TinySplitMNIST()
+
+    # Set random seeds for reproducibility
     torch.manual_seed(0)
+    np.random.seed(0)
+    torch.use_deterministic_algorithms(True)
+
     learner = case.constructor(scenario.schema)
     r = ocl_train_eval_loop(
         learner,
