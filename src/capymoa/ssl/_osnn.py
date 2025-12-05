@@ -258,6 +258,16 @@ class def_loss(nn.Module):
 
 
 class OSNN(ClassifierSSL):
+    """Online Semi-Supervised Neural Network.
+
+    Online Semi-Supervised Neural Network (OSNN) [#f0]_ is a neural network designed
+    for semi-supervised learning in non-stationary data streams.
+
+    .. [#f0] R. G. F. Soares and L. L. Minku, “Osnn: An online semisupervised
+        neural network for nonstationary data streams,” IEEE Transactions on Neural
+        Networks and Learning Systems, pp. 1–13, 2021.
+    """
+
     def __init__(
         self,
         schema=None,

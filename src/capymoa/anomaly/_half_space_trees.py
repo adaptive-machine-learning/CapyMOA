@@ -37,7 +37,7 @@ class HalfSpaceTrees(MOAAnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.54
+    AUC: 0.56
 
     """
 
@@ -46,7 +46,7 @@ class HalfSpaceTrees(MOAAnomalyDetector):
         schema=None,
         CLI=None,
         random_seed=1,
-        window_size=100,
+        window_size=250,
         number_of_trees=25,
         max_depth=15,
         anomaly_threshold=0.5,

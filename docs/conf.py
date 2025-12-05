@@ -6,9 +6,13 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
+import sys
 from pathlib import Path
 from capymoa.__about__ import __version__
 from docs.util.github_link import make_linkcode_resolve
+
+# Any subprocesses created during document building should use the same python environment
+os.environ["PYTHONEXECUTABLE"] = sys.executable
 
 discord_link = "https://discord.gg/spd2gQJGAb"
 contact_email = "heitor.gomes@vuw.ac.nz"
@@ -52,6 +56,9 @@ nitpick_ignore_regex = [
     ("py:class", r"torch\..*"),
     ("py:class", r"tqdm\..*"),
 ]
+
+# These warnings are usually false positives.
+suppress_warnings = ["myst.xref_missing"]
 
 toc_object_entries_show_parents = "hide"
 autosummary_ignore_module_all = False

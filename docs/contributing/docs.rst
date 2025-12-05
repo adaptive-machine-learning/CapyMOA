@@ -177,19 +177,19 @@ attribute, or other programming constructs using the `sphinx cross-reference syn
     :widths: 20 80
 
     * - Module
-      - | ``:mod:`capymoa.stream``
+      - | ``:mod:`capymoa.stream```
         | :mod:`capymoa.stream`
     * - Class
-      - | ``:class:`capymoa.stream.Stream``
+      - | ``:class:`capymoa.stream.Stream```
         | :class:`capymoa.stream.Stream`
     * - Method
-      - | ``:meth:`capymoa.stream.Stream.next_instance``
+      - | ``:meth:`capymoa.stream.Stream.next_instance```
         | :meth:`capymoa.stream.Stream.next_instance`
     * - Function
       - | ``:func:`capymoa.stream.stream_from_file```
         | :func:`capymoa.stream.stream_from_file`
     * - Attribute
-      - | ``:attr:`capymoa.stream.Schema.dataset_name``
+      - | ``:attr:`capymoa.stream.Schema.dataset_name```
         | :attr:`capymoa.stream.Schema.dataset_name`
 
 Add the prefix ``~`` to the name to display the name without the prefixing path:
@@ -236,7 +236,7 @@ explicitly referencing them in the text. This can be done using the
 Math
 ~~~~
 
-You can include LaTex mathematical equations directly with the `math directive <https://docutils.sourceforge.io/docs/ref/rst/directives.html#math>`_.
+You can include LaTeX mathematical equations directly with the `math directive <https://docutils.sourceforge.io/docs/ref/rst/directives.html#math>`_.
 
 ..  code-block:: rst
 
@@ -263,15 +263,13 @@ CapyMOA documentation includes Jupyter Notebooks for tutorials, and narrative
 style documentation. These notebooks are run as tests to ensure they are kept
 up-to-date. This document explains how to run, render and test notebooks.
 
-* Added to the ``/notebooks`` directory.
-* Rendered to HTML and included in the documentation of the website using 
 * To add a notebook to the documentation, add the notebook to the ``/notebooks``
   directory and add the filename to the ``toctree`` in ``notebooks/index.rst``.
 * Please check the notebooks are being converted and included in the documentation
   by building the documentation locally. See :doc:`/contributing/docs`.
-*   The parser for markdown used by Jupiter Notebooks is different from the one
-    used by nbsphinx. This can lead to markdown rendering unexpectedly you might
-    need to adjust the markdown in the notebooks to render correctly on the website.
+* The parser for markdown used by Jupyter Notebooks is different from the one
+  used by nbsphinx. This can lead to markdown rendering unexpectedly and you might
+  need to adjust the markdown in the notebooks to render correctly on the website.
 
     *   Bullet points should have a newline after the bullet point.
       
@@ -284,17 +282,17 @@ up-to-date. This document explains how to run, render and test notebooks.
 Slow Notebooks
 ~~~~~~~~~~~~~~
 
-Some notebooks may take a long time to run. Heres how we handle slow notebooks:
+Some notebooks may take a long time to run. Here's how we handle slow notebooks:
 
-* The ``NB_FAST`` environment variable is set to ``Tue`` when the notebooks should
+* The ``NB_FAST`` environment variable is set to ``True`` when the notebooks should
   be run quickly.
 
 * Add hidden cells that check ``NB_FAST`` and speed up the notebook by using
   smaller datasets or fewer iterations.
 
-*   For example, you can add the following cell to the top of a notebook to replace
-    some large datasets with smaller ones. You should ensure the cell is hidden on
-    the website (See :ref:`hide-cells`).
+* For example, you can add the following cell to the top of a notebook to replace
+  some large datasets with smaller ones. You should ensure the cell is hidden on
+  the website (See :ref:`hide-cells`).
 
     ..  code-block:: python
 
@@ -308,7 +306,6 @@ Some notebooks may take a long time to run. Heres how we handle slow notebooks:
 Hide Cells
 ~~~~~~~~~~
 
-
 You can remove a cell from being rendered on the website by adding the following
 to the cell's metadata:
 
@@ -317,7 +314,6 @@ to the cell's metadata:
     "metadata": {
         "nbsphinx": "hidden"
     }
-
 
 Testing or Overwriting Notebook Output
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -331,12 +327,10 @@ overwriting the outputs of the notebooks. To run the notebooks as tests:
 
 .. program-output:: python -m invoke test.nb --help
 
-
-
 Manual Documentation
 --------------------
 
-Manually written documentation in the ``/docs`` directory. These can be written in
+Manually written documentation is put in the ``/docs`` directory. These can be written in
 reStructuredText or Markdown. To add a new page to the documentation, add a new
 file to the ``/docs`` directory and add the filename to the ``toctree`` in ``index.rst``
 or the appropriate location in the documentation.

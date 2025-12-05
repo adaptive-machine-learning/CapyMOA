@@ -1,8 +1,10 @@
 from contextlib import nullcontext
 from itertools import product
+from capymoa.classifier import NoChange
 from capymoa.evaluation.evaluation import (
     _is_fast_mode_compilable,
     prequential_evaluation_anomaly,
+    PrequentialResults,
 )
 from capymoa.regressor import KNNRegressor
 from capymoa.stream.generator import SEA, HyperPlaneRegression, RandomTreeGenerator
@@ -18,6 +20,9 @@ from capymoa.datasets import Electricity
 from capymoa.anomaly import (
     HalfSpaceTrees,
 )
+from numpy.testing import assert_array_equal
+import numpy as np
+from capymoa.exception import StreamTypeError
 
 
 def test_prequential_evaluation():
@@ -279,7 +284,9 @@ def test_restart_stream_flag(restart_stream, optimise, regression, evaluation):
 
     # Consume the first 10 instances
     _take_y(10)
-    with pytest.raises((RuntimeError, ValueError)) if expect_error else nullcontext():
+    with (
+        pytest.raises((StreamTypeError, ValueError)) if expect_error else nullcontext()
+    ):
         # Consume either the next 5 instances or the same 5 instances again
         # depending on the ``restart_stream`` flag
         evaluation(
@@ -297,3 +304,58 @@ def test_restart_stream_flag(restart_stream, optimise, regression, evaluation):
             assert y_remaining == y_stream[5:10]
         else:
             assert y_remaining == y_stream[15:20]
+
+
+@pytest.mark.parametrize("optimise", [False, True])
+@pytest.mark.parametrize("store_y", [True, False])
+@pytest.mark.parametrize("store_predictions", [True, False])
+@pytest.mark.parametrize(
+    "eval_func", [prequential_evaluation, prequential_ssl_evaluation]
+)
+def test_store_y_and_store_predictions(
+    eval_func, optimise: bool, store_y: bool, store_predictions: bool
+):
+    """Test ``prequential_evaluation``'s ``store_predictions`` and ``store_y`` flags."""
+    n = 10
+    stream = ElectricityTiny()
+    expected_true_y = [stream.next_instance().y_index for _ in range(n)]
+    stream.restart()
+
+    learner = NoChange(schema=stream.get_schema())
+
+    assert _is_fast_mode_compilable(stream, learner, True) or not optimise, (
+        "Fast mode should be compilable for this test if optimise is True"
+    )
+    results: PrequentialResults = eval_func(
+        stream=stream,
+        learner=learner,
+        window_size=10,
+        max_instances=n,
+        store_predictions=store_predictions,
+        store_y=store_y,
+        optimise=optimise,
+    )
+    true_y = results.ground_truth_y()
+    pred_y = results.predictions()
+
+    if store_y is True:
+        assert true_y is not None
+        assert len(true_y) == n
+        assert isinstance(true_y, np.ndarray)
+        assert_array_equal(true_y, expected_true_y)
+    else:
+        assert true_y is None, "ground truth should not be stored"
+
+    if store_predictions is True:
+        assert pred_y is not None
+        assert len(pred_y) == n
+        assert isinstance(pred_y, np.ndarray) and pred_y.dtype == np.int64
+
+        # TODO: `prequential_ssl_evaluation` sometimes removes labels so we cannot
+        # expect a match
+        if eval_func != prequential_ssl_evaluation:
+            assert_array_equal(
+                pred_y[1:], expected_true_y[:-1]
+            )  # NoChange predicts previous y
+    else:
+        assert pred_y is None, "predictions should not be stored"

@@ -32,11 +32,13 @@ def test_ocl_split_datamodule_constructors(
     assert len(scenario.task_schedule) == scenario.default_task_count
     assert len(scenario.train_tasks) == scenario.default_task_count
     assert len(scenario.test_tasks) == scenario.default_task_count
+    assert scenario.shape == scenario.schema.shape
 
     train_instance = scenario.stream.next_instance()
     test_instance = scenario.stream.next_instance()
 
     assert isinstance(train_instance.x, np.ndarray)
+    assert train_instance.x.reshape(scenario.shape).shape == tuple(scenario.shape)
     assert isinstance(test_instance.y_index, int)
     assert isinstance(test_instance.x, np.ndarray)
     assert isinstance(test_instance.y_index, int)

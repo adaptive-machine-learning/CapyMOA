@@ -167,7 +167,7 @@ class AnomalyDetector(ABC):
             raise ValueError("Schema must be initialised")
 
     def __str__(self):
-        pass
+        return str(self.__class__.__name__)
 
     @abstractmethod
     def train(self, instance: Instance):
@@ -224,10 +224,12 @@ class MOAAnomalyDetector(AnomalyDetector):
         )
 
     def score_instance(self, instance):
-        # We assume that the anomaly score is the second element of the prediction array.
-        # However, if it is not the case for a MOA learner, this method should be overridden.
-        prediction_array = self.moa_learner.getVotesForInstance(instance.java_instance)
-        return float(prediction_array[1])
+        # Get the anomaly score from the MOA learner
+        # We assume that the MOA learner has a method getAnomalyScore
+        # We convert it to float for consistency
+
+        s = self.moa_learner.getAnomalyScore(instance.java_instance.getData())
+        return float(s)
 
 
 ##############################################################
