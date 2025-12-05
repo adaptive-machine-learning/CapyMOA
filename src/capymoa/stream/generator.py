@@ -1013,6 +1013,7 @@ class SineGenerator(MOAStream):
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"SineGenerator({', '.join(non_default_attributes)})"
 
+
 class MixedGenerator(MOAStream):
     """
     Generates MixedGenerator
@@ -1030,7 +1031,7 @@ class MixedGenerator(MOAStream):
     >>> stream.next_instance().x
     array([1.        , 0.        , 0.9637048 , 0.93986539])
 
-    Proposed by "Gama, Joao, et al. "Learning with drift detection." Advances in artificial intelligence–SBIA 2004. 
+    Proposed by "Gama, Joao, et al. "Learning with drift detection." Advances in artificial intelligence–SBIA 2004.
     Springer Berlin Heidelberg, 2004. 286-295."
     """
 
@@ -1055,7 +1056,7 @@ class MixedGenerator(MOAStream):
         self.instance_random_seed = instance_random_seed
         self.function = function
         self.balance_classes = balance_classes
-       
+
         self.CLI = f"-i {instance_random_seed} -f {self.function} \
             {'-b' if self.balance_classes else ''}"
 
