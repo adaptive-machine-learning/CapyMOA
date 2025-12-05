@@ -25,6 +25,7 @@ class Perceptron(nn.Module):
         :param x: Input tensor of shape ``(batch_size, num_features)``.
         :return: Output tensor of shape ``(batch_size, num_classes)``.
         """
+        x = x.view(x.size(0), -1)  # Flatten input
         x = self._fc1(x)
         x = self._relu(x)
         x = self._fc2(x)
