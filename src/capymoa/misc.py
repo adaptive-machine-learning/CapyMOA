@@ -1,44 +1,10 @@
-from capymoa._pickle import (
-    JPickler as DeprecatedJPickler,
-    JUnpickler as DeprecatedJUnpickler,
-)
 from jpype.pickle import JPickler, JUnpickler
-from deprecated import deprecated
 from jpype import JException
 from typing import BinaryIO, TextIO
 from pathlib import Path
 from io import RawIOBase, BufferedIOBase
 from capymoa.stream._stream import Stream
 import tqdm
-
-
-# TODO: Remove this and capymoa._pickle in a future release
-@deprecated(version="v0.8.2", reason="Use ``save_model(...)`` instead.")
-def legacy_save_model(model, filename):
-    """Save a model to a file.
-
-    Use :func:`save_model` if possible.
-
-    :param model: The model to save.
-    :param filename: The file to save the model to.
-    """
-
-    with open(filename, "wb") as fd:
-        DeprecatedJPickler(fd).dump(model)
-
-
-# TODO: Remove this and capymoa._pickle in a future release
-@deprecated(version="v0.8.2", reason="Use ``load_model(...)`` instead.")
-def legacy_load_model(filename):
-    """Load a model from a file.
-
-    Use :func:`load_model` if possible.
-
-    :param filename: The file to load the model from.
-    """
-
-    with open(filename, "rb") as fd:
-        return DeprecatedJUnpickler(fd).load()
 
 
 def save_model(model: object, file: BinaryIO) -> None:
