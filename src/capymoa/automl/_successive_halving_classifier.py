@@ -86,7 +86,6 @@ class SuccessiveHalvingClassifier(Classifier):
 
         # Initialize models based on configuration
         self._initialize_models()
-        print(self.active_models)
         # Calculate budget if max_instances is provided
         if self.max_instances is not None:
             self.budget = math.ceil((2 * self._n * self.max_instances) / self.eta)
