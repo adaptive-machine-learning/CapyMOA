@@ -32,9 +32,6 @@ def save_model(model: object, file: BinaryIO) -> None:
 def load_model(file: BinaryIO) -> object:
     """Load a model from a jpype pickle file.
 
-    If you are trying to load a model saved with a version of CapyMOA < 0.8.2,
-    use :func:`legacy_load_model` and :func:`save_model` to reformat the model.
-
     See also: :func:`save_model`.
 
     :param file: The file-like object to load the model from.
