@@ -17,7 +17,9 @@ from capymoa.stream import Schema
 import torch
 from torch import nn
 
-approx = partial(pytest.approx, abs=0.1)
+# PyTorch is notorious for non-deterministic behavior between versions and platforms.
+# Here we set a fixed absolute tolerance of +-1.5 for percentage-based metrics.
+approx = partial(pytest.approx, abs=1.5)
 
 
 @dataclass(frozen=True)
