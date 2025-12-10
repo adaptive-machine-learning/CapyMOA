@@ -7,7 +7,7 @@ This document describes the code review process for CapyMOA. It is intended for 
 2. Download the built documentation [pull request
    artifact](./docs.rst#pull-request-artifact) and check it renders nicely.
 3. If the PR adds new methods these should be cited in the documentation.
-4. Does the PR test added code?
+4. Does the PR test add code?
 5. Manually review the code changes.
 6. If everything is good **squash and merge** the PR using the GitHub interface and add
    a meaningful commit message. See [commit messages](#commit-messages) below for more
