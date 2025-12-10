@@ -279,8 +279,8 @@ class _OCLEvaluator:
 
         tasks = np.arange(self.task_count, dtype=int)
 
-        accuracy_seen = np.vectorize(_accuracy_seen)(tasks)
-        accuracy_all = np.vectorize(_accuracy_all)(tasks)
+        accuracy_seen = np.array([_accuracy_seen(t) for t in tasks])
+        accuracy_all = np.array([_accuracy_all(t) for t in tasks])
         boundaries = boundary_instances.numpy()
 
         ttt_windowed_task_index = None
