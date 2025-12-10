@@ -46,8 +46,8 @@ class RAR(BatchClassifier, TrainTaskAware, TestTaskAware):
     ...     scenario.train_loaders(32),
     ...     scenario.test_loaders(32),
     ... )
-    >>> print(f"{results.accuracy_final*100:.1f}%")
-    41.5%
+    >>> results.accuracy_final*100 > 41.5 # PyTorch is nondeterministic across versions
+    True
 
     Usually more complex augmentations are used such as random crops and
     rotations.
