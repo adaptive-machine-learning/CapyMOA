@@ -174,7 +174,9 @@ class SuccessiveHalvingClassifier(Classifier):
                 for params in param_combinations:
                     try:
                         # Create classifier instance
-                        clf = create_capymoa_classifier(algorithm_name, params, self.schema)
+                        clf = create_capymoa_classifier(
+                            algorithm_name, params, self.schema
+                        )
 
                         if clf is not None:
                             self.active_models.append(clf)
@@ -196,7 +198,6 @@ class SuccessiveHalvingClassifier(Classifier):
 
         except (json.JSONDecodeError, FileNotFoundError) as e:
             raise ValueError(f"Error loading configuration file: {str(e)}")
-
 
     def train(self, instance):
         # Train only active models

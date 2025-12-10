@@ -11,6 +11,7 @@ from capymoa.automl._utils import (
 )
 import json
 
+
 class EpsilonGreedy:
     """Epsilon-Greedy bandit policy for model selection.
 
@@ -228,7 +229,9 @@ class BanditClassifier(Classifier):
                 for params in param_combinations:
                     try:
                         # Create classifier instance
-                        clf = create_capymoa_classifier(algorithm_name, params, self.schema)
+                        clf = create_capymoa_classifier(
+                            algorithm_name, params, self.schema
+                        )
 
                         if clf is not None:
                             self.active_models.append(clf)
@@ -250,7 +253,6 @@ class BanditClassifier(Classifier):
 
         except (json.JSONDecodeError, FileNotFoundError) as e:
             raise ValueError(f"Error loading configuration file: {str(e)}")
-     
 
     def train(self, instance):
         """Train the selected model(s) on the given instance."""

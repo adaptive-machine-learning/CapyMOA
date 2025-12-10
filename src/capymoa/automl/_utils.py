@@ -9,6 +9,7 @@ Users who need more fine-grained control can specify explicit values instead of 
 """
 DEFAULT_RANGE_SAMPLES = 5
 
+
 def generate_parameter_combinations(parameters):
     """Generate all parameter combinations based on the parameter configuration list."""
 
@@ -48,43 +49,42 @@ def generate_parameter_combinations(parameters):
     # Cartesian product of all parameter lists
     return list(itertools.product(*param_space))
 
+
 def create_capymoa_classifier(algorithm_name, params, schema):
-        """Create a CapyMOA classifier instance with the specified parameters."""
-        # Map MOA class names to CapyMOA classifier classes
-        capymoa_classifiers = {
-            name: getattr(capymoa_classifier_module, name)
-            for name in dir(capymoa_classifier_module)
-        }
+    """Create a CapyMOA classifier instance with the specified parameters."""
+    # Map MOA class names to CapyMOA classifier classes
+    capymoa_classifiers = {
+        name: getattr(capymoa_classifier_module, name)
+        for name in dir(capymoa_classifier_module)
+    }
 
-        # Find matching classifier in CapyMOA
-        if algorithm_name in capymoa_classifiers:
-            clf_class = capymoa_classifiers[algorithm_name]
-        else:
-            # Try to find a matching classifier by the last part of the name
-            classifier_name = algorithm_name.split(".")[-1]
-            matching_class = None
+    # Find matching classifier in CapyMOA
+    if algorithm_name in capymoa_classifiers:
+        clf_class = capymoa_classifiers[algorithm_name]
+    else:
+        # Try to find a matching classifier by the last part of the name
+        classifier_name = algorithm_name.split(".")[-1]
+        matching_class = None
 
-            # Search for matching class by name
-            for moa_name, capymoa_class in capymoa_classifiers.items():
-                if moa_name.endswith(classifier_name):
-                    matching_class = capymoa_class
-                    break
+        # Search for matching class by name
+        for moa_name, capymoa_class in capymoa_classifiers.items():
+            if moa_name.endswith(classifier_name):
+                matching_class = capymoa_class
+                break
 
-            if matching_class is None:
-                print(
-                    f"Warning: No matching CapyMOA classifier found for {algorithm_name}"
-                )
-                return None
+        if matching_class is None:
+            print(f"Warning: No matching CapyMOA classifier found for {algorithm_name}")
+            return None
 
-            clf_class = matching_class
+        clf_class = matching_class
 
-        # Build constructor kwargs
-        init_kwargs = {p["parameter"]: p["value"] for p in params}
+    # Build constructor kwargs
+    init_kwargs = {p["parameter"]: p["value"] for p in params}
 
-        try:
-            classifier = clf_class(schema=schema, **init_kwargs)
-        except TypeError as e:
-            print(f"Warning: Failed constructor parameters for {clf_class.__name__}: {e}")
-            classifier = clf_class(schema=schema)
+    try:
+        classifier = clf_class(schema=schema, **init_kwargs)
+    except TypeError as e:
+        print(f"Warning: Failed constructor parameters for {clf_class.__name__}: {e}")
+        classifier = clf_class(schema=schema)
 
-        return classifier      
+    return classifier
