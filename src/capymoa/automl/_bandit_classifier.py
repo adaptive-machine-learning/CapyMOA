@@ -118,8 +118,8 @@ class BanditClassifier(Classifier):
     ...     base_classifiers=[HoeffdingTree],
     ...     policy=EpsilonGreedy(epsilon=0.1, burn_in=100)
     ... )
-    >>> result = next(stream)
-    >>> learner.train(result[0], result[1])
+    >>> instance = next(stream)
+    >>> learner.train(instance)
 
     .. seealso::
 
