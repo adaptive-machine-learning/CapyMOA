@@ -1,27 +1,3 @@
-from capymoa.classifier import (
-    AdaptiveRandomForestClassifier,
-    EFDT,
-    HoeffdingTree,
-    NaiveBayes,
-    OnlineBagging,
-    OnlineAdwinBagging,
-    LeveragingBagging,
-    KNN,
-    PassiveAggressiveClassifier,
-    SGDClassifier,
-    StreamingGradientBoostedTrees,
-    OzaBoost,
-    MajorityClass,
-    NoChange,
-    OnlineSmoothBoost,
-    StreamingRandomPatches,
-    HoeffdingAdaptiveTree,
-    SAMkNN,
-    DynamicWeightedMajority,
-    CSMOTE,
-    WeightedkNN,
-    ShrubsClassifier,
-)
 from capymoa.base import (
     Classifier,
 )
@@ -29,8 +5,11 @@ from typing import Dict, Any
 from capymoa.stream import Schema
 import math
 import json
-import itertools
 from capymoa.evaluation import ClassificationEvaluator
+from capymoa.automl._utils import (
+    generate_parameter_combinations,
+    create_capymoa_classifier,
+)
 
 
 class SuccessiveHalvingClassifier(Classifier):
@@ -189,13 +168,13 @@ class SuccessiveHalvingClassifier(Classifier):
                 parameters = algo_config.get("parameters", [])
 
                 # Generate all parameter combinations
-                param_combinations = self._generate_parameter_combinations(parameters)
+                param_combinations = generate_parameter_combinations(parameters)
 
                 # Create a classifier for each parameter combination
                 for params in param_combinations:
                     try:
                         # Create classifier instance
-                        clf = self._create_capymoa_classifier(algorithm_name, params)
+                        clf = create_capymoa_classifier(algorithm_name, params, self.schema)
 
                         if clf is not None:
                             self.active_models.append(clf)
@@ -218,129 +197,6 @@ class SuccessiveHalvingClassifier(Classifier):
         except (json.JSONDecodeError, FileNotFoundError) as e:
             raise ValueError(f"Error loading configuration file: {str(e)}")
 
-    def _create_capymoa_classifier(self, algorithm_name, params):
-        """Create a CapyMOA classifier instance with the specified parameters."""
-        # Map MOA class names to CapyMOA classifier classes
-        capymoa_classifiers = {
-            cls.__name__: cls
-            for cls in [
-                AdaptiveRandomForestClassifier,
-                EFDT,
-                HoeffdingTree,
-                NaiveBayes,
-                OnlineBagging,
-                OnlineAdwinBagging,
-                LeveragingBagging,
-                KNN,
-                PassiveAggressiveClassifier,
-                SGDClassifier,
-                StreamingGradientBoostedTrees,
-                OzaBoost,
-                MajorityClass,
-                NoChange,
-                OnlineSmoothBoost,
-                StreamingRandomPatches,
-                HoeffdingAdaptiveTree,
-                SAMkNN,
-                DynamicWeightedMajority,
-                CSMOTE,
-                WeightedkNN,
-                ShrubsClassifier,
-            ]
-        }
-
-        # Find matching classifier in CapyMOA
-        if algorithm_name in capymoa_classifiers:
-            clf_class = capymoa_classifiers[algorithm_name]
-        else:
-            # Try to find a matching classifier by the last part of the name
-            classifier_name = algorithm_name.split(".")[-1]
-            matching_class = None
-
-            # Search for matching class by name
-            for moa_name, capymoa_class in capymoa_classifiers.items():
-                if moa_name.endswith(classifier_name):
-                    matching_class = capymoa_class
-                    break
-
-            if matching_class is None:
-                print(
-                    f"Warning: No matching CapyMOA classifier found for {algorithm_name}"
-                )
-                return None
-
-            clf_class = matching_class
-
-        # Create an instance with the schema
-        classifier = clf_class(schema=self.schema)
-
-        # Set parameters on the classifier instance
-        for param in params:
-            param_name = param["parameter"]
-            param_value = param["value"]
-
-            try:
-                # Try using setattr
-                setattr(classifier, param_name, param_value)
-            except (AttributeError, Exception):
-                # If setattr fails, try using a setter method
-                try:
-                    setter_name = f"set{param_name.capitalize()}"
-                    if hasattr(classifier, setter_name):
-                        setter = getattr(classifier, setter_name)
-                        setter(param_value)
-                    else:
-                        print(
-                            f"Warning: Parameter '{param_name}' not found on {classifier.__class__.__name__}"
-                        )
-                except Exception as e:
-                    print(
-                        f"Warning: Failed to set parameter '{param_name}' on {classifier.__class__.__name__}: {str(e)}"
-                    )
-
-        return classifier
-
-    def _generate_parameter_combinations(self, parameters):
-        """Generate all parameter combinations based on parameter ranges."""
-        # Prepare parameter space
-        param_space = []
-
-        for param in parameters:
-            param_name = param.get("parameter")
-            param_type = param.get("type")
-            param_range = param.get("range", [])
-
-            # If a range is specified, create parameter values within that range
-            if param_range and len(param_range) == 2:
-                min_val, max_val = param_range
-
-                # Generate values based on type
-                if param_type == "integer":
-                    # Take a few values across the range
-                    num_values = min(5, max_val - min_val + 1)
-                    step = max(1, (max_val - min_val) // (num_values - 1))
-                    values = list(range(min_val, max_val + 1, step))
-                elif param_type == "float":
-                    # Take a few values across the range
-                    num_values = 5
-                    values = [
-                        min_val + (max_val - min_val) * i / (num_values - 1)
-                        for i in range(num_values)
-                    ]
-                else:
-                    # Default to the provided value
-                    values = [param.get("value")]
-            else:
-                # Use the single value provided
-                values = [param.get("value")]
-
-            # Add parameter and its values to parameter space
-            param_configs = [{"parameter": param_name, "value": val} for val in values]
-            param_space.append(param_configs)
-
-        # Generate all combinations
-        combinations = list(itertools.product(*param_space))
-        return combinations
 
     def train(self, instance):
         # Train only active models
