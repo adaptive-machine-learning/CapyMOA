@@ -32,8 +32,8 @@ class SuccessiveHalvingClassifier(Classifier):
     ...     eta=2.0,
     ...     evaluation_metric="accuracy"
     ... )
-    >>> result = next(stream)
-    >>> learner.train(result[0], result[1])
+    >>> instance = next(stream)
+    >>> learner.train(instance)
 
     .. seealso::
 
