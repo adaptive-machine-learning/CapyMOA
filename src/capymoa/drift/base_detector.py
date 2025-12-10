@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 from typing_extensions import override
+from numpy import double
 
 from jpype import _jpype
 
@@ -93,7 +94,7 @@ class MOADriftDetector(BaseDriftDetector):
 
     @override
     def add_element(self, element: float) -> None:
-        self.moa_detector.input(element)
+        self.moa_detector.input(double(element))
         self.data.append(element)
         self.idx += 1
 

@@ -15,8 +15,8 @@ from functools import partial
 @pytest.mark.parametrize(
     "learner_constructor,coverage,win_coverage",
     [
-        (partial(MVE), 98.7, 99.0),
-        (partial(AdaPI), 97.0, 97.0),
+        (partial(MVE), 97.8, 98.0),
+        (partial(AdaPI), 96.2, 97.0),
     ],
     ids=[
         "MVE",

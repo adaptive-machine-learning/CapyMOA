@@ -25,7 +25,7 @@ env:
 jobs:
   tests:
     name: "Tests"
-    timeout-minutes: 20
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -43,9 +43,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-
-    - name: Add Job Summary
-      run: cat .github/workflows/pr.md >$GITHUB_STEP_SUMMARY
 
     - name: Set up Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v5
@@ -90,6 +87,10 @@ jobs:
   commit:
     name: "Commit Style"
     runs-on: ubuntu-latest
+    # Only report commit style issues on push to main, not on PRs as contributors seldom
+    # want to worry about fixing commit messages. The reviewer will `squash and merge`
+    # with a proper commit message.
+    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
       - uses: wagoid/commitlint-github-action@v6

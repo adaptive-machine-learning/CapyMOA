@@ -20,6 +20,7 @@ from moa.streams.generators import WaveformGenerator as MOA_WaveformGenerator
 from moa.streams.generators import WaveformGeneratorDrift as MOA_WaveformGeneratorDrift
 from moa.streams.generators import STAGGERGenerator as MOA_STAGGERGenerator
 from moa.streams.generators import SineGenerator as MOA_SineGenerator
+from moa.streams.generators import MixedGenerator as MOA_MixedGenerator
 from capymoa._utils import build_cli_str_from_mapping_and_locals
 
 
@@ -1011,3 +1012,65 @@ class SineGenerator(MOAStream):
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
         return f"SineGenerator({', '.join(non_default_attributes)})"
+
+
+class MixedGenerator(MOAStream):
+    """
+    Generates MixedGenerator
+
+    >>> from capymoa.stream.generator import MixedGenerator
+    ...
+    >>> stream = MixedGenerator()
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(generators.MixedGenerator ),
+        x=[1.    0.    0.208 0.333],
+        y_index=0,
+        y_label='positive'
+    )
+    >>> stream.next_instance().x
+    array([1.        , 0.        , 0.9637048 , 0.93986539])
+
+    Proposed by "Gama, Joao, et al. "Learning with drift detection." Advances in artificial intelligence–SBIA 2004.
+    Springer Berlin Heidelberg, 2004. 286-295."
+    """
+
+    def __init__(
+        self,
+        instance_random_seed: int = 1,
+        function: int = 1,
+        balance_classes: bool = False,
+    ):
+        """Construct a MixedGenerator datastream generator.
+
+        :param instance_random_seed: Seed for random generation of instances, defaults to 1
+        :param function: Classification function used, as defined in the original paper, defaults to 1
+        :param balance_classes: Balance the number of instances of each class, defaults to False
+        """
+        self.__init_args_kwargs__ = copy.copy(
+            locals()
+        )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+
+        self.moa_stream = MOA_MixedGenerator()
+
+        self.instance_random_seed = instance_random_seed
+        self.function = function
+        self.balance_classes = balance_classes
+
+        self.CLI = f"-i {instance_random_seed} -f {self.function} \
+            {'-b' if self.balance_classes else ''}"
+
+        super().__init__(CLI=self.CLI, moa_stream=self.moa_stream)
+
+    def __str__(self):
+        attributes = [
+            (
+                f"instance_random_seed={self.instance_random_seed}"
+                if self.instance_random_seed != 1
+                else None
+            ),
+            f"function={self.function}",
+            f"balance_classes={self.balance_classes}" if self.balance_classes else None,
+        ]
+        non_default_attributes = [attr for attr in attributes if attr is not None]
+        return f"MixedGenerator({', '.join(non_default_attributes)})"

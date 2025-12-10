@@ -124,6 +124,9 @@ class _BuiltInCIScenario(ABC):
     stream: Stream[LabeledInstance]
     """Stream containing each task in sequence."""
 
+    shape: Sequence[int]
+    """The shape of each input example."""
+
     def __init__(
         self,
         num_tasks: Optional[int] = None,
@@ -222,6 +225,7 @@ class _BuiltInCIScenario(ABC):
             num_classes=self.num_classes,
             shuffle=False,
             dataset_name=str(self),
+            shape=self.shape,
         )
         self.schema = self.stream.get_schema()
 
@@ -261,7 +265,7 @@ class _BuiltInCIScenario(ABC):
         return f"{self.__class__.__name__}{self.num_classes}/{self.num_tasks}"
 
     def train_loaders(
-        self, batch_size: int, **kwargs: Any
+        self, batch_size: int, shuffle: bool = False, **kwargs: Any
     ) -> Sequence[DataLoader[Tuple[Tensor, Tensor]]]:
         """Get the training streams for the scenario.
 
@@ -280,7 +284,7 @@ class _BuiltInCIScenario(ABC):
                 DataLoader(
                     task,
                     batch_size=batch_size,
-                    shuffle=False,
+                    shuffle=shuffle,
                     **kwargs,
                     collate_fn=getattr(task, "collate_fn", None),
                 )
@@ -325,6 +329,7 @@ class SplitMNIST(_BuiltInCIScenario):
     default_task_count = 5
     mean = [0.1307]
     std = [0.3081]
+    shape = [1, 28, 28]
 
     @classmethod
     def _download_dataset(
@@ -362,6 +367,7 @@ class TinySplitMNIST(_BuiltInCIScenario):
     default_train_transform = None
     default_test_transform = None
     _dataset_key = "capymoa_tiny_mnist"
+    shape = [1, 16, 16]
 
     @classmethod
     def _download_dataset(
@@ -411,6 +417,7 @@ class SplitCIFAR100ViT(_BuiltInCIScenario):
     default_task_count = 10
     default_train_transform = None
     default_test_transform = None
+    shape = [768]
     _dataset_key = "CIFAR100-vit_base_patch16_224_augreg_in21k"
 
     @classmethod
@@ -461,6 +468,7 @@ class SplitCIFAR10ViT(SplitCIFAR100ViT):
 
     num_classes = 10
     default_task_count = 5
+    shape = [768]
 
 
 class SplitFashionMNIST(_BuiltInCIScenario):
@@ -476,6 +484,7 @@ class SplitFashionMNIST(_BuiltInCIScenario):
     default_task_count = 5
     mean = [0.286]
     std = [0.353]
+    shape = [1, 28, 28]
 
     @classmethod
     def _download_dataset(
@@ -506,6 +515,7 @@ class SplitCIFAR10(_BuiltInCIScenario):
     default_task_count = 5
     mean = [0.491, 0.482, 0.447]
     std = [0.247, 0.243, 0.262]
+    shape = [3, 32, 32]
 
     @classmethod
     def _download_dataset(
@@ -536,6 +546,7 @@ class SplitCIFAR100(_BuiltInCIScenario):
     default_task_count = 10
     mean = [0.507, 0.487, 0.441]
     std = [0.267, 0.256, 0.276]
+    shape = [3, 32, 32]
 
     @classmethod
     def _download_dataset(

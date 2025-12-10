@@ -8,8 +8,7 @@ from moa.classifiers.core.driftdetection import HDDM_W_Test as _HDDM_W_Test
 class HDDMWeighted(MOADriftDetector):
     """Weighted Hoeffding's bounds Drift Detector
 
-    Example usages:
-    ---------------
+    Online and non-parametric drift detection methods based on Hoeffding's bounds [#f1]_.
 
     >>> import numpy as np
     >>> from capymoa.drift.detectors import HDDMWeighted
@@ -27,13 +26,9 @@ class HDDMWeighted(MOADriftDetector):
     ...         print('Change detected in data: ' + str(data_stream[i]) + ' - at index: ' + str(i))
     Change detected in data: 6 - at index: 1234
 
-    Reference:
-    ----------
-
-    Frias-Blanco, Isvani, et al. "Online and non-parametric drift detection
-    methods based on Hoeffding’s bounds." IEEE Transactions on Knowledge and
-    Data Engineering 27.3 (2014): 810-823.
-
+    ..  [#f1] Frias-Blanco, Isvani, et al. "Online and non-parametric drift detection methods
+        based on Hoeffding’s bounds." IEEE Transactions on Knowledge and Data Engineering
+        27.3 (2014): 810-823.
     """
 
     TEST_TYPES = ["Two-sided", "One-sided"]
@@ -63,15 +58,3 @@ class HDDMWeighted(MOADriftDetector):
         self.lambda_ = lambda_
         self.test_type = test_type
         self.get_params()
-
-    def add_element(self, element: float):
-        if not isinstance(element, float):
-            element = float(element)
-
-        self.moa_detector.input(element)
-        self.data.append(element)
-
-        self.estimation = self.moa_detector.getEstimation()
-        self.delay = self.moa_detector.getDelay()
-        self.in_concept_change = self.moa_detector.getChange()
-        self.in_warning_zone = self.moa_detector.getWarningZone()

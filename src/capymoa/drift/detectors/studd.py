@@ -1,4 +1,5 @@
 from typing import Union, List
+from capymoa.type_alias import LabelIndex
 from typing_extensions import override
 
 import numpy as np
@@ -85,7 +86,9 @@ class STUDD(BaseDriftDetector):
         return "STUDD"
 
     @override
-    def add_element(self, instance_x: ArrayOrInstance, teacher_prediction) -> None:
+    def add_element(
+        self, instance_x: ArrayOrInstance, teacher_prediction: LabelIndex
+    ) -> None:
         """Update the drift detector with a new instance and teacher prediction.
 
         :param instance_x: The instance to add to the drift detector.
@@ -93,6 +96,9 @@ class STUDD(BaseDriftDetector):
         :param teacher_prediction: The prediction made by the teacher model for this instance.
         :type teacher_prediction: Any
         """
+        # Ignore if no teacher prediction is provided yet (abstains).
+        if teacher_prediction is None:
+            return
 
         self.idx += 1
 
