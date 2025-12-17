@@ -109,9 +109,9 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get install -y pandoc
-        python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-        python -m pip install ".[dev,doc]"
-
+        python -m pip install torch~=2.9.1 torchvision~=0.24.1 --index-url https://download.pytorch.org/whl/cpu
+        python -m pip install -U ".[dev,doc]"
+      # '-U' upgrades dependencies based on the pyproject.toml 
     - name: Build Documentation
       run: invoke docs.build
 
