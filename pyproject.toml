@@ -45,33 +45,34 @@ requires-python = ">=3.9"
 # Defines the pip packages that are required by this package. These should be
 # as permissive as possible, since capymoa should collaborate with other
 # packages.
+# The '~=' operator is used to specify compatible releases: newer features or bug fixes
+# within the same major version are allowed.
+# For example: ~= 2.2 is >= 2.2, == 2.*.*
+# See: https://packaging.python.org/en/latest/specifications/version-specifiers/#compatible-release
 dependencies = [
-    "jpype1>=v1.5.1",
-    "wget",
-    "numpy",
-    "pandas",
-    "pyarrow",
-    "matplotlib",
-    "scikit-learn",
-    "click",
-    "seaborn",
-    "tqdm",
-    "deprecated"
+    "deprecated~=1.3",
+    "jpype1~=1.6",
+    "matplotlib~=3.10",
+    "numpy~=2.2",
+    "pandas~=2.2",
+    "scikit-learn~=1.7",
+    "seaborn~=0.13",
+    "tqdm~=4.67",
 ]
 
 [project.optional-dependencies]
 # Development dependencies
 dev=[
-    "pytest",
-    "pytest-subtests",
-    "jupyter",
-    "nbmake",
-    "pytest-xdist",
-    "invoke",
-    "stubgenj",
-    "wget",
-    "commitizen~=3.24.0",
-    "ruff",
+    "commitizen~=3.24",
+    "invoke~=2.2",
+    "jupyter~=1.1",
+    "nbmake~=1.5",
+    "pytest-subtests~=0.15",
+    "pytest-xdist~=3.8",
+    "pytest~=9.0",
+    "ruff~=0.14",
+    "stubgenj~=0.2",
+    "wget~=3.2",
 ]
 
 doc=[
