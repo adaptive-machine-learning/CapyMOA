@@ -1,0 +1,47 @@
+from capymoa.stream import Schema
+from capymoa.base import MOAClassifier
+from typing import Literal
+from {{j_package}} import {{j_class}} as _{{j_class}}
+
+class {{j_class}}(MOAClassifier):
+    """FULL NAME OF CLASSIFIER
+
+    FULL NAME OF CLASSIFIER (ACRONYM) [#f1]_ is a METHOD CLASS. DESCRIPTION OF THE
+    CLASSIFIER ...
+
+    >>> from capymoa.classifier import {{j_class}}
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.evaluation import prequential_evaluation
+    >>>
+    >>> stream = ElectricityTiny()
+    >>> classifier = {{j_class}}(stream.get_schema())
+    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    XX.X
+
+    .. [#f1] BIBLIOGRAPHY ENTRY
+
+    """
+
+    def __init__(
+        self,
+        schema: Schema,
+        {%- for option in options %}
+        {{option.name}}: {{option.type}} = {{option.default}},
+        {%- endfor %}
+    ) -> None:
+        """Construct {{j_class}} classifier.
+        {% for option in options %}
+        {{(':param ' ~ option.name ~ ': ' ~ option.doc) | wordwrap(80) | indent(12) }}
+        {%- endfor %}
+        """
+
+        cli = []
+        {% for option in options -%}
+        {% if option.type == "bool" -%}
+        cli += ["-{{option.cli_char}}"] if {{option.name}} else []
+        {%- else -%}
+        cli += [f"-{{option.cli_char}} {{'{' ~ option.name ~ '}'}}"]
+        {%- endif %}
+        {% endfor %}
+        super().__init__(moa_learner=_{{j_class}}, schema=schema, CLI=" ".join(cli))

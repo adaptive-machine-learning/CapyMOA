@@ -22,6 +22,7 @@ from ._csmote import CSMOTE
 from ._weightedknn import WeightedkNN
 from ._shrubs_classifier import ShrubsClassifier
 from ._finetune import Finetune
+from ._plastic import PLASTIC
 
 __all__ = [
     "AdaptiveRandomForestClassifier",
@@ -48,4 +49,5 @@ __all__ = [
     "StreamingGradientBoostedTrees",
     "StreamingRandomPatches",
     "WeightedkNN",
+    "PLASTIC",
 ]
