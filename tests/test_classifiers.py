@@ -36,6 +36,7 @@ from capymoa.classifier import (
     StreamingGradientBoostedTrees,
     StreamingRandomPatches,
     WeightedkNN,
+    PLASTIC,
 )
 from capymoa.datasets import ElectricityTiny
 from capymoa.evaluation import ClassificationEvaluator, prequential_evaluation
@@ -114,6 +115,7 @@ test_cases = [
         cli_string="trees.EFDT -R 200 -m 33554433 -g 10 -s GiniSplitCriterion -c 0.001 -z -p -l NB",
         skip_reason="https://github.com/adaptive-machine-learning/backlog/issues/59",
     ),
+    ClassifierTestCase("PLASTIC", PLASTIC, 83.25, 83.0),
     ClassifierTestCase(
         "NaiveBayes",
         partial(NaiveBayes),
