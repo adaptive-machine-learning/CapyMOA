@@ -19,7 +19,7 @@ contact_email = "heitor.gomes@vuw.ac.nz"
 capymoa_github = "https://github.com/adaptive-machine-learning/CapyMOA"
 
 project = "CapyMOA"
-copyright = "2024 CapyMOA Developers"
+copyright = "2026 CapyMOA Developers"
 author = "Heitor Murilo Gomes, Anton Lee, Nuwan Gunasekara, Marco Heyden, Yibin Sun, Guilherme Weigert Cassales"
 release = __version__
 html_title = f"{project}"
@@ -145,6 +145,11 @@ linkcode_resolve = make_linkcode_resolve(
 """
 html_theme_options = {
     "show_toc_level": 3,
+    "logo": {
+        "text": "CapyMOA",
+        "image_light": "_static/logo-96x96.png",
+        "image_dark": "_static/logo-96x96.png",
+    },
     "icon_links": [
         {
             "name": "GitHub",
