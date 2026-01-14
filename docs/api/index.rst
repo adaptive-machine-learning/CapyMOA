@@ -1,5 +1,5 @@
-API Reference
-=============
+API
+===
 
 Welcome to the CapyMOA API reference. This documentation is automatically
 generated from the source code and provides detailed information on the classes
