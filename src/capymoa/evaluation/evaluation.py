@@ -386,9 +386,6 @@ class RegressionEvaluator:
     def metrics_per_window(self):
         return pd.DataFrame(self.result_windows, columns=self.metrics_header()).copy()
 
-    def predictions(self):
-        return self.predictions
-
     def ground_truth_y(self):
         return self.gt_y
 

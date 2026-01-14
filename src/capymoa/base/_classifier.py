@@ -338,9 +338,11 @@ class SKClassifier(Classifier):
         if not self._trained_at_least_once:
             # scikit-learn does not allows invoking predict in a model that was not fit before
             return None
-        if not hasattr(self.sklearner, "predict_proba"):
+        elif not hasattr(self.sklearner, "predict_proba"):
+            # When classifiers do not implement predict_proba use a one-hot encoding
             proba = np.zeros((self.schema.get_num_classes(),), dtype=np.float64)
             proba[self.predict(instance)] = 1.0
             return proba
         else:
-            self.sklearner.predict_proba([instance.x])
+            # Default case passing through predict_proba
+            return self.sklearner.predict_proba([instance.x])[0]
