@@ -134,9 +134,10 @@ test_cases = [
     ),
     ClassifierTestCase(
         "SGDClassifier",
-        partial(SGDClassifier),
-        84.7,
-        83.0,
+        # When loss="log_loss" predict_proba works
+        partial(SGDClassifier, loss="log_loss"),
+        85.75,
+        82.0,
     ),
     ClassifierTestCase(
         "StreamingGradientBoostedTrees",
