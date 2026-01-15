@@ -8,8 +8,12 @@ from moa.classifiers.trees import PLASTIC as _PLASTIC
 class PLASTIC(MOAClassifier):
     """PLASTIC classifier.
 
-    PLASTIC [#f1]_ is a decision tree classifier. It restructures the subtrees that
-    would have been pruned by EFDT.
+    PLASTIC [#f1]_ is an incremental decision tree that restructures the otherwise
+    pruned subtree. PLASTIC improves upon Extremely Fast Decision Trees (EFDT) by
+    not only revisiting previously splits but also trying to maintain as much as
+    possible of the structure once a split is redone. This process is possible
+    because of the decision tree plasticity: one can alter a tree’s structure without
+    affecting its predictions.
 
     >>> from capymoa.classifier import PLASTIC
     >>> from capymoa.datasets import ElectricityTiny
