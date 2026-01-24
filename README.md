@@ -6,6 +6,7 @@
 [![Join the Discord](https://img.shields.io/discord/1235780483845984367?label=Discord)](https://discord.gg/spd2gQJGAb)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://capymoa.org)
 [![GitHub](https://img.shields.io/github/stars/adaptive-machine-learning/CapyMOA?style=social)](https://github.com/adaptive-machine-learning/CapyMOA)
+[![Coverage Status](https://coveralls.io/repos/github/adaptive-machine-learning/CapyMOA/badge.svg?branch=code-cov)](https://coveralls.io/github/adaptive-machine-learning/CapyMOA?branch=code-cov)
 
 
 Machine learning library tailored for data streams. Featuring a Python API

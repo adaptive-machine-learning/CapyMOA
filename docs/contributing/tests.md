@@ -84,3 +84,26 @@ NB_FAST=true pytest --nbmake notebooks/my_notebook.ipynb
 ```
 
 For more about `NB_FAST` read the [notebooks documentation](../docs.rst#notebooks).
+
+## Code Coverage
+
+Code coverage measures how many statements of code is executed while running
+tests. It identifies unused and untested code. We encourage contributors to
+use it to write more robust programs, but don't have a target percantage. 
+
+To generate code coverage reports add `--cov=capymoa` and `--cov-report=html` to
+the pytest command:
+
+```bash
+pytest --cov=capymoa --cov-report=html
+```
+
+Alternatively, CapyMOA's invoke testing tasks can generate coverage reports with:
+
+```bash
+invoke test --coverage
+```
+
+See also:
+* [coverage.py](https://github.com/coveragepy/coveragepy): Tool for measuring python code coverage.
+* [pytest-cov](https://pypi.org/project/pytest-cov/): PyTest plugin to automatically collect code coverage information with coverage.py.
