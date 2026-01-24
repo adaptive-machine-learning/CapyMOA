@@ -116,3 +116,7 @@ def save_stream_arff(file: TextIO | Path | str, stream: Stream) -> None:
         file.write(str(moa_header))
         for instance in tqdm.tqdm(stream, desc="Saving to ARFF"):
             file.write(str(instance.java_instance.toString()) + "\n")
+
+
+def _TODO_REMOVE_ME_I_AM_A_TEST():
+    print("This is a test function that should be removed.")
