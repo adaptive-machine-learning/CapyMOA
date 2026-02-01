@@ -14,14 +14,14 @@ import moa.classifiers.trees as moa_trees
 class LAST(MOAClassifier):
     """Local Adaptive Streaming Tree.
 
-    Local Adaptive Streaming Tree (LAST) [#0]_ is an incremental decision tree
+    Local Adaptive Streaming Tree (LAST) [#l1]_ is an incremental decision tree
     with adaptive splitting mechanisms. LAST maintains a change detector at each
     leaf and splits this node if a change is detected in the error or the leaf's
     data distribution.
 
     An appealing feature of LAST is that users do not need to specify
     the Grace Period, Tau threshold and confidence hyperparameters
-    as in Hoeffding Trees [#1]_.
+    as in Hoeffding Trees [#l2]_.
 
     >>> from capymoa.classifier import LAST
     >>> from capymoa.datasets import ElectricityTiny
@@ -34,11 +34,11 @@ class LAST(MOAClassifier):
     >>> print(f"{results['cumulative'].accuracy():.1f}")
     88.6
 
-    .. [#0] Daniel Nowak Assis, Jean Paul Barddal, and Fabrício Enembreck.
+    .. [#l1] Daniel Nowak Assis, Jean Paul Barddal, and Fabrício Enembreck.
        Just Change on Change: Adaptive Splitting Time for Decision Trees in Data Stream
        Classification. 39th ACM/SIGAPP Symposium on Applied Computing (SAC '24).
 
-    .. [#1] Daniel Nowak Assis, Jean Paul Barddal, and Fabrício Enembreck.
+    .. [#l2] Daniel Nowak Assis, Jean Paul Barddal, and Fabrício Enembreck.
        Behavioral insights of adaptive splitting decision trees in evolving data stream
        classification. Knowledge and Information Systems, 2025.
     """
