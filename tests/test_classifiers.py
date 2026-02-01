@@ -16,6 +16,7 @@ from capymoa.classifier import (
     CSMOTE,
     EFDT,
     KNN,
+    LAST,
     AdaptiveRandomForestClassifier,
     DynamicWeightedMajority,
     Finetune,
@@ -94,6 +95,12 @@ test_cases = [
         partial(HoeffdingTree),
         82.65,
         83.0,
+    ),
+    ClassifierTestCase(
+        "LAST",
+        partial(LAST),
+        83.95,
+        91.0,
     ),
     ClassifierTestCase(
         "EFDT",
