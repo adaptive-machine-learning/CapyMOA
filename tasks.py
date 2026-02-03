@@ -17,6 +17,12 @@ import wget
 from os import environ
 
 IS_CI = environ.get("CI", "false").lower() == "true"
+COVERAGE_DEFAULT = False
+
+
+def divider(text: str):
+    """Print a divider with text centered."""
+    print(text.center(88, "-"))
 
 
 def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
@@ -189,6 +195,7 @@ def notebooks(
     k_pattern: Optional[str] = None,
     slow: bool = False,
     no_skip: bool = False,
+    coverage: bool = COVERAGE_DEFAULT,
 ):
     """Run the notebooks and check for errors.
 
@@ -199,6 +206,7 @@ def notebooks(
     executed output.
     """
     assert not (not slow and overwrite), "You cannot use `--overwrite` with `--fast`."
+    env = {"COVERAGE_FILE": ".coverage_notebooks"}
 
     # Set the environment variable to run the notebooks in fast mode.
     if not slow:
@@ -220,59 +228,90 @@ def notebooks(
         "--durations=5",  # Show the duration of each notebook
     ]
     cmd += ["-n=auto"] if parallel else []  # Should we run in parallel?
-    cmd += (
-        ["--overwrite"] if overwrite else []
-    )  # Overwrite the notebooks with the executed output
+    # Overwrite the notebooks with the executed output
+    cmd += ["--overwrite"] if overwrite else []
+    cmd += ["--cov=capymoa", ""] if coverage else []
+
     if len(skip_notebooks) > 0:
         cmd += ["--deselect " + nb for nb in skip_notebooks]  # Skip some notebooks
 
     if k_pattern:
         cmd += [f"-k {k_pattern}"]
 
-    ctx.run(" ".join(cmd), echo=True)
+    ctx.run(" ".join(cmd), echo=True, env=env)
 
 
 @task
-def pytest(ctx: Context, parallel: bool = True):
+def pytest(ctx: Context, parallel: bool = True, coverage: bool = COVERAGE_DEFAULT):
     """Run the tests using pytest."""
+    env = {"COVERAGE_FILE": ".coverage_pytest"}
+
     cmd = [
         "python -m pytest",
         "--durations=5",  # Show the duration of each test
         "--exitfirst",  # Exit instantly on first error or failed test
-        # jpype can raise irrelevant warnings:
-        # https://github.com/jpype-project/jpype/issues/561
-        "-p no:faulthandler",
     ]
+    if coverage:
+        cmd.extend(
+            [
+                "--cov=capymoa",
+            ]
+        )
     cmd += ["-n=auto"] if parallel else []
-    ctx.run(" ".join(cmd), echo=True)
+    ctx.run(" ".join(cmd), echo=True, env=env)
 
 
 @task
-def doctest(ctx: Context, parallel: bool = True):
+def doctest(ctx: Context, parallel: bool = True, coverage: bool = COVERAGE_DEFAULT):
     """Run tests defined in docstrings using pytest."""
+    env = {"COVERAGE_FILE": ".coverage_doctest"}
     cmd = [
         "python -m pytest",
+        "--cov=capymoa" if coverage else "",
         "--doctest-modules",  # Enable doctest tests
         "--durations=5",  # Show the duration of each test
         "--exitfirst",  # Exit instantly on first error or failed test
-        # jpype can raise irrelevant warnings:
-        # https://github.com/jpype-project/jpype/issues/561
-        "-p no:faulthandler",
         "src/capymoa",  # Don't run tests in the `tests` directory
     ]
     cmd += ["-n=auto"] if parallel else []
+    ctx.run(" ".join(cmd), echo=True, env=env)
+
+
+@task(aliases=["cov-report"])
+def coverage_report(ctx: Context):
+    """Generate coverage report."""
+    cmd = ["python -m coverage combine --keep"]
+    covfiles = [
+        ".coverage_pytest",
+        ".coverage_doctest",
+        ".coverage_notebooks",
+    ]
+    for covfile in covfiles:
+        if Path(covfile).exists():
+            cmd += [covfile]
     ctx.run(" ".join(cmd), echo=True)
+    ctx.run("python -m coverage html", echo=True)
+
+
+@task(aliases=["cov-clean"])
+def coverage_clean(ctx: Context):
+    """Clean coverage data."""
+    ctx.run("python -m coverage erase", echo=True)
+    ctx.run("rm -rf htmlcov", echo=True)
 
 
 @task
-def all_tests(ctx: Context, parallel: bool = True):
+def all_tests(ctx: Context, parallel: bool = True, coverage: bool = COVERAGE_DEFAULT):
     """Run all the tests."""
-    print("Running all pytest tests ...")
-    pytest(ctx, parallel)
-    print("Running all doctests ...")
-    doctest(ctx, parallel)
-    print("Running all notebooks ...")
+    divider("test.pytest")
+    pytest(ctx, parallel, coverage)
+    divider("test.doctest")
+    doctest(ctx, parallel, coverage)
+    divider("test.notebooks")
     notebooks(ctx, parallel)
+    if coverage:
+        divider("test.cov-report")
+        coverage_report(ctx)
 
 
 @task
@@ -317,6 +356,8 @@ test.add_task(all_tests, "all", default=True)
 test.add_task(notebooks, "nb")
 test.add_task(pytest, "pytest")
 test.add_task(doctest, "doctest")
+test.add_task(coverage_report)
+test.add_task(coverage_clean)
 
 ns = Collection()
 ns.add_collection(docs)

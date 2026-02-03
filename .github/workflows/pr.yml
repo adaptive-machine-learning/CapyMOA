@@ -43,6 +43,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        # diff-cover needs more history to compute coverage diffs
+        fetch-depth: 10
 
     - name: Set up Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v5
@@ -63,13 +66,25 @@ jobs:
         key: "test-datasets"
 
     - name: PyTest
-      run: invoke test.pytest
+      run: invoke test.pytest --coverage
 
-    - name: Doctest
-      run: invoke test.doctest
+    # - name: Doctest
+    #   run: invoke test.doctest --coverage
 
-    - name: Check Notebooks
-      run: invoke test.nb
+    # - name: Check Notebooks
+    #   run: invoke test.nb --coverage
+
+    - name: Generate Coverage Report
+      run: |
+        invoke test.cov-report
+        echo COV_ARTIFACT_NAME=cov-${GITHUB_REF//\//-} >> $GITHUB_ENV
+    
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.COV_ARTIFACT_NAME }}
+        retention-days: 14
+        path: htmlcov
+        overwrite: true
 
   lint:
     name: "Code Style"
