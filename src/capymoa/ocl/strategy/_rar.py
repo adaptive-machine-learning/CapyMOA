@@ -7,8 +7,6 @@ from capymoa.ocl.base import TrainTaskAware, TestTaskAware
 
 from typing import Callable
 
-from torch import nn
-
 
 class RAR(BatchClassifier, TrainTaskAware, TestTaskAware):
     """Repeated Augmented Rehearsal.
@@ -25,7 +23,10 @@ class RAR(BatchClassifier, TrainTaskAware, TestTaskAware):
 
     * Coreset Exploitation: The learner trains on the current batch of examples
       and the sampled buffer examples, performing multiple optimization steps
-      per-batch using random augmentations of the examples.
+      per-batch using random augmentations of the examples. The original paper uses
+      RandAugment [#f1]_ for augmentation but any randomized augmentation can be used.
+      But the choice of augmentation is important and should be chosen based on the
+      problem domain.
 
     * Not :class:`~capymoa.ocl.base.TrainTaskAware` or
       :class:`~capymoa.ocl.base.TestTaskAware`, but will proxy it to the wrapped
@@ -36,18 +37,23 @@ class RAR(BatchClassifier, TrainTaskAware, TestTaskAware):
     >>> from capymoa.ocl.strategy import RAR
     >>> from capymoa.ocl.datasets import TinySplitMNIST
     >>> from capymoa.ocl.evaluation import ocl_train_eval_loop
+    >>> import torchvision.transforms as T
     >>> import torch
     >>> _ = torch.manual_seed(0)
     >>> scenario = TinySplitMNIST()
     >>> model = Perceptron(scenario.schema)
-    >>> learner = RAR(Finetune(scenario.schema, model), augment=nn.Dropout(p=0.2), repeats=2)
+    >>> # You should use more complex augmentations for more challenging problems.
+    >>> augment = T.Compose([
+    ...     T.RandomRotation(10),
+    ... ])
+    >>> learner = RAR(Finetune(scenario.schema, model), augment=augment, repeats=5)
     >>> results = ocl_train_eval_loop(
     ...     learner,
     ...     scenario.train_loaders(32),
     ...     scenario.test_loaders(32),
     ... )
-    >>> results.accuracy_final*100 > 41.5 # PyTorch is nondeterministic across versions
-    True
+    >>> print(f"{results.accuracy_final*100:.1f}%")
+    46.0%
 
     Usually more complex augmentations are used such as random crops and
     rotations.
@@ -60,29 +66,35 @@ class RAR(BatchClassifier, TrainTaskAware, TestTaskAware):
        November 28 - December 9, 2022, edited by Sanmi Koyejo, S. Mohamed, A.
        Agarwal, Danielle Belgrave, K. Cho, and A. Oh, 2022.
        https://doi.org/10.5555/3600270.3601344.
+
+    .. [#f1] Cubuk, E. D., Zoph, B., Shlens, J., & Le, Q. V. (2020). Randaugment:
+       Practical automated data augmentation with a reduced search space. 2020 IEEE/CVF
+       Conference on Computer Vision and Pattern Recognition Workshops (CVPRW),
+       3008-3017. https://doi.org/10.1109/CVPRW50498.2020.00359
     """
 
     def __init__(
         self,
         learner: BatchClassifier,
+        augment: Callable[[Tensor], Tensor],
         coreset_size: int = 200,
-        augment: Callable[[Tensor], Tensor] = nn.Identity(),
         repeats: int = 1,
     ) -> None:
         """Initialize Repeated Augmented Rehearsal.
 
         :param learner: Underlying learner to be trained with RAR.
-        :param coreset_size: Size of the coreset buffer.
         :param augment: Data augmentation function to apply to the samples. Should take
             a Tensor of shape ``(batch_size, *schema.shape)`` and return a Tensor of the
-            same shape.
+            same shape. Take a look at the PyTorch torchvision transforms for some
+            building blocks for your pipeline (https://docs.pytorch.org/vision/main/transforms.html).
+        :param coreset_size: Size of the coreset buffer.
         :param repeats: Number of times to repeat training on each batch, defaults to 1.
         """
 
         super().__init__(learner.schema)
         num_features = learner.schema.get_num_attributes()
         self.learner = learner
-        self.augment = augment.to(self.device)
+        self.augment = augment
         self.repeats = repeats
         self.coreset = ReservoirSampler(
             coreset_size,
