@@ -34,7 +34,7 @@ def stream_from_file(
         * :class:`~capymoa.stream.CSVStream`
         * :class:`~capymoa.stream.ARFFStream`
         * :class:`~capymoa.stream.NumpyStream`
-        * :class:`~capymoa.stream.TorchClassifyStream`
+        * :class:`~capymoa.stream.TorchStream`
         * :class:`~capymoa.stream.Stream`
 
     **CSV File Considerations:**
