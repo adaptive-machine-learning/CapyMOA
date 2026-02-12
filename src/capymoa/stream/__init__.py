@@ -7,14 +7,14 @@ from ._stream import (
 )
 from ._csv_stream import CSVStream
 from ._stream_from_file import stream_from_file
-from .torch import TorchClassifyStream
+from .torch import TorchStream
 from . import drift, generator, preprocessing
 
 __all__ = [
     "Stream",
     "Schema",
     "ARFFStream",
-    "TorchClassifyStream",
+    "TorchStream",
     "CSVStream",
     "drift",
     "generator",

@@ -65,7 +65,7 @@ from capymoa.ocl.util.data import (
     partition_by_schedule,
     class_schedule_to_task_mask,
 )
-from capymoa.stream import Stream, TorchClassifyStream
+from capymoa.stream import Stream, TorchStream
 from capymoa.stream._stream import Schema
 
 
@@ -227,7 +227,7 @@ class _BuiltInCIScenario(ABC):
             self.test_tasks = self._preload_datasets(self.test_tasks)
 
         # Create streams for training and testing
-        self.stream = TorchClassifyStream(
+        self.stream = TorchStream.from_classification(
             ConcatDataset(self.train_tasks),
             num_classes=self.num_classes,
             shuffle=False,
