@@ -25,7 +25,7 @@ env:
 jobs:
   tests:
     name: "Tests"
-    timeout-minutes: 30
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -43,6 +43,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        # diff-cover needs more history to compute coverage diffs
+        fetch-depth: 10
 
     - name: Set up Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v5
@@ -63,13 +66,24 @@ jobs:
         key: "test-datasets"
 
     - name: PyTest
-      run: invoke test.pytest
+      run: invoke test.pytest --coverage
 
     - name: Doctest
-      run: invoke test.doctest
+      run: invoke test.doctest --coverage
 
     - name: Check Notebooks
       run: invoke test.nb
+
+    - name: Combine Test Coverages & Generate XML Report
+      run: |
+        invoke test.cov-combine
+        coverage xml -i
+        
+    - name: Coveralls
+      uses: coverallsapp/github-action@v2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        files: coverage.xml
 
   lint:
     name: "Code Style"

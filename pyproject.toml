@@ -67,6 +67,7 @@ dev=[
     "invoke~=2.2",
     "jupyter~=1.1",
     "nbmake~=1.5",
+    "pytest-cov~=7.0",
     "pytest-subtests~=0.15",
     "pytest-xdist~=3.8",
     "pytest~=9.0",
@@ -76,19 +77,12 @@ dev=[
 ]
 
 doc=[
-    # Documentation generator
-    "sphinx==8.1.3",
-    # Theme for the documentation
-    "pydata-sphinx-theme",
-    # Allows to include Jupyter notebooks in the documentation
-    "sphinx-autobuild",
-    # Allows to include Jupyter notebooks in the documentation
-    "nbsphinx",
-    # Parses markdown files
-    "myst-parser",
-    # Adds design elements to the documentation
-    "sphinx_design",
-    "sphinxcontrib-programoutput"
+    "myst-parser",                 # Parses markdown files
+    "nbsphinx",                    # Sphinx extension to include Jupyter notebooks
+    "pydata-sphinx-theme",         # Theme for the documentation
+    "sphinx_design",               # Sphinx extension for design elements
+    "sphinx==8.1.3",               # Documentation generator
+    "sphinxcontrib-programoutput", # Output of commands in the documentation
 ]
 
 [project.urls]
@@ -199,3 +193,16 @@ upload_to_vcs_release = true
 # Configuration for the formatter
 [tool.ruff]
 target-version = "py310"
+
+
+[tool.coverage.report]
+exclude_also = [
+    'pass',
+]
+
+[tool.coverage.run]
+omit = [
+    # omit pytorch-generated files in /tmp 
+    # https://stackoverflow.com/a/79415891
+    "/tmp/*"
+] 
