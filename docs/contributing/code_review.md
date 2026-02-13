@@ -17,7 +17,7 @@ This document describes the code review process for CapyMOA. It is intended for 
 
 ## Commit Messages
 
-**tldr; Run `python -m invoke commit` (or `invoke commit`, `python -m commitizen commit`) to commit changes.** (Requires that you've [installed the optional development dependencies](../installation.rst).)
+**tldr; Run `python -m invoke commit` (or `invoke commit`, `python -m commitizen commit`) to commit changes.** (Requires that you've [installed the optional development dependencies](../setup/developer.rst).)
 
 CapyMOA uses conventional commit messages to streamline the release process.
 

@@ -26,13 +26,8 @@ def test_bad_infer_java_home(env):
     result = subprocess.run(CMD_ABOUT, capture_output=True, env=env)
     print(result.stdout.decode())
     assert result.returncode != 0
-    exception = result.stderr.decode().splitlines()[-1]
-    assert exception == (
-        "capymoa._prepare_jpype.CapymoaImportError: Java not found ensure "
-        "`java -version` runs successfully. Alternatively, you may set the "
-        "JAVA_HOME environment variable to the path of your Java installation "
-        "for non-standard installations."
-    )
+    exception = str(result.stderr.decode().splitlines()[-1])
+    assert exception.endswith("Java not found. See https://capymoa.org/setup/#java.")
 
 
 def test_good_java_home(env):
