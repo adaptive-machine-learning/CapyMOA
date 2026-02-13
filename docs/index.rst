@@ -1,8 +1,11 @@
-.. CapyMOA documentation master file, created by
-   sphinx-quickstart on Fri Feb 23 08:41:28 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. toctree::
+   :hidden:
 
+   setup/index
+   tutorials
+   api/index
+   about
+   contributing/index
 
 CapyMOA
 =======
@@ -13,6 +16,9 @@ CapyMOA
 .. image:: https://img.shields.io/pypi/v/capymoa
    :target: https://pypi.org/project/capymoa/
    :alt: Link to PyPI
+
+.. image:: https://coveralls.io/repos/github/adaptive-machine-learning/CapyMOA/badge.svg?branch=main
+   :target: https://coveralls.io/github/adaptive-machine-learning/CapyMOA?branch=main
    
 .. image:: https://img.shields.io/discord/1235780483845984367?label=Discord
    :target: https://discord.gg/spd2gQJGAb
@@ -22,59 +28,43 @@ CapyMOA
    :target: https://github.com/adaptive-machine-learning/CapyMOA
    :alt: Link to GitHub
 
-Machine learning library tailored for data streams. Featuring a Python API
-tightly integrated with MOA (**Stream Learners**), PyTorch (**Neural
-Networks**), and scikit-learn (**Machine Learning**). CapyMOA provides a
-**fast** python interface to leverage the state-of-the-art algorithms in the
-field of data streams.
+.. image:: https://img.shields.io/docker/v/tachyonic/jupyter-capymoa/latest?logo=docker&label=Docker&color=blue
+   :target: https://hub.docker.com/r/tachyonic/jupyter-capymoa
+   :alt: Docker Image Version (tag)
 
-To setup CapyMOA, simply install it via pip. If you have any issues with the
-installation (like not having Java installed) or if you want GPU support, please
-refer to :ref:`installation`. Once installed take a look at the
-:ref:`tutorials` to get started.
+**CapyMOA does efficient machine learning for data streams in Python.** A data stream is
+a sequences of items ariving one-by-one that is too large to efficiently process
+non-sequentially. CapyMOA is a toolbox of methods and evaluators for: classification,
+regression, clustering, anomaly detection, semi-supervised learning, online continual
+learning, and drift detection for data streams.
 
+Install with pip:
 
 .. code-block:: bash
 
-   # CapyMOA requires Java. This checks if you have it installed
-   java -version
-
-   # CapyMOA requires PyTorch. This installs the CPU version
-   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-
-   # Install CapyMOA and its dependencies
    pip install capymoa
 
-   # Check that the install worked
-   python -c "import capymoa; print(capymoa.__version__)"
+Refer to the :ref:`setup` guide for other options, including CPU-only and dev dependencies.
 
-.. warning::
+.. code-block:: python
 
-   CapyMOA is still in the early stages of development. The API is subject to
-   change until version 1.0.0. If you encounter any issues, please report them
-   on the `GitHub Issues <https://github.com/adaptive-machine-learning/CapyMOA/issues>`_
-   page or talk to us on `Discord <https://discord.gg/spd2gQJGAb>`_.
+   from capymoa.datasets import Electricity
+   from capymoa.classifier import HoeffdingTree
+   from capymoa.evaluation import prequential_evaluation
 
-.. image:: /images/arf100_cpu_time.png
-   :alt: Performance plot
-   :align: center
-   :class: only-light
+   # 1. Load a streaming dataset
+   stream = Electricity()
 
-.. image:: /images/arf100_cpu_time_dark.png
-   :alt: Performance plot
-   :align: center
-   :class: only-dark
+   # 2. Create a machine learning model
+   model = HoeffdingTree(stream.get_schema())
 
-Benchmark comparing CapyMOA against other data stream libraries. The benchmark
-was performed using an ensemble of 100 ARF learners trained on
-:class:`capymoa.datasets.RTG_2abrupt` dataset containing 100,000 samples and 30
-features.  You can find the code to reproduce this benchmark in
-`benchmarking.py <https://github.com/adaptive-machine-learning/CapyMOA/blob/main/notebooks/benchmarking.py>`_.
-*CapyMOA has the speed of MOA with the flexibility of Python and the richness of
-Python's data science ecosystem.*
+   # 3. Run with test-then-train evaluation
+   results = prequential_evaluation(stream, model)
 
-📖 Cite Us
---------------
+   # 3. Success!
+   print(f"Accuracy: {results.accuracy():.2f}%")
+
+Next, we recomend the :ref:`tutorials`.
 
 If you use CapyMOA in your research, please cite us using the following Bibtex entry::
 
@@ -89,57 +79,30 @@ If you use CapyMOA in your research, please cite us using the following Bibtex e
       url={https://arxiv.org/abs/2502.07432}
    }
 
-.. _installation:
+.. figure:: /images/arf100_cpu_time.png
+   :alt: Performance plot
+   :align: center
+   :class: only-light
 
-🚀 Installation
----------------
+   Benchmark comparing CapyMOA against other data stream libraries [#f1]_.
 
-Installation instructions for CapyMOA:
+.. figure:: /images/arf100_cpu_time_dark.png
+   :alt: Performance plot
+   :align: center
+   :class: only-dark
 
-.. toctree::
-   :maxdepth: 2
+   Benchmark comparing CapyMOA against other data stream libraries [#f1]_.
 
-   installation
-   docker
+.. warning::
 
-🎓 Tutorials
-------------
-Tutorials to help you get started with CapyMOA.
+   CapyMOA is still in the early stages of development. The API is subject to
+   change until version 1.0.0. If you encounter any issues, please report them
+   on the `GitHub Issues <https://github.com/adaptive-machine-learning/CapyMOA/issues>`_
+   page or talk to us on `Discord <https://discord.gg/spd2gQJGAb>`_.
 
-.. toctree::
-   :maxdepth: 2
-
-   tutorials
-
-📚 Reference Manual
--------------------
-Reference documentation describing the interfaces fo specific classes, functions,
-and modules.
-
-.. toctree::
-   :maxdepth: 2
-
-   api/index
-
-ℹ️ About us
------------
-
-.. toctree::
-   about
-
-🏗️ Contributing
----------------
-This part of the documentation is for developers and contributors.
-
-.. toctree::
-   :maxdepth: 2
-
-   contributing/index
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. [#f1]
+   Benchmark comparing CapyMOA against other data stream libraries. The benchmark was
+   performed using an ensemble of 100 ARF learners trained on
+   :class:`capymoa.datasets.RTG_2abrupt` dataset containing 100,000 samples and 30
+   features.  You can find the code to reproduce this benchmark in 
+   `benchmarking.py <https://github.com/adaptive-machine-learning/CapyMOA/blob/main/notebooks/benchmarking.py>`_.

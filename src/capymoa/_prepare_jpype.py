@@ -44,9 +44,7 @@ def _get_java_home() -> Path:
             )
         except FileNotFoundError:
             raise CapymoaImportError(
-                "Java not found ensure `java -version` runs successfully. "
-                "Alternatively, you may set the JAVA_HOME environment variable to the "
-                "path of your Java installation for non-standard installations."
+                "Java not found. See https://capymoa.org/setup/#java."
             )
 
         java_home = Path(result.stdout.decode().strip())
@@ -95,7 +93,11 @@ def _start_jpype():
     jpype.addClassPath(moa_jar)
 
     # Start the JVM
-    jpype.startJVM(jpype.getDefaultJVMPath(), *capymoa_jvm_args())
+    args = capymoa_jvm_args()
+    # Some versions of Java require this flag to allow access to parts of java.lang.System
+    # https://stackoverflow.com/q/79725728
+    args.append("--enable-native-access=ALL-UNNAMED")
+    jpype.startJVM(jpype.getDefaultJVMPath(), *args)
 
     # The JVM automatically shutdown with python, no need to explicitly call the shutdown method
     # https://jpype.readthedocs.io/en/latest/userguide.html#shutdownjvm

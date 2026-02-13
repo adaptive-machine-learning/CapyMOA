@@ -89,3 +89,11 @@ Functions
 
 ..  automodule:: capymoa
     :members:
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
