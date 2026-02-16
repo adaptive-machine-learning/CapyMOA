@@ -89,7 +89,7 @@ If a check fails, review the error messages and try to reproduce the issue local
 
 ## How do I format my code?
 `invoke fmt` will format and check your code using `ruff`. Ruff is installed as part of
-the [development dependencies](../installation.rst). Formatting helps make diff reviews
+the [development dependencies](../setup/developer.rst). Formatting helps make diff reviews
 easier and keeps the codebase consistent.
 
 ## How do I write a commit message?

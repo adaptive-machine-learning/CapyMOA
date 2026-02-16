@@ -58,6 +58,8 @@ dependencies = [
     "scikit-learn~=1.7",
     "seaborn~=0.13",
     "tqdm~=4.67",
+    "torch~=2.9",
+    "torchvision~=0.24",
 ]
 
 [project.optional-dependencies]

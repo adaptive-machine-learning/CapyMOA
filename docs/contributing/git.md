@@ -69,7 +69,7 @@ git status
 git commit -m "My message"
 ```
 
-* Refer to the [installation guide](../installation.rst) to set up your development
+* Refer to the [installation guide](../setup/developer.rst) to set up your development
   environment.
 
 ### 5. Upload Your Changes to Your Fork

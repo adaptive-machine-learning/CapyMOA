@@ -1,7 +1,7 @@
 # Adding Tests
 
 Ensure you have installed the development dependencies by following the instructions
-in the [installation guide](../installation.rst). To run all tests, use the following command:
+in the [installation guide](../setup/developer.rst). To run all tests, use the following command:
 
 ```bash
 invoke test
