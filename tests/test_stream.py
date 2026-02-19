@@ -19,7 +19,7 @@ from capymoa.stream import (
     CSVStream,
     NumpyStream,
     Stream,
-    TorchClassifyStream,
+    TorchStream,
     stream_from_file,
 )
 from pathlib import Path
@@ -100,6 +100,8 @@ XC2 = np.delete(DATA, 3, axis=1)
 YC2 = DATA[:, 3]
 DATASET_C1 = TensorDataset(torch.tensor(XC1), torch.tensor(YC1))
 DATASET_C2 = TensorDataset(torch.tensor(XC2), torch.tensor(YC2))
+DATASET_N1 = TensorDataset(torch.tensor(XN1), torch.tensor(YN1))
+DATASET_N2 = TensorDataset(torch.tensor(XN2), torch.tensor(YN2))
 ARFF = RESOURCES / "stream_test.arff"
 CSV = RESOURCES / "stream_test.csv"
 
@@ -117,8 +119,8 @@ CSV = RESOURCES / "stream_test.csv"
         (stream_from_file(CSV, class_index=3), "cat2", 5),
         (NumpyStream(XC1, YC1, target_type="categorical"), "cat1", 5),
         (NumpyStream(XC2, YC2, target_type="categorical"), "cat2", 5),
-        (TorchClassifyStream(DATASET_C1, 3), "cat1", 5),  # type: ignore
-        (TorchClassifyStream(DATASET_C2, 2), "cat2", 5),  # type: ignore
+        (TorchStream.from_classification(DATASET_C1, 3), "cat1", 5),  # type: ignore
+        (TorchStream.from_classification(DATASET_C2, 2), "cat2", 5),  # type: ignore
     ],
 )
 def test_stream_classification(
@@ -135,7 +137,7 @@ def test_stream_classification(
     num_attributes = len(numeric_attributes) + len(nominal_attributes)
 
     # NumpyStream and PyTorch streams do not have nominal labels by default.
-    if isinstance(stream, (NumpyStream, TorchClassifyStream)):
+    if isinstance(stream, (NumpyStream, TorchStream)):
         numeric_attributes = list(map(str, range(num_attributes)))
         nominal_attributes = {}
         label_values = [str(i) for i in label_indexes]
@@ -199,6 +201,8 @@ def test_stream_classification(
         (stream_from_file(CSV, class_index=1), "num2"),
         (NumpyStream(XN1, YN1, target_type="numeric"), "num1"),
         (NumpyStream(XN2, YN2, target_type="numeric"), "num2"),
+        (TorchStream.from_regression(DATASET_N1), "num1"),
+        (TorchStream.from_regression(DATASET_N2), "num2"),
     ],
 )
 def test_regression_stream(stream: Stream[RegressionInstance], target: str):
@@ -208,7 +212,7 @@ def test_regression_stream(stream: Stream[RegressionInstance], target: str):
     num_attributes = len(numeric_attributes) + len(nominal_attributes)
 
     # Stream treats nominal attributes as numeric
-    if isinstance(stream, NumpyStream):
+    if isinstance(stream, (NumpyStream, TorchStream)):
         numeric_attributes = list(map(str, range(num_attributes)))
         nominal_attributes = {}
 
