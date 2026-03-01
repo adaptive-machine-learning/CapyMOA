@@ -1,4 +1,4 @@
-# Docker
+# Docker Setup
 
 CapyMOA provides a Docker image application containing a ready-to-go Jupyter
 notebook. If you require a reproducible environment or want to experiment with
@@ -7,7 +7,7 @@ CapyMOA and have experience with Docker, this is the best place to begin.
 Before you begin, you must have Docker installed. You can download and install
 Docker from the [official website](https://docs.docker.com/get-docker/).
 
-![Image of CapyMOA Jupyter Notebook](images/docker_demo.png)
+![Image of CapyMOA Jupyter Notebook](../images/docker_demo.png)
 
 
 ## Example

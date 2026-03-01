@@ -142,30 +142,41 @@ class OPTWIN(BaseDriftDetector):
             dfn=(n * self.W.length) - 1,
             dfd=self.W.length - (n * self.W.length) - 1,
         )
-        self.degree_freedom = lambda n: pow(
-            (
-                (1 / max(self.W.length * n, 1e-15))
-                + ((1 / pow(self.f_test(n), 2)) / ((1 - n) * self.W.length))
-            ),
-            2,
-        ) / (
-            (1 / max((pow((self.W.length * n), 2) * ((self.W.length * n) - 1)), 1e-15))
-            + (
-                pow((1 / pow(self.f_test(n), 2)), 2)
-                / max(
-                    (
-                        pow(((1 - n) * self.W.length), 2)
-                        * (((1 - n) * self.W.length) - 1)
-                    ),
-                    1e-15,
+        self.degree_freedom = lambda n: (
+            pow(
+                (
+                    (1 / max(self.W.length * n, 1e-15))
+                    + ((1 / pow(self.f_test(n), 2)) / ((1 - n) * self.W.length))
+                ),
+                2,
+            )
+            / (
+                (
+                    1
+                    / max(
+                        (pow((self.W.length * n), 2) * ((self.W.length * n) - 1)), 1e-15
+                    )
+                )
+                + (
+                    pow((1 / pow(self.f_test(n), 2)), 2)
+                    / max(
+                        (
+                            pow(((1 - n) * self.W.length), 2)
+                            * (((1 - n) * self.W.length) - 1)
+                        ),
+                        1e-15,
+                    )
                 )
             )
         )
-        self.t_test = lambda n: self.rigor - (
-            self.t_score(n)
-            * np.sqrt(
-                (1 / (self.W.length * n))
-                + ((1 * self.f_test(n)) / ((1 - n) * self.W.length))
+        self.t_test = lambda n: (
+            self.rigor
+            - (
+                self.t_score(n)
+                * np.sqrt(
+                    (1 / (self.W.length * n))
+                    + ((1 * self.f_test(n)) / ((1 - n) * self.W.length))
+                )
             )
         )
 

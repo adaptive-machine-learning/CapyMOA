@@ -255,9 +255,9 @@ class L2P(BatchClassifier, TrainTaskAware):
         prompt_length: int = 1,
         top_k: int = 3,
         pull_constraint_coeff: float = 0.1,
-        optimizer: Callable[
-            [Any], torch.optim.Optimizer
-        ] = lambda params: torch.optim.Adam(params, lr=0.01),
+        optimizer: Callable[[Any], torch.optim.Optimizer] = lambda params: (
+            torch.optim.Adam(params, lr=0.01)
+        ),
         device: str = "cpu",
         random_seed: int = 1,
     ):

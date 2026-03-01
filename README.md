@@ -3,36 +3,48 @@
 ![Banner Image](https://github.com/adaptive-machine-learning/CapyMOA/raw/main/docs/images/CapyMOA.jpeg)
 
 [![PyPi Version](https://img.shields.io/pypi/v/capymoa)](https://pypi.org/project/capymoa/)
+[![Docker Image Version (tag)](https://img.shields.io/docker/v/tachyonic/jupyter-capymoa/latest?logo=docker&label=Docker&color=blue)](https://hub.docker.com/r/tachyonic/jupyter-capymoa)
 [![Join the Discord](https://img.shields.io/discord/1235780483845984367?label=Discord)](https://discord.gg/spd2gQJGAb)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://capymoa.org)
 [![GitHub](https://img.shields.io/github/stars/adaptive-machine-learning/CapyMOA?style=social)](https://github.com/adaptive-machine-learning/CapyMOA)
-[![Coverage Status](https://coveralls.io/repos/github/adaptive-machine-learning/CapyMOA/badge.svg?branch=code-cov)](https://coveralls.io/github/adaptive-machine-learning/CapyMOA?branch=code-cov)
+[![Coverage Status](https://coveralls.io/repos/github/adaptive-machine-learning/CapyMOA/badge.svg)](https://coveralls.io/github/adaptive-machine-learning/CapyMOA)
 
 
-Machine learning library tailored for data streams. Featuring a Python API
-tightly integrated with MOA (**Stream Learners**), PyTorch (**Neural
-Networks**), and scikit-learn (**Machine Learning**). CapyMOA provides a
-**fast** python interface to leverage the state-of-the-art algorithms in the
-field of data streams.
+**CapyMOA does efficient machine learning for data streams in Python.**
+A data stream is a sequences of items ariving one-by-one that is too
+large to efficiently process non-sequentially. CapyMOA is a toolbox of
+methods and evaluators for: classification, regression, clustering,
+anomaly detection, semi-supervised learning, online continual learning,
+and drift detection for data streams.
 
-To setup CapyMOA, simply install it via pip. If you have any issues with the
-installation (like not having Java installed) or if you want GPU support, please
-refer to the [installation guide](https://capymoa.org/installation). Once installed take a
-look at the [tutorials](https://capymoa.org/tutorials.html) to get started.
+For the default PyTorch CUDA GPU installation, run:
 
-```bash
-# CapyMOA requires Java. This checks if you have it installed
-java -version
-
-# CapyMOA requires PyTorch. This installs the CPU version
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-
-# Install CapyMOA and its dependencies
-pip install capymoa
-
-# Check that the install worked
-python -c "import capymoa; print(capymoa.__version__)"
 ```
+pip install capymoa
+```
+
+Refer to the [Setup](https://capymoa.org/setup) guide for other options,
+including CPU-only and dev dependencies.
+
+```python
+from capymoa.datasets import Electricity
+from capymoa.classifier import HoeffdingTree
+from capymoa.evaluation import prequential_evaluation
+
+# 1. Load a streaming dataset
+stream = Electricity()
+
+# 2. Create a machine learning model
+model = HoeffdingTree(stream.get_schema())
+
+# 3. Run with test-then-train evaluation
+results = prequential_evaluation(stream, model)
+
+# 3. Success!
+print(f"Accuracy: {results.accuracy():.2f}%")
+```
+
+Next, we recomend the [Tutorials](https://capymoa.org/tutorials).
 
 > **⚠️ WARNING**
 >
