@@ -15,9 +15,18 @@ from typing import List, Optional
 from subprocess import run
 import wget
 from os import environ
+import os
 
 IS_CI = environ.get("CI", "false").lower() == "true"
 COVERAGE_DEFAULT = False
+
+# Set working directory to this file's directory
+os.chdir(Path(__file__).parent)
+
+
+def get_java_home(ctx: Context) -> Path:
+    result = ctx.run("java -classpath src/capymoa/jar Home")
+    return Path(result.stdout.strip())
 
 
 def divider(text: str):
@@ -134,6 +143,11 @@ def build_stubs(ctx: Context):
             "com.github.javacliparser",
         ],
         check=True,
+        env={
+            # Set JAVA_HOME to ensure stubgenj can find Java.
+            "JAVA_HOME": get_java_home(ctx).as_posix(),
+            **environ,
+        },
     )
 
 
