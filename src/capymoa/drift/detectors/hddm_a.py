@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from capymoa.drift.base_detector import MOADriftDetector
 
@@ -24,7 +24,7 @@ class HDDMAverage(MOADriftDetector):
     >>> for i in range(2000):
     ...     detector.add_element(data_stream[i])
     ...     if detector.detected_change():
-    ...         print('Change detected in data: ' + str(data_stream[i]) + ' - at index: ' + str(i))
+    ...         print("Change detected in data: " + str(data_stream[i]) + " - at index: " + str(i))
     Change detected in data: 5 - at index: 999
     Change detected in data: 7 - at index: 1019
     Change detected in data: 7 - at index: 1330
@@ -33,7 +33,7 @@ class HDDMAverage(MOADriftDetector):
     ----------
 
     Frias-Blanco, Isvani, et al. "Online and non-parametric drift
-    detection methods based on Hoeffding’s bounds." IEEE Transactions on
+    detection methods based on Hoeffding's bounds." IEEE Transactions on
     Knowledge and Data Engineering 27.3 (2014): 810-823.
 
     """
@@ -44,9 +44,23 @@ class HDDMAverage(MOADriftDetector):
         self,
         drift_confidence: float = 0.001,
         warning_confidence: float = 0.005,
-        test_type: str = "Two-sided",
+        test_type: Literal["Two-sided", "One-sided"] = "Two-sided",
         CLI: Optional[str] = None,
     ):
+        """
+        :param drift_confidence: Significance level for drift detection (p-value threshold).
+        :param warning_confidence: Significance level for warning detection (p-value threshold).
+        :param test_type: The type of statistical hypothesis test to use.
+
+            * ``"Two-sided"`` detects drift in both directions, i.e. both increases and
+              decreases in the monitored average. Use this when the direction of change
+              is unknown.
+            * ``"One-sided"`` only detects increases in the monitored average (i.e.
+              performance degradation). Use this when only positive drift is relevant.
+
+        :param CLI: (Advanced) Override the CLI arguments passed directly to the
+            underlying MOA detector, bypassing all other parameters.
+        """
         assert test_type in self.TEST_TYPES, "Wrong test type"
 
         if CLI is None:
