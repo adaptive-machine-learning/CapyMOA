@@ -55,6 +55,7 @@ These modules provide classes for defining machine learning problem settings.
     capymoa.drift
     capymoa.clusterers
     capymoa.automl
+    capymoa.feature_selection
 
 Evaluation
 ----------
