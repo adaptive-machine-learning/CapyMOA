@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from typing import Any, Optional
 
-from capymoa.base import MOAClassifier
+from capymoa.base import Classifier, MOAClassifier
 from capymoa.stream import Schema
 
 
@@ -73,7 +73,59 @@ def _is_tree(classifier: Any) -> bool:
     return any(token in name for token in ("trees.", "hoeffding"))
 
 
-class FeatureImportanceClassifier(MOAClassifier):
+class FeatureImportanceClassifier(Classifier):
+    """Base class for classifiers that expose feature-importance estimates."""
+
+    def __init__(
+        self,
+        schema: Optional[Schema] = None,
+        random_seed: int = 1,
+        window_size: Optional[int] = None,
+    ):
+        super().__init__(schema=schema, random_seed=random_seed)
+
+        if window_size is not None and window_size <= 0:
+            raise ValueError("window_size must be a positive integer or None.")
+
+        self.window_size = window_size
+        self.instances_seen = 0
+        self.feature_importances_per_window: Optional[list[dict[str, Any]]] = (
+            [] if window_size is not None else None
+        )
+
+    def _on_train_complete(self) -> None:
+        self.instances_seen += 1
+
+        if (
+            self.window_size is not None
+            and self.feature_importances_per_window is not None
+            and self.instances_seen % self.window_size == 0
+        ):
+            self.feature_importances_per_window.append(
+                {
+                    "instances_seen": self.instances_seen,
+                    "importances": self.get_feature_importances(),
+                }
+            )
+
+    def get_feature_importances(self, normalize: bool = True) -> list[float]:
+        """Return the current feature importance scores."""
+        raise NotImplementedError
+
+    def get_top_k_features(self, k: int, normalize: bool = True) -> list[int]:
+        importances = self.get_feature_importances(normalize=normalize)
+        ranked_features = sorted(
+            range(len(importances)),
+            key=lambda feature_idx: importances[feature_idx],
+            reverse=True,
+        )
+        return ranked_features[:k]
+
+    def get_windowed_feature_importances(self) -> Optional[list[dict[str, Any]]]:
+        return self.feature_importances_per_window
+
+
+class MOAFeatureImportanceClassifier(FeatureImportanceClassifier, MOAClassifier):
     """Wrap a classifier with MOA's feature-importance learners.
 
     Accepted ``base_learner`` inputs:
@@ -90,21 +142,19 @@ class FeatureImportanceClassifier(MOAClassifier):
         random_seed: int = 1,
         window_size: Optional[int] = None,
     ):
-        if window_size is not None and window_size <= 0:
-            raise ValueError("window_size must be a positive integer or None.")
-
+        FeatureImportanceClassifier.__init__(
+            self,
+            schema=schema,
+            random_seed=random_seed,
+            window_size=window_size,
+        )
         base_learner = _coerce_base_learner(base_learner, schema, random_seed)
         moa_learner = self._build_moa_learner(base_learner)
-        super().__init__(
+        MOAClassifier.__init__(
+            self,
             moa_learner=moa_learner,
             schema=schema,
             random_seed=random_seed,
-        )
-
-        self.window_size = window_size
-        self.instances_seen = 0
-        self.feature_importances_per_window: Optional[list[dict[str, Any]]] = (
-            [] if window_size is not None else None
         )
 
     @staticmethod
@@ -135,31 +185,13 @@ class FeatureImportanceClassifier(MOAClassifier):
         )
 
     def train(self, instance: Any) -> None:
-        super().train(instance)
-        self.instances_seen += 1
-
-        if (
-            self.window_size is not None
-            and self.feature_importances_per_window is not None
-            and self.instances_seen % self.window_size == 0
-        ):
-            self.feature_importances_per_window.append(
-                {
-                    "instances_seen": self.instances_seen,
-                    "importances": self.get_feature_importances(),
-                }
-            )
+        MOAClassifier.train(self, instance)
+        self._on_train_complete()
 
     def get_feature_importances(self, normalize: bool = True) -> list[float]:
         return list(self.moa_learner.getFeatureImportances(normalize))
 
-    def get_top_k_features(self, k: int, normalize: bool = True) -> list[int]:
-        return list(self.moa_learner.getTopKFeatures(k, normalize))
-
-    def get_windowed_feature_importances(self) -> Optional[list[dict[str, Any]]]:
-        return self.feature_importances_per_window
-
-
 __all__ = [
     "FeatureImportanceClassifier",
+    "MOAFeatureImportanceClassifier",
 ]
