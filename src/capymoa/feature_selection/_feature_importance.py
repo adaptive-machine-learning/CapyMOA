@@ -3,6 +3,8 @@ from __future__ import annotations
 import inspect
 from typing import Any, Optional
 
+from jpype import _jpype
+
 from capymoa.base import Classifier, MOAClassifier
 from capymoa.stream import Schema
 
@@ -41,40 +43,46 @@ def _coerce_base_learner(
     if inspect.isclass(base_learner):
         if issubclass(base_learner, MOAClassifier):
             return base_learner(schema=schema, random_seed=random_seed)
-        return base_learner()
+        if isinstance(base_learner, _jpype._JClass):
+            return base_learner()
+        raise TypeError(
+            "base_learner must be a CapyMOA MOAClassifier instance/class, "
+            "a raw MOA learner instance/class, or None."
+        )
 
-    return base_learner
+    if hasattr(base_learner, "getClass"):
+        return base_learner
 
-
-def _canonical_name(classifier: Any) -> str:
-    return str(_moa_learner(classifier).getClass().getCanonicalName()).lower()
+    raise TypeError(
+        "base_learner must be a CapyMOA MOAClassifier instance/class, "
+        "a raw MOA learner instance/class, or None."
+    )
 
 
 def _has_feature_importance(classifier: Any) -> bool:
     return hasattr(_moa_learner(classifier), "getFeatureImportances")
 
 
-def _is_ensemble(classifier: Any) -> bool:
-    name = _canonical_name(classifier)
-    return any(
-        token in name
-        for token in (
-            "adaptiverandomforest",
-            "bag",
-            "boost",
-            "streamingrandompatches",
-            "streaminggradientboostedtrees",
-        )
-    )
+def _is_hoeffding_tree(classifier: Any) -> bool:
+    from moa.classifiers.trees import HoeffdingTree
+
+    learner_class = _moa_learner(classifier).getClass()
+    return bool(HoeffdingTree.class_.isAssignableFrom(learner_class))
 
 
-def _is_tree(classifier: Any) -> bool:
-    name = _canonical_name(classifier)
-    return any(token in name for token in ("trees.", "hoeffding"))
+def _java_class_name(classifier: Any) -> str:
+    canonical_name = _moa_learner(classifier).getClass().getCanonicalName()
+    if canonical_name is None:
+        return str(_moa_learner(classifier).getClass().getName())
+    return str(canonical_name)
 
 
 class FeatureImportanceClassifier(Classifier):
-    """Base class for classifiers that expose feature-importance estimates."""
+    """Base class for classifiers that expose feature-importance estimates.
+
+    Subclass this when implementing a pure Python feature-importance method.
+    MOA-backed learners should use :class:`MOAFeatureImportanceClassifier`.
+    """
 
     def __init__(
         self,
@@ -82,7 +90,7 @@ class FeatureImportanceClassifier(Classifier):
         random_seed: int = 1,
         window_size: Optional[int] = None,
     ):
-        super().__init__(schema=schema, random_seed=random_seed)
+        Classifier.__init__(self, schema=schema, random_seed=random_seed)
 
         if window_size is not None and window_size <= 0:
             raise ValueError("window_size must be a positive integer or None.")
@@ -126,7 +134,22 @@ class FeatureImportanceClassifier(Classifier):
 
 
 class MOAFeatureImportanceClassifier(FeatureImportanceClassifier, MOAClassifier):
-    """Wrap a classifier with MOA's feature-importance learners.
+    """MOA-backed feature-importance classifier.
+
+    Instantiate this class when the underlying learner is a MOA classifier.
+    Pure Python implementations should subclass
+    :class:`FeatureImportanceClassifier` instead.
+
+    This wrapper is currently restricted to:
+
+    - ``HoeffdingTree`` learners and subclasses, which are wrapped with
+      ``FeatureImportanceHoeffdingTree``
+    - MOA ensembles built from ``HoeffdingTree`` learners, which are wrapped
+      with ``FeatureImportanceHoeffdingTreeEnsemble``
+
+    If MOA adds other feature-importance learner families in the future, they
+    will not automatically work through this class. In that case this wrapper
+    should be refactored to support those learners explicitly.
 
     Accepted ``base_learner`` inputs:
     - CapyMOA ``MOAClassifier`` instance
@@ -170,19 +193,27 @@ class MOAFeatureImportanceClassifier(FeatureImportanceClassifier, MOAClassifier)
         if _has_feature_importance(base_learner):
             return _moa_learner(base_learner)
 
-        if _is_ensemble(base_learner):
-            learner = feature_importance_ensemble()
-            learner.ensembleLearnerOption.setCurrentObject(_moa_learner(base_learner))
-            return learner
+        moa_base_learner = _moa_learner(base_learner)
 
-        if _is_tree(base_learner):
+        # Direct HoeffdingTree learners and subclasses use the single-tree wrapper.
+        if _is_hoeffding_tree(base_learner):
             learner = feature_importance_tree()
-            learner.treeLearnerOption.setCurrentObject(_moa_learner(base_learner))
+            learner.treeLearnerOption.setCurrentObject(moa_base_learner)
             return learner
 
-        raise TypeError(
-            "Feature importance is only supported for tree-based or ensemble MOA classifiers."
-        )
+        # Otherwise, try the ensemble wrapper. This supports MOA ensembles whose
+        # members are HoeffdingTree learners.
+        try:
+            learner = feature_importance_ensemble()
+            learner.ensembleLearnerOption.setCurrentObject(moa_base_learner)
+            return learner
+        except Exception as exc:
+            raise TypeError(
+                "Unsupported MOA learner for feature importance: "
+                f"{_java_class_name(base_learner)}. Supported learners are "
+                "HoeffdingTree instances/subclasses and MOA ensembles built "
+                "from HoeffdingTree learners."
+            ) from exc
 
     def train(self, instance: Any) -> None:
         MOAClassifier.train(self, instance)
@@ -190,6 +221,7 @@ class MOAFeatureImportanceClassifier(FeatureImportanceClassifier, MOAClassifier)
 
     def get_feature_importances(self, normalize: bool = True) -> list[float]:
         return list(self.moa_learner.getFeatureImportances(normalize))
+
 
 __all__ = [
     "FeatureImportanceClassifier",

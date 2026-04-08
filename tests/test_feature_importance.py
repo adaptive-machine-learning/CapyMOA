@@ -1,6 +1,8 @@
 import numpy as np
+import pytest
 
 from capymoa.base import Classifier, MOAClassifier
+from capymoa.classifier import HoeffdingTree
 from capymoa.datasets import ElectricityTiny
 from capymoa.feature_selection import (
     FeatureImportanceClassifier,
@@ -17,6 +19,10 @@ class DummyFeatureImportanceClassifier(FeatureImportanceClassifier):
 
     def get_feature_importances(self, normalize: bool = True) -> list[float]:
         return [0.2, 0.7, 0.1]
+
+
+class DummyPythonLearner:
+    pass
 
 
 def test_feature_importance_classifier_is_generic_base():
@@ -41,3 +47,49 @@ def test_feature_importance_classifier_is_generic_base():
 def test_moa_feature_importance_classifier_has_expected_hierarchy():
     assert issubclass(MOAFeatureImportanceClassifier, FeatureImportanceClassifier)
     assert issubclass(MOAFeatureImportanceClassifier, MOAClassifier)
+
+
+def test_feature_importance_classifier_validates_window_size():
+    stream = ElectricityTiny()
+
+    with pytest.raises(ValueError, match="window_size must be a positive integer"):
+        DummyFeatureImportanceClassifier(
+            schema=stream.get_schema(),
+            window_size=0,
+        )
+
+
+def test_moa_feature_importance_classifier_wraps_real_moa_learner():
+    stream = ElectricityTiny()
+    learner = MOAFeatureImportanceClassifier(
+        schema=stream.get_schema(),
+        base_learner=HoeffdingTree(schema=stream.get_schema(), random_seed=1),
+        random_seed=1,
+    )
+
+    assert isinstance(learner, MOAClassifier)
+    assert str(learner.moa_learner.getClass().getSimpleName()) == (
+        "FeatureImportanceHoeffdingTree"
+    )
+
+
+def test_moa_feature_importance_classifier_rejects_invalid_python_object():
+    stream = ElectricityTiny()
+
+    with pytest.raises(TypeError, match="base_learner must be"):
+        MOAFeatureImportanceClassifier(
+            schema=stream.get_schema(),
+            base_learner=DummyPythonLearner(),
+            random_seed=1,
+        )
+
+
+def test_moa_feature_importance_classifier_rejects_invalid_python_class():
+    stream = ElectricityTiny()
+
+    with pytest.raises(TypeError, match="base_learner must be"):
+        MOAFeatureImportanceClassifier(
+            schema=stream.get_schema(),
+            base_learner=DummyPythonLearner,
+            random_seed=1,
+        )
