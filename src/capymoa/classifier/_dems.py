@@ -15,7 +15,7 @@ from moa.classifiers.meta import DynamicEnsembleMemberSelection as _MOA_DEMS
 class DynamicEnsembleMemberSelection(MOAClassifier):
     """Dynamic Ensemble Member Selection (DEMS).
 
-    DEMS dynamically selects a subset of ensemble members based on their estimated performance and tree-level information.
+    Dynamic Ensemble Member Selection (DEMS) [#0]_ dynamically selects a subset of ensemble members based on their estimated performance and tree-level information.
     Only SRP and ARF are included here because of the performance significance.
 
     >>> from capymoa.classifier import DynamicEnsembleMemberSelection
