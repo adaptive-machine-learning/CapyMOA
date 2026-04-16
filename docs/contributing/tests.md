@@ -1,7 +1,7 @@
 # Adding Tests
 
 Ensure you have installed the development dependencies by following the instructions
-in the [installation guide](../installation.rst). To run all tests, use the following command:
+in the [installation guide](../setup/developer.rst). To run all tests, use the following command:
 
 ```bash
 invoke test
@@ -15,7 +15,7 @@ and run these tests. They should be named ``test_*.py``, and the test functions
 should be named ``test_*``. See the [PyTest documentation](https://docs.pytest.org)
 for more information.
 
-Use this PyTest style tests for parameterized tests, tests that require fixtures,
+Use PyTest style tests for parameterised tests, tests that require fixtures,
 and tests that require setup.
 
 These tests can be run with:
@@ -42,7 +42,7 @@ invoke test.pytest
 tests directly in the docstrings of your code, making it easier to keep documentation
 up-to-date. The tests are written as examples in a Python interactive shell.
 
-Use doctest style test to document code with simple tested examples.
+Use doctest style tests to document code with simple tested examples.
 
 Here's an example of a function with a doctest:
 
@@ -73,7 +73,7 @@ We use [nbmake](https://github.com/treebeardtech/nbmake) to test that all notebo
 the `notebooks` directory run without error. This ensures that the notebooks are always
 up-to-date and working correctly.
 
-You can a notebook as a test with:
+You can run a notebook as a test with:
 ```bash
 pytest --nbmake notebooks/my_notebook.ipynb
 
@@ -84,3 +84,26 @@ NB_FAST=true pytest --nbmake notebooks/my_notebook.ipynb
 ```
 
 For more about `NB_FAST` read the [notebooks documentation](../docs.rst#notebooks).
+
+## Code Coverage
+
+Code coverage measures how many statements of code is executed while running
+tests. It identifies unused and untested code. We encourage contributors to
+use it to write more robust programs, but don't have a target percantage. 
+
+To generate code coverage reports add `--cov=capymoa` and `--cov-report=html` to
+the pytest command:
+
+```bash
+pytest --cov=capymoa --cov-report=html
+```
+
+Alternatively, CapyMOA's invoke testing tasks can generate coverage reports with:
+
+```bash
+invoke test --coverage
+```
+
+See also:
+* [coverage.py](https://github.com/coveragepy/coveragepy): Tool for measuring python code coverage.
+* [pytest-cov](https://pypi.org/project/pytest-cov/): PyTest plugin to automatically collect code coverage information with coverage.py.

@@ -60,7 +60,11 @@ from torchvision.transforms import Compose, Normalize, ToTensor
 
 from capymoa.datasets import get_download_dir
 from capymoa.instance import LabeledInstance
-from capymoa.ocl.util.data import class_incremental_schedule, partition_by_schedule
+from capymoa.ocl.util.data import (
+    class_incremental_schedule,
+    partition_by_schedule,
+    class_schedule_to_task_mask,
+)
 from capymoa.stream import Stream, TorchClassifyStream
 from capymoa.stream._stream import Schema
 
@@ -126,6 +130,9 @@ class _BuiltInCIScenario(ABC):
 
     shape: Sequence[int]
     """The shape of each input example."""
+
+    task_mask: Tensor
+    """A mask for the output for each task of shape (num_tasks, num_classes)"""
 
     def __init__(
         self,
@@ -228,6 +235,9 @@ class _BuiltInCIScenario(ABC):
             shape=self.shape,
         )
         self.schema = self.stream.get_schema()
+        self.task_mask = class_schedule_to_task_mask(
+            self.task_schedule, self.num_classes
+        )
 
     @staticmethod
     def _preload_datasets(

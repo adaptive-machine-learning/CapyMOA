@@ -1,0 +1,13 @@
+@RELATION StreamTest
+
+@ATTRIBUTE num1 NUMERIC
+@ATTRIBUTE num2 NUMERIC
+@ATTRIBUTE cat1 {A,B,C}
+@ATTRIBUTE cat2 {X,Y}
+
+@DATA
+-1.1,-1,A,X
+0.1,1,B,Y
+1.1,0,C,?
+?,?,?,?
+NaN,NaN,?,?

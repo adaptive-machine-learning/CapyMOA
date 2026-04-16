@@ -25,7 +25,7 @@ env:
 jobs:
   tests:
     name: "Tests"
-    timeout-minutes: 20
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -43,6 +43,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        # diff-cover needs more history to compute coverage diffs
+        fetch-depth: 10
 
     - name: Set up Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v5
@@ -63,13 +66,24 @@ jobs:
         key: "test-datasets"
 
     - name: PyTest
-      run: invoke test.pytest
+      run: invoke test.pytest --coverage
 
     - name: Doctest
-      run: invoke test.doctest
+      run: invoke test.doctest --coverage
 
     - name: Check Notebooks
       run: invoke test.nb
+
+    - name: Combine Test Coverages & Generate XML Report
+      run: |
+        invoke test.cov-combine
+        coverage xml -i
+        
+    - name: Coveralls
+      uses: coverallsapp/github-action@v2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        files: coverage.xml
 
   lint:
     name: "Code Style"
@@ -97,7 +111,7 @@ jobs:
 
   documentation:
     name: "Documentation"
-    timeout-minutes: 10
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -109,10 +123,9 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get install -y pandoc
-        python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-        python -m pip install ".[dev,doc]"
-    - name: Documentation Coverage Report
-      run: invoke docs.coverage
+        python -m pip install torch~=2.9.1 torchvision~=0.24.1 --index-url https://download.pytorch.org/whl/cpu
+        python -m pip install -U ".[dev,doc]"
+      # '-U' upgrades dependencies based on the pyproject.toml 
     - name: Build Documentation
       run: invoke docs.build
 

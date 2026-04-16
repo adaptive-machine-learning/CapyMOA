@@ -1,6 +1,7 @@
 from ._adaptive_random_forest import AdaptiveRandomForestClassifier
 from ._efdt import EFDT
 from ._hoeffding_tree import HoeffdingTree
+from ._last import LAST
 from ._naive_bayes import NaiveBayes
 from ._online_bagging import OnlineBagging
 from ._online_adwin_bagging import OnlineAdwinBagging
@@ -22,6 +23,7 @@ from ._weightedknn import WeightedkNN
 from ._shrubs_classifier import ShrubsClassifier
 from ._finetune import Finetune
 from ._dems import DynamicEnsembleMemberSelection
+from ._plastic import PLASTIC
 
 __all__ = [
     "AdaptiveRandomForestClassifier",
@@ -32,6 +34,7 @@ __all__ = [
     "HoeffdingAdaptiveTree",
     "HoeffdingTree",
     "KNN",
+    "LAST",
     "LeveragingBagging",
     "MajorityClass",
     "NaiveBayes",
@@ -48,4 +51,5 @@ __all__ = [
     "StreamingRandomPatches",
     "WeightedkNN",
     "DynamicEnsembleMemberSelection",
+    "PLASTIC",
 ]

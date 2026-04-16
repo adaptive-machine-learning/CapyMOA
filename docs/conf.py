@@ -6,16 +6,20 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
+import sys
 from pathlib import Path
 from capymoa.__about__ import __version__
 from docs.util.github_link import make_linkcode_resolve
+
+# Any subprocesses created during document building should use the same python environment
+os.environ["PYTHONEXECUTABLE"] = sys.executable
 
 discord_link = "https://discord.gg/spd2gQJGAb"
 contact_email = "heitor.gomes@vuw.ac.nz"
 capymoa_github = "https://github.com/adaptive-machine-learning/CapyMOA"
 
 project = "CapyMOA"
-copyright = "2024 CapyMOA Developers"
+copyright = "2026 CapyMOA Developers"
 author = "Heitor Murilo Gomes, Anton Lee, Nuwan Gunasekara, Marco Heyden, Yibin Sun, Guilherme Weigert Cassales"
 release = __version__
 html_title = f"{project}"
@@ -104,6 +108,7 @@ rst_epilog = f"""
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["css/citation.css"]
+html_show_sourcelink = False
 
 # Setup symbolic links for notebooks
 
@@ -141,6 +146,11 @@ linkcode_resolve = make_linkcode_resolve(
 """
 html_theme_options = {
     "show_toc_level": 3,
+    "logo": {
+        "text": "CapyMOA",
+        "image_light": "_static/logo-96x96.png",
+        "image_dark": "_static/logo-96x96.png",
+    },
     "icon_links": [
         {
             "name": "GitHub",

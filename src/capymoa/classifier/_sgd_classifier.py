@@ -49,7 +49,7 @@ class SGDClassifier(SKClassifier):
         epsilon: float = 0.1,
         n_jobs: Optional[int] = None,
         learning_rate: Literal["constant", "optimal", "invscaling"] = "optimal",
-        eta0: float = 0.0,
+        eta0: float = 0.01,
         random_seed: Optional[int] = None,
     ):
         """Construct stochastic gradient descent classifier.

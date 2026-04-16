@@ -21,7 +21,7 @@ SOURCE_LIST: Dict[str, _Source] = {
     ),
     "Hyper100k": _Source(
         "https://www.dropbox.com/scl/fi/9mmfc0kj8hvl60at1xi4b/Hyper100k.arff.gz?rlkey=gw1yfdg5wfyj5d2dswdvy0ksr&st=w8cyz8dd&dl=1",
-        "https://www.dropbox.com/scl/fi/il9cbzqqtinx9ygft7zg8/Hyper100k.csv.gz?rlkey=w34bl341pu6e7wzugelqpxil7&st=nng0hnj5&dl=1",
+        "https://www.dropbox.com/scl/fi/gdokuyfqslyo5sohlgu1l/Hyper100k.csv.gz?rlkey=fp5ncp10050923u7xg7ordxpu&dl=1",
     ),
     "CovtFD": _Source(
         "https://www.dropbox.com/scl/fi/syuuteps87v84p9imwc2u/covtFD.arff.gz?rlkey=ojznbqhbrcnser4z70tn8vc4a&st=i4o0hlsg&dl=1",

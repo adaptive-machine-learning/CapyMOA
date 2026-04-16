@@ -7,7 +7,7 @@ This document describes the code review process for CapyMOA. It is intended for 
 2. Download the built documentation [pull request
    artifact](./docs.rst#pull-request-artifact) and check it renders nicely.
 3. If the PR adds new methods these should be cited in the documentation.
-4. Does the PR test added code?
+4. Does the PR test add code?
 5. Manually review the code changes.
 6. If everything is good **squash and merge** the PR using the GitHub interface and add
    a meaningful commit message. See [commit messages](#commit-messages) below for more
@@ -17,7 +17,7 @@ This document describes the code review process for CapyMOA. It is intended for 
 
 ## Commit Messages
 
-**tldr; Run `python -m invoke commit` (or `invoke commit`, `python -m commitizen commit`) to commit changes.** (Requires that you've [installed the optional development dependencies](../installation.rst).)
+**tldr; Run `python -m invoke commit` (or `invoke commit`, `python -m commitizen commit`) to commit changes.** (Requires that you've [installed the optional development dependencies](../setup/developer.rst).)
 
 CapyMOA uses conventional commit messages to streamline the release process.
 
@@ -68,7 +68,7 @@ Where:
 
   Its okay to leave out the scope if its not obvious or not applicable.
 
-* `<description>` This should be a short, concise lowercase description of the change in the imperative mood (e.g. "add ...", "change ...", "fix", "remove...").
+* `<description>` This should be a short, concise lowercase description of the change in the imperative mood (e.g. "add ...", "change ...", "fix ...", "remove...").
 
 ### Breaking Changes
 

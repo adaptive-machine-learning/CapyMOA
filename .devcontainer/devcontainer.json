@@ -1,0 +1,30 @@
+{
+  "name": "CapyMOA Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "containerEnv": {
+    "CAPYMOA_DATASETS_DIR": "${containerWorkspaceFolder}/data"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter",
+        "charliermarsh.ruff"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.ruff": "explicit",
+          "source.organizeImports.ruff": "explicit"
+        }
+      }
+    }
+  },
+  "mounts": [
+    "source=capymoa-pip-cache,target=/home/vscode/.cache/pip,type=volume"
+  ],
+  "postCreateCommand": "python -m pip install -e '.[dev,doc]'"
+}

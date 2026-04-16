@@ -16,6 +16,7 @@ from capymoa.classifier import (
     CSMOTE,
     EFDT,
     KNN,
+    LAST,
     AdaptiveRandomForestClassifier,
     DynamicWeightedMajority,
     Finetune,
@@ -37,12 +38,14 @@ from capymoa.classifier import (
     StreamingRandomPatches,
     WeightedkNN,
     DynamicEnsembleMemberSelection,
+    PLASTIC,
 )
 from capymoa.datasets import ElectricityTiny
 from capymoa.evaluation import ClassificationEvaluator, prequential_evaluation
 from capymoa.misc import load_model, save_model
 from capymoa.splitcriteria import GiniSplitCriterion
 from capymoa.stream import Schema, Stream
+import numpy as np
 
 
 @dataclass
@@ -60,6 +63,13 @@ class ClassifierTestCase:
     is_serializable: bool = True
     """Whether the learner is serializable."""
     batch_size: int = 1
+
+    skip_prediction_check_before_training: bool = False
+    """Skip checking the prediction before training. If False, the test will fail if the
+    learner does not output None before training."""
+
+    skip_reason: Optional[str] = None
+    """A reason to skip the test. If set, the test will be skipped with this reason."""
 
 
 """
@@ -89,13 +99,19 @@ test_cases = [
         83.0,
     ),
     ClassifierTestCase(
+        "LAST",
+        partial(LAST),
+        83.95,
+        91.0,
+    ),
+    ClassifierTestCase(
         "EFDT",
         partial(EFDT),
         82.69,
         82.0,
     ),
     ClassifierTestCase(
-        "EFDT",
+        "EFDT-1",
         partial(
             EFDT,
             grace_period=10,
@@ -105,7 +121,9 @@ test_cases = [
         87.35,
         84.0,
         cli_string="trees.EFDT -R 200 -m 33554433 -g 10 -s GiniSplitCriterion -c 0.001 -z -p -l NB",
+        skip_reason="https://github.com/adaptive-machine-learning/backlog/issues/59",
     ),
+    ClassifierTestCase("PLASTIC", PLASTIC, 83.25, 83.0),
     ClassifierTestCase(
         "NaiveBayes",
         partial(NaiveBayes),
@@ -126,9 +144,10 @@ test_cases = [
     ),
     ClassifierTestCase(
         "SGDClassifier",
-        partial(SGDClassifier),
-        84.7,
-        83.0,
+        # When loss="log_loss" predict_proba works
+        partial(SGDClassifier, loss="log_loss"),
+        85.75,
+        82.0,
     ),
     ClassifierTestCase(
         "StreamingGradientBoostedTrees",
@@ -153,6 +172,7 @@ test_cases = [
         partial(NoChange),
         85.95,
         81.0,
+        skip_prediction_check_before_training=True,
     ),
     ClassifierTestCase(
         "OnlineSmoothBoost",
@@ -184,6 +204,7 @@ test_cases = [
         partial(DynamicWeightedMajority),
         84.05,
         89.0,
+        skip_prediction_check_before_training=True,
     ),
     ClassifierTestCase(
         "CSMOTE",
@@ -220,6 +241,7 @@ test_cases = [
         60.4,
         66.0,
         batch_size=32,
+        skip_prediction_check_before_training=True,
     ),
     ClassifierTestCase(
         "DynamicEnsembleMemberSelection",
@@ -283,11 +305,35 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     * Can the classifier be saved and loaded?
     * Does the CLI string match the expected value?
     """
+    if test_case.skip_reason:
+        pytest.skip(test_case.skip_reason)
+
     stream = ElectricityTiny()
+    y_shape = (stream.schema.get_num_classes(),)
     learner: Classifier = test_case.learner_constructor(schema=stream.get_schema())
+
+    if not test_case.skip_prediction_check_before_training:
+        # The classifier should not error when asked to make predictions before
+        # training. Instead it must return None.
+        assert learner.predict(next(stream)) is None
+        assert learner.predict_proba(next(stream)) is None
+
+    # Main Loop
+    stream.restart()
     results = prequential_evaluation(
         stream, learner, window_size=100, batch_size=test_case.batch_size
     )
+
+    # Check if the learner can make predictions after training and that those
+    # predictions are of the expected type
+    stream.restart()
+    y_proba = learner.predict_proba(next(stream))
+    y = learner.predict(next(stream))
+    assert isinstance(y_proba, np.ndarray), f"Expected numpy array, got {type(y_proba)}"
+    assert y_proba.dtype == np.float64, f"Expected float64, got {y_proba.dtype}"
+    assert y_proba.shape == y_shape, f"Expected shape {y_shape}, got {y_proba.shape}"
+    assert isinstance(y, int), f"Expected int, got {type(y)}"
+    assert sum(y_proba) == pytest.approx(1.0, abs=1e-5), "Probability sum != 1"
 
     # Check if the accuracy matches the expected value for both evaluator types
     actual_acc = results.cumulative.accuracy()
