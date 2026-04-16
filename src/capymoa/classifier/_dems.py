@@ -64,7 +64,7 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
         self,
         schema: Schema | None = None,
         random_seed: int = 0,
-        ensemble_class: str = "StreamingRandomPatches",    # StreamingRandomPatches / SRP or AdaptiveRandomForest / ARF
+        ensemble_class: str = "StreamingRandomPatches",  # StreamingRandomPatches / SRP or AdaptiveRandomForest / ARF
         base_learner: str = "trees.HoeffdingTree -g 50 -c 0.01",
         tree_learner: str = "ARFHoeffdingTree -e 2000000 -g 50 -c 0.01",
         ensemble_size: int = 100,
@@ -89,9 +89,9 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
             "AdaptiveRandomForest": "AdaptiveRandomForest",
             "ARF": "AdaptiveRandomForest",
         }
-        assert (
-            ensemble_class in ensemble_class_map
-        ), f"{ensemble_class} is not a valid ensemble_class. Choose from {list(ensemble_class_map.keys())}"
+        assert ensemble_class in ensemble_class_map, (
+            f"{ensemble_class} is not a valid ensemble_class. Choose from {list(ensemble_class_map.keys())}"
+        )
         ensemble_class_str = ensemble_class_map[ensemble_class]
 
         # --- Training method (-t) ---

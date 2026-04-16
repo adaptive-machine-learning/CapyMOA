@@ -246,7 +246,8 @@ test_cases = [
     ClassifierTestCase(
         "DynamicEnsembleMemberSelection",
         partial(DynamicEnsembleMemberSelection),
-        92.7, 90,
+        92.7,
+        90,
         is_serializable=False,
     ),
 ]
