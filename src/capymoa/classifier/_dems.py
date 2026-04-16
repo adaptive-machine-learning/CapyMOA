@@ -32,32 +32,10 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
     >>> print(f"{results.accuracy():.1f}")
     90.6
 
-    Parameters mirror the Java options:
-
-    - ensemble_class: which ensemble to use ("StreamingRandomPatches" or "AdaptiveRandomForest").
-    - base_learner: base classifier (used by SRP).
-    - tree_learner: ARF tree learner (only used by ARF, cannot be changed).
-    - ensemble_size: number of ensemble members.
-    - max_features: subspace size configuration, similar to SRP:
-        * float in [0, 1]: percentage of features (e.g. 0.6 = 60%).
-        * int: exact number of features.
-        * "sqrt": use sqrt(M)+1.
-        * None: default (60%).
-    - training_method: "RandomSubspaces", "Resampling", or "RandomPatches" (SRP).
-    - lambda_param: Poisson lambda for bagging.
-    - number_of_jobs: number of parallel jobs for ARF (-1 = as many as possible).
-    - drift_detection_method: MOA CLI string for drift detector.
-    - warning_detection_method: MOA CLI string for warning detector.
-    - disable_weighted_vote: if True, disables accuracy-weighted voting.
-    - disable_drift_detection: if True, turns off drift detectors (and bkg learners).
-    - disable_background_learner: if True, turns off background learners.
-    - k_value: fixed K for DEMS when self-optimising is disabled.
-    - disable_self_optimising: if True, use the fixed k_value instead of self-optimising.
-
-    Reference:
-      Yibin Sun, Bernhard Pfahringer, Heitor Murilo Gomes, Albert Bifet.
-      "Dynamic Ensemble Member Selection for Data Stream Classification."
-      CIKM 2025.
+    .. [#0] `Dynamic Ensemble Member Selection for Data Stream Classification.
+             Yibin Sun, Bernhard Pfahringer, Heitor Murilo Gomes, Albert Bifet.
+             ACM Conference on Information and Knowledge Management (CIKM), 2025.
+             <https://doi.org/10.1145/3746252.3761072>`_
     """
 
     def __init__(
@@ -80,9 +58,28 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
         k_value: int = 5,
         disable_self_optimising: bool = False,
     ):
-        # Map Python-friendly params to MOA CLI strings
+        """Dynamic Ensemble Member Selection (DEMS) Classifier.
 
-        # --- Ensemble choice (-e) ---
+        :param ensemble_class: which ensemble to use ("StreamingRandomPatches" or "AdaptiveRandomForest").
+        :param base_learner: base classifier (used by SRP).
+        :param tree_learner: ARF tree learner (only used by ARF, cannot be changed).
+        :param ensemble_size: number of ensemble members.
+        :param max_features: subspace size configuration, similar to SRP:
+            * float in [0, 1]: percentage of features (e.g. 0.6 = 60%).
+            * int: exact number of features.
+            * "sqrt": use sqrt(M)+1.
+            * None: default (60%).
+        :param training_method: "RandomSubspaces", "Resampling", or "RandomPatches" (SRP).
+        :param lambda_param: Poisson lambda for bagging.
+        :param number_of_jobs: number of parallel jobs for ARF (-1 = as many as possible).
+        :param drift_detection_method: MOA CLI string for drift detector.
+        :param warning_detection_method: MOA CLI string for warning detector.
+        :param disable_weighted_vote: if True, disables accuracy-weighted voting.
+        :param disable_drift_detection: if True, turns off drift detectors (and bkg learners).
+        :param disable_background_learner: if True, turns off background learners.
+        :param k_value: fixed K for DEMS when self-optimising is disabled.
+        :param disable_self_optimising: if True, use the fixed k_value instead of self-optimising.
+        """
         ensemble_class_map = {
             "StreamingRandomPatches": "StreamingRandomPatches",
             "SRP": "StreamingRandomPatches",
