@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from typing import Optional
+
+import numpy as np
+
 from capymoa.base import MOAClassifier
 from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals
+from capymoa.type_alias import LabelProbabilities
 
 from moa.classifiers.meta import DynamicEnsembleMemberSelection as _MOA_DEMS
 
@@ -165,3 +170,19 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
             CLI=config_str,
             random_seed=random_seed,
         )
+
+    def predict_proba(self, instance) -> Optional[LabelProbabilities]:
+        votes = np.array(
+            self.moa_learner.getVotesForInstance(instance.java_instance),
+            dtype=np.float64,
+        )
+
+        if self.schema is not None:
+            num_classes = self.schema.get_num_classes()
+            if votes.shape[0] < num_classes:
+                votes = np.pad(votes, (0, num_classes - votes.shape[0]))
+
+        total = sum(votes)
+        if total <= 1e-2 or np.isnan(total) or np.isinf(total):
+            return None
+        return votes / total
