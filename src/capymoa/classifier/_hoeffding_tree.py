@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import Union
+from typing import Literal, Sequence, Union
+
+import numpy as np
 
 from capymoa.base import MOAClassifier
 from capymoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
@@ -7,6 +9,20 @@ from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals, _leaf_prediction
 
 import moa.classifiers.trees as moa_trees
+
+MissingValuePolicy = Literal["default", "random", "all"]
+
+
+def _validate_missing_value_policy(
+    policy: str,
+) -> MissingValuePolicy:
+    valid_policies = ("default", "random", "all")
+    if policy not in valid_policies:
+        raise ValueError(
+            "Invalid value for missing_value_policy, valid options are "
+            "'default', 'random', or 'all'."
+        )
+    return policy  # type: ignore[return-value]
 
 
 class HoeffdingTree(MOAClassifier):
@@ -60,6 +76,7 @@ class HoeffdingTree(MOAClassifier):
         stop_mem_management: bool = True,
         remove_poor_attrs: bool = False,
         disable_prepruning: bool = True,
+        missing_value_policy: MissingValuePolicy = "default",
     ):
         """Construct Hoeffding Tree.
 
@@ -87,7 +104,16 @@ class HoeffdingTree(MOAClassifier):
         :param remove_poor_attrs: If True, disable poor attributes to reduce memory
             usage.
         :param disable_prepruning: If True, disable merit-based tree pre-pruning.
+        :param missing_value_policy: Prediction-time policy used when a
+            split attribute needed for traversal is missing. ``"default"``
+            delegates to MOA's default behavior, ``"random"`` follows one
+            random child, and ``"all"`` combines votes from all reachable
+            children.
         """
+        self.missing_value_policy = _validate_missing_value_policy(
+            missing_value_policy
+        )
+        self._prediction_rng = np.random.default_rng(random_seed)
         mapping = {
             "grace_period": "-g",
             "max_byte_size": "-m",
@@ -112,3 +138,83 @@ class HoeffdingTree(MOAClassifier):
             CLI=config_str,
             random_seed=random_seed,
         )
+
+    def predict_proba(self, instance):
+        if (
+            self.missing_value_policy == "default"
+            or not self._has_missing_features(instance)
+        ):
+            return super().predict_proba(instance)
+
+        root = self.moa_learner.getTreeRoot()
+        if root is None:
+            return super().predict_proba(instance)
+
+        votes = self._predict_votes_for_instance(instance.java_instance.getData(), root)
+        return self._normalize_votes(votes)
+
+    @staticmethod
+    def _has_missing_features(instance) -> bool:
+        return bool(np.isnan(np.asarray(instance.x, dtype=float)).any())
+
+    @staticmethod
+    def _normalize_votes(votes: Sequence[float] | np.ndarray):
+        votes = np.asarray(votes, dtype=np.float64)
+        total = votes.sum()
+        if votes.size == 0 or total <= 1e-2 or np.isnan(total) or np.isinf(total):
+            return None
+        return votes / total
+
+    def _predict_votes_for_instance(self, java_instance, node) -> np.ndarray:
+        if node is None:
+            return np.array([], dtype=np.float64)
+
+        if node.isLeaf():
+            return self._node_votes(node, java_instance)
+
+        split_test = node.getSplitTest()
+        if not split_test.resultKnownForInstance(java_instance):
+            children = [
+                node.getChild(child_idx)
+                for child_idx in range(node.numChildren())
+                if node.getChild(child_idx) is not None
+            ]
+            if not children:
+                return self._node_votes(node, java_instance)
+
+            if self.missing_value_policy == "random":
+                child_idx = int(self._prediction_rng.integers(len(children)))
+                return self._predict_votes_for_instance(
+                    java_instance, children[child_idx]
+                )
+
+            return self._sum_votes(
+                [
+                    self._predict_votes_for_instance(java_instance, child)
+                    for child in children
+                ]
+            )
+
+        child = node.getChild(split_test.branchForInstance(java_instance))
+        if child is None:
+            return self._node_votes(node, java_instance)
+
+        return self._predict_votes_for_instance(java_instance, child)
+
+    def _node_votes(self, node, java_instance) -> np.ndarray:
+        return np.asarray(
+            node.getClassVotes(java_instance, self.moa_learner), dtype=np.float64
+        )
+
+    @staticmethod
+    def _sum_votes(vote_arrays: Sequence[np.ndarray]) -> np.ndarray:
+        max_len = max((len(votes) for votes in vote_arrays), default=0)
+        if max_len == 0:
+            return np.array([], dtype=np.float64)
+
+        combined = np.zeros(max_len, dtype=np.float64)
+        for votes in vote_arrays:
+            padded_votes = np.zeros(max_len, dtype=np.float64)
+            padded_votes[: len(votes)] = votes
+            combined += padded_votes
+        return combined

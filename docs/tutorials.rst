@@ -32,6 +32,7 @@ These tutorials will show you how to get started with the CapyMOA library.
    notebooks/save_and_load_model.ipynb
    notebooks/clustering.ipynb
    notebooks/feature_importance.ipynb
+   notebooks/missing_value_policy_hoeffding_tree.ipynb
 
 Talks
 =====

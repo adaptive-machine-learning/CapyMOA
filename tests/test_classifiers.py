@@ -253,6 +253,29 @@ test_cases = [
 ]
 
 
+def test_hoeffding_tree_accepts_missing_value_policy_parameter():
+    stream = ElectricityTiny()
+    learner = HoeffdingTree(
+        schema=stream.get_schema(),
+        missing_value_policy="all",
+    )
+
+    assert learner.missing_value_policy == "all"
+
+
+def test_hoeffding_tree_validates_missing_value_policy_parameter():
+    stream = ElectricityTiny()
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid value for missing_value_policy",
+    ):
+        HoeffdingTree(
+            schema=stream.get_schema(),
+            missing_value_policy="not_a_strategy",
+        )
+
+
 def _score(classifier: Classifier, stream: Stream, limit=100) -> float:
     """Eval without training the classifier."""
     evaluator = ClassificationEvaluator(schema=stream.get_schema())
