@@ -15,10 +15,6 @@ from moa.classifiers.meta import DynamicEnsembleMemberSelection as _MOA_DEMS
 class DynamicEnsembleMemberSelection(MOAClassifier):
     """Dynamic Ensemble Member Selection (DEMS).
 
-    Python wrapper for the MOA implementation:
-
-        moa.classifiers.meta.DynamicEnsembleMemberSelection
-
     DEMS dynamically selects a subset of ensemble members based on their estimated performance and tree-level information.
     Only SRP and ARF are included here because of the performance significance.
 
@@ -65,10 +61,10 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
         :param tree_learner: ARF tree learner (only used by ARF, cannot be changed).
         :param ensemble_size: number of ensemble members.
         :param max_features: subspace size configuration, similar to SRP:
-            * float in [0, 1]: percentage of features (e.g. 0.6 = 60%).
-            * int: exact number of features.
-            * "sqrt": use sqrt(M)+1.
-            * None: default (60%).
+            float in [0, 1]: percentage of features (e.g. 0.6 = 60%).
+            int: exact number of features.
+            "sqrt": use sqrt(M)+1.
+            None: default (60%).
         :param training_method: "RandomSubspaces", "Resampling", or "RandomPatches" (SRP).
         :param lambda_param: Poisson lambda for bagging.
         :param number_of_jobs: number of parallel jobs for ARF (-1 = as many as possible).
