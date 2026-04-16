@@ -10,7 +10,7 @@ from ._sgd_classifier import SGDClassifier
 from ._knn import KNN
 from ._sgbt import StreamingGradientBoostedTrees
 from ._oza_boost import OzaBoost
-from ._majority_class import MajoityClass
+from ._majority_class import MajorityClass
 from ._no_change import NoChange
 from ._online_smooth_boost import OnlineSmoothBoost
 from ._srp import StreamingRandomPatches
