@@ -36,6 +36,7 @@ from capymoa.classifier import (
     StreamingGradientBoostedTrees,
     StreamingRandomPatches,
     WeightedkNN,
+    DynamicEnsembleMemberSelection,
 )
 from capymoa.datasets import ElectricityTiny
 from capymoa.evaluation import ClassificationEvaluator, prequential_evaluation
@@ -220,6 +221,12 @@ test_cases = [
         66.0,
         batch_size=32,
     ),
+    ClassifierTestCase(
+        "DynamicEnsembleMemberSelection",
+        partial(DynamicEnsembleMemberSelection),
+        92.7, 90,
+        is_serializable=False,
+    ),
 ]
 
 
@@ -236,9 +243,9 @@ def _score(classifier: Classifier, stream: Stream, limit=100) -> float:
 
 
 def subtest_save_and_load(
-    classifier: Classifier,
-    stream: Stream,
-    is_serializable: bool,
+        classifier: Classifier,
+        stream: Stream,
+        is_serializable: bool,
 ):
     """A subtest to check if a classifier can be saved and loaded."""
 

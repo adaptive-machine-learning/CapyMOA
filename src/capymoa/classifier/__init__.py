@@ -10,7 +10,7 @@ from ._sgd_classifier import SGDClassifier
 from ._knn import KNN
 from ._sgbt import StreamingGradientBoostedTrees
 from ._oza_boost import OzaBoost
-from ._majority_class import MajorityClass
+from ._majority_class import MajoityClass
 from ._no_change import NoChange
 from ._online_smooth_boost import OnlineSmoothBoost
 from ._srp import StreamingRandomPatches
@@ -21,6 +21,7 @@ from ._csmote import CSMOTE
 from ._weightedknn import WeightedkNN
 from ._shrubs_classifier import ShrubsClassifier
 from ._finetune import Finetune
+from ._dems import DynamicEnsembleMemberSelection
 
 __all__ = [
     "AdaptiveRandomForestClassifier",
@@ -46,4 +47,5 @@ __all__ = [
     "StreamingGradientBoostedTrees",
     "StreamingRandomPatches",
     "WeightedkNN",
+    "DynamicEnsembleMemberSelection",
 ]
