@@ -243,9 +243,9 @@ def _score(classifier: Classifier, stream: Stream, limit=100) -> float:
 
 
 def subtest_save_and_load(
-        classifier: Classifier,
-        stream: Stream,
-        is_serializable: bool,
+    classifier: Classifier,
+    stream: Stream,
+    is_serializable: bool,
 ):
     """A subtest to check if a classifier can be saved and loaded."""
 
