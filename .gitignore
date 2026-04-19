@@ -194,3 +194,5 @@ docs/api/modules
 
 notebooks/.ipynb_checkpoints
 *.pdf
+.DS_Store
+nohup.out

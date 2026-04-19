@@ -105,4 +105,4 @@ If you use CapyMOA in your research, please cite us using the following Bibtex e
    performed using an ensemble of 100 ARF learners trained on
    :class:`capymoa.datasets.RTG_2abrupt` dataset containing 100,000 samples and 30
    features.  You can find the code to reproduce this benchmark in 
-   `benchmarking.py <https://github.com/adaptive-machine-learning/CapyMOA/blob/main/notebooks/benchmarking.py>`_.
+   `benchmarking.py <https://github.com/adaptive-machine-learning/CapyMOA/blob/main/benchmarks/benchmarking.py>`_.
