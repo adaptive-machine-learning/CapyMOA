@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Literal, Sequence, Union
+from dataclasses import dataclass
+from typing import Any, Literal, Sequence, Union
 
 import numpy as np
 
@@ -8,9 +9,22 @@ from capymoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
 from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals, _leaf_prediction
 
+from capymoa.visualization import export_hoeffding_tree_to_dot
+
 import moa.classifiers.trees as moa_trees
 
 MissingValuePolicy = Literal["default", "random", "all"]
+TreeEdge = tuple[Any, int, Any]
+
+
+@dataclass(frozen=True)
+class TreePredictionTrace:
+    """Prediction votes and tree path used to produce them."""
+
+    votes: np.ndarray
+    vote_node: Any | None = None
+    nodes: tuple[Any, ...] = ()
+    edges: tuple[TreeEdge, ...] = ()
 
 
 def _validate_missing_value_policy(
@@ -110,9 +124,7 @@ class HoeffdingTree(MOAClassifier):
             random child, and ``"all"`` combines votes from all reachable
             children.
         """
-        self.missing_value_policy = _validate_missing_value_policy(
-            missing_value_policy
-        )
+        self.missing_value_policy = _validate_missing_value_policy(missing_value_policy)
         self._prediction_rng = np.random.default_rng(random_seed)
         mapping = {
             "grace_period": "-g",
@@ -140,18 +152,39 @@ class HoeffdingTree(MOAClassifier):
         )
 
     def predict_proba(self, instance):
-        if (
-            self.missing_value_policy == "default"
-            or not self._has_missing_features(instance)
+        if self.missing_value_policy == "default" or not self._has_missing_features(
+            instance
         ):
             return super().predict_proba(instance)
 
-        root = self.moa_learner.getTreeRoot()
+        root = self.get_tree_root()
         if root is None:
             return super().predict_proba(instance)
 
-        votes = self._predict_votes_for_instance(instance.java_instance.getData(), root)
+        votes = self.trace_prediction_path(instance.java_instance.getData(), root).votes
         return self._normalize_votes(votes)
+
+    def get_tree_root(self):
+        """Return the underlying real MOA tree root."""
+        return self.moa_learner.getTreeRoot()
+
+    def export_tree_to_dot(
+        self,
+        sample_instance=None,
+        title: str = "Real MOA Hoeffding Tree",
+        include_leaf_votes: bool = True,
+        highlight_path: bool = False,
+        require_missing_path: bool = False,
+    ) -> str:
+        """Export the learned real MOA tree to DOT."""
+        return export_hoeffding_tree_to_dot(
+            self,
+            sample_instance=sample_instance,
+            title=title,
+            include_leaf_votes=include_leaf_votes,
+            highlight_path=highlight_path,
+            require_missing_path=require_missing_path,
+        )
 
     @staticmethod
     def _has_missing_features(instance) -> bool:
@@ -165,45 +198,106 @@ class HoeffdingTree(MOAClassifier):
             return None
         return votes / total
 
-    def _predict_votes_for_instance(self, java_instance, node) -> np.ndarray:
+    def trace_prediction_path(self, java_instance, node=None) -> TreePredictionTrace:
+        """Return votes and tree path used by the missing-value prediction policy."""
         if node is None:
-            return np.array([], dtype=np.float64)
+            node = self.get_tree_root()
+        return self._trace_prediction_path(java_instance, node)
+
+    def _trace_prediction_path(self, java_instance, node) -> TreePredictionTrace:
+        if node is None:
+            return TreePredictionTrace(votes=np.array([], dtype=np.float64))
 
         if node.isLeaf():
-            return self._node_votes(node, java_instance)
+            return TreePredictionTrace(
+                votes=self._node_votes(node, java_instance),
+                vote_node=node,
+                nodes=(node,),
+            )
 
         split_test = node.getSplitTest()
         if not split_test.resultKnownForInstance(java_instance):
-            children = [
-                node.getChild(child_idx)
-                for child_idx in range(node.numChildren())
-                if node.getChild(child_idx) is not None
-            ]
-            if not children:
-                return self._node_votes(node, java_instance)
-
-            if self.missing_value_policy == "random":
-                child_idx = int(self._prediction_rng.integers(len(children)))
-                return self._predict_votes_for_instance(
-                    java_instance, children[child_idx]
+            if self.missing_value_policy == "default":
+                return TreePredictionTrace(
+                    votes=self._node_votes(node, java_instance),
+                    vote_node=node,
+                    nodes=(node,),
                 )
 
-            return self._sum_votes(
-                [
-                    self._predict_votes_for_instance(java_instance, child)
-                    for child in children
-                ]
+            children = []
+            for child_idx in range(node.numChildren()):
+                child = node.getChild(child_idx)
+                if child is not None:
+                    children.append((child_idx, child))
+            if not children:
+                return TreePredictionTrace(
+                    votes=self._node_votes(node, java_instance),
+                    vote_node=node,
+                    nodes=(node,),
+                )
+
+            if self.missing_value_policy == "random":
+                for pick_pos in self._prediction_rng.permutation(len(children)):
+                    branch_idx, child = children[int(pick_pos)]
+                    trace = self._trace_prediction_path(java_instance, child)
+                    if self._has_usable_votes(trace.votes):
+                        return TreePredictionTrace(
+                            votes=trace.votes,
+                            vote_node=trace.vote_node,
+                            nodes=(node, *trace.nodes),
+                            edges=((node, branch_idx, child), *trace.edges),
+                        )
+                return TreePredictionTrace(
+                    votes=self._node_votes(node, java_instance),
+                    vote_node=node,
+                    nodes=(node,),
+                )
+
+            child_traces = [
+                self._trace_prediction_path(java_instance, child)
+                for _, child in children
+            ]
+            edges = tuple(
+                (node, branch_idx, child) for branch_idx, child in children
+            )
+            return TreePredictionTrace(
+                votes=self._sum_votes([trace.votes for trace in child_traces]),
+                vote_node=None,
+                nodes=(node, *(n for trace in child_traces for n in trace.nodes)),
+                edges=(*edges, *(e for trace in child_traces for e in trace.edges)),
             )
 
-        child = node.getChild(split_test.branchForInstance(java_instance))
+        branch_idx = int(split_test.branchForInstance(java_instance))
+        child = node.getChild(branch_idx)
         if child is None:
-            return self._node_votes(node, java_instance)
+            return TreePredictionTrace(
+                votes=self._node_votes(node, java_instance),
+                vote_node=node,
+                nodes=(node,),
+            )
 
-        return self._predict_votes_for_instance(java_instance, child)
+        trace = self._trace_prediction_path(java_instance, child)
+        return TreePredictionTrace(
+            votes=trace.votes,
+            vote_node=trace.vote_node,
+            nodes=(node, *trace.nodes),
+            edges=((node, branch_idx, child), *trace.edges),
+        )
 
     def _node_votes(self, node, java_instance) -> np.ndarray:
         return np.asarray(
             node.getClassVotes(java_instance, self.moa_learner), dtype=np.float64
+        )
+
+    @staticmethod
+    def _has_usable_votes(votes: Sequence[float] | np.ndarray) -> bool:
+        votes = np.asarray(votes, dtype=np.float64)
+        total = votes.sum()
+        return bool(
+            votes.size > 0
+            and total > 1e-2
+            and not np.isnan(total)
+            and not np.isinf(total)
         )
 
     @staticmethod
