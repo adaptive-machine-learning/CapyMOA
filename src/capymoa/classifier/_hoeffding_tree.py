@@ -1,20 +1,20 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Literal, Sequence, Union
 
 import numpy as np
 
+from capymoa._utils import build_cli_str_from_mapping_and_locals, _leaf_prediction
 from capymoa.base import MOAClassifier
 from capymoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
 from capymoa.stream import Schema
-from capymoa._utils import build_cli_str_from_mapping_and_locals, _leaf_prediction
-
 from capymoa.visualization import export_hoeffding_tree_to_dot
 
 import moa.classifiers.trees as moa_trees
 
 MissingValuePolicy = Literal["default", "random", "all"]
-TreeEdge = tuple[Any, int, Any]
+TreeTraceEdge = tuple[Any, int, Any]
 
 
 @dataclass(frozen=True)
@@ -22,9 +22,9 @@ class TreePredictionTrace:
     """Prediction votes and tree path used to produce them."""
 
     votes: np.ndarray
-    vote_node: Any | None = None
+    vote_source_node: Any | None = None
     nodes: tuple[Any, ...] = ()
-    edges: tuple[TreeEdge, ...] = ()
+    edges: tuple[TreeTraceEdge, ...] = ()
 
 
 def _validate_missing_value_policy(
@@ -121,11 +121,11 @@ class HoeffdingTree(MOAClassifier):
         :param missing_value_policy: Prediction-time policy used when a
             split attribute needed for traversal is missing. ``"default"``
             delegates to MOA's default behavior, ``"random"`` follows one
-            random child, and ``"all"`` combines votes from all reachable
-            children.
+            randomly chosen child and falls back to the current node if that
+            path does not produce usable votes, and ``"all"`` combines votes
+            from all reachable children.
         """
         self.missing_value_policy = _validate_missing_value_policy(missing_value_policy)
-        self._prediction_rng = np.random.default_rng(random_seed)
         mapping = {
             "grace_period": "-g",
             "max_byte_size": "-m",
@@ -211,7 +211,7 @@ class HoeffdingTree(MOAClassifier):
         if node.isLeaf():
             return TreePredictionTrace(
                 votes=self._node_votes(node, java_instance),
-                vote_node=node,
+                vote_source_node=node,
                 nodes=(node,),
             )
 
@@ -220,7 +220,7 @@ class HoeffdingTree(MOAClassifier):
             if self.missing_value_policy == "default":
                 return TreePredictionTrace(
                     votes=self._node_votes(node, java_instance),
-                    vote_node=node,
+                    vote_source_node=node,
                     nodes=(node,),
                 )
 
@@ -232,24 +232,24 @@ class HoeffdingTree(MOAClassifier):
             if not children:
                 return TreePredictionTrace(
                     votes=self._node_votes(node, java_instance),
-                    vote_node=node,
+                    vote_source_node=node,
                     nodes=(node,),
                 )
 
             if self.missing_value_policy == "random":
-                for pick_pos in self._prediction_rng.permutation(len(children)):
-                    branch_idx, child = children[int(pick_pos)]
-                    trace = self._trace_prediction_path(java_instance, child)
-                    if self._has_usable_votes(trace.votes):
-                        return TreePredictionTrace(
-                            votes=trace.votes,
-                            vote_node=trace.vote_node,
-                            nodes=(node, *trace.nodes),
-                            edges=((node, branch_idx, child), *trace.edges),
-                        )
+                pick_pos = int(np.random.randint(len(children)))
+                branch_idx, child = children[pick_pos]
+                trace = self._trace_prediction_path(java_instance, child)
+                if self._has_usable_votes(trace.votes):
+                    return TreePredictionTrace(
+                        votes=trace.votes,
+                        vote_source_node=trace.vote_source_node,
+                        nodes=(node, *trace.nodes),
+                        edges=((node, branch_idx, child), *trace.edges),
+                    )
                 return TreePredictionTrace(
                     votes=self._node_votes(node, java_instance),
-                    vote_node=node,
+                    vote_source_node=node,
                     nodes=(node,),
                 )
 
@@ -262,7 +262,7 @@ class HoeffdingTree(MOAClassifier):
             )
             return TreePredictionTrace(
                 votes=self._sum_votes([trace.votes for trace in child_traces]),
-                vote_node=None,
+                vote_source_node=None,
                 nodes=(node, *(n for trace in child_traces for n in trace.nodes)),
                 edges=(*edges, *(e for trace in child_traces for e in trace.edges)),
             )
@@ -272,14 +272,14 @@ class HoeffdingTree(MOAClassifier):
         if child is None:
             return TreePredictionTrace(
                 votes=self._node_votes(node, java_instance),
-                vote_node=node,
+                vote_source_node=node,
                 nodes=(node,),
             )
 
         trace = self._trace_prediction_path(java_instance, child)
         return TreePredictionTrace(
             votes=trace.votes,
-            vote_node=trace.vote_node,
+            vote_source_node=trace.vote_source_node,
             nodes=(node, *trace.nodes),
             edges=((node, branch_idx, child), *trace.edges),
         )

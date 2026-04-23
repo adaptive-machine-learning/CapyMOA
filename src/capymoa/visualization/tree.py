@@ -174,17 +174,10 @@ def _trace_edge_keys(trace) -> set[tuple[int, int, int]]:
     }
 
 
-def _trace_vote_node_key(trace) -> int | None:
-    if trace.vote_node is None:
+def _trace_vote_source_node_key(trace) -> int | None:
+    if trace.vote_source_node is None:
         return None
-    return _node_key(trace.vote_node)
-
-
-def _copy_rng_state(model):
-    rng = getattr(model, "_prediction_rng", None)
-    if rng is None:
-        return None
-    return rng.bit_generator.state.copy()
+    return _node_key(trace.vote_source_node)
 
 
 def instance_triggers_missing_value_path(model, sample_instance, node=None) -> bool:
@@ -231,14 +224,14 @@ def _subtree_triggers_missing_value_path(java_instance, node) -> bool:
 def export_hoeffding_tree_to_dot(
     model,
     sample_instance=None,
-    title: str = "Real MOA Hoeffding Tree",
+    title: str = "Hoeffding Tree",
     include_leaf_votes: bool = True,
     highlight_path: bool = False,
     require_missing_path: bool = False,
 ) -> str:
     root = model.get_tree_root()
     if root is None:
-        return 'digraph RealHoeffdingTree { empty [label="Tree is empty"]; }'
+        return 'digraph HoeffdingTree { empty [label="Tree is empty"]; }'
 
     java_instance = None
     if sample_instance is not None:
@@ -251,36 +244,29 @@ def export_hoeffding_tree_to_dot(
             "sample_instance does not trigger missing-value handling on the tree path."
         )
 
-    rng_state = _copy_rng_state(model)
-
     active_nodes = set()
     active_edges = set()
-    traced_proba = None
-    trace_vote_node = None
-    traced_votes = None
+    trace_proba = None
+    trace_vote_source_node_key = None
+    trace_votes = None
     if highlight_path and java_instance is not None:
         trace = model.trace_prediction_path(java_instance, root)
         active_nodes = _trace_node_keys(trace)
         active_edges = _trace_edge_keys(trace)
-        trace_vote_node = _trace_vote_node_key(trace)
-        traced_votes = trace.votes
+        trace_vote_source_node_key = _trace_vote_source_node_key(trace)
+        trace_votes = trace.votes
         if model.missing_value_policy != "default":
-            traced_proba = model._normalize_votes(trace.votes)
-
-    if rng_state is not None:
-        model._prediction_rng.bit_generator.state = rng_state.copy()
+            trace_proba = model._normalize_votes(trace.votes)
 
     instance_text = _format_instance_text(model, sample_instance)
     prediction_text = _format_prediction_text(
-        model, sample_instance, proba=traced_proba
+        model, sample_instance, proba=trace_proba
     )
-    if rng_state is not None:
-        model._prediction_rng.bit_generator.state = rng_state.copy()
 
     graph_label = f"{title}\n{instance_text}\n{prediction_text}"
 
     lines = [
-        "digraph RealHoeffdingTree {",
+        "digraph HoeffdingTree {",
         f'  graph [rankdir=TB, labelloc=t, fontsize=18, label="{dot_escape(graph_label)}"];',
         '  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];',
         '  edge [fontname="Helvetica", fontsize=10];',
@@ -331,12 +317,12 @@ def export_hoeffding_tree_to_dot(
         split_label = _split_node_label(model, node)
         if (
             include_leaf_votes
-            and trace_vote_node is not None
-            and trace_vote_node == _node_key(node)
-            and traced_votes is not None
+            and trace_vote_source_node_key is not None
+            and trace_vote_source_node_key == _node_key(node)
+            and trace_votes is not None
         ):
             split_label += "\n" + _format_votes_text(
-                model, traced_votes, "fallback votes"
+                model, trace_votes, "fallback votes"
             )
         lines.append(
             f'  {node_id} [label="{dot_escape(split_label)}", {style_node(node, False)}];'
