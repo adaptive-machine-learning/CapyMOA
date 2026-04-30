@@ -1,6 +1,6 @@
 from ._adaptive_random_forest import AdaptiveRandomForestClassifier
 from ._efdt import EFDT
-from ._hoeffding_tree import HoeffdingTree
+from ._hoeffding_tree import HoeffdingTree, TreePredictionTrace
 from ._last import LAST
 from ._naive_bayes import NaiveBayes
 from ._online_bagging import OnlineBagging
@@ -33,6 +33,7 @@ __all__ = [
     "Finetune",
     "HoeffdingAdaptiveTree",
     "HoeffdingTree",
+    "TreePredictionTrace",
     "KNN",
     "LAST",
     "LeveragingBagging",

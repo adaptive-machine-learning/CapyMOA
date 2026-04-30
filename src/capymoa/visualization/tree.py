@@ -259,9 +259,7 @@ def export_hoeffding_tree_to_dot(
             trace_proba = model._normalize_votes(trace.votes)
 
     instance_text = _format_instance_text(model, sample_instance)
-    prediction_text = _format_prediction_text(
-        model, sample_instance, proba=trace_proba
-    )
+    prediction_text = _format_prediction_text(model, sample_instance, proba=trace_proba)
 
     graph_label = f"{title}\n{instance_text}\n{prediction_text}"
 

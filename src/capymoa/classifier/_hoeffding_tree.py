@@ -257,9 +257,7 @@ class HoeffdingTree(MOAClassifier):
                 self._trace_prediction_path(java_instance, child)
                 for _, child in children
             ]
-            edges = tuple(
-                (node, branch_idx, child) for branch_idx, child in children
-            )
+            edges = tuple((node, branch_idx, child) for branch_idx, child in children)
             return TreePredictionTrace(
                 votes=self._sum_votes([trace.votes for trace in child_traces]),
                 vote_source_node=None,
