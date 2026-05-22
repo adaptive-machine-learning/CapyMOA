@@ -11,11 +11,11 @@
 
 
 **CapyMOA does efficient machine learning for data streams in Python.**
-A data stream is a sequences of items ariving one-by-one that is too
-large to efficiently process non-sequentially. CapyMOA is a toolbox of
-methods and evaluators for: classification, regression, clustering,
-anomaly detection, semi-supervised learning, online continual learning,
-and drift detection for data streams.
+A data stream is a sequence of items arriving one by one that is too large
+to efficiently process non-sequentially. CapyMOA is a toolbox of methods
+and evaluators for: classification, regression, clustering, anomaly
+detection, semi-supervised learning, online continual learning, and
+drift detection for data streams.
 
 For the default PyTorch CUDA GPU installation, run:
 
