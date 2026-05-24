@@ -619,8 +619,9 @@ class AgrawalGenerator(MOAStream):
                 else None
             ),
             (f"classification_function={self.classification_function}"),
-            (f"peturbation={self.peturbation}" if self.peturbation != 0.05 else None),
-            (f"balance={self.balance}" if self.balance else None),
+            (f"peturbation={self.peturbation}" if self.peturbation !=
+             0.05 else None),
+            (f"balance={self.balance_classes}" if self.balance_classes else None),
         ]
 
         non_default_attributes = [attr for attr in attributes if attr is not None]
@@ -748,7 +749,7 @@ class LEDGeneratorDrift(MOAStream):
             ),
             (
                 f"noise_percentage={self.noise_percentage}"
-                if self.percentage != 10
+                if self.noise_percentage != 10
                 else None
             ),
             (f"reduce_data={self.reduce_data}" if self.reduce_data else None)(
