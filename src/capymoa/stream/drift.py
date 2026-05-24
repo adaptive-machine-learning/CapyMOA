@@ -298,10 +298,6 @@ def get_recurrent_concept_drift_stream_list(
     concept_name_list: list = None,
 ) -> list:
     # checks
-    if not isinstance(transition_type_template, AbruptDrift):
-        raise ValueError(
-            f"Unsupported drift transition type: {str(transition_type_template)}"
-        )
 
     # variable initializations
     concept_cycle = IndexedCycle([k for k in concept_list])
@@ -330,6 +326,8 @@ def get_recurrent_concept_drift_stream_list(
             drift_args["position"] * ((i + 2) / 2)
         )  # calculate drift position
         drift_args["position"] = position  # set drift position
+        if isinstance(transition_type_template, GradualDrift):
+            drift_args["width"] = original_drift_args["width"]
         drift = drift_cls(**drift_args)  # initialize drift
 
         end_of_concept = position
