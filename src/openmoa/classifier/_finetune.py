@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from typing import Callable, Union, Iterator
 
 import numpy as np

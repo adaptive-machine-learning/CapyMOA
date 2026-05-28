@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """Tests to ensure progress bars work correctly."""
 
 from typing import Optional

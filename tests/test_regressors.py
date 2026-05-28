@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from contextlib import nullcontext
 import os
 from openmoa.evaluation import RegressionEvaluator, RegressionWindowedEvaluator

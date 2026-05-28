@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling", "hatch-build-scripts", "wget", "stubgenj", "invoke"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
@@ -8,7 +8,7 @@ dynamic = ['version']
 description = "OpenMOA: Efficient Machine Learning for Data Streams in Python (Fork of CapyMOA)."
 readme = "README.md"
 license = "BSD-3-Clause"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "LICENSES/*", "LICENSES/**/*"]
 homepage = "https://openmoa.net"
 repository = "https://github.com/ZW-SIYUAN/OpenMOA"
 authors = [
@@ -34,7 +34,7 @@ keywords = [
 ]
 
 long_description_content_type = "text/markdown"
-requires-python = ">=3.9"
+requires-python = ">=3.10,<3.14"
 dependencies = [
     "jpype1>=v1.5.1",
     "wget",
@@ -43,6 +43,7 @@ dependencies = [
     "pyarrow",
     "matplotlib",
     "scikit-learn",
+    "scipy",
     "click",
     "seaborn",
     "tqdm",
@@ -61,6 +62,14 @@ dev=[
     "wget",
     "commitizen~=3.24.0",
     "ruff",
+    "build",
+    "hatchling",
+    "hatch-build-scripts",
+]
+
+deep=[
+    "torch",
+    "torchvision",
 ]
 
 doc=[
@@ -87,6 +96,22 @@ norecursedirs = [
 ]
 
 [tool.hatch]
+
+[tool.hatch.build]
+exclude = [
+    "/.git",
+    "/.pytest_cache",
+    "/.vscode",
+    "**/__pycache__",
+    "**/*.pyc",
+    "**/*.pyc.*",
+    "**/.ipynb_checkpoints",
+    "**/.DS_Store",
+    "**/._*",
+    "**/Thumbs.db",
+    "/demo/paper_demo_output",
+    "/OpenMOA_test.code-workspace",
+]
 [tool.hatch.version]
 path = "src/openmoa/__about__.py"
 
@@ -96,16 +121,18 @@ artifacts = ["src/openmoa/jar/moa.jar", "src/openmoa/jar/Home.class"]
 ignore-vcs = true
 
 [tool.hatch.build.targets.sdist]
-packages = ["src/openmoa", "src/moa-stubs", "src/com-stubs"]
+include = [
+    "/src",
+    "/LICENSE",
+    "/NOTICE",
+    "/THIRD_PARTY_NOTICES.md",
+    "/LICENSES",
+    "/README.md",
+    "/pyproject.toml",
+    "/data/README.md",
+]
 artifacts = ["src/openmoa/jar/moa.jar", "src/openmoa/jar/Home.class"]
 ignore-vcs = true
-
-[[tool.hatch.build.hooks.build-scripts.scripts]]
-commands = [
-    "python -m invoke build.download-moa",
-    "python -m invoke build.stubs"
-]
-artifacts = []
 
 [tool.semantic_release]
 assets = []

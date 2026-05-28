@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 import copy
 from typing import Optional, Sequence, Tuple
 

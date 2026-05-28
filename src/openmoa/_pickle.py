@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """This file is a hacky workaround for https://github.com/jpype-project/jpype/issues/1201
 TODO: When the issue is resolved, remove this file and update the required
 version of JPype to the one that includes the fix.

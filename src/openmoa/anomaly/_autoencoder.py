@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa.base import AnomalyDetector
 from openmoa.instance import Instance
 import torch

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 import gzip
 import shutil
 from pathlib import Path

@@ -1,5 +1,8 @@
+# SPDX-License-Identifier: BSD-3-Clause
+from importlib import import_module
+
 # ---------------------------------------------------------------------------
-# UOL classifiers – pure Python/NumPy, no Java or PyTorch at import time.
+# UOL classifiers: pure Python/NumPy, no Java or PyTorch at import time.
 # ---------------------------------------------------------------------------
 from ._fesl_classifier import FESLClassifier
 from ._oasf_classifier import OASFClassifier
@@ -11,10 +14,10 @@ from ._ovfm_classifier import OVFMClassifier
 from ._oslmf_classifier import OSLMFClassifier
 
 # ---------------------------------------------------------------------------
-# MOA-based classifiers – loaded lazily so that importing this module does
-# not require Java when only UOL classifiers are used.
+# Optional or Java-backed classifiers are loaded lazily so that importing this
+# module does not require Java or PyTorch when only UOL classifiers are used.
 # ---------------------------------------------------------------------------
-_MOA_CLASSIFIERS = {
+_LAZY_CLASSIFIERS = {
     "AdaptiveRandomForestClassifier": "._adaptive_random_forest",
     "EFDT": "._efdt",
     "HoeffdingTree": "._hoeffding_tree",
@@ -39,19 +42,53 @@ _MOA_CLASSIFIERS = {
     "ShrubsClassifier": "._shrubs_classifier",
     "Finetune": "._finetune",
     "PLASTIC": "._plastic",
-    # UOL classifiers that require PyTorch – loaded lazily to keep the
-    # pure-NumPy subset importable without a torch installation.
     "OLD3SClassifier": "._old3s_classifier",
     "OWSSClassifier": "._owss_classifier",
 }
 
+_MOA_CLASSIFIERS = {
+    "AdaptiveRandomForestClassifier",
+    "EFDT",
+    "HoeffdingTree",
+    "NaiveBayes",
+    "OnlineBagging",
+    "OnlineAdwinBagging",
+    "LeveragingBagging",
+    "KNN",
+    "StreamingGradientBoostedTrees",
+    "OzaBoost",
+    "MajorityClass",
+    "NoChange",
+    "OnlineSmoothBoost",
+    "StreamingRandomPatches",
+    "HoeffdingAdaptiveTree",
+    "SAMkNN",
+    "DynamicWeightedMajority",
+    "CSMOTE",
+    "WeightedkNN",
+    "PLASTIC",
+}
+
+_TORCH_CLASSIFIERS = {"Finetune", "OLD3SClassifier", "OWSSClassifier"}
+
 
 def __getattr__(name: str):
-    if name in _MOA_CLASSIFIERS:
-        import importlib
-        module = importlib.import_module(_MOA_CLASSIFIERS[name], package=__name__)
+    if name in _LAZY_CLASSIFIERS:
+        if name in _MOA_CLASSIFIERS:
+            from openmoa._prepare_jpype import _start_jpype
+
+            _start_jpype()
+        try:
+            module = import_module(_LAZY_CLASSIFIERS[name], package=__name__)
+        except ModuleNotFoundError as exc:
+            if exc.name == "torch" and name in _TORCH_CLASSIFIERS:
+                raise ImportError(
+                    f"{name} requires PyTorch. Install PyTorch before importing "
+                    f"openmoa.classifier.{name}."
+                ) from exc
+            raise
         cls = getattr(module, name)
-        globals()[name] = cls  # cache so subsequent access is direct
+        globals()[name] = cls
         return cls
     raise AttributeError(f"module 'openmoa.classifier' has no attribute {name!r}")
 

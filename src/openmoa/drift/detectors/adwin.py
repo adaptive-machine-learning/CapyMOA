@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from typing import Optional
 
 from openmoa.drift.base_detector import MOADriftDetector

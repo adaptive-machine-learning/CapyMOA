@@ -1,9 +1,11 @@
+# SPDX-License-Identifier: BSD-3-Clause
 # Python imports
 import jpype
 import jpype.imports
 import os
 from pathlib import Path
 from hashlib import sha256
+import shutil
 import subprocess
 from .__about__ import __version__
 from .env import (
@@ -58,6 +60,27 @@ def _get_java_home() -> Path:
     return java_home
 
 
+
+def _classpath_moa_jar(moa_jar: Path) -> Path:
+    """Return a JVM classpath-safe copy of the MOA jar when needed.
+
+    JPype's package import hook can fail on Windows for jar paths under
+    directories whose names contain dashes. A cached copy under the system temp
+    directory avoids that path-shape issue without changing the packaged jar.
+    """
+    if os.name != "nt":
+        return moa_jar
+
+    with open(moa_jar, "rb") as f:
+        jar_hash = sha256(f.read()).hexdigest()
+    cache_dir = Path.home() / ".openmoa" / "moa" / jar_hash
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cached_jar = cache_dir / "moa.jar"
+    if not cached_jar.exists() or cached_jar.stat().st_size != moa_jar.stat().st_size:
+        shutil.copyfile(moa_jar, cached_jar)
+    return cached_jar
+
+
 def _moa_hash():
     with open(openmoa_moa_jar(), "rb") as f:
         return sha256(f.read()).hexdigest()
@@ -70,6 +93,7 @@ def about():
     >>> openmoa.about() # doctest: +ELLIPSIS
     OpenMOA ...
     """
+    _start_jpype()
     java_version = jpype.java.lang.System.getProperty("java.version")
     print(f"OpenMOA {__version__}")
     print(f"  OPENMOA_DATASETS_DIR: {openmoa_datasets_dir()}")
@@ -92,7 +116,7 @@ def _start_jpype():
     moa_jar = openmoa_moa_jar()
     if not (moa_jar.exists() and moa_jar.is_file()):
         raise OpenmoaImportError(f"MOA jar not found at `{moa_jar}`.")
-    jpype.addClassPath(moa_jar)
+    jpype.addClassPath(_classpath_moa_jar(moa_jar).as_posix())
 
     # Start the JVM
     jpype.startJVM(jpype.getDefaultJVMPath(), *openmoa_jvm_args())

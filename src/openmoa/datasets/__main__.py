@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """This module defines the command line interface for downloading datasets."""
 
 import click

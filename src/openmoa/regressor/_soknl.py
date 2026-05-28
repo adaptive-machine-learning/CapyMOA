@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 # Library imports
 
 from ._soknl_base_tree import SOKNLBT

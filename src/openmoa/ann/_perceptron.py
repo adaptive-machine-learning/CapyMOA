@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa.stream._stream import Schema
 from torch import nn
 from torch import Tensor

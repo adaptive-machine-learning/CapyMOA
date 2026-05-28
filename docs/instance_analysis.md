@@ -1,7 +1,7 @@
 # 📚 OpenMOA Instance 模块深度分析文档
 
 > **文件路径**: `src/openmoa/instance.py`
-> **版本**: OpenMOA 0.0.1
+> **版本**: OpenMOA 1.0.0
 > **分析日期**: 2026-02-11
 
 ---

@@ -1,7 +1,7 @@
 # 📚 OpenMOA Stream Wrapper 深度分析文档
 
 > **文件路径**: `src/openmoa/stream/stream_wrapper.py`
-> **版本**: OpenMOA 0.0.1
+> **版本**: OpenMOA 1.0.0
 > **分析日期**: 2026-02-10
 
 ---
@@ -1230,4 +1230,3 @@ print(f"Has feature_indices: {hasattr(inst, 'feature_indices')}")  # False
 > 📝 **文档版本**: 1.0
 > **最后更新**: 2026-02-10
 > **作者**: Claude Code Analysis
-

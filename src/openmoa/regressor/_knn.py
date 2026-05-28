@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa.base import MOARegressor
 from moa.classifiers.lazy import kNN as _moa_kNN
 

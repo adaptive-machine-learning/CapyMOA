@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from contextlib import nullcontext
 from itertools import product
 from openmoa.evaluation.evaluation import (

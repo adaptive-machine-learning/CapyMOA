@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 # Library imports
 
 from openmoa.base import MOARegressor, _extract_moa_learner_CLI

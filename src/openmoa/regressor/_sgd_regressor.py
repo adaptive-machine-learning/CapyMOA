@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from typing import Optional, Literal
 from openmoa.base import SKRegressor
 from sklearn.linear_model import (

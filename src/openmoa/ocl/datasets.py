@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """Use built-in datasets for online continual learning.
 
 In OCL datastreams are irreversible sequences of examples following a

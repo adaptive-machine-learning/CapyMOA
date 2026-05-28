@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """openmoa/regressor/_oasf_regressor.py"""
 from __future__ import annotations
 from typing import Optional

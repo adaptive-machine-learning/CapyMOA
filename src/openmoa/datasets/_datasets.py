@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa.datasets.downloader import DownloadARFFGzip
 from ._source_list import SOURCE_LIST
 from ._utils import identify_compressed_hosted_file

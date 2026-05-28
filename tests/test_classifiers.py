@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 import os
 from contextlib import nullcontext
 from dataclasses import dataclass

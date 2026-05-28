@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa.base import MOAClassifier
 from openmoa.stream import Schema
 from openmoa._utils import build_cli_str_from_mapping_and_locals

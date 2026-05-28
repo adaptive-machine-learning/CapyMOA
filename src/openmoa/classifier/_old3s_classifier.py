@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """_old3s_classifier.py - OLD³S Classifier for OpenMOA (Optimized Lifelong Logic)"""
 from __future__ import annotations
 from typing import Optional, List, Dict

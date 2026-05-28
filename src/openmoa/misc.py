@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa._pickle import (
     JPickler as DeprecatedJPickler,
     JUnpickler as DeprecatedJUnpickler,

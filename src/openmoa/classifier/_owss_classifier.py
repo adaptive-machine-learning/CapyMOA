@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """
 OWSS: Utilitarian Online Learning from Open-World Soft Sensing
 --------------------------------------------------------------

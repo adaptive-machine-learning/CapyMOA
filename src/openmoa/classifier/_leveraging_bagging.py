@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa.base import (
     MOAClassifier,
     _extract_moa_learner_CLI,

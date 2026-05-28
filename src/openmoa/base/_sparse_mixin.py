@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """Mixin providing sparse feature extraction for UOL classifiers.
 
 All UOL classifiers that handle OpenFeatureStream (varying feature spaces)

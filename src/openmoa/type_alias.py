@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from numpy import double
 from numpy.typing import NDArray
 

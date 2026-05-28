@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """Artificial Neural Networks for OpenMOA."""
 
 from ._perceptron import Perceptron  # 加载Perceptron类

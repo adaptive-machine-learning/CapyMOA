@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """Evaluate online continual learning in classification tasks."""
 
 from dataclasses import dataclass

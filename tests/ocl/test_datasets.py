@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from typing import Type
 from openmoa.ocl import datasets
 from openmoa.stream import Stream

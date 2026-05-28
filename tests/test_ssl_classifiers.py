@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa.datasets._datasets import ElectricityTiny, CovtypeTiny
 from openmoa.ssl.classifier import OSNN
 

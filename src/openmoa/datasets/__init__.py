@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """OpenMOA comes with some datasets 'out of the box'. Simply import the dataset
 and start using it, the data will be downloaded automatically if it is not
 already present in the download directory. You can configure where the datasets

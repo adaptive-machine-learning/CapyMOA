@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """A private module that provides support for progress bars."""
 
 from abc import ABC, abstractmethod

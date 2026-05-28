@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from .evaluation import (
     prequential_evaluation,
     prequential_evaluation_multiple_learners,

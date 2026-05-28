@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 import torch
 from torch import Tensor, nn
 

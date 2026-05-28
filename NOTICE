@@ -1,0 +1,14 @@
+OpenMOA Notices
+===============
+
+OpenMOA is distributed under the BSD 3-Clause License. See LICENSE.
+
+This source package includes third-party components and adapted code. Their
+license terms are listed in THIRD_PARTY_NOTICES.md and under LICENSES/.
+
+The file src/openmoa/_pickle.py contains code adapted from JPype
+(jpype/pickle.py at commit 653ccffd1df46e4d472217d77f592326ae3d3690) and is
+licensed under the Apache License, Version 2.0.
+
+The bundled MOA runtime jar is included as src/openmoa/jar/moa.jar. Its SHA256
+is b14be3c1df87aa5bf37f24c9a35258ab1f9a941897e61294701c43c0141dc2b7.

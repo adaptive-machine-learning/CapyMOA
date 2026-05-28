@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from typing import Optional, Dict, Union, Literal
 from openmoa.base import SKClassifier
 from sklearn.linear_model import (

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """This conftest.py contains pytest configuration and fixtures shared across all tests.
 
 - https://docs.pytest.org/en/stable/reference/fixtures.html#conftest-py-sharing-fixtures-across-multiple-files

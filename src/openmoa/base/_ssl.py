@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from abc import abstractmethod
 
 from ._base import Instance

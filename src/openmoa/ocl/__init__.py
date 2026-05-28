@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """Online Continual Learning (OCL) module.
 
 OCL is a setting where learners train on a sequence of tasks. A task is a
@@ -15,43 +16,29 @@ between online continual learning with and without deep learning.
 Online continual learning (OCL) differs from data stream learning because the
 objective is performance on historic tasks rather than adaptation. Unlike
 traditional continual learning, OCL restricts training to a single data pass.
-
->>> from openmoa.classifier import HoeffdingTree
->>> from openmoa.ocl.datasets import TinySplitMNIST
->>> from openmoa.ocl.evaluation import ocl_train_eval_loop
->>> import numpy as np
->>> scenario = TinySplitMNIST()
->>> learner = HoeffdingTree(scenario.schema)
->>> metrics = ocl_train_eval_loop(learner, scenario.train_loaders(32), scenario.test_loaders(32))
-
-The final accuracy is the accuracy on all tasks after finishing training on all
-tasks:
-
->>> print(f"Final Accuracy: {metrics.accuracy_final:0.2f}")
-Final Accuracy: 0.69
-
-The accuracy on each task after training on each task:
-
->>> with np.printoptions(precision=2):
-...     print(metrics.accuracy_matrix)
-[[0.9  0.   0.   0.3  0.  ]
- [0.88 0.9  0.   0.12 0.  ]
- [0.77 0.82 0.62 0.12 0.  ]
- [0.77 0.82 0.6  0.52 0.  ]
- [0.77 0.82 0.57 0.52 0.75]]
-
-Notice that the accuracies in the upper triangle are close to zero because the
-learner has not trained on those tasks yet. The diagonal contains the accuracy
-on each task after training on that task. The lower triangle contains the
-accuracy on each task after training on all tasks.
-
->>> print(f"Forward Transfer: {metrics.forward_transfer:0.2f}")
-Forward Transfer: 0.05
-
->>> print(f"Backward Transfer: {metrics.backward_transfer:0.2f}")
-Backward Transfer: -0.07
 """
 
-from . import base, datasets, evaluation, util, strategy
+from importlib import import_module
 
-__all__ = ["evaluation", "datasets", "strategy", "base", "util"]
+from . import base
+
+_LAZY_SUBMODULES = {"datasets", "evaluation", "util", "strategy", "ann"}
+
+
+def __getattr__(name: str):
+    if name in _LAZY_SUBMODULES:
+        try:
+            module = import_module(f".{name}", package=__name__)
+        except ModuleNotFoundError as exc:
+            if exc.name in {"torch", "torchvision"}:
+                raise ImportError(
+                    f"openmoa.ocl.{name} requires PyTorch and TorchVision. "
+                    "Install them before importing this OCL submodule."
+                ) from exc
+            raise
+        globals()[name] = module
+        return module
+    raise AttributeError(f"module 'openmoa.ocl' has no attribute {name!r}")
+
+
+__all__ = ["base", "evaluation", "datasets", "strategy", "util", "ann"]

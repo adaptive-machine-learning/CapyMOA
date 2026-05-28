@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """
 OVFM (Online Learning in Variable Feature Spaces with Mixed Data) - Authentic Implementation
 ------------------------------------------------------------------------------------------

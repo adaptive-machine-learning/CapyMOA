@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 # Pure-Python base classes – no Java required at import time.
 from openmoa.base._classifier import (
     BatchClassifier,
@@ -29,6 +30,9 @@ _MOA_BASE_ATTRS = {
 
 def __getattr__(name: str):
     if name in _MOA_BASE_ATTRS:
+        from openmoa._prepare_jpype import _start_jpype
+
+        _start_jpype()
         from openmoa.base._base import (
             AnomalyDetector,
             Clusterer,

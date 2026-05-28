@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa.base import SKRegressor
 from sklearn.linear_model import (
     PassiveAggressiveRegressor as _SKPassiveAggressiveRegressor,

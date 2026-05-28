@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """
 demo_owss_benchmark_multiclass.py
 ---------------------------------

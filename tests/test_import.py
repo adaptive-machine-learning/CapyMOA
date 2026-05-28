@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 import subprocess
 import platform
 import os
@@ -13,6 +14,10 @@ CMD = [PYTHON_EXE, "-c", "import openmoa"]
 CMD_ABOUT = [PYTHON_EXE, "-c", "import openmoa; openmoa.about()"]
 
 
+def _decode_output(data: bytes) -> str:
+    return data.decode(errors="replace")
+
+
 @pytest.fixture
 def env():
     return os.environ.copy()
@@ -20,13 +25,13 @@ def env():
 
 def test_bad_infer_java_home(env):
     """Tests reporting errors when java cannot be found."""
-    del env["JAVA_HOME"]
+    env.pop("JAVA_HOME", None)
     env["PATH"] = ""
     assert "JAVA_HOME" not in env
     result = subprocess.run(CMD_ABOUT, capture_output=True, env=env)
-    print(result.stdout.decode())
+    print(_decode_output(result.stdout))
     assert result.returncode != 0
-    exception = result.stderr.decode().splitlines()[-1]
+    exception = _decode_output(result.stderr).splitlines()[-1]
     assert exception == (
         "openmoa._prepare_jpype.OpenmoaImportError: Java not found ensure "
         "`java -version` runs successfully. Alternatively, you may set the "
@@ -44,9 +49,9 @@ def test_good_java_home(env):
 def test_bad_java_home(env):
     notfound = Path("/notfound")
     env["JAVA_HOME"] = notfound.as_posix()
-    result = subprocess.run(CMD, capture_output=True, env=env)
+    result = subprocess.run(CMD_ABOUT, capture_output=True, env=env)
     assert result.returncode != 0
-    exception = result.stderr.decode().splitlines()[-1]
+    exception = _decode_output(result.stderr).splitlines()[-1]
     assert exception == (
         f"openmoa._prepare_jpype.OpenmoaImportError: The JAVA_HOME (`{str(notfound)}`) "
         "environment variable is set, but the path does not exist."
@@ -56,9 +61,9 @@ def test_bad_java_home(env):
 def test_openmoa_moa_jar(env):
     notfound = Path("/notfound")
     env["OPENMOA_MOA_JAR"] = notfound.as_posix()
-    result = subprocess.run(CMD, capture_output=True, env=env)
+    result = subprocess.run(CMD_ABOUT, capture_output=True, env=env)
     assert result.returncode != 0
-    exception = result.stderr.decode().splitlines()[-1]
+    exception = _decode_output(result.stderr).splitlines()[-1]
     assert exception == (
         f"openmoa._prepare_jpype.OpenmoaImportError: MOA jar not found at `{str(notfound)}`."
     )
@@ -84,7 +89,7 @@ def test_nonascii_openmoa(env):
             env=env,
         )
         assert result.returncode == 0
-        assert result.stdout.decode().splitlines()[-1].strip() == moa_jar.as_posix()
+        assert _decode_output(result.stdout).splitlines()[-1].strip() == moa_jar.as_posix()
 
 
 def test_openmoa_datasets_dir(env):
@@ -92,7 +97,7 @@ def test_openmoa_datasets_dir(env):
         env["OPENMOA_DATASETS_DIR"] = d
         result = subprocess.run(CMD_ABOUT, capture_output=True, env=env)
         assert result.returncode == 0
-        about = result.stdout.decode()
+        about = _decode_output(result.stdout)
         assert f"OPENMOA_DATASETS_DIR: {d}" in about
 
 
@@ -100,5 +105,5 @@ def test_openmoa_jvm_args(env):
     env["OPENMOA_JVM_ARGS"] = "-Xmx16g -Xss10M"
     result = subprocess.run(CMD_ABOUT, capture_output=True, env=env)
     assert result.returncode == 0
-    about = result.stdout.decode()
+    about = _decode_output(result.stdout)
     assert "OPENMOA_JVM_ARGS:     ['-Xmx16g', '-Xss10M']" in about

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Micro-benchmarks comparing old vs new implementation for each optimisation.
 Run directly: python tests/benchmark_optimizations.py

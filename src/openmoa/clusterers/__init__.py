@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from ._clustream import Clustream
 from ._clustream_with_kmeans import Clustream_with_kmeans
 from ._clustree import ClusTree

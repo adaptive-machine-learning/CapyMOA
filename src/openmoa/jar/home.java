@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 // Simple program to return the java home
 class Home {
     public static void main(String[] args) {

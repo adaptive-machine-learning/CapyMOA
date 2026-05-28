@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """This is a module responsible for storing the URLs of the datasets."""
 
 from dataclasses import dataclass

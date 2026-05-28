@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from ._experience_replay import ExperienceReplay
 from ._slda import SLDA
 from ._ncm import NCM

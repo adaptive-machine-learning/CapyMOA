@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """
 R. G. F. Soares and L. L. Minku, “Osnn: An online semisupervised
 neural network for nonstationary data streams,” IEEE Transactions

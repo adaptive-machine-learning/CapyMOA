@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """Machine learning library tailored for data streams."""
 
 from ._prepare_jpype import about

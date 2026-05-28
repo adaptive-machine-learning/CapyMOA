@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """openmoa/classifier/_orf3v_classifier.py"""
 from __future__ import annotations
 from typing import Optional

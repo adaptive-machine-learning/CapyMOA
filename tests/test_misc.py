@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa.classifier import AdaptiveRandomForestClassifier
 from openmoa.datasets import ElectricityTiny
 from openmoa.misc import legacy_save_model, legacy_load_model, load_model

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from typing import Sized, Type
 import openmoa.datasets as openmoa_datasets
 from openmoa.datasets import ElectricityTiny

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 import matplotlib.pyplot as plt
 from datetime import datetime
 from openmoa.stream.drift import DriftStream, RecurrentConceptDriftStream

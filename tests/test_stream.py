@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """This module is for testing the speeds of different stream implementations."""
 
 from functools import partial

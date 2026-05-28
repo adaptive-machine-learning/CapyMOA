@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa.base import MOAClusterer
 import typing
 from moa.clusterers.clustree import ClusTree as _MOA_ClusTree

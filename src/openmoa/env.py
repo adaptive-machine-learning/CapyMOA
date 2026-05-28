@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """
 OpenMOA supports a few environment variables that can be used to customize its behavior.
 None of these are required, but they can be useful in certain situations.

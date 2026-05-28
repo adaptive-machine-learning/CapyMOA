@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """The nbmock module provides support for mocking datasets to speed up testing."""
 
 from os import environ

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from dataclasses import dataclass, asdict
 from functools import partial
 from typing import Callable, List

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 # Library imports
 from typing import Optional, Union
 

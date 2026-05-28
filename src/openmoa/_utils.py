@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """Contains private utility functions used throughout the library."""
 
 from typing import Dict, Any, Iterator, Tuple, TypeVar

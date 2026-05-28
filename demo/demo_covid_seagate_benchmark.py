@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """
 demo_covid_seagate_benchmark.py
 --------------------------------

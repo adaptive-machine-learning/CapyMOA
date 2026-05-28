@@ -1,17 +1,22 @@
-from ._soknl_base_tree import SOKNLBT
-from ._soknl import SOKNL
-from ._orto import ORTO
-from ._knn import KNNRegressor
-from ._fimtdd import FIMTDD
-from ._arffimtdd import ARFFIMTDD
-from ._adaptive_random_forest import AdaptiveRandomForestRegressor
-from ._passive_aggressive_regressor import PassiveAggressiveRegressor
-from ._sgd_regressor import SGDRegressor
-from ._shrubs_regressor import ShrubsRegressor
-from ._fesl_regressor import FESLRegressor
-from ._oasf_regressor import OASFRegressor
+# SPDX-License-Identifier: BSD-3-Clause
+from importlib import import_module
 
-__all__ = [
+_LAZY_REGRESSORS = {
+    "SOKNLBT": "._soknl_base_tree",
+    "SOKNL": "._soknl",
+    "ORTO": "._orto",
+    "KNNRegressor": "._knn",
+    "FIMTDD": "._fimtdd",
+    "ARFFIMTDD": "._arffimtdd",
+    "AdaptiveRandomForestRegressor": "._adaptive_random_forest",
+    "PassiveAggressiveRegressor": "._passive_aggressive_regressor",
+    "SGDRegressor": "._sgd_regressor",
+    "ShrubsRegressor": "._shrubs_regressor",
+    "FESLRegressor": "._fesl_regressor",
+    "OASFRegressor": "._oasf_regressor",
+}
+
+_MOA_REGRESSORS = {
     "SOKNLBT",
     "SOKNL",
     "ORTO",
@@ -19,9 +24,20 @@ __all__ = [
     "FIMTDD",
     "ARFFIMTDD",
     "AdaptiveRandomForestRegressor",
-    "PassiveAggressiveRegressor",
-    "SGDRegressor",
-    "ShrubsRegressor",
-    "FESLRegressor",
-    "OASFRegressor",
-]
+}
+
+
+def __getattr__(name: str):
+    if name in _LAZY_REGRESSORS:
+        if name in _MOA_REGRESSORS:
+            from openmoa._prepare_jpype import _start_jpype
+
+            _start_jpype()
+        module = import_module(_LAZY_REGRESSORS[name], package=__name__)
+        cls = getattr(module, name)
+        globals()[name] = cls
+        return cls
+    raise AttributeError(f"module 'openmoa.regressor' has no attribute {name!r}")
+
+
+__all__ = list(_LAZY_REGRESSORS)

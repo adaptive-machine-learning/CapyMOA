@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """Simulate concept drift in datastreams."""
 
 import copy

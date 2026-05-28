@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Numerical-equivalence tests for the P1–P4 performance optimisations.
 

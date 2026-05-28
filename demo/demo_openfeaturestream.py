@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Optional, Literal, List

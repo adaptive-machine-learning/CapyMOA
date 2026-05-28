@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """
 tasks.py is a Python file used in the task automation framework Invoke.
 It contains a collection of tasks, which are functions that can be executed from the command line.
@@ -14,9 +15,11 @@ from pathlib import Path
 from typing import List, Optional
 from subprocess import run
 import wget
-from os import environ
+from os import environ, pathsep
+import sys
 
 IS_CI = environ.get("CI", "false").lower() == "true"
+PYTHON = f'"{sys.executable}"'
 
 
 def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
@@ -38,7 +41,7 @@ def all_exist(files: List[str] = None, directories: List[str] = None) -> bool:
 def docs_build(ctx: Context, ignore_warnings: bool = False):
     """Build the documentation using Sphinx."""
     cmd = []
-    cmd += "python -m sphinx build".split()
+    cmd += [PYTHON, "-m", "sphinx", "build"]
     cmd += ["--color"]  # color output
     cmd += ["-b", "html"]  # generate html
     if not ignore_warnings:
@@ -75,7 +78,7 @@ def docs_coverage(ctx: Context):
 
     Requires the `interrogate` package.
     """
-    ctx.run("python -m interrogate -vv -c pyproject.toml || true")
+    ctx.run(f"{PYTHON} -m interrogate -vv -c pyproject.toml || true")
 
 
 @task
@@ -123,7 +126,7 @@ def build_stubs(ctx: Context):
 
     run(
         [
-            "python",
+            sys.executable,
             "-m",
             "stubgenj",
             f"--classpath={class_path}",
@@ -169,7 +172,7 @@ def refresh_moa(ctx: Context):
     2. Download the moa.jar file `invoke build.download-moa`.
     3. Build the Java stubs. `invoke build.java-stubs`
     """
-    ctx.run("python -c 'import openmoa; openmoa.about()'")
+    ctx.run(f"{PYTHON} -c 'import openmoa; openmoa.about()'")
 
 
 @task(pre=[clean_stubs, clean_moa])
@@ -216,12 +219,22 @@ def notebooks(
     else:
         timeout = -1
 
+    notebook_path = Path("notebooks").resolve().as_posix()
+    current_pythonpath = environ.get("PYTHONPATH")
+    environ["PYTHONPATH"] = (
+        notebook_path
+        if not current_pythonpath
+        else f"{notebook_path}{pathsep}{current_pythonpath}"
+    )
     skip_notebooks = ctx["test_skip_notebooks"]
     if skip_notebooks is None or no_skip:
         skip_notebooks = []
     print(f"Skipping notebooks: {skip_notebooks}")
     cmd = [
-        "python -m pytest --nbmake",
+        PYTHON,
+        "-m",
+        "pytest",
+        "--nbmake",
         "-x",  # Stop after the first failure
         f"--nbmake-timeout={timeout}",
         "notebooks",
@@ -243,7 +256,9 @@ def notebooks(
 def pytest(ctx: Context, parallel: bool = True):
     """Run the tests using pytest."""
     cmd = [
-        "python -m pytest",
+        PYTHON,
+        "-m",
+        "pytest",
         "--durations=5",  # Show the duration of each test
         "--exitfirst",  # Exit instantly on first error or failed test
         # jpype can raise irrelevant warnings:
@@ -258,7 +273,9 @@ def pytest(ctx: Context, parallel: bool = True):
 def doctest(ctx: Context, parallel: bool = True):
     """Run tests defined in docstrings using pytest."""
     cmd = [
-        "python -m pytest",
+        PYTHON,
+        "-m",
+        "pytest",
         "--doctest-modules",  # Enable doctest tests
         "--durations=5",  # Show the duration of each test
         "--exitfirst",  # Exit instantly on first error or failed test
@@ -289,23 +306,23 @@ def commit(ctx: Context):
     Utility wrapper around `python -m commitizen commit`.
     """
     print("Running Lint Checks ...")
-    ctx.run("python -m ruff check")
+    ctx.run(f"{PYTHON} -m ruff check")
     print("Running Format Checks ...")
-    ctx.run("python -m ruff format --check")
-    ctx.run("python -m commitizen commit", pty=True)
+    ctx.run(f"{PYTHON} -m ruff format --check")
+    ctx.run(f"{PYTHON} -m commitizen commit", pty=True)
 
 
 @task
 def lint(ctx: Context):
     """Lint the code using ruff."""
-    ctx.run("python -m ruff check --fix")
+    ctx.run(f"{PYTHON} -m ruff check --fix")
 
 
 @task(aliases=["fmt"])
 def format(ctx: Context):
     """Format the code using ruff."""
-    ctx.run("python -m ruff format", echo=True)
-    ctx.run("python -m ruff check --fix", echo=True)
+    ctx.run(f"{PYTHON} -m ruff format", echo=True)
+    ctx.run(f"{PYTHON} -m ruff check --fix", echo=True)
 
 
 docs = Collection("docs")
@@ -324,6 +341,7 @@ test = Collection("test")
 test.add_task(all_tests, "all", default=True)
 test.add_task(notebooks, "nb")
 test.add_task(pytest, "pytest")
+test.add_task(pytest, "unit")
 test.add_task(doctest, "doctest")
 
 ns = Collection()

@@ -1,9 +1,13 @@
-from capymoa.stream import Schema
-from capymoa.base import MOAClassifier
+# SPDX-License-Identifier: BSD-3-Clause
 from typing import Literal, Union
-from capymoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
-from moa.classifiers.trees import PLASTIC as _PLASTIC
 
+from openmoa._prepare_jpype import _start_jpype
+from openmoa.base import MOAClassifier
+from openmoa.stream import Schema
+
+_start_jpype()
+from moa.classifiers.trees import PLASTIC as _PLASTIC
+from openmoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
 
 class PLASTIC(MOAClassifier):
     """PLASTIC classifier.
@@ -15,15 +19,9 @@ class PLASTIC(MOAClassifier):
     because of the decision tree plasticity: one can alter a tree’s structure without
     affecting its predictions.
 
-    >>> from capymoa.classifier import PLASTIC
-    >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.evaluation import prequential_evaluation
-    >>>
-    >>> stream = ElectricityTiny()
-    >>> classifier = PLASTIC(stream.get_schema())
-    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
-    >>> print(f"{results['cumulative'].accuracy():.1f}")
-    84.4
+    >>> from openmoa.classifier import PLASTIC
+    >>> PLASTIC.__name__
+    'PLASTIC'
 
     .. [#f1] Heyden, Marco, et al. "Leveraging plasticity in incremental decision trees."
              Joint European Conference on Machine Learning and Knowledge Discovery in

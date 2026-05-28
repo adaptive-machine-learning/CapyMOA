@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """
 OSLMF (Online Semi-supervised Learning with Mix-Typed Streaming Features)
 -----------------------------------------------------------------------

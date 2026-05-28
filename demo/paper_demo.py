@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """
 OpenMOA Paper Demo — UOL Classifiers on Evolving Feature Streams
 =================================================================

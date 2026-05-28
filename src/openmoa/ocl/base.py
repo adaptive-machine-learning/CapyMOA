@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """Base classes for online continual learning algorithms.
 
 All OCL learners inherit from :class:`openmoa.base.Classifier` this module

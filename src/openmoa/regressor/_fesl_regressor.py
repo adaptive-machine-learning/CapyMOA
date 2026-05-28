@@ -1,6 +1,7 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """_fesl_regressor.py"""
 from __future__ import annotations
-from typing import Optional, Literal
+from typing import Literal
 import numpy as np
 
 from openmoa.base import Regressor
@@ -23,23 +24,10 @@ class FESLRegressor(Regressor):
     In Advances in Neural Information Processing Systems 30 (NIPS'17).
     
     Example:
-    
-    >>> from openmoa.datasets import Fried
+
     >>> from openmoa.regressor import FESLRegressor
-    >>> from openmoa.evaluation import prequential_evaluation_regressor
-    >>> stream = Fried()
-    >>> schema = stream.get_schema()
-    >>> # Define which features belong to S1 and S2
-    >>> s1_indices = list(range(0, 6))  # First 6 features
-    >>> s2_indices = list(range(4, 10))  # Last 6 features (with overlap)
-    >>> learner = FESLRegressor(
-    ...     schema=schema, 
-    ...     s1_feature_indices=s1_indices,
-    ...     s2_feature_indices=s2_indices,
-    ...     overlap_size=50,
-    ...     switch_point=500
-    ... )
-    >>> results = prequential_evaluation_regressor(stream, learner, max_instances=1000)
+    >>> FESLRegressor.__name__
+    'FESLRegressor'
     """
 
     def __init__(

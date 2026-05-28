@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 import numpy as np
 from .std import PairwiseVariance
 

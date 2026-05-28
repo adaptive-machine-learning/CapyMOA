@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 # Python imports
 import pandas as pd
 from datetime import datetime

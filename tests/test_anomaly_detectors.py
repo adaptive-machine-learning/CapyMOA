@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa.evaluation import AnomalyDetectionEvaluator
 from openmoa.anomaly import (
     HalfSpaceTrees,

@@ -2,7 +2,7 @@ Installation
 ============
 
 This document describes how to install OpenMOA and its dependencies. OpenMOA is
-tested against Python 3.10, 3.11, and 3.12. Newer versions of Python will likely
+tested against Python 3.10, 3.11, 3.12, and 3.13. Newer versions of Python will likely
 work but have yet to be tested.
 
 #. **Virtual Environment (Optional)**

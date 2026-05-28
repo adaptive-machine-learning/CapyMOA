@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 import warnings
 import numpy as np
 from collections import deque

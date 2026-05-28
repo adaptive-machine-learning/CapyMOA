@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """
 demo_fesl_benchmark_binary.py
 -----------------------------

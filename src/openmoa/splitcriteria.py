@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 """Module containing split criteria for decision trees.
 
 Decision trees are built by splitting the data into groups based on a split

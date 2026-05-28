@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 import csv
 import json
 import os
@@ -8,6 +9,10 @@ from typing import Optional, Sized, Union
 
 import numpy as np
 import pandas as pd
+
+from openmoa._prepare_jpype import _start_jpype
+
+_start_jpype()
 from com.yahoo.labs.samoa.instances import Attribute, DenseInstance, Instances
 from java.util import ArrayList
 from moa.core import InstanceExample

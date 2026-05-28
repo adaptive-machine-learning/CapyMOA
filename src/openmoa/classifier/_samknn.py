@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-3-Clause
 from openmoa.base import MOAClassifier
 from moa.classifiers.lazy import SAMkNN as _MOA_SAMkNN
 from openmoa.stream import Schema
