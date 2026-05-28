@@ -619,8 +619,7 @@ class AgrawalGenerator(MOAStream):
                 else None
             ),
             (f"classification_function={self.classification_function}"),
-            (f"peturbation={self.peturbation}" if self.peturbation !=
-             0.05 else None),
+            (f"peturbation={self.peturbation}" if self.peturbation != 0.05 else None),
             (f"balance={self.balance_classes}" if self.balance_classes else None),
         ]
 
