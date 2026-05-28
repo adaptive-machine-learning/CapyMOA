@@ -10,12 +10,11 @@
 [![Coverage Status](https://coveralls.io/repos/github/adaptive-machine-learning/CapyMOA/badge.svg)](https://coveralls.io/github/adaptive-machine-learning/CapyMOA)
 
 
-**CapyMOA does efficient machine learning for data streams in Python.**
-A data stream is a sequences of items ariving one-by-one that is too
-large to efficiently process non-sequentially. CapyMOA is a toolbox of
-methods and evaluators for: classification, regression, clustering,
-anomaly detection, semi-supervised learning, online continual learning,
-and drift detection for data streams.
+**CapyMOA does efficient machine learning for data streams in Python**. A data stream is
+a sequence of items that arrive one by one and are too large or urgent to process
+offline. CapyMOA is a toolbox of methods and evaluators for: classification, regression,
+clustering, anomaly detection, semi-supervised learning, online continual learning, and
+drift detection for data streams.
 
 For the default PyTorch CUDA GPU installation, run:
 
@@ -40,11 +39,11 @@ model = HoeffdingTree(stream.get_schema())
 # 3. Run with test-then-train evaluation
 results = prequential_evaluation(stream, model)
 
-# 3. Success!
+# 4. Success!
 print(f"Accuracy: {results.accuracy():.2f}%")
 ```
 
-Next, we recomend the [Tutorials](https://capymoa.org/tutorials).
+Next, we recommend the [Tutorials](https://capymoa.org/tutorials).
 
 > **⚠️ WARNING**
 >
@@ -58,7 +57,7 @@ Next, we recomend the [Tutorials](https://capymoa.org/tutorials).
 ![Benchmark Image](https://github.com/adaptive-machine-learning/CapyMOA/raw/main/docs/images/arf100_cpu_time.png)
 Benchmark comparing CapyMOA against other data stream libraries. The benchmark
 was performed using an ensemble of 100 ARF learners trained on
-`capymoa.datasets.RTG_2abrupt` dataset containing 100,000 samples and 30
+the `capymoa.datasets.RTG_2abrupt` dataset containing 100,000 samples and 30
 features.  You can find the code to reproduce this benchmark in
 [`notebooks/benchmarking.py`](https://github.com/adaptive-machine-learning/CapyMOA/blob/main/notebooks/benchmarking.py).
 *CapyMOA has the speed of MOA with the flexibility of Python and the richness of
