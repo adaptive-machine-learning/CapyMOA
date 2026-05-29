@@ -21,7 +21,7 @@ class HDDMWeighted(MOADriftDetector):
     ...     data_stream[i] = np.random.randint(4, high=8)
     >>>
     >>> for i in range(2000):
-    ...     detector.add_element(data_stream[i])
+    ...     detector.add_element(float(data_stream[i]))
     ...     if detector.detected_change():
     ...         print("Change detected in data: " + str(data_stream[i]) + " - at index: " + str(i))
     Change detected in data: 6 - at index: 1234

@@ -1,4 +1,5 @@
 from capymoa.drift import detectors
+from capymoa._cli import cli_str_drift_detector
 from capymoa.drift.base_detector import BaseDriftDetector, MOADriftDetector
 import inspect
 import pytest
@@ -7,7 +8,8 @@ import pytest
 def test_from_cli():
     cli = "-a 0.01"
     detector = detectors.ADWIN.from_cli(cli)
-    assert detector.cli == "(driftdetection.ADWINChangeDetector -a 0.01)"
+    assert isinstance(detector, detectors.ADWIN)
+    assert cli_str_drift_detector(detector) == "(ADWINChangeDetector -a 0.01)"
 
 
 @pytest.mark.parametrize("detector_name", detectors.__all__)
@@ -22,7 +24,9 @@ def test_constructors(detector_name: str):
     detector = detector_cls()
     assert isinstance(detector, BaseDriftDetector)
 
+    # Test only MOA drift detectors
     if isinstance(detector, MOADriftDetector):
+        assert isinstance(detector_cls.from_cli(""), detector_cls)
         assert detector._moa_detector_type is not None, (
             "MOADriftDetector MUST set _moa_detector_type appropriately."
         )

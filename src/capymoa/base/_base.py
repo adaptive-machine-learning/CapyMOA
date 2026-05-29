@@ -2,123 +2,12 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from jpype import _jpype
-from moa.classifiers import (
-    Classifier as MOA_Classifier_Interface,
-)
-from moa.classifiers import (
-    Regressor as MOA_Regressor_Interface,
-)
-from moa.classifiers.predictioninterval import (
-    PredictionIntervalLearner as MOA_PredictionInterval_Interface,
-)
-from moa.classifiers.trees import (
-    ARFFIMTDD as MOA_ARFFIMTDD,
-)
-from moa.classifiers.trees import (
-    SelfOptimisingBaseTree as MOA_SOKNLBT,
-)
 from moa.core import Utils
 
-from capymoa.base._classifier import MOAClassifier
 from capymoa.base._regressor import MOARegressor, Regressor
 from capymoa.instance import Instance
 from capymoa.stream._stream import Schema
 from capymoa.type_alias import LabelIndex
-
-##############################################################
-##################### INTERNAL FUNCTIONS #####################
-##############################################################
-
-
-def _extract_moa_drift_detector_CLI(drift_detector):
-    """
-    Auxiliary function to retrieve the command-line interface (CLI)
-    creation command for a MOA Drift Detector.
-
-    Parameters:
-    - drift_detector: The drift detector class for which the CLI command is needed
-
-    Returns:
-    A string representing the CLI command for creating a Drift Detector.
-    """
-
-    CLI = drift_detector.CLI
-
-    moa_detector = drift_detector.moa_detector
-    moa_detector_class_id = str(moa_detector.getClass().getName())
-    moa_detector_class_id_parts = moa_detector_class_id.split(".")
-
-    moa_detector_str = f"{moa_detector_class_id_parts[-1]}"
-    moa_detector_str = f"({moa_detector_str} {CLI})"
-
-    return moa_detector_str
-
-
-def _get_moa_creation_CLI(moa_learner):
-    """
-    Auxiliary function to retrieve the command-line interface (CLI)
-    creation command for a MOA learner.
-
-    Parameters:
-    - moa_learner: The MOA learner for which the CLI command is needed,
-    it must be a MOA learner object
-
-    Returns:
-    A string representing the CLI command for creating the MOA learner.
-    """
-    moa_learner_class_id = str(moa_learner.getClass().getName())
-    moa_learner_class_id_parts = moa_learner_class_id.split(".")
-
-    moa_learner_str = (
-        f"{moa_learner_class_id_parts[-1]}"
-        if isinstance(moa_learner, MOA_ARFFIMTDD)
-        or isinstance(moa_learner, MOA_SOKNLBT)
-        else f"{moa_learner_class_id_parts[-2]}.{moa_learner_class_id_parts[-1]}"
-    )
-
-    moa_cli_creation = str(moa_learner.getCLICreationString(moa_learner.__class__))
-    CLI = moa_cli_creation.split(" ", 1)
-
-    if len(CLI) > 1 and len(CLI[1]) > 1:
-        moa_learner_str = f"({moa_learner_str} {CLI[1]})"
-
-    return moa_learner_str
-
-
-def _extract_moa_learner_CLI(learner):
-    """
-    Auxiliary function to extract the command-line interface (CLI)
-    from a MOA learner object or a MOA learner class or even a
-    MOAClassifier object (which has a moa_learner internally).
-
-    Parameters:
-    - moa_learner: The object or class representing the MOA learner
-
-    Returns:
-    A string representing the CLI command for creating the MOA learner.
-    """
-
-    # Check if the base_learner is a MOAClassifie or a MOARegressor
-    if (
-        isinstance(learner, MOAClassifier)
-        or isinstance(learner, MOARegressor)
-        or isinstance(learner, MOAPredictionIntervalLearner)
-    ):
-        learner = _get_moa_creation_CLI(learner.moa_learner)
-
-    # ... or a Classifier or a Regressor (Interfaces from MOA) type
-    if (
-        isinstance(learner, MOA_Classifier_Interface)
-        or isinstance(learner, MOA_Regressor_Interface)
-        or isinstance(learner, MOA_PredictionInterval_Interface)
-    ):
-        learner = _get_moa_creation_CLI(learner)
-
-    # ... or a java object, which we presume is a MOA object (if it is not, MOA will raise the error)
-    if isinstance(learner, _jpype._JClass):
-        learner = _get_moa_creation_CLI(learner())
-    return learner
-
 
 ##############################################################
 ######################### REGRESSORS #########################

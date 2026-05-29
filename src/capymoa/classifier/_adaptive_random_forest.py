@@ -1,15 +1,9 @@
 from typing import Optional
-from capymoa.base import (
-    MOAClassifier,
-    _extract_moa_learner_CLI,
-    _extract_moa_drift_detector_CLI,
-)
+from capymoa.base import MOAClassifier
+from capymoa._cli import cli_str_drift_detector, cli_str_classifier
 
-from capymoa.base._classifier import Classifier
-from capymoa.drift.base_detector import BaseDriftDetector
-from capymoa.drift.detectors import (
-    ADWIN,
-)
+from capymoa.drift.base_detector import MOADriftDetector
+from capymoa.drift.detectors import ADWIN
 
 from capymoa.stream._stream import Schema
 from moa.classifiers.meta import AdaptiveRandomForest as _MOA_AdaptiveRandomForest
@@ -51,14 +45,14 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
         schema: Optional[Schema] = None,
         CLI: Optional[str] = None,
         random_seed: int = 1,
-        base_learner: Optional[Classifier] = None,
+        base_learner: Optional[MOAClassifier] = None,
         ensemble_size: int = 100,
         max_features: float = 0.6,
         lambda_param: float = 6.0,
         minibatch_size: Optional[int] = None,
         number_of_jobs: int = 1,
-        drift_detection_method: Optional[BaseDriftDetector] = None,
-        warning_detection_method: Optional[BaseDriftDetector] = None,
+        drift_detection_method: Optional[MOADriftDetector] = None,
+        warning_detection_method: Optional[MOADriftDetector] = None,
         disable_weighted_vote: bool = False,
         disable_drift_detection: bool = False,
         disable_background_learner: bool = False,
@@ -97,7 +91,7 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
             self.base_learner = (
                 "(ARFHoeffdingTree -e 2000000 -g 50 -c 0.01)"
                 if base_learner is None
-                else _extract_moa_learner_CLI(base_learner)
+                else cli_str_classifier(base_learner)
             )
             self.base_learner = self.base_learner.replace("trees.", "")
             self.ensemble_size = ensemble_size
@@ -123,16 +117,15 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
                     "square root of total features."
                 )
 
+            if drift_detection_method is None:
+                drift_detection_method = ADWIN(delta=0.001)
+            if warning_detection_method is None:
+                warning_detection_method = ADWIN(delta=0.01)
+
             self.lambda_param = lambda_param
-            self.drift_detection_method = (
-                _extract_moa_drift_detector_CLI(ADWIN(delta=0.001))
-                if drift_detection_method is None
-                else _extract_moa_drift_detector_CLI(drift_detection_method)
-            )
-            self.warning_detection_method = (
-                _extract_moa_drift_detector_CLI(ADWIN(delta=0.01))
-                if warning_detection_method is None
-                else _extract_moa_drift_detector_CLI(warning_detection_method)
+            self.drift_detection_method = cli_str_drift_detector(drift_detection_method)
+            self.warning_detection_method = cli_str_drift_detector(
+                warning_detection_method
             )
             self.disable_weighted_vote = disable_weighted_vote
             self.disable_drift_detection = disable_drift_detection

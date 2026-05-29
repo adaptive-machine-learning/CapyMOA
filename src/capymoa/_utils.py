@@ -94,29 +94,6 @@ def build_cli_str_from_mapping_and_locals(mapping: Dict[str, str], lcs: Dict[str
     return config_str
 
 
-def _get_moa_creation_CLI(moa_object):
-    """Returns the MOA CLI string for a given MOA object.
-
-    >>> from moa.streams import ConceptDriftStream
-    ...
-    >>> stream = ConceptDriftStream()
-    >>> _get_moa_creation_CLI(stream)
-    'streams.ConceptDriftStream'
-    """
-
-    moa_class_id = str(moa_object.getClass().getName())
-    moa_class_id_parts = moa_class_id.split(".")
-    moa_stream_str = f"{moa_class_id_parts[-2]}.{moa_class_id_parts[-1]}"
-
-    moa_cli_creation = str(moa_object.getCLICreationString(moa_object.__class__))
-    CLI = moa_cli_creation.split(" ", 1)
-
-    if len(CLI) > 1 and len(CLI[1]) > 1:
-        moa_stream_str = f"({moa_stream_str} {CLI[1]})"
-
-    return moa_stream_str
-
-
 def _leaf_prediction(leaf_prediction):
     """Checks the leaf_prediction option. Internal method used to check leaf_prediction parameters.
 

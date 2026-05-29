@@ -4,7 +4,6 @@ from typing_extensions import override
 from moa.classifiers.core.driftdetection import (
     AbstractChangeDetector as _AbstractChangeDetector,
 )
-from capymoa._utils import _get_moa_creation_CLI
 
 
 class BaseDriftDetector(ABC):
@@ -94,7 +93,12 @@ class MOADriftDetector(BaseDriftDetector):
         """
         if cls._moa_detector_type is None:
             raise NotImplementedError("Unset class attribute _moa_detector_type.")
-        return MOADriftDetector(cli=cli, moa_detector_type=cls._moa_detector_type)
+
+        instance = cls.__new__(cls)
+        MOADriftDetector.__init__(
+            instance, cli=cli, moa_detector_type=cls._moa_detector_type
+        )
+        return instance
 
     @override
     def add_element(self, element: float) -> None:
@@ -134,10 +138,6 @@ class MOADriftDetector(BaseDriftDetector):
 
     def cli_help(self) -> str:
         return str(self.moa_detector.getOptions().getHelpString())
-
-    @property
-    def cli(self) -> str:
-        return _get_moa_creation_CLI(self.moa_detector)
 
     def __str__(self) -> str:
         full_name = str(self.moa_detector.getClass().getCanonicalName())

@@ -3,7 +3,8 @@
 from ._soknl_base_tree import SOKNLBT
 from moa.classifiers.meta import SelfOptimisingKNearestLeaves as _MOA_SOKNL
 
-from capymoa.base import MOARegressor, _extract_moa_learner_CLI
+from capymoa.base import MOARegressor
+from capymoa._cli import cli_str_regressor
 
 
 class SOKNL(MOARegressor):
@@ -69,7 +70,7 @@ class SOKNL(MOARegressor):
             elif type(tree_learner) is str:
                 self.tree_learner = tree_learner
             else:
-                self.tree_learner = _extract_moa_learner_CLI(tree_learner)
+                self.tree_learner = cli_str_regressor(tree_learner)
 
             self.ensemble_size = ensemble_size
 

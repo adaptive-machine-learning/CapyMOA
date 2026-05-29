@@ -1,4 +1,4 @@
-from capymoa.base._base import _extract_moa_learner_CLI
+from capymoa._cli import classifier_cli_str
 from capymoa.stream import Schema
 from capymoa.base import MOAClassifier
 from typing import Literal
@@ -39,7 +39,7 @@ class {{j_class}}(MOAClassifier):
 
         {% for option in options if option.option_type == "MoaClassOption" %}
         if isinstance({{option.name}}, MOAClassifier):
-            {{option.name}} = _extract_moa_learner_CLI({{option.name}})
+            {{option.name}} = classifier_cli_str({{option.name}})
         {%- endfor %}
 
         cli = []

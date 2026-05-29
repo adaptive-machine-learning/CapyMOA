@@ -1,5 +1,6 @@
 from functools import partial
 from typing import Callable, Optional
+from capymoa._cli import cli_str_classifier
 
 import pytest
 
@@ -14,7 +15,7 @@ from capymoa.anomaly import (
     StreamingIsolationForest,
     StreamRHF,
 )
-from capymoa.base import AnomalyDetector, MOAClassifier, _extract_moa_learner_CLI
+from capymoa.base import AnomalyDetector, MOAClassifier
 from capymoa.datasets import ElectricityTiny
 from capymoa.evaluation import AnomalyDetectionEvaluator
 from capymoa.stream._stream import Schema
@@ -147,5 +148,5 @@ def test_anomaly_detectors(
 
     # Optionally check the CLI string if it was provided
     if isinstance(learner, MOAClassifier) and cli_string is not None:
-        cli_str = _extract_moa_learner_CLI(learner).strip("()")
+        cli_str = cli_str_classifier(learner).strip("()")
         assert cli_str == cli_string, "CLI does not match expected value"

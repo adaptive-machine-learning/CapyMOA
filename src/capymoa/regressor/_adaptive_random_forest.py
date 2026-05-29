@@ -1,12 +1,16 @@
 # Library imports
 
-from capymoa.base import MOARegressor, _extract_moa_learner_CLI
+from capymoa.base import MOARegressor
+from capymoa._cli import cli_str
 from ._arffimtdd import ARFFIMTDD
-
-
-from moa.classifiers.meta import (
-    AdaptiveRandomForestRegressor as MOA_AdaptiveRandomForestRegressor,
+from capymoa._cli import (
+    cli_str_drift_detector,
 )
+from capymoa.drift.base_detector import MOADriftDetector
+from moa.classifiers.meta import (
+    AdaptiveRandomForestRegressor as _AdaptiveRandomForestRegressor,
+)
+from moa.classifiers.trees import ARFFIMTDD as J_ARFFIMTDD
 
 
 class AdaptiveRandomForestRegressor(MOARegressor):
@@ -30,10 +34,10 @@ class AdaptiveRandomForestRegressor(MOARegressor):
 
     Example usage:
 
-    >>> from capymoa.datasets import Fried
+    >>> from capymoa.datasets import FriedTiny
     >>> from capymoa.regressor import AdaptiveRandomForestRegressor
     >>> from capymoa.evaluation import prequential_evaluation
-    >>> stream = Fried()
+    >>> stream = FriedTiny()
     >>> schema = stream.get_schema()
     >>> learner = AdaptiveRandomForestRegressor(schema)
     >>> results = prequential_evaluation(stream, learner, max_instances=1000)
@@ -44,7 +48,6 @@ class AdaptiveRandomForestRegressor(MOARegressor):
     def __init__(
         self,
         schema=None,
-        CLI=None,
         random_seed=1,
         tree_learner=None,
         ensemble_size=100,
@@ -75,70 +78,57 @@ class AdaptiveRandomForestRegressor(MOARegressor):
         :param disable_drift_detection: Whether to disable drift detection.
         :param disable_background_learner: Whether to disable background learning.
         """
-
-        self.moa_learner = MOA_AdaptiveRandomForestRegressor()
-
-        # Initialize instance attributes with default values, CLI was not set.
-        if CLI is None:
-            if tree_learner is None:
-                self.tree_learner = ARFFIMTDD(
-                    schema, grace_period=50, split_confidence=0.01
-                )
-            elif isinstance(tree_learner, ARFFIMTDD):
-                self.tree_learner = tree_learner
-            elif type(tree_learner) is str:
-                self.tree_learner = tree_learner
-            else:
-                self.tree_learner = _extract_moa_learner_CLI(tree_learner)
-
-            self.ensemble_size = ensemble_size
-
-            self.max_features = max_features
-            if isinstance(self.max_features, float) and 0.0 <= self.max_features <= 1.0:
-                self.m_features_mode = "(Percentage (M * (m / 100)))"
-                self.m_features_per_tree_size = int(self.max_features * 100)
-            elif isinstance(self.max_features, int):
-                self.m_features_mode = "(Specified m (integer value))"
-                self.m_features_per_tree_size = max_features
-            elif self.max_features in ["sqrt"]:
-                self.m_features_mode = "(sqrt(M)+1)"
-                self.m_features_per_tree_size = -1  # or leave it unchanged
-            elif self.max_features is None:
-                self.m_features_mode = "(Percentage (M * (m / 100)))"
-                self.m_features_per_tree_size = 60
-            else:
-                # Raise an exception with information about valid options for max_features
-                raise ValueError(
-                    "Invalid value for max_features. Valid options: float between 0.0 and 1.0 "
-                    "representing percentage, integer specifying exact number, or 'sqrt' for "
-                    "square root of total features."
-                )
-
-            self.lambda_param = lambda_param
-            self.drift_detection_method = (
-                "(ADWINChangeDetector -a 1.0E-3)"
-                if drift_detection_method is None
-                else drift_detection_method
+        if isinstance(max_features, float) and 0.0 <= max_features <= 1.0:
+            m_features_mode = "Percentage (M * (m / 100))"
+            m_features_per_tree_size = int(max_features * 100)
+        elif isinstance(max_features, int):
+            m_features_mode = "Specified m (integer value)"
+            m_features_per_tree_size = max_features
+        elif max_features in ["sqrt"]:
+            m_features_mode = "sqrt(M)+1"
+            m_features_per_tree_size = -1  # or leave it unchanged
+        elif max_features is None:
+            m_features_mode = "Percentage (M * (m / 100))"
+            m_features_per_tree_size = 60
+        else:
+            # Raise an exception with information about valid options for max_features
+            raise ValueError(
+                "Invalid value for max_features. Valid options: float between 0.0 and 1.0 "
+                "representing percentage, integer specifying exact number, or 'sqrt' for "
+                "square root of total features."
             )
-            self.warning_detection_method = (
-                "(ADWINChangeDetector -a 1.0E-2)"
-                if warning_detection_method is None
-                else warning_detection_method
-            )
-            self.disable_drift_detection = disable_drift_detection
-            self.disable_background_learner = disable_background_learner
 
-            self.moa_learner.getOptions().setViaCLIString(
-                f"-l ({self.tree_learner.__class__.__name__} {self.tree_learner.CLI}) -s {self.ensemble_size} -o {self.m_features_mode} -m \
-                {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
-                {self.warning_detection_method} {'-u' if self.disable_drift_detection else ''}  {'-q' if self.disable_background_learner else ''}"
-            )
-            self.moa_learner.prepareForUse()
-            self.moa_learner.resetLearning()
+        if tree_learner is None:
+            tree_learner = ARFFIMTDD(schema, grace_period=50, split_confidence=0.01)
+        if isinstance(tree_learner, ARFFIMTDD):
+            tree_learner = cli_str(tree_learner.moa_learner, J_ARFFIMTDD)
+        if isinstance(drift_detection_method, MOADriftDetector):
+            drift_detection_method = cli_str_drift_detector(drift_detection_method)
+        if isinstance(warning_detection_method, MOADriftDetector):
+            warning_detection_method = cli_str_drift_detector(warning_detection_method)
 
+        cli = [
+            f"-l {tree_learner}",
+            f"-s {ensemble_size}",
+            f"-o '{m_features_mode}'",
+            f"-m {m_features_per_tree_size}",
+            f"-a {lambda_param}",
+        ]
+
+        # Optional options
+        if drift_detection_method is not None:
+            cli.append(f"-x {drift_detection_method}")
+        if warning_detection_method is not None:
+            cli.append(f"-p {warning_detection_method}")
+        if disable_drift_detection:
+            cli.append("-u")
+        if disable_background_learner:
+            cli.append("-q")
+
+        moa_learner = _AdaptiveRandomForestRegressor()
         super().__init__(
+            moa_learner=moa_learner,
             schema=schema,
-            CLI=CLI,
+            CLI=" ".join(cli),
             random_seed=random_seed,
-            moa_learner=self.moa_learner,
         )
