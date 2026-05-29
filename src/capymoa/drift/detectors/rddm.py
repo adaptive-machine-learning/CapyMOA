@@ -1,5 +1,3 @@
-from typing import Optional
-
 from capymoa.drift.base_detector import MOADriftDetector
 
 from moa.classifiers.core.driftdetection import RDDM as _RDDM
@@ -35,6 +33,8 @@ class RDDM(MOADriftDetector):
 
     """
 
+    _moa_detector_type = _RDDM
+
     def __init__(
         self,
         min_n_instances: int = 129,
@@ -43,24 +43,30 @@ class RDDM(MOADriftDetector):
         max_size_concept: int = 40000,
         min_size_concept: int = 7000,
         warning_limit: int = 1400,
-        CLI: Optional[str] = None,
     ):
-        if CLI is None:
-            CLI = (
-                f"-n {min_n_instances} "
-                f"-w {warning_level} "
-                f"-o {drift_level} "
-                f"-x {max_size_concept} "
-                f"-y {min_size_concept} "
-                f"-z {warning_limit}"
-            )
+        """Create an RDDM drift detector.
 
-        super().__init__(moa_detector=_RDDM(), CLI=CLI)
+        :param min_n_instances: Minimum number of instances before the detector starts
+            monitoring for drift. Defaults to 129.
+        :param warning_level: Multiplier applied to the minimum error estimate for
+            entering the warning zone. Defaults to 1.773.
+        :param drift_level: Multiplier applied to the minimum error estimate for
+            declaring drift. Defaults to 2.258.
+        :param max_size_concept: Maximum number of instances allowed in a stable concept
+            before forcing an RDDM reset when no warning is active. Defaults to 40000.
+        :param min_size_concept: Size of the internal prediction buffer and the minimum
+            stable concept length retained for recovery after warnings. Defaults to
+            7000.
+        :param warning_limit: Number of consecutive warning instances allowed before
+            warning is promoted to drift. Defaults to 1400.
+        """
 
-        self.min_n_instances = min_n_instances
-        self.warning_level = warning_level
-        self.drift_level = drift_level
-        self.max_size_concept = max_size_concept
-        self.min_size_concept = min_size_concept
-        self.warning_limit = warning_limit
-        self.get_params()
+        cli = [
+            f"-n {min_n_instances}",
+            f"-w {warning_level}",
+            f"-o {drift_level}",
+            f"-x {max_size_concept}",
+            f"-y {min_size_concept}",
+            f"-z {warning_limit}",
+        ]
+        super().__init__(cli=" ".join(cli))

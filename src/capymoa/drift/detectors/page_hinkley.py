@@ -1,5 +1,3 @@
-from typing import Optional
-
 from capymoa.drift.base_detector import MOADriftDetector
 
 from moa.classifiers.core.driftdetection import PageHinkleyDM as _PageHinkleyDM
@@ -36,21 +34,27 @@ class PageHinkley(MOADriftDetector):
 
     """
 
+    _moa_detector_type = _PageHinkleyDM
+
     def __init__(
         self,
         min_n_instances: int = 30,
         delta: float = 0.005,
         lambda_: float = 50.0,
         alpha: float = 0.9999,
-        CLI: Optional[str] = None,
     ):
-        if CLI is None:
-            CLI = f"-n {min_n_instances} -d {delta} -l {lambda_} -a {alpha}"
+        """Create a Page-Hinkley drift detector.
 
-        super().__init__(moa_detector=_PageHinkleyDM(), CLI=CLI)
-
-        self.min_n_instances = min_n_instances
-        self.delta = delta
-        self.lambda_ = lambda_
-        self.alpha = alpha
-        self.get_params()
+        :param min_n_instances: Minimum number of instances to observe before change
+            detection is enabled. Defaults to 30.
+        :param delta: Slack term subtracted at each update of the running statistic.
+            Larger values make the detector less sensitive to small shifts. Defaults to
+            0.005.
+        :param lambda_: Detection threshold for the Page-Hinkley statistic; once
+            exceeded, a change is reported. Defaults to 50.0.
+        :param alpha: Forgetting factor applied to the previous statistic. Values closer
+            to 1.0 retain longer history and typically react more slowly to abrupt
+            changes. Defaults to 0.9999.
+        """
+        cli = f"-n {min_n_instances} -d {delta} -l {lambda_} -a {alpha}"
+        super().__init__(cli=cli)

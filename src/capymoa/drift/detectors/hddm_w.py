@@ -31,6 +31,8 @@ class HDDMWeighted(MOADriftDetector):
         27.3 (2014): 810-823.
     """
 
+    _moa_detector_type = _HDDM_W_Test
+
     TEST_TYPES = ["Two-sided", "One-sided"]
 
     def __init__(
@@ -67,7 +69,7 @@ class HDDMWeighted(MOADriftDetector):
                 f"-t {test_type}"
             )
 
-        super().__init__(moa_detector=_HDDM_W_Test(), CLI=CLI)
+        super().__init__(cli=CLI)
 
         self.drift_confidence = drift_confidence
         self.warning_confidence = warning_confidence

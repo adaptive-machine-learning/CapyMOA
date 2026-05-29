@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, Type
 from typing_extensions import override
-from numpy import double
-
-from jpype import _jpype
+from moa.classifiers.core.driftdetection import (
+    AbstractChangeDetector as _AbstractChangeDetector,
+)
+from capymoa._utils import _get_moa_creation_CLI
 
 
 class BaseDriftDetector(ABC):
@@ -56,45 +57,48 @@ class BaseDriftDetector(ABC):
 
 
 class MOADriftDetector(BaseDriftDetector):
-    """
-    A wrapper class for using MOA (Massive Online Analysis) drift detectors in CapyMOA.
-    """
+    """A MOA (Massive Online Analysis) drift detector for CapyMOA."""
 
-    def __init__(self, moa_detector, CLI=None):
-        """
-        :param moa_detector: The MOA detector object or class identifier.
-        :param CLI: The command-line interface (CLI) configuration for the MOA drift detector, defaults to None
-        """
+    _moa_detector_type: Type[_AbstractChangeDetector] | None = None
+
+    def __init__(
+        self,
+        cli: str = "",
+        moa_detector_type: Type[_AbstractChangeDetector] | None = None,
+    ):
+        """Initialize the wrapped MOA drift detector."""
         super().__init__()
+        # Allow passing the MOA detector type directly to the constructor, which is
+        # useful for the from_cli class method. Otherwise, use the class attribute
+        # _moa_detector_type defined in each subclass.
+        if moa_detector_type is not None:
+            self._moa_detector_type = moa_detector_type
+        if self._moa_detector_type is None:
+            raise NotImplementedError(
+                "MOA detector type not specified. Set the class attribute "
+                "_moa_detector_type or pass moa_detector_type to the constructor."
+            )
 
-        self.CLI = CLI
-
-        if isinstance(moa_detector, type):
-            if isinstance(moa_detector, _jpype._JClass):
-                moa_detector = moa_detector()
-            else:  # this is not a Java object, thus it certainly isn't a MOA learner
-                raise ValueError("Invalid MOA detector provided.")
-
-        self.moa_detector = moa_detector
-
-        # If the CLI is None, we assume the object has already been configured
-        # or that default values should be used.
-        if self.CLI is not None:
-            self.moa_detector.getOptions().setViaCLIString(CLI)
-
+        # Setup Detector
+        self.moa_detector = self._moa_detector_type()
+        self.moa_detector.getOptions().setViaCLIString(cli)
         self.moa_detector.prepareForUse()
         self.moa_detector.resetLearning()
 
-    def __str__(self):
-        full_name = str(self.moa_detector.getClass().getCanonicalName())
-        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+    @classmethod
+    def from_cli(cls, cli: str) -> "MOADriftDetector":
+        """Create a detector instance configured from a MOA CLI string.
 
-    def cli_help(self):
-        return str(self.moa_detector.getOptions().getHelpString())
+        :param cli: Command-line style options string for MOA detector hyper-parameters.
+        :return: A new detector instance initialized with ``cli``.
+        """
+        if cls._moa_detector_type is None:
+            raise NotImplementedError("Unset class attribute _moa_detector_type.")
+        return MOADriftDetector(cli=cli, moa_detector_type=cls._moa_detector_type)
 
     @override
     def add_element(self, element: float) -> None:
-        self.moa_detector.input(double(element))
+        self.moa_detector.input(element)
         self.data.append(element)
         self.idx += 1
 
@@ -109,6 +113,7 @@ class MOADriftDetector(BaseDriftDetector):
 
     def reset(self, clean_history: bool = False) -> None:
         """Reset the drift detector.
+
         :param clean_history: Whether to reset detection history, defaults to False
         """
         self.in_concept_change = False
@@ -126,3 +131,14 @@ class MOADriftDetector(BaseDriftDetector):
     def get_params(self) -> Dict[str, Any]:
         options = list(self.moa_detector.getOptions().getOptionArray())
         return {opt.getName(): opt.getValueAsCLIString() for opt in options}
+
+    def cli_help(self) -> str:
+        return str(self.moa_detector.getOptions().getHelpString())
+
+    @property
+    def cli(self) -> str:
+        return _get_moa_creation_CLI(self.moa_detector)
+
+    def __str__(self) -> str:
+        full_name = str(self.moa_detector.getClass().getCanonicalName())
+        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name

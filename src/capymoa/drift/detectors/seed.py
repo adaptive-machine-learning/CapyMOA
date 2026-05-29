@@ -1,5 +1,3 @@
-from typing import Optional
-
 from capymoa.drift.base_detector import MOADriftDetector
 
 from moa.classifiers.core.driftdetection import (
@@ -38,6 +36,8 @@ class SEED(MOADriftDetector):
 
     """
 
+    _moa_detector_type = _SEEDChangeDetector
+
     def __init__(
         self,
         delta: float = 0.05,
@@ -45,22 +45,26 @@ class SEED(MOADriftDetector):
         epsilon_prime: float = 0.01,
         alpha: float = 0.8,
         compress_term: int = 75,
-        CLI: Optional[str] = None,
     ):
-        if CLI is None:
-            CLI = (
-                f"-d {delta} "
-                f"-b {block_size} "
-                f"-e {epsilon_prime} "
-                f"-a {alpha} "
-                f"-c {compress_term}"
-            )
+        """Create a SEED drift detector.
 
-        super().__init__(moa_detector=_SEEDChangeDetector(), CLI=CLI)
-
-        self.delta = delta
-        self.block_size = block_size
-        self.epsilon_prime = epsilon_prime
-        self.alpha = alpha
-        self.compress_term = compress_term
-        self.get_params()
+        :param delta: Confidence parameter used in the ADWIN-style cut bound inside
+            SEED. Smaller values make drift declarations more conservative. Defaults to
+            0.05.
+        :param block_size: Number of instances per block before drift checks are
+            attempted. Defaults to 32.
+        :param epsilon_prime: Base homogeneity tolerance used by SEED block compression.
+            Defaults to 0.01.
+        :param alpha: Growth parameter used with ``epsilon_prime`` during compression;
+            larger values increase compression tolerance. Defaults to 0.8.
+        :param compress_term: Compression interval controlling how often fixed-term
+            block compression is attempted. Defaults to 75.
+        """
+        cli = [
+            f"-d {delta}",
+            f"-b {block_size}",
+            f"-e {epsilon_prime}",
+            f"-a {alpha}",
+            f"-c {compress_term}",
+        ]
+        super().__init__(cli=" ".join(cli))

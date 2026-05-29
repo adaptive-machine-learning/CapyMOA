@@ -1,5 +1,3 @@
-from typing import Optional
-
 from capymoa.drift.base_detector import MOADriftDetector
 
 from moa.classifiers.core.driftdetection import (
@@ -31,19 +29,24 @@ class GeometricMovingAverage(MOADriftDetector):
 
     """
 
+    _moa_detector_type = _GeometricMovingAverageDM
+
     def __init__(
         self,
         min_n_instances: int = 30,
         lambda_: float = 1.0,
         alpha: float = 0.99,
-        CLI: Optional[str] = None,
     ):
-        if CLI is None:
-            CLI = f"-n {min_n_instances} -l {lambda_} -a {alpha}"
+        """Create a Geometric Moving Average drift detector.
 
-        super().__init__(moa_detector=_GeometricMovingAverageDM(), CLI=CLI)
-
-        self.min_n_instances = min_n_instances
-        self.lambda_ = lambda_
-        self.alpha = alpha
-        self.get_params()
+        :param min_n_instances: Minimum number of instances to observe before change
+            detection is enabled. Defaults to 30.
+        :param lambda_: Detection threshold for the geometric moving-average statistic;
+            higher values require stronger evidence before reporting change. Defaults to
+            1.0.
+        :param alpha: Smoothing factor for the geometric moving-average statistic.
+            Values closer to 1.0 emphasise past observations and react more slowly to
+            recent changes. Defaults to 0.99.
+        """
+        cli = f"-n {min_n_instances} -l {lambda_} -a {alpha}"
+        super().__init__(cli=cli)

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from capymoa.drift.base_detector import MOADriftDetector
 
 from moa.classifiers.core.driftdetection import (
@@ -38,11 +36,14 @@ class ADWIN(MOADriftDetector):
 
     """
 
-    def __init__(self, delta: float = 0.002, CLI: Optional[str] = None):
-        if CLI is None:
-            CLI = f"-a {delta}"
+    _moa_detector_type = _ADWINChangeDetector
 
-        super().__init__(moa_detector=_ADWINChangeDetector(), CLI=CLI)
+    def __init__(self, delta: float = 0.002):
+        """Create an ADWIN drift detector.
 
-        self.delta = delta
-        self.get_params()
+        :param delta: Confidence parameter used by ADWIN's change test. Smaller values
+            make the detector more conservative, while larger values make it more
+            sensitive to distribution changes. Defaults to 0.002.
+        """
+        cli = f"-a {delta}"
+        super().__init__(cli=cli)

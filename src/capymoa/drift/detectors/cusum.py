@@ -1,5 +1,3 @@
-from typing import Optional
-
 from capymoa.drift.base_detector import MOADriftDetector
 
 from moa.classifiers.core.driftdetection import CusumDM as _CusumDM
@@ -29,19 +27,23 @@ class CUSUM(MOADriftDetector):
 
     """
 
+    _moa_detector_type = _CusumDM
+
     def __init__(
         self,
         min_n_instances: int = 30,
         delta: float = 0.005,
         lambda_: float = 50,
-        CLI: Optional[str] = None,
     ):
-        if CLI is None:
-            CLI = f"-n {min_n_instances} -d {delta} -l {lambda_}"
+        """Create a CUSUM drift detector.
 
-        super().__init__(moa_detector=_CusumDM(), CLI=CLI)
-
-        self.min_n_instances = min_n_instances
-        self.delta = delta
-        self.lambda_ = lambda_
-        self.get_params()
+        :param min_n_instances: Minimum number of instances to observe before change
+            detection is enabled. Defaults to 30.
+        :param delta: CUSUM slack parameter subtracted from the running sum at each
+            step. Larger values make the detector less sensitive to small shifts.
+            Defaults to 0.005.
+        :param lambda_: Threshold for the cumulative sum; once the running sum exceeds
+            this value, a change is reported. Defaults to 50.
+        """
+        cli = f"-n {min_n_instances} -d {delta} -l {lambda_}"
+        super().__init__(cli=cli)
