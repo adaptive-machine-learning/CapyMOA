@@ -91,6 +91,7 @@ class Loda(AnomalyDetector):
         random_state: int = 42,
     ):
         """Initialize the Loda anomaly detector.
+
         :param schema: Schema of the data stream.
         :param n_projections: Number of random projection histograms in the ensemble.
         :param window_size: Number of recent instances used to fit each histogram.
