@@ -5,6 +5,7 @@ from ._stream_rhf import StreamRHF
 from ._streaming_isolation_forest import StreamingIsolationForest
 from ._robust_random_cut_forest import RobustRandomCutForest
 from ._adaptive_isolation_forest import AdaptiveIsolationForest
+from ._loda import Loda
 
 __all__ = [
     "HalfSpaceTrees",
@@ -14,4 +15,5 @@ __all__ = [
     "StreamingIsolationForest",
     "RobustRandomCutForest",
     "AdaptiveIsolationForest",
+    "Loda",
 ]
