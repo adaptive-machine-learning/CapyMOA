@@ -7,6 +7,7 @@ from capymoa.anomaly import (
     AdaptiveIsolationForest,
     Autoencoder,
     HalfSpaceTrees,
+    IForestASD,
     Loda,
     OnlineIsolationForest,
     RobustRandomCutForest,
@@ -79,6 +80,18 @@ from capymoa.stream._stream import Schema
         ),
         (
             partial(
+                IForestASD,
+                window_size=256,
+                sample_size=64,
+                n_trees=100,
+                height_limit=None,
+                random_state=42,
+            ),
+            0.61,
+            None,
+        ),
+        (
+            partial(
                 Loda,
                 n_projections=10,
                 window_size=100,
@@ -96,6 +109,7 @@ from capymoa.stream._stream import Schema
         "StreamingIsolationForest",
         "RobustRandomCutForest",
         "AdaptiveIsolationForest",
+        "IForestASD",
         "Loda",
     ],
 )
