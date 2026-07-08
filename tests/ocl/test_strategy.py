@@ -11,6 +11,7 @@ from capymoa.base import Classifier
 from capymoa.classifier import Finetune, HoeffdingTree
 from capymoa.ocl.datasets import TinySplitMNIST
 from capymoa.ocl.evaluation import ocl_train_eval_loop
+
 from capymoa.ocl.strategy import ExperienceReplay, SLDA, NCM, GDumb, RAR, EWC
 from capymoa.stream import Schema
 

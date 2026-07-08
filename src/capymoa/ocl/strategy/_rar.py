@@ -2,13 +2,13 @@ import torch
 from torch import Tensor
 
 from capymoa.base import BatchClassifier
+from capymoa.ocl.events import Handler, Dispatcher
 from capymoa.ocl.util._replay import ReservoirSampler
-from capymoa.ocl.base import TrainTaskAware, TestTaskAware
 
 from typing import Callable
 
 
-class RAR(BatchClassifier, TrainTaskAware, TestTaskAware):
+class RAR(BatchClassifier, Handler):
     """Repeated Augmented Rehearsal.
 
     Repeated Augmented Rehearsal (RAR) [#f0]_ is a replay continual learning
@@ -27,10 +27,6 @@ class RAR(BatchClassifier, TrainTaskAware, TestTaskAware):
       RandAugment [#f1]_ for augmentation but any randomized augmentation can be used.
       But the choice of augmentation is important and should be chosen based on the
       problem domain.
-
-    * Not :class:`~capymoa.ocl.base.TrainTaskAware` or
-      :class:`~capymoa.ocl.base.TestTaskAware`, but will proxy it to the wrapped
-      learner.
 
     >>> from capymoa.ann import Perceptron
     >>> from capymoa.classifier import Finetune
@@ -127,10 +123,7 @@ class RAR(BatchClassifier, TrainTaskAware, TestTaskAware):
         x = x.to(self.learner.device, self.learner.x_dtype)
         return self.learner.batch_predict_proba(x)
 
-    def on_test_task(self, task_id: int):
-        if isinstance(self.learner, TestTaskAware):
-            self.learner.on_test_task(task_id)
-
-    def on_train_task(self, task_id: int):
-        if isinstance(self.learner, TrainTaskAware):
-            self.learner.on_train_task(task_id)
+    def attach_with(self, source: Dispatcher) -> "RAR":
+        if isinstance(self.learner, Handler):
+            self.learner.attach_with(source)
+        return self

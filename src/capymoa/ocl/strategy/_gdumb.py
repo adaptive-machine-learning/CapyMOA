@@ -1,13 +1,14 @@
 from capymoa.ocl.util._replay import GreedySampler
 import torch
 from capymoa.base import BatchClassifier
-from capymoa.ocl.base import TestTaskAware
+from capymoa.ocl.events import Handler, Dispatcher
+from capymoa.ocl.evaluation.events import TestTaskBegin
 from capymoa.stream import Schema
 from torch import Tensor, nn
 from torch.utils.data import DataLoader, TensorDataset
 
 
-class GDumb(BatchClassifier, TestTaskAware):
+class GDumb(BatchClassifier, Handler):
     """Greedy sampler and a dumb learner.
 
     Greedy sampler and a dumb learner (GDumb) [#f0]_ is a baseline replay strategy. It
@@ -80,3 +81,10 @@ class GDumb(BatchClassifier, TestTaskAware):
     def on_test_task(self, task_id: int) -> None:
         if task_id == 0:
             self.gdumb_fit()
+
+    def attach_with(self, source: Dispatcher) -> "GDumb":
+        source.subscribe(TestTaskBegin, self._on_test_task_start)
+        return self
+
+    def _on_test_task_start(self, event: TestTaskBegin) -> None:
+        self.on_test_task(event.test_task)

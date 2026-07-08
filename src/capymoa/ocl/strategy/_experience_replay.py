@@ -2,11 +2,11 @@ import torch
 from torch import Tensor
 
 from capymoa.base import BatchClassifier
-from capymoa.ocl.base import TrainTaskAware, TestTaskAware
+from capymoa.ocl.events import Handler, Dispatcher
 from capymoa.ocl.util._replay import ReservoirSampler
 
 
-class ExperienceReplay(BatchClassifier, TrainTaskAware, TestTaskAware):
+class ExperienceReplay(BatchClassifier, Handler):
     """Experience Replay.
 
     Experience Replay (ER) [#f0]_ is a replay continual learning strategy.
@@ -15,8 +15,6 @@ class ExperienceReplay(BatchClassifier, TrainTaskAware, TestTaskAware):
       to mitigate catastrophic forgetting.
     * The replay buffer is implemented using reservoir sampling, which allows for
       uniform sampling over the entire stream [#f1]_.
-    * Not :class:`capymoa.ocl.base.TrainTaskAware` or
-      :class:`capymoa.ocl.base.TestTaskAware`, but will proxy it to the wrapped learner.
 
     >>> from capymoa.ann import Perceptron
     >>> from capymoa.classifier import Finetune
@@ -80,13 +78,10 @@ class ExperienceReplay(BatchClassifier, TrainTaskAware, TestTaskAware):
         x = x.to(self.learner.device, dtype=self.learner.x_dtype)
         return self.learner.batch_predict_proba(x)
 
-    def on_test_task(self, task_id: int):
-        if isinstance(self.learner, TestTaskAware):
-            self.learner.on_test_task(task_id)
-
-    def on_train_task(self, task_id: int):
-        if isinstance(self.learner, TrainTaskAware):
-            self.learner.on_train_task(task_id)
+    def attach_with(self, source: Dispatcher) -> "ExperienceReplay":
+        if isinstance(self.learner, Handler):
+            self.learner.attach_with(source)
+        return self
 
     def __str__(self) -> str:
         return f"ExperienceReplay(buffer_size={self._buffer.capacity})"
