@@ -1,5 +1,6 @@
 from typing import Sized, Type
 import capymoa.datasets as capymoa_datasets
+from capymoa.stream import Stream
 from capymoa.datasets import ElectricityTiny
 from tempfile import TemporaryDirectory
 import pytest
@@ -59,13 +60,58 @@ def test_electricity_tiny_schema():
 @pytest.mark.parametrize("dataset_type", _ALL_DOWNLOADABLE_DATASET)
 def test_all_datasets(dataset_type: Type[_DownloadableDataset]):
     with TemporaryDirectory() as tmp_dir:
-        dataset = dataset_type(directory=tmp_dir)
+        dataset_arff = dataset_type(directory=tmp_dir)
+        assert isinstance(dataset_arff, Stream)
 
         i = 0
-        while dataset.has_more_instances():
-            dataset.next_instance()
+        while dataset_arff.has_more_instances():
+            dataset_arff.next_instance()
             i += 1
 
-        assert str(dataset)
-        assert isinstance(dataset, Sized), "Dataset must be an instance of Sized"
-        assert len(dataset) == i, "Dataset length must be correct"
+        assert str(dataset_arff)
+        assert isinstance(dataset_arff, Sized), "Dataset must be an instance of Sized"
+        assert len(dataset_arff) == i, "Dataset length must be correct"
+        dataset_arff.restart()
+
+        try:
+            dataset_csv = dataset_type(directory=tmp_dir, file_type="csv")
+            assert isinstance(dataset_csv, Stream)
+        except ValueError:
+            return  # If the dataset does not support CSV, skip the rest of the test
+
+        # Both should return a schema object
+        assert dataset_arff.get_schema() is not None
+        assert dataset_csv.get_schema() is not None
+
+        i = 0
+        while dataset_arff.has_more_instances() and dataset_csv.has_more_instances():
+            instance_arff = dataset_arff.next_instance()
+            instance_csv = dataset_csv.next_instance()
+
+            assert instance_arff.x == pytest.approx(instance_csv.x)
+            if dataset_csv.get_schema().is_classification():
+                assert instance_arff.y_index == pytest.approx(instance_csv.y_index)
+            elif dataset_csv.get_schema().is_regression():
+                assert instance_arff.y_value == pytest.approx(instance_csv.y_value)
+
+            i += 1
+
+        # Both datasets should be exhausted by now.
+        assert not dataset_arff.has_more_instances()
+        assert not dataset_csv.has_more_instances()
+
+        # The datasets should be restartable.
+        dataset_arff.restart()
+        dataset_csv.restart()
+
+        # After restarting, the datasets should have more instances.
+        assert dataset_arff.has_more_instances()
+        assert dataset_csv.has_more_instances()
+
+        # The string representation of the datasets should not throw an error
+        assert str(dataset_arff)
+        assert str(dataset_csv)
+        # The datasets should be the same length, and should have a size.
+        assert isinstance(dataset_arff, Sized)
+        assert isinstance(dataset_csv, Sized)
+        assert len(dataset_arff) == len(dataset_csv) == i

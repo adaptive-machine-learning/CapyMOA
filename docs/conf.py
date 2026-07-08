@@ -44,8 +44,7 @@ extensions = [
 ]
 
 nitpick_ignore_regex = [
-    ("py:class", r".*\._[\w_]*"),  # Ignore private classes from nitpick errors
-    ("py:obj", r".*\._[\w_]*"),  # Ignore private objects from nitpick errors
+    (r"py:(class|obj)", r"(.*\.)?_[\w_]*"),  # Ignore private objects
     ("py:class", r"abc\..*"),
     ("py:class", r"com\..*"),
     ("py:class", r"java\..*"),

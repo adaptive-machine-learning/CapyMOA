@@ -1,9 +1,4 @@
 from capymoa.datasets._downloader import _DownloadableARFF
-from ._source_list import SOURCE_LIST
-
-
-def _get_remote_url(source_name: str):
-    return SOURCE_LIST[source_name].arff
 
 
 class Sensor(_DownloadableARFF):
@@ -22,7 +17,7 @@ class Sensor(_DownloadableARFF):
     #.  https://www.cse.fau.edu/~xqzhu/stream.html
     """
 
-    _url = _get_remote_url("Sensor")
+    _target_type = "categorical"
     _length = 2219803
 
 
@@ -42,7 +37,7 @@ class Hyper100k(_DownloadableARFF):
 
     # TODO: Add docstring describing the dataset and link to the original source
 
-    _url = _get_remote_url("Hyper100k")
+    _target_type = "categorical"
     _length = 100_000
 
 
@@ -79,7 +74,7 @@ class CovtFD(_DownloadableARFF):
     * :class:`CovtypeTiny` - A truncated version of the classic covertype dataset
     """
 
-    _url = _get_remote_url("CovtFD")
+    _target_type = "categorical"
     _length = 581_011
 
 
@@ -107,7 +102,7 @@ class Covtype(_DownloadableARFF):
     * :class:`CovtypeTiny` - A truncated version of the classic covertype dataset
     """
 
-    _url = _get_remote_url("Covtype")
+    _target_type = "categorical"
     _length = 581_012
 
 
@@ -137,7 +132,7 @@ class CovtypeTiny(_DownloadableARFF):
     * :class:`CovtypeNorm` - A normalized version of the classic covertype dataset
     """
 
-    _url = _get_remote_url("CovtypeTiny")
+    _target_type = "categorical"
     _length = 1001
 
 
@@ -166,7 +161,7 @@ class CovtypeNorm(_DownloadableARFF):
     * :class:`CovtypeTiny` - A truncated version of the classic covertype dataset
     """
 
-    _url = _get_remote_url("CovtypeNorm")
+    _target_type = "categorical"
     _length = 581_012
 
 
@@ -192,7 +187,7 @@ class RBFm_100k(_DownloadableARFF):
     with varying densities. Only numeric attributes are generated.
     """
 
-    _url = _get_remote_url("RBFm_100k")
+    _target_type = "categorical"
     _length = 100_000
 
 
@@ -222,7 +217,7 @@ class RTG_2abrupt(_DownloadableARFF):
     See also :class:`capymoa.stream.generator.RandomTreeGenerator`
     """
 
-    _url = _get_remote_url("RTG_2abrupt")
+    _target_type = "categorical"
     _length = 100_000
 
 
@@ -250,7 +245,7 @@ class Electricity(_DownloadableARFF):
 
     """
 
-    _url = _get_remote_url("Electricity")
+    _target_type = "categorical"
     _length = 45_312
 
 
@@ -264,7 +259,7 @@ class ElectricityTiny(_DownloadableARFF):
     See :class:`Electricity` for the widely used electricity dataset.
     """
 
-    _url = _get_remote_url("ElectricityTiny")
+    _target_type = "categorical"
     _length = 2_000
 
 
@@ -284,7 +279,7 @@ class Fried(_DownloadableARFF):
         annals of statistics 19, no. 1 (1991): 1-67.
     """
 
-    _url = _get_remote_url("Fried")
+    _target_type = "numeric"
     _length = 40_768
 
 
@@ -297,7 +292,7 @@ class FriedTiny(_DownloadableARFF):
     See :class:`Fried` for the full Friedman dataset.
     """
 
-    _url = _get_remote_url("FriedTiny")
+    _target_type = "numeric"
     _length = 1_000
 
 
@@ -317,5 +312,5 @@ class Bike(_DownloadableARFF):
     and background knowledge." Progress in Artificial Intelligence 2 (2014): 113-127.
     """
 
-    _url = _get_remote_url("Bike")
+    _target_type = "numeric"
     _length = 17_379

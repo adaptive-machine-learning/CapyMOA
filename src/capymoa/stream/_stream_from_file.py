@@ -82,6 +82,7 @@ def stream_from_file(
     elif filename.suffix == ".csv":
         # Read CSV file
         df = pd.read_csv(filename, na_values=["?", "NA", "NaN"])
+        df.columns = [str(column).strip() for column in df.columns]
         target = df.columns[class_index]
         categories = {}
 
