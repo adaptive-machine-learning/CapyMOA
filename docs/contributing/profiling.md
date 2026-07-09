@@ -3,7 +3,7 @@
 Code profiling is the process of measuring the amount of time a program spends on each function or line of code.
 This is used to identify performance bottlenecks and optimise code for better performance.
 
-You can profile any python code with the built-in [`cProfile` module](https://docs.python.org/3/library/profile.html):
+You can profile any Python code with the built-in [`cProfile` module](https://docs.python.org/3/library/profile.html):
 ```bash
 python -m cProfile -o profile.pstats your_script.py
 ```
@@ -13,9 +13,9 @@ In CapyMOA you can do this automatically by adding the `--profile` flag to invok
 invoke test.pytest --profile profile.pstats -- tests/test_classifiers.py -k ShrubsClassifier
 ```
 
-Now we have a profile file we can analyse it.
+Now that we have a profile file, we can analyse it.
 
-## Snake Viz
+## SnakeViz
 One of the best analysis tools for this is [SnakeViz](https://jiffyclub.github.io/snakeviz/):
 ```bash
 pip install snakeviz
@@ -30,7 +30,7 @@ snakeviz profile.pstats
    more information about the columns.
 3. This is flame graph view which shows the time spent in each function and its
    children. The width of each box represents the time spent in that function. It is
-   sometimes necessay to fiddle with the depth and cutoff to avoid lag when rendering
+sometimes necessary to fiddle with the depth and cutoff to avoid lag when rendering
    the graph.
 
 
@@ -71,5 +71,5 @@ Each node in the visualization follows this structure:
 
 ## Conclusion
 
-From this profiling we can see that the `ShrubsClassifier` is slowed down by `sklearns`
-validation checks which are not necessary in our use case. We can disable them with `.predict_proba(X, check_input=False)` which results in a significant speedup 8s -> 4s.
+From this profiling we can see that the `ShrubsClassifier` is slowed down by scikit-learn's
+validation checks which are not necessary in our use case. For `DecisionTreeClassifier`, we can disable them with `.predict_proba(X.astype(np.float32, copy=False), check_input=False)`, which results in a significant speedup (8s -> 4s).

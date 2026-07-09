@@ -146,7 +146,9 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
                 )
             else:
                 if isinstance(e, DecisionTreeClassifier):
-                    proba = e.predict_proba(X.astype(np.float32), check_input=False)
+                    proba = e.predict_proba(
+                        X.astype(np.float32, copy=False), check_input=False
+                    )
                 else:
                     proba = e.predict_proba(X)
                 # Numpy seems to do some weird stuff when it comes to advanced indexing.
