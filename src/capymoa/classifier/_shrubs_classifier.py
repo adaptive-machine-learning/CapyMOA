@@ -105,7 +105,6 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
         :param allow_abstaining: bool - If true, then None is returned if there is no
             model in the ensemble (i.e. it was pruned away or no data has been seen yet)
         """
-
         Classifier.__init__(self, schema, sk_dt.random_state)
         _ShrubEnsembles.__init__(
             self,
@@ -146,7 +145,12 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
                     X[np.newaxis, :]
                 )
             else:
-                proba = e.predict_proba(X)
+                if isinstance(e, DecisionTreeClassifier):
+                    proba = e.predict_proba(
+                        X.astype(np.float32, copy=False), check_input=False
+                    )
+                else:
+                    proba = e.predict_proba(X)
                 # Numpy seems to do some weird stuff when it comes to advanced indexing.
                 # Basically, due to e.classes_.astype(int) the last and second-to-last dimensions of all_proba
                 # are swapped when doing all_proba[i, :, e.classes_.astype(int)]. Hence, we would also need to swap

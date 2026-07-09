@@ -11,6 +11,7 @@ This part of the documentation is for developers and contributors.
    git
    update_moa
    code_review
+   profiling
 
 .. toctree::
    :maxdepth: 2
