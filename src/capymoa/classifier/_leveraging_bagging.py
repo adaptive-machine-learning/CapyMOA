@@ -1,7 +1,7 @@
 from capymoa.base import (
     MOAClassifier,
-    _extract_moa_learner_CLI,
 )
+from capymoa._cli import cli_str_classifier
 
 from moa.classifiers.meta import LeveragingBag as _MOA_LeveragingBag
 from moa.classifiers.meta.minibatch import LeveragingBagMB as _MOA_LeveragingBagMB
@@ -62,7 +62,7 @@ class LeveragingBagging(MOAClassifier):
             self.base_learner = (
                 "trees.HoeffdingTree"
                 if base_learner is None
-                else _extract_moa_learner_CLI(base_learner)
+                else cli_str_classifier(base_learner)
             )
             self.ensemble_size = ensemble_size
             CLI = f"-l {self.base_learner} -s {self.ensemble_size}"
@@ -70,7 +70,7 @@ class LeveragingBagging(MOAClassifier):
             self.base_learner = (
                 "trees.HoeffdingTree"
                 if base_learner is None
-                else _extract_moa_learner_CLI(base_learner)
+                else cli_str_classifier(base_learner)
             )
             self.ensemble_size = ensemble_size
             moa_learner = None

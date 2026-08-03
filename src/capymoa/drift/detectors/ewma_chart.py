@@ -1,5 +1,3 @@
-from typing import Optional
-
 from capymoa.drift.base_detector import MOADriftDetector
 
 from moa.classifiers.core.driftdetection import EWMAChartDM as _EWMAChartDM
@@ -35,14 +33,8 @@ class EWMAChart(MOADriftDetector):
 
     """
 
-    def __init__(
-        self, min_n_instances: int = 30, lambda_: float = 0.2, CLI: Optional[str] = None
-    ):
-        if CLI is None:
-            CLI = f"-n {min_n_instances} -l {lambda_} "
+    _moa_detector_type = _EWMAChartDM
 
-        super().__init__(moa_detector=_EWMAChartDM(), CLI=CLI)
-
-        self.min_n_instances = min_n_instances
-        self.lambda_ = lambda_
-        self.get_params()
+    def __init__(self, min_n_instances: int = 30, lambda_: float = 0.2):
+        cli = f"-n {min_n_instances} -l {lambda_} "
+        super().__init__(cli=cli)

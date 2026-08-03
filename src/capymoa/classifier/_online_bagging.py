@@ -1,7 +1,7 @@
 from capymoa.base import (
     MOAClassifier,
-    _extract_moa_learner_CLI,
 )
+from capymoa._cli import cli_str_classifier
 import os
 from moa.classifiers.meta import OzaBag as _MOA_OzaBag
 from moa.classifiers.meta.minibatch import OzaBagMB as _MOA_OzaBagMB
@@ -62,7 +62,7 @@ class OnlineBagging(MOAClassifier):
             self.base_learner = (
                 "trees.HoeffdingTree"
                 if base_learner is None
-                else _extract_moa_learner_CLI(base_learner)
+                else cli_str_classifier(base_learner)
             )
             self.ensemble_size = ensemble_size
             moa_learner = None

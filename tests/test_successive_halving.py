@@ -3,7 +3,7 @@ import tempfile
 
 from capymoa.automl import SuccessiveHalvingClassifier
 from capymoa.stream.generator import SEA
-from capymoa.base import _extract_moa_learner_CLI
+from capymoa._cli import cli_str_classifier
 
 
 def test_successive_halving_parameter_initialization():
@@ -40,7 +40,7 @@ def test_successive_halving_parameter_initialization():
     model = sh.active_models[0]
 
     # Check that constructor parameters were applied ("-g 30" for grace_period)
-    cli_str = _extract_moa_learner_CLI(model)
+    cli_str = cli_str_classifier(model)
     assert "-g 30" in cli_str, f"Expected grace_period=30, got CLI: {cli_str}"
 
     # Basic functional check

@@ -7,7 +7,7 @@ from collections import OrderedDict
 from itertools import cycle
 
 from capymoa.stream import MOAStream
-from capymoa._utils import _get_moa_creation_CLI
+from capymoa._cli import cli_str_stream
 from moa.streams import ConceptDriftStream as MOA_ConceptDriftStream
 
 
@@ -60,7 +60,7 @@ class DriftStream(MOAStream):
                             )
 
                         CLI += (
-                            f" -d {_get_moa_creation_CLI(stream2.moa_stream)} -w {drift.width} -p "
+                            f" -d {cli_str_stream(stream2.moa_stream)} -w {drift.width} -p "
                             f"{drift.position} -r {drift.random_seed} -a {drift.alpha}"
                         )
                         CLI = CLI.replace(
@@ -76,7 +76,7 @@ class DriftStream(MOAStream):
                     # print(component)
                     drift = component
                     self.drifts.append(drift)
-                    CLI = f" -s {_get_moa_creation_CLI(stream1.moa_stream)} "
+                    CLI = f" -s {cli_str_stream(stream1.moa_stream)} "
 
             moa_stream = MOA_ConceptDriftStream()
         else:

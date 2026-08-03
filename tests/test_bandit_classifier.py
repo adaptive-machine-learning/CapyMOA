@@ -3,7 +3,7 @@ import tempfile
 
 from capymoa.automl import BanditClassifier, EpsilonGreedy
 from capymoa.stream.generator import SEA
-from capymoa.base import _extract_moa_learner_CLI
+from capymoa._cli import cli_str_classifier
 
 
 def test_bandit_classifier_parameter_initialization():
@@ -40,7 +40,7 @@ def test_bandit_classifier_parameter_initialization():
     model = bc.active_models[0]
 
     # Check that the constructor parameter was applied (CLI should include "-g 50")
-    cli_str = _extract_moa_learner_CLI(model)
+    cli_str = cli_str_classifier(model)
     assert "-g 50" in cli_str, f"Expected grace_period=50, got CLI: {cli_str}"
 
     # Basic functional check

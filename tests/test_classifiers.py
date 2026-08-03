@@ -10,8 +10,9 @@ import torch
 from java.lang import Exception as JException
 from pytest_subtests import SubTests
 
+from capymoa._cli import cli_str_classifier
 from capymoa.ann import Perceptron
-from capymoa.base import Classifier, MOAClassifier, _extract_moa_learner_CLI
+from capymoa.base import Classifier, MOAClassifier
 from capymoa.classifier import (
     CSMOTE,
     EFDT,
@@ -353,5 +354,5 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
 
     # Optionally check the CLI string if it was provided
     if isinstance(learner, MOAClassifier) and test_case.cli_string is not None:
-        cli_str = _extract_moa_learner_CLI(learner).strip("()")
+        cli_str = cli_str_classifier(learner).strip("()")
         assert cli_str == test_case.cli_string, "CLI does not match expected value"

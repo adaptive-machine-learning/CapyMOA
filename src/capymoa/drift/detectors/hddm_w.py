@@ -21,7 +21,7 @@ class HDDMWeighted(MOADriftDetector):
     ...     data_stream[i] = np.random.randint(4, high=8)
     >>>
     >>> for i in range(2000):
-    ...     detector.add_element(data_stream[i])
+    ...     detector.add_element(float(data_stream[i]))
     ...     if detector.detected_change():
     ...         print("Change detected in data: " + str(data_stream[i]) + " - at index: " + str(i))
     Change detected in data: 6 - at index: 1234
@@ -30,6 +30,8 @@ class HDDMWeighted(MOADriftDetector):
         based on Hoeffding's bounds." IEEE Transactions on Knowledge and Data Engineering
         27.3 (2014): 810-823.
     """
+
+    _moa_detector_type = _HDDM_W_Test
 
     TEST_TYPES = ["Two-sided", "One-sided"]
 
@@ -67,7 +69,7 @@ class HDDMWeighted(MOADriftDetector):
                 f"-t {test_type}"
             )
 
-        super().__init__(moa_detector=_HDDM_W_Test(), CLI=CLI)
+        super().__init__(cli=CLI)
 
         self.drift_confidence = drift_confidence
         self.warning_confidence = warning_confidence

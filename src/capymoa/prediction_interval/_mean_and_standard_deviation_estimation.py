@@ -2,8 +2,8 @@ import inspect
 
 from capymoa.base import (
     MOAPredictionIntervalLearner,
-    _extract_moa_learner_CLI,
 )
+from capymoa._cli import cli_str_regressor
 
 from capymoa.regressor import AdaptiveRandomForestRegressor
 
@@ -36,13 +36,13 @@ class MVE(MOAPredictionIntervalLearner):
             else:
                 if key == "base_learner":
                     if base_learner is None:
-                        set_value = _extract_moa_learner_CLI(
+                        set_value = cli_str_regressor(
                             AdaptiveRandomForestRegressor(schema)
                         )
                     elif type(base_learner) is str:
                         set_value = base_learner
                     else:
-                        set_value = _extract_moa_learner_CLI(base_learner)
+                        set_value = cli_str_regressor(base_learner)
 
                 str_extension = f"{mappings[key]} {set_value} "
             config_str += str_extension

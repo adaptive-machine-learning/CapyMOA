@@ -6,8 +6,6 @@ from capymoa.base._base import (
     MOAClusterer,
     MOAPredictionIntervalLearner,
     PredictionIntervalLearner,
-    _extract_moa_drift_detector_CLI,
-    _extract_moa_learner_CLI,
 )
 from capymoa.base._classifier import (
     BatchClassifier,
@@ -23,8 +21,6 @@ from capymoa.base._ssl import (
 from ._batch import Batch
 
 __all__ = [
-    "_extract_moa_drift_detector_CLI",
-    "_extract_moa_learner_CLI",
     "Classifier",
     "Batch",
     "BatchClassifier",
