@@ -1,12 +1,12 @@
 # Benchmarking
 
-This directory documents how to reproduce the CapyMOA versus River benchmark on supported CapyMOA datasets.
+This directory documents how to reproduce the CapyMOA versus River versus MOA benchmark on supported CapyMOA datasets.
 
-The benchmark code lives in [`benchmarking.py`](benchmarking.py).
+The benchmark code for CapyMOA and River lives in [`benchmarking.py`](benchmarking.py), while the MOA CLI benchmark lives in [`benchmarking_moa.py`](benchmarking_moa.py). Shared plotting helpers live in [`plotting.py`](plotting.py).
 
 ## What This Benchmark Measures
 
-The script compares CapyMOA and River on the same streaming classification dataset using test-then-train evaluation.
+The script allows a clear comparison of CapyMOA and others on the same streaming classification dataset using test-then-train evaluation.
 
 The reported outputs include:
 
@@ -24,7 +24,7 @@ The script benchmarks these learners:
 - `ARF10`
 - `ARF30`
 - `ARF100`
-- `ARF100j4` for CapyMOA only, and it is included in the plots even though River has no matching bar
+- `ARF100j4` for CapyMOA only
 
 ## Setup
 
@@ -85,6 +85,8 @@ From the repository root:
 python benchmarks/benchmarking.py
 ```
 
+By default this runs the benchmark and writes the CSV, raw CSV, machine metadata, and Markdown summaries. Plots are optional and are rendered only when `--render-plots` is provided.
+
 To choose a dataset explicitly:
 
 ```bash
@@ -111,6 +113,20 @@ python benchmarks/benchmarking.py --max-instances 100000 --repetitions 5
 python benchmarks/benchmarking.py --max-instances 100 --repetitions 1
 ```
 
+To run only selected learners:
+
+```bash
+python benchmarks/benchmarking.py --algorithms HT,EFDT,ARF30
+python benchmarks/benchmarking_moa.py --algorithms HT,ARF5
+```
+
+To render plots after the benchmark run:
+
+```bash
+python benchmarks/benchmarking.py --render-plots
+python benchmarks/benchmarking.py --render-plots --dark-theme
+```
+
 To regenerate plots from an existing benchmark CSV without rerunning the benchmark:
 
 ```bash
@@ -122,7 +138,6 @@ This looks for `benchmarks/results/<experiment_id>/reference_100k.csv`. If that 
 To render plots with a dark background:
 
 ```bash
-python benchmarks/benchmarking.py --dark-theme
 python benchmarks/benchmarking.py --plot-only --output-prefix reference_100k --dark-theme
 ```
 
@@ -132,6 +147,14 @@ To provide a custom plot title prefix:
 python benchmarks/benchmarking.py --plot-title "RTG_2abrupt Benchmark"
 python benchmarks/benchmarking.py --plot-only --output-prefix reference_100k --plot-title "RTG_2abrupt Benchmark"
 ```
+
+To disable pulse output entirely:
+
+```bash
+python benchmarks/benchmarking.py --no-pulse
+```
+
+The MOA script supports the same dataset selection, `--plot-only`, `--render-plots`, `--dark-theme`, `--plot-title`, `--algorithms`, and output-prefix conventions, but it does not currently expose the same pulse output or library-selection options as `benchmarking.py`.
 
 ## Outputs
 
@@ -143,15 +166,16 @@ Within that experiment directory, the artifacts are:
 
 - `<experiment_id>.csv`: aggregated benchmark results
 - `<experiment_id>_raw.csv`: per-repetition results
-- `<experiment_id>_performance_plot_*.png`: benchmark plots
 - `<experiment_id>_machine.json`: lightweight machine details relevant to interpretation of the benchmark
 - `<experiment_id>_experiment.md`: human-readable benchmark summary including the CLI, dataset metadata, algorithms, and libraries
 - `<experiment_id>_configurations.md`: learner-by-learner benchmark configurations for CapyMOA and River
+- `<experiment_id>_performance_plot_*.png`: benchmark plots, written only when `--render-plots` is used or via `--plot-only`
+- `pulse_<experiment_id>.csv`: pulse output, written only by `benchmarking.py` unless `--no-pulse` is used
+- `pulse/`: pulse summary CSVs and plots, written only when pulse output exists and plots are rendered
 
 When `--output-prefix` is provided, the same artifact set is written using that prefix instead of the default experiment ID.
 
 ## Notes
 
 - This benchmark is not currently packaged as an install extra such as `capymoa[benchmark]`.
-- The benchmark depends on `river`, but River is intended to be installed separately rather than as a core CapyMOA dependency.
-- If you have `PYTHONPATH` exported to another CapyMOA checkout, unset it before running the benchmark so Python imports this repository's editable install.
+- The benchmark depends on `river`, but River is intended to be installed separately. 

@@ -9,15 +9,10 @@ import sys
 import tempfile
 import time
 
-import matplotlib
-from matplotlib.patches import Patch
-import numpy as np
 import pandas as pd
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
 import capymoa.datasets as capymoa_datasets
+from plotting import plot_performance
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -100,14 +95,7 @@ MOA_LEARNERS = [
     },
 ]
 
-
-def format_instance_count(value: int) -> str:
-    if value >= 1_000_000 and value % 1_000_000 == 0:
-        return f"{value // 1_000_000}m"
-    if value >= 1_000 and value % 1_000 == 0:
-        return f"{value // 1_000}k"
-    return str(value)
-
+ALGORITHM_ORDER = [learner["name"] for learner in MOA_LEARNERS]
 
 def experiment_id(dataset_name: str, max_instances: int) -> str:
     return f"{dataset_name}_{max_instances}"
@@ -115,11 +103,6 @@ def experiment_id(dataset_name: str, max_instances: int) -> str:
 
 def build_default_output_prefix(dataset_name: str, max_instances: int) -> str:
     return f"moa_{experiment_id(dataset_name, max_instances)}"
-
-
-def build_default_plot_title(dataset_name: str, max_instances: int) -> str:
-    return f"{dataset_name} {format_instance_count(max_instances)}"
-
 
 def dataset_docs_url(dataset_class_name: str) -> str:
     return (
@@ -176,6 +159,11 @@ def parse_args():
         help="Optional title prefix for plots.",
     )
     parser.add_argument(
+        "--render-plots",
+        action="store_true",
+        help="Render benchmark plots after the run finishes. Plots are skipped by default.",
+    )
+    parser.add_argument(
         "--java-bin",
         default="java",
         help="Java executable used to run MOA.",
@@ -189,6 +177,14 @@ def parse_args():
         "--skip-threaded-arf",
         action="store_true",
         help="Exclude the threaded ARF100j4 learner from the MOA benchmark.",
+    )
+    parser.add_argument(
+        "--algorithms",
+        default=None,
+        help=(
+            "Comma-separated learner names to run, for example "
+            "'HT,EFDT,ARF30'. Defaults to all supported learners."
+        ),
     )
     return parser.parse_args()
 
@@ -242,14 +238,40 @@ def checkpoint_results(results: pd.DataFrame, new_result: pd.DataFrame, output_f
     return results
 
 
-def selected_learners(include_threaded_arf: bool = True):
+def selected_learners(
+    include_threaded_arf: bool = True, selected_algorithms=None
+):
     if include_threaded_arf:
-        return MOA_LEARNERS
-    return [learner for learner in MOA_LEARNERS if learner["name"] != "ARF100j4"]
+        learners = MOA_LEARNERS
+    else:
+        learners = [
+            learner for learner in MOA_LEARNERS if learner["name"] != "ARF100j4"
+        ]
+    if selected_algorithms is None:
+        return learners
+    selected_set = set(selected_algorithms)
+    return [learner for learner in learners if learner["name"] in selected_set]
 
 
-def learner_names(include_threaded_arf: bool = True):
-    return [learner["name"] for learner in selected_learners(include_threaded_arf)]
+def learner_names(include_threaded_arf: bool = True, selected_algorithms=None):
+    return [
+        learner["name"]
+        for learner in selected_learners(include_threaded_arf, selected_algorithms)
+    ]
+
+
+def parse_selected_algorithms(raw_value, *, include_threaded_arf: bool):
+    allowed = set(ALGORITHM_ORDER if include_threaded_arf else ALGORITHM_ORDER[:-1])
+    if raw_value is None:
+        return [name for name in ALGORITHM_ORDER if name in allowed]
+    selected = [part.strip() for part in raw_value.split(",") if part.strip()]
+    invalid = [name for name in selected if name not in allowed]
+    if invalid:
+        raise ValueError(
+            "Unknown or unavailable algorithms requested: "
+            f"{', '.join(invalid)}. Allowed values: {', '.join(sorted(allowed))}"
+        )
+    return selected
 
 
 def write_configurations_summary(
@@ -258,6 +280,7 @@ def write_configurations_summary(
     dataset_name: str,
     max_instances: int,
     include_threaded_arf: bool = True,
+    selected_algorithms=None,
 ):
     lines = [
         f"Experiment ID: `{experiment_id(dataset_name, max_instances)}`",
@@ -265,7 +288,7 @@ def write_configurations_summary(
         "Configurations:",
         "",
     ]
-    for learner in selected_learners(include_threaded_arf):
+    for learner in selected_learners(include_threaded_arf, selected_algorithms):
         lines.append(f"- {learner['name']} (`{learner['config_summary']}`)")
     lines.append("")
     output_file.write_text("\n".join(lines), encoding="utf-8")
@@ -283,6 +306,7 @@ def write_experiment_summary(
     elapsed_seconds: float,
     machine_info: dict,
     include_threaded_arf: bool = True,
+    selected_algorithms=None,
 ):
     schema = stream.get_schema()
     total_instances = len(stream)
@@ -311,7 +335,12 @@ def write_experiment_summary(
         "",
         "Algorithms:",
     ]
-    lines.extend([f"- `{name}`" for name in learner_names(include_threaded_arf)])
+    lines.extend(
+        [
+            f"- `{name}`"
+            for name in learner_names(include_threaded_arf, selected_algorithms)
+        ]
+    )
     lines.extend(
         [
             "",
@@ -482,8 +511,9 @@ def benchmark_moa(
     java_bin: str,
     java_args: str,
     include_threaded_arf: bool = True,
+    selected_algorithms=None,
 ):
-    for learner_spec in selected_learners(include_threaded_arf):
+    for learner_spec in selected_learners(include_threaded_arf, selected_algorithms):
         result_df, raw_df = moa_experiment(
             dataset_name=dataset_name,
             learner_spec=learner_spec,
@@ -502,87 +532,6 @@ def benchmark_moa(
     return intermediary_results, raw_intermediary_results
 
 
-def plot_performance(
-    df: pd.DataFrame,
-    plot_prefix: Path,
-    *,
-    dark_theme: bool = False,
-    plot_title: str | None = None,
-    dataset_name: str | None = None,
-    max_instances: int | None = None,
-    include_threaded_arf: bool = True,
-):
-    ordered_algorithms = learner_names(include_threaded_arf)
-    df = df.copy()
-    df["learner"] = pd.Categorical(df["learner"], ordered_algorithms, ordered=True)
-    df = df.sort_values("learner")
-    if df.empty:
-        print("No benchmark results available to plot.")
-        return
-
-    measures = ["accuracy", "wallclock", "cpu_time"]
-    for measure in measures:
-        fig, ax = plt.subplots(figsize=(10, 6))
-        if dark_theme:
-            fig.patch.set_facecolor("#101418")
-            ax.set_facecolor("#101418")
-            text_color = "#f3f5f7"
-            grid_color = "#3a444d"
-            bar_color = "#f5a623"
-            error_bar_color = "#f3f5f7"
-        else:
-            text_color = "black"
-            grid_color = "#d0d7de"
-            bar_color = "#d97706"
-            error_bar_color = "black"
-
-        metric_title = measure.replace("_", " ").title()
-        title_base = plot_title
-        if title_base is None and dataset_name is not None and max_instances is not None:
-            title_base = build_default_plot_title(dataset_name, max_instances)
-
-        if plot_title:
-            ax.set_title(f"{plot_title}: {metric_title}", color=text_color)
-        elif title_base:
-            ax.set_title(f"{title_base} ({metric_title})", color=text_color)
-        else:
-            ax.set_title(metric_title, color=text_color)
-
-        ax.set_xlabel("Algorithm", color=text_color)
-        ax.set_ylabel(measure.capitalize(), color=text_color)
-        ax.tick_params(axis="x", colors=text_color, rotation=45)
-        ax.tick_params(axis="y", colors=text_color)
-        for spine in ax.spines.values():
-            spine.set_color(text_color)
-        ax.grid(axis="y", color=grid_color, alpha=0.35)
-        ax.set_axisbelow(True)
-
-        means = [df.loc[df["learner"] == learner, f"avg_{measure}"].iloc[0] if any(df["learner"] == learner) else np.nan for learner in ordered_algorithms]
-        stds = [df.loc[df["learner"] == learner, f"std_{measure}"].iloc[0] if any(df["learner"] == learner) else np.nan for learner in ordered_algorithms]
-        x_positions = np.arange(len(ordered_algorithms))
-        valid_mask = pd.Series(means).notna().to_numpy()
-
-        ax.bar(
-            x_positions[valid_mask],
-            pd.Series(means)[valid_mask],
-            yerr=pd.Series(stds)[valid_mask],
-            width=0.8,
-            color=bar_color,
-            ecolor=error_bar_color,
-            capsize=4,
-        )
-        ax.set_xticks(x_positions, ordered_algorithms)
-        legend = ax.legend(handles=[Patch(color=bar_color, label="moa")])
-        if dark_theme:
-            legend.get_frame().set_facecolor("#101418")
-            legend.get_frame().set_edgecolor("#3a444d")
-            for text in legend.get_texts():
-                text.set_color(text_color)
-        fig.tight_layout()
-        fig.savefig(f"{plot_prefix}_{measure}.png", facecolor=fig.get_facecolor())
-        plt.close(fig)
-
-
 if __name__ == "__main__":
     overall_start_time = time.time()
     args = parse_args()
@@ -592,6 +541,9 @@ if __name__ == "__main__":
     run_started_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     dataset_config = SUPPORTED_DATASETS[args.dataset]
     dataset_name = dataset_config["dataset_name"]
+    selected_algorithms = parse_selected_algorithms(
+        args.algorithms, include_threaded_arf=not args.skip_threaded_arf
+    )
     experiment_name = experiment_id(dataset_name, args.max_instances)
     experiment_dir = RESULTS_DIR / experiment_name
     output_prefix = args.output_prefix or build_default_output_prefix(
@@ -611,7 +563,11 @@ if __name__ == "__main__":
             plot_title=args.plot_title,
             dataset_name=None,
             max_instances=args.max_instances,
-            include_threaded_arf=not args.skip_threaded_arf,
+            algorithm_order=learner_names(
+                not args.skip_threaded_arf, selected_algorithms
+            ),
+            library_order=["moa"],
+            library_colors={"moa": "#f5a623" if args.dark_theme else "#d97706"},
         )
         print(f"Regenerated plots from {output_paths['results_csv']}")
         sys.exit(0)
@@ -634,17 +590,23 @@ if __name__ == "__main__":
         java_bin=args.java_bin,
         java_args=args.java_args,
         include_threaded_arf=not args.skip_threaded_arf,
+        selected_algorithms=selected_algorithms,
     )
 
-    plot_performance(
-        combined_results,
-        output_paths["plot_prefix"],
-        dark_theme=args.dark_theme,
-        plot_title=args.plot_title,
-        dataset_name=dataset_label,
-        max_instances=args.max_instances,
-        include_threaded_arf=not args.skip_threaded_arf,
-    )
+    if args.render_plots:
+        plot_performance(
+            combined_results,
+            output_paths["plot_prefix"],
+            dark_theme=args.dark_theme,
+            plot_title=args.plot_title,
+            dataset_name=dataset_label,
+            max_instances=args.max_instances,
+            algorithm_order=learner_names(
+                not args.skip_threaded_arf, selected_algorithms
+            ),
+            library_order=["moa"],
+            library_colors={"moa": "#f5a623" if args.dark_theme else "#d97706"},
+        )
 
     elapsed_seconds = time.time() - overall_start_time
     write_experiment_summary(
@@ -658,12 +620,14 @@ if __name__ == "__main__":
         elapsed_seconds=elapsed_seconds,
         machine_info=machine_info,
         include_threaded_arf=not args.skip_threaded_arf,
+        selected_algorithms=selected_algorithms,
     )
     write_configurations_summary(
         output_paths["configurations_md"],
         dataset_name=dataset_label,
         max_instances=args.max_instances,
         include_threaded_arf=not args.skip_threaded_arf,
+        selected_algorithms=selected_algorithms,
     )
 
     print(combined_results)
