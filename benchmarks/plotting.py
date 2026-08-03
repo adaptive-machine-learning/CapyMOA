@@ -51,7 +51,9 @@ def plot_performance(
     if not ordered_algorithms:
         ordered_algorithms = sorted(set(df["learner"]))
     else:
-        ordered_algorithms = [name for name in ordered_algorithms if name in set(df["learner"])]
+        ordered_algorithms = [
+            name for name in ordered_algorithms if name in set(df["learner"])
+        ]
 
     df = df.copy()
     df["learner"] = pd.Categorical(df["learner"], ordered_algorithms, ordered=True)
@@ -95,11 +97,17 @@ def plot_performance(
         title_base = plot_title
         if title_base is None:
             inferred_dataset_name = dataset_name
-            if inferred_dataset_name is None and "dataset" in df.columns and len(df) > 0:
+            if (
+                inferred_dataset_name is None
+                and "dataset" in df.columns
+                and len(df) > 0
+            ):
                 inferred_dataset_name = str(df["dataset"].iloc[0])
 
             if inferred_dataset_name is not None and max_instances is not None:
-                title_base = build_default_plot_title(inferred_dataset_name, max_instances)
+                title_base = build_default_plot_title(
+                    inferred_dataset_name, max_instances
+                )
 
         if plot_title:
             ax.set_title(f"{plot_title}: {metric_title}", color=text_color)
