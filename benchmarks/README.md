@@ -1,12 +1,12 @@
 # Benchmarking
 
-This directory documents how to reproduce the CapyMOA versus River versus MOA benchmark on supported CapyMOA datasets.
+This directory documents how to reproduce CapyMOA benchmarks and comparisons against other libraries, such as MOA, on supported CapyMOA datasets.
 
-The benchmark code for CapyMOA and River lives in [`benchmarking.py`](benchmarking.py), while the MOA CLI benchmark lives in [`benchmarking_moa.py`](benchmarking_moa.py). Shared plotting helpers live in [`plotting.py`](plotting.py).
+The benchmark code for CapyMOA lives in [`benchmarking.py`](benchmarking.py), while the MOA CLI benchmark lives in [`benchmarking_moa.py`](benchmarking_moa.py). Shared plotting helpers live in [`plotting.py`](plotting.py).
 
 ## What This Benchmark Measures
 
-The script allows a clear comparison of CapyMOA and others on the same streaming classification dataset using test-then-train evaluation.
+The scripts allow a clear comparison of CapyMOA and other libraries on the same streaming classification dataset using test-then-train evaluation.
 
 The reported outputs include:
 
@@ -28,40 +28,14 @@ The script benchmarks these learners:
 
 ## Setup
 
-Use a dedicated CapyMOA environment first. A conda environment is a reasonable option:
+Install CapyMOA first by following the main project installation guide:
 
-```bash
-conda create -n capymoa python=3.11
-conda activate capymoa
-```
-
-CapyMOA also requires Java. Check that it is available:
-
-```bash
-java -version
-```
-
-CapyMOA currently expects PyTorch in the environment as well. For a CPU-only setup:
-
-```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-```
-
-Then install CapyMOA from the repository root:
-
-```bash
-pip install -e .
-```
-
-Finally, install River separately for this benchmark:
-
-```bash
-pip install river
-```
+- [Installation Guide](https://capymoa.org/setup)
+- [Developer Setup](https://capymoa.org/setup/developer.html)
 
 ## Dataset
 
-The benchmark uses built-in datasets from `capymoa.datasets` for the CapyMOA side and the matching CapyMOA CSV sources for River.
+The benchmark uses built-in datasets from `capymoa.datasets`. When the optional River comparison is used, the script also relies on the matching CapyMOA CSV sources.
 
 Currently supported dataset keys are:
 
@@ -73,7 +47,7 @@ Currently supported dataset keys are:
 - `covtype_norm`
 - `sensor`
 
-These are intentionally limited to CapyMOA datasets that fit the current classification benchmark and have CSV companions available for River. For completeness, see the [CapyMOA API docs](../docs/api/index.rst), including `capymoa.datasets`.
+These are intentionally limited to CapyMOA datasets that fit the current classification benchmark. For completeness, see the [CapyMOA API docs](../docs/api/index.rst), including `capymoa.datasets`.
 
 On the first run, the script downloads any missing dataset files into the repository-local `data/` directory automatically. There is no separate dataset preparation step.
 
@@ -87,6 +61,18 @@ python benchmarks/benchmarking.py
 
 By default this runs the benchmark and writes the CSV, raw CSV, machine metadata, and Markdown summaries. Plots are optional and are rendered only when `--render-plots` is provided.
 
+For a straightforward CapyMOA-only run:
+
+```bash
+python benchmarks/benchmarking.py --dataset rtg_2abrupt --library capymoa
+```
+
+For a quicker CapyMOA-only smoke run with just a few learners:
+
+```bash
+python benchmarks/benchmarking.py --dataset rtg_2abrupt --library capymoa --algorithms HT,EFDT,ARF30
+```
+
 To choose a dataset explicitly:
 
 ```bash
@@ -97,7 +83,6 @@ To run only one side of the comparison:
 
 ```bash
 python benchmarks/benchmarking.py --library capymoa
-python benchmarks/benchmarking.py --library river
 ```
 
 To override the default experiment-ID-based filenames:
@@ -154,7 +139,7 @@ To disable pulse output entirely:
 python benchmarks/benchmarking.py --no-pulse
 ```
 
-The MOA script supports the same dataset selection, `--plot-only`, `--render-plots`, `--dark-theme`, `--plot-title`, `--algorithms`, and output-prefix conventions, but it does not currently expose the same pulse output or library-selection options as `benchmarking.py`.
+The MOA script supports the same dataset selection, `--plot-only`, `--render-plots`, `--dark-theme`, `--plot-title`, `--algorithms`, and output-prefix conventions, but it does not currently expose the same pulse output options as `benchmarking.py`.
 
 ## Outputs
 
@@ -168,7 +153,7 @@ Within that experiment directory, the artifacts are:
 - `<experiment_id>_raw.csv`: per-repetition results
 - `<experiment_id>_machine.json`: lightweight machine details relevant to interpretation of the benchmark
 - `<experiment_id>_experiment.md`: human-readable benchmark summary including the CLI, dataset metadata, algorithms, and libraries
-- `<experiment_id>_configurations.md`: learner-by-learner benchmark configurations for CapyMOA and River
+- `<experiment_id>_configurations.md`: learner-by-learner benchmark configurations
 - `<experiment_id>_performance_plot_*.png`: benchmark plots, written only when `--render-plots` is used or via `--plot-only`
 - `pulse_<experiment_id>.csv`: pulse output, written only by `benchmarking.py` unless `--no-pulse` is used
 - `pulse/`: pulse summary CSVs and plots, written only when pulse output exists and plots are rendered
@@ -178,4 +163,4 @@ When `--output-prefix` is provided, the same artifact set is written using that 
 ## Notes
 
 - This benchmark is not currently packaged as an install extra such as `capymoa[benchmark]`.
-- The benchmark depends on `river`, but River is intended to be installed separately. 
+- River is optional for this benchmark and is intended to be installed separately if you want to compare against it.
