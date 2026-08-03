@@ -60,6 +60,7 @@ ALGORITHM_ORDER = [
     "ARF100j4",
 ]
 
+
 def build_default_output_prefix(dataset_name: str, max_instances: int) -> str:
     return experiment_id(dataset_name, max_instances)
 
@@ -171,7 +172,10 @@ class PulseRecorder:
 
     def maybe_record(self, processed_instances: int):
         processed_instances = int(processed_instances)
-        while processed_instances >= self.next_pulse_at and self.next_pulse_at <= self.total_instances:
+        while (
+            processed_instances >= self.next_pulse_at
+            and self.next_pulse_at <= self.total_instances
+        ):
             self.record(self.next_pulse_at)
             self.next_pulse_at += self.pulse_interval
 
@@ -480,7 +484,6 @@ def capymoa_experiment(
     date_time_stamp = datetime.now().strftime("[%Y-%m-%d %H:%M]")
     print(f"[{date_time_stamp}][capymoa] Executing {learner_name} on {dataset_name}")
 
-    results = []
     raw_results = []  # Store raw results for each repetition
 
     total_instances = min(len(stream), max_instances)
@@ -739,17 +742,17 @@ def benchmark_classifiers_capymoa(
     # Run experiment 1
     if "NaiveBayes" in selected_algorithms:
         result_capyNB, raw_capymoa = capymoa_experiment(
-        dataset_name=dataset_names,
-        learner_name="NaiveBayes",
-        stream=data,
-        learner=NaiveBayes,
-        hyperparameters={},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="NaiveBayes",
+            stream=data,
+            learner=NaiveBayes,
+            hyperparameters={},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_capyNB, results_output_csv
@@ -761,17 +764,17 @@ def benchmark_classifiers_capymoa(
     # Run experiment 2
     if "HT" in selected_algorithms:
         result_capyHT, raw_capymoa = capymoa_experiment(
-        dataset_name=dataset_names,
-        learner_name="HT",
-        stream=data,
-        learner=HoeffdingTree,
-        hyperparameters={},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="HT",
+            stream=data,
+            learner=HoeffdingTree,
+            hyperparameters={},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_capyHT, results_output_csv
@@ -783,17 +786,17 @@ def benchmark_classifiers_capymoa(
     # Run experiment 3
     if "EFDT" in selected_algorithms:
         result_capyEFDT, raw_capymoa = capymoa_experiment(
-        dataset_name=dataset_names,
-        learner_name="EFDT",
-        stream=data,
-        learner=EFDT,
-        hyperparameters={},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="EFDT",
+            stream=data,
+            learner=EFDT,
+            hyperparameters={},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_capyEFDT, results_output_csv
@@ -805,17 +808,17 @@ def benchmark_classifiers_capymoa(
     # Run experiment 4
     if "KNN" in selected_algorithms:
         result_capyKNN, raw_capymoa = capymoa_experiment(
-        dataset_name=dataset_names,
-        learner_name="KNN",
-        stream=data,
-        learner=KNN,
-        hyperparameters={"window_size": 1000, "k": 3},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="KNN",
+            stream=data,
+            learner=KNN,
+            hyperparameters={"window_size": 1000, "k": 3},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_capyKNN, results_output_csv
@@ -827,17 +830,17 @@ def benchmark_classifiers_capymoa(
     # Run experiment 5
     if "ARF5" in selected_algorithms:
         result_capyARF5, raw_capymoa = capymoa_experiment(
-        dataset_name=dataset_names,
-        learner_name="ARF5",
-        stream=data,
-        learner=AdaptiveRandomForestClassifier,
-        hyperparameters={"ensemble_size": 5, "max_features": 0.6},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="ARF5",
+            stream=data,
+            learner=AdaptiveRandomForestClassifier,
+            hyperparameters={"ensemble_size": 5, "max_features": 0.6},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_capyARF5, results_output_csv
@@ -849,17 +852,17 @@ def benchmark_classifiers_capymoa(
     # Run experiment 6
     if "ARF10" in selected_algorithms:
         result_capyARF10, raw_capymoa = capymoa_experiment(
-        dataset_name=dataset_names,
-        learner_name="ARF10",
-        stream=data,
-        learner=AdaptiveRandomForestClassifier,
-        hyperparameters={"ensemble_size": 10, "max_features": 0.6},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="ARF10",
+            stream=data,
+            learner=AdaptiveRandomForestClassifier,
+            hyperparameters={"ensemble_size": 10, "max_features": 0.6},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_capyARF10, results_output_csv
@@ -871,17 +874,17 @@ def benchmark_classifiers_capymoa(
     # Run experiment 7
     if "ARF30" in selected_algorithms:
         result_capyARF30, raw_capymoa = capymoa_experiment(
-        dataset_name=dataset_names,
-        learner_name="ARF30",
-        stream=data,
-        learner=AdaptiveRandomForestClassifier,
-        hyperparameters={"ensemble_size": 30, "max_features": 0.6},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="ARF30",
+            stream=data,
+            learner=AdaptiveRandomForestClassifier,
+            hyperparameters={"ensemble_size": 30, "max_features": 0.6},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_capyARF30, results_output_csv
@@ -893,17 +896,17 @@ def benchmark_classifiers_capymoa(
     # Run experiment 8
     if "ARF100" in selected_algorithms:
         result_capyARF100, raw_capymoa = capymoa_experiment(
-        dataset_name=dataset_names,
-        learner_name="ARF100",
-        stream=data,
-        learner=AdaptiveRandomForestClassifier,
-        hyperparameters={"ensemble_size": 100, "max_features": 0.6},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="ARF100",
+            stream=data,
+            learner=AdaptiveRandomForestClassifier,
+            hyperparameters={"ensemble_size": 100, "max_features": 0.6},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_capyARF100, results_output_csv
@@ -958,17 +961,17 @@ def benchmark_classifiers_river(
     # Run experiment 1
     if "NaiveBayes" in selected_algorithms:
         result_riverNB, raw_river = river_experiment(
-        dataset_name=dataset_names,
-        learner_name="NaiveBayes",
-        stream_path_csv=stream_path_csv,
-        learner=GaussianNB,
-        hyperparameters={},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="NaiveBayes",
+            stream_path_csv=stream_path_csv,
+            learner=GaussianNB,
+            hyperparameters={},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_riverNB, results_output_csv
@@ -980,17 +983,17 @@ def benchmark_classifiers_river(
     # Run experiment 2
     if "HT" in selected_algorithms:
         result_riverHT, raw_river = river_experiment(
-        dataset_name=dataset_names,
-        learner_name="HT",
-        stream_path_csv=stream_path_csv,
-        learner=HoeffdingTreeClassifier,
-        hyperparameters={},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="HT",
+            stream_path_csv=stream_path_csv,
+            learner=HoeffdingTreeClassifier,
+            hyperparameters={},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_riverHT, results_output_csv
@@ -1002,17 +1005,17 @@ def benchmark_classifiers_river(
     # Run experiment 3
     if "EFDT" in selected_algorithms:
         result_riverEFDT, raw_river = river_experiment(
-        dataset_name=dataset_names,
-        learner_name="EFDT",
-        stream_path_csv=stream_path_csv,
-        learner=ExtremelyFastDecisionTreeClassifier,
-        hyperparameters={},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="EFDT",
+            stream_path_csv=stream_path_csv,
+            learner=ExtremelyFastDecisionTreeClassifier,
+            hyperparameters={},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_riverEFDT, results_output_csv
@@ -1024,17 +1027,17 @@ def benchmark_classifiers_river(
     # Run experiment 4
     if "KNN" in selected_algorithms:
         result_riverKNN, raw_river = river_experiment(
-        dataset_name=dataset_names,
-        learner_name="KNN",
-        stream_path_csv=stream_path_csv,
-        learner=KNNClassifier,
-        hyperparameters={"engine": LazySearch(window_size=1000), "n_neighbors": 3},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="KNN",
+            stream_path_csv=stream_path_csv,
+            learner=KNNClassifier,
+            hyperparameters={"engine": LazySearch(window_size=1000), "n_neighbors": 3},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_riverKNN, results_output_csv
@@ -1046,17 +1049,17 @@ def benchmark_classifiers_river(
     # Run experiment 5
     if "ARF5" in selected_algorithms:
         result_riverARF5, raw_river = river_experiment(
-        dataset_name=dataset_names,
-        learner_name="ARF5",
-        stream_path_csv=stream_path_csv,
-        learner=ARFClassifier,
-        hyperparameters={"n_models": 5, "max_features": 0.60},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="ARF5",
+            stream_path_csv=stream_path_csv,
+            learner=ARFClassifier,
+            hyperparameters={"n_models": 5, "max_features": 0.60},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_riverARF5, results_output_csv
@@ -1068,17 +1071,17 @@ def benchmark_classifiers_river(
     # Run experiment 6
     if "ARF10" in selected_algorithms:
         result_riverARF10, raw_river = river_experiment(
-        dataset_name=dataset_names,
-        learner_name="ARF10",
-        stream_path_csv=stream_path_csv,
-        learner=ARFClassifier,
-        hyperparameters={"n_models": 10, "max_features": 0.60},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="ARF10",
+            stream_path_csv=stream_path_csv,
+            learner=ARFClassifier,
+            hyperparameters={"n_models": 10, "max_features": 0.60},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_riverARF10, results_output_csv
@@ -1090,17 +1093,17 @@ def benchmark_classifiers_river(
     # Run experiment 7
     if "ARF30" in selected_algorithms:
         result_riverARF30, raw_river = river_experiment(
-        dataset_name=dataset_names,
-        learner_name="ARF30",
-        stream_path_csv=stream_path_csv,
-        learner=ARFClassifier,
-        hyperparameters={"n_models": 30, "max_features": 0.60},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="ARF30",
+            stream_path_csv=stream_path_csv,
+            learner=ARFClassifier,
+            hyperparameters={"n_models": 30, "max_features": 0.60},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_riverARF30, results_output_csv
@@ -1112,17 +1115,17 @@ def benchmark_classifiers_river(
     # Run experiment 8
     if "ARF100" in selected_algorithms:
         result_riverARF100, raw_river = river_experiment(
-        dataset_name=dataset_names,
-        learner_name="ARF100",
-        stream_path_csv=stream_path_csv,
-        learner=ARFClassifier,
-        hyperparameters={"n_models": 100, "max_features": 0.60},
-        repetitions=repetitions,
-        max_instances=max_instances,
-        raw_results_output_csv=raw_results_output_csv,
-        pulse_output_csv=pulse_output_csv,
-        pulse_percent=pulse_percent,
-    )
+            dataset_name=dataset_names,
+            learner_name="ARF100",
+            stream_path_csv=stream_path_csv,
+            learner=ARFClassifier,
+            hyperparameters={"n_models": 100, "max_features": 0.60},
+            repetitions=repetitions,
+            max_instances=max_instances,
+            raw_results_output_csv=raw_results_output_csv,
+            pulse_output_csv=pulse_output_csv,
+            pulse_percent=pulse_percent,
+        )
 
         intermediary_results = checkpoint_results(
             intermediary_results, result_riverARF100, results_output_csv
@@ -1193,12 +1196,12 @@ if __name__ == "__main__":
     for output_key in output_keys:
         output_paths[output_key].unlink(missing_ok=True)
 
-    dataset_stream, dataset_csv_path, dataset_label = ensure_dataset_assets(args.dataset)
+    dataset_stream, dataset_csv_path, dataset_label = ensure_dataset_assets(
+        args.dataset
+    )
     machine_info = write_machine_info(output_paths["machine_info_json"])
     active_libraries = (
-        ["capymoa", "river"]
-        if args.library == "both"
-        else [args.library]
+        ["capymoa", "river"] if args.library == "both" else [args.library]
     )
 
     pulse_output_csv = None if args.no_pulse else output_paths["pulse_csv"]

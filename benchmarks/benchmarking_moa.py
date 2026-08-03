@@ -97,12 +97,14 @@ MOA_LEARNERS = [
 
 ALGORITHM_ORDER = [learner["name"] for learner in MOA_LEARNERS]
 
+
 def experiment_id(dataset_name: str, max_instances: int) -> str:
     return f"{dataset_name}_{max_instances}"
 
 
 def build_default_output_prefix(dataset_name: str, max_instances: int) -> str:
     return f"moa_{experiment_id(dataset_name, max_instances)}"
+
 
 def dataset_docs_url(dataset_class_name: str) -> str:
     return (
@@ -232,15 +234,15 @@ def write_machine_info(output_file: Path):
     return machine_info
 
 
-def checkpoint_results(results: pd.DataFrame, new_result: pd.DataFrame, output_file: Path):
+def checkpoint_results(
+    results: pd.DataFrame, new_result: pd.DataFrame, output_file: Path
+):
     results = pd.concat([results, new_result], ignore_index=True)
     results.to_csv(output_file, index=False)
     return results
 
 
-def selected_learners(
-    include_threaded_arf: bool = True, selected_algorithms=None
-):
+def selected_learners(include_threaded_arf: bool = True, selected_algorithms=None):
     if include_threaded_arf:
         learners = MOA_LEARNERS
     else:
@@ -361,7 +363,9 @@ def write_experiment_summary(
     output_file.write_text("\n".join(lines), encoding="utf-8")
 
 
-def build_task_string(*, learner_cli: str, arff_path: Path, max_instances: int, dump_file: Path):
+def build_task_string(
+    *, learner_cli: str, arff_path: Path, max_instances: int, dump_file: Path
+):
     stream_cli = f'ArffFileStream -f "{arff_path}" -c -1'
     evaluator_cli = "BasicClassificationPerformanceEvaluator"
     sample_frequency = max_instances
@@ -572,7 +576,9 @@ if __name__ == "__main__":
         print(f"Regenerated plots from {output_paths['results_csv']}")
         sys.exit(0)
 
-    dataset_stream, dataset_arff_path, dataset_label = ensure_dataset_assets(args.dataset)
+    dataset_stream, dataset_arff_path, dataset_label = ensure_dataset_assets(
+        args.dataset
+    )
     machine_info = write_machine_info(output_paths["machine_info_json"])
 
     combined_results = pd.DataFrame()
