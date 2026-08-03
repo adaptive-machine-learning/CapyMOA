@@ -10,13 +10,6 @@ import time
 import numpy as np
 import pandas as pd
 
-# river imports
-from river import stream as stream_river, metrics
-from river.naive_bayes import GaussianNB
-from river.tree import HoeffdingTreeClassifier, ExtremelyFastDecisionTreeClassifier
-from river.neighbors import KNNClassifier, LazySearch
-from river.forest import ARFClassifier
-
 # Library imports
 import capymoa.datasets as capymoa_datasets
 from capymoa.evaluation.evaluation import (
@@ -123,6 +116,35 @@ def append_raw_result(raw_result, output_file):
     raw_df = pd.DataFrame([raw_result])
     header = not output_file.exists()
     raw_df.to_csv(output_file, mode="a", header=header, index=False)
+
+
+def import_river_modules():
+    try:
+        from river import metrics
+        from river import stream as stream_river
+        from river.forest import ARFClassifier
+        from river.naive_bayes import GaussianNB
+        from river.neighbors import KNNClassifier, LazySearch
+        from river.tree import (
+            ExtremelyFastDecisionTreeClassifier,
+            HoeffdingTreeClassifier,
+        )
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "River is required for River benchmark runs. "
+            "Install it separately, for example with `pip install river`."
+        ) from exc
+
+    return {
+        "metrics": metrics,
+        "stream_river": stream_river,
+        "ARFClassifier": ARFClassifier,
+        "GaussianNB": GaussianNB,
+        "KNNClassifier": KNNClassifier,
+        "LazySearch": LazySearch,
+        "ExtremelyFastDecisionTreeClassifier": ExtremelyFastDecisionTreeClassifier,
+        "HoeffdingTreeClassifier": HoeffdingTreeClassifier,
+    }
 
 
 class PulseRecorder:
@@ -589,18 +611,20 @@ def test_then_train_river(
     max_instances=DEFAULT_MAX_INSTANCES,
     pulse_recorder=None,
 ):
+    river_modules = import_river_modules()
+
     # Start measuring time
     start_wallclock_time, start_cpu_time = start_time_measuring()
 
     instancesProcessed = 0
-    accuracy = metrics.Accuracy()
+    accuracy = river_modules["metrics"].Accuracy()
 
     X, Y = stream_data[:, :-1], stream_data[:, -1]
 
     data = []
     performance_names = ["Classified instances", "accuracy"]
 
-    ds = stream_river.iter_array(X, Y)
+    ds = river_modules["stream_river"].iter_array(X, Y)
 
     for x, y in ds:
         if instancesProcessed >= max_instances:
@@ -957,6 +981,8 @@ def benchmark_classifiers_river(
     pulse_percent,
     selected_algorithms=None,
 ):
+    river_modules = import_river_modules()
+
     selected_algorithms = set(selected_algorithms or ALGORITHM_ORDER)
     # Run experiment 1
     if "NaiveBayes" in selected_algorithms:
@@ -964,7 +990,7 @@ def benchmark_classifiers_river(
             dataset_name=dataset_names,
             learner_name="NaiveBayes",
             stream_path_csv=stream_path_csv,
-            learner=GaussianNB,
+            learner=river_modules["GaussianNB"],
             hyperparameters={},
             repetitions=repetitions,
             max_instances=max_instances,
@@ -986,7 +1012,7 @@ def benchmark_classifiers_river(
             dataset_name=dataset_names,
             learner_name="HT",
             stream_path_csv=stream_path_csv,
-            learner=HoeffdingTreeClassifier,
+            learner=river_modules["HoeffdingTreeClassifier"],
             hyperparameters={},
             repetitions=repetitions,
             max_instances=max_instances,
@@ -1008,7 +1034,7 @@ def benchmark_classifiers_river(
             dataset_name=dataset_names,
             learner_name="EFDT",
             stream_path_csv=stream_path_csv,
-            learner=ExtremelyFastDecisionTreeClassifier,
+            learner=river_modules["ExtremelyFastDecisionTreeClassifier"],
             hyperparameters={},
             repetitions=repetitions,
             max_instances=max_instances,
@@ -1030,8 +1056,11 @@ def benchmark_classifiers_river(
             dataset_name=dataset_names,
             learner_name="KNN",
             stream_path_csv=stream_path_csv,
-            learner=KNNClassifier,
-            hyperparameters={"engine": LazySearch(window_size=1000), "n_neighbors": 3},
+            learner=river_modules["KNNClassifier"],
+            hyperparameters={
+                "engine": river_modules["LazySearch"](window_size=1000),
+                "n_neighbors": 3,
+            },
             repetitions=repetitions,
             max_instances=max_instances,
             raw_results_output_csv=raw_results_output_csv,
@@ -1052,7 +1081,7 @@ def benchmark_classifiers_river(
             dataset_name=dataset_names,
             learner_name="ARF5",
             stream_path_csv=stream_path_csv,
-            learner=ARFClassifier,
+            learner=river_modules["ARFClassifier"],
             hyperparameters={"n_models": 5, "max_features": 0.60},
             repetitions=repetitions,
             max_instances=max_instances,
@@ -1074,7 +1103,7 @@ def benchmark_classifiers_river(
             dataset_name=dataset_names,
             learner_name="ARF10",
             stream_path_csv=stream_path_csv,
-            learner=ARFClassifier,
+            learner=river_modules["ARFClassifier"],
             hyperparameters={"n_models": 10, "max_features": 0.60},
             repetitions=repetitions,
             max_instances=max_instances,
@@ -1096,7 +1125,7 @@ def benchmark_classifiers_river(
             dataset_name=dataset_names,
             learner_name="ARF30",
             stream_path_csv=stream_path_csv,
-            learner=ARFClassifier,
+            learner=river_modules["ARFClassifier"],
             hyperparameters={"n_models": 30, "max_features": 0.60},
             repetitions=repetitions,
             max_instances=max_instances,
@@ -1118,7 +1147,7 @@ def benchmark_classifiers_river(
             dataset_name=dataset_names,
             learner_name="ARF100",
             stream_path_csv=stream_path_csv,
-            learner=ARFClassifier,
+            learner=river_modules["ARFClassifier"],
             hyperparameters={"n_models": 100, "max_features": 0.60},
             repetitions=repetitions,
             max_instances=max_instances,
