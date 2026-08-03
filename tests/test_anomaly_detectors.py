@@ -1,9 +1,9 @@
+from collections.abc import Callable
 from functools import partial
-from typing import Callable, Optional
-from capymoa._cli import cli_str_classifier
 
 import pytest
 
+from capymoa._cli import cli_str_classifier
 from capymoa.anomaly import (
     AdaptiveIsolationForest,
     Autoencoder,
@@ -12,12 +12,14 @@ from capymoa.anomaly import (
     Loda,
     OnlineIsolationForest,
     RobustRandomCutForest,
+    RSHash,
     StreamingIsolationForest,
     StreamRHF,
 )
 from capymoa.base import AnomalyDetector, MOAClassifier
 from capymoa.datasets import ElectricityTiny
 from capymoa.evaluation import AnomalyDetectionEvaluator
+from capymoa.instance import Optional
 from capymoa.stream._stream import Schema
 
 
@@ -101,6 +103,11 @@ from capymoa.stream._stream import Schema
             0.65,
             None,
         ),
+        (
+            partial(RSHash, m=300, s=256, w=4, p=10000, seed=42),
+            0.61,
+            None,
+        ),
     ],
     ids=[
         "HalfSpaceTrees",
@@ -112,6 +119,7 @@ from capymoa.stream._stream import Schema
         "AdaptiveIsolationForest",
         "IForestASD",
         "Loda",
+        "RSHash",
     ],
 )
 def test_anomaly_detectors(
