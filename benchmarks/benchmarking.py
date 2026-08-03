@@ -7,13 +7,8 @@ import platform
 import sys
 import time
 
-import matplotlib
-from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 # river imports
 from river import stream as stream_river, metrics
@@ -32,13 +27,7 @@ from capymoa.evaluation.evaluation import (
 from capymoa.datasets import download_unpacked
 from capymoa.datasets._source_list import SOURCE_LIST
 from capymoa.datasets._utils import infer_unpacked_path
-from capymoa.classifier import (
-    NaiveBayes,
-    HoeffdingTree,
-    EFDT,
-    KNN,
-    AdaptiveRandomForestClassifier,
-)
+from plotting import plot_performance, write_pulse_plots
 
 # Globals
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -71,21 +60,8 @@ ALGORITHM_ORDER = [
     "ARF100j4",
 ]
 
-
-def format_instance_count(value: int) -> str:
-    if value >= 1_000_000 and value % 1_000_000 == 0:
-        return f"{value // 1_000_000}m"
-    if value >= 1_000 and value % 1_000 == 0:
-        return f"{value // 1_000}k"
-    return str(value)
-
-
 def build_default_output_prefix(dataset_name: str, max_instances: int) -> str:
     return experiment_id(dataset_name, max_instances)
-
-
-def build_default_plot_title(dataset_name: str, max_instances: int) -> str:
-    return f"{dataset_name} {format_instance_count(max_instances)}"
 
 
 def ensure_dataset_assets(dataset_key: str):
@@ -232,7 +208,7 @@ def parse_args():
         default=None,
         help=(
             "Base name for all output artifacts written under benchmarks/results/. "
-            "When omitted, a dataset-aware timestamped prefix is used."
+            "When omitted, the experiment ID is used."
         ),
     )
     parser.add_argument(
@@ -278,6 +254,16 @@ def parse_args():
         type=float,
         default=5.0,
         help="Write a pulse entry every N percent of the dataset. Defaults to 5.",
+    )
+    parser.add_argument(
+        "--no-pulse",
+        action="store_true",
+        help="Disable pulse CSV and pulse-plot generation for this run.",
+    )
+    parser.add_argument(
+        "--render-plots",
+        action="store_true",
+        help="Render benchmark plots after the run finishes. Plots are skipped by default.",
     )
     parser.add_argument(
         "--algorithms",
@@ -741,6 +727,14 @@ def benchmark_classifiers_capymoa(
     pulse_percent=5.0,
     selected_algorithms=None,
 ):
+    from capymoa.classifier import (
+        AdaptiveRandomForestClassifier,
+        EFDT,
+        HoeffdingTree,
+        KNN,
+        NaiveBayes,
+    )
+
     selected_algorithms = set(selected_algorithms or ALGORITHM_ORDER)
     # Run experiment 1
     if "NaiveBayes" in selected_algorithms:
@@ -1140,236 +1134,6 @@ def benchmark_classifiers_river(
     return intermediary_results, raw_intermediary_results
 
 
-def plot_performance(
-    df,
-    plot_prefix,
-    dark_theme=False,
-    plot_title=None,
-    dataset_name=None,
-    max_instances=None,
-):
-    # Step 1: Filter and reorder data
-    ordered_algorithms = [name for name in ALGORITHM_ORDER if name in set(df["learner"])]
-    df = df.copy()
-    df["learner"] = pd.Categorical(df["learner"], ordered_algorithms, ordered=True)
-    df = df.sort_values("learner")
-
-    libraries = [library for library in ["capymoa", "river"] if library in set(df["library"])]
-    if len(libraries) == 0:
-        print("No benchmark results available to plot.")
-        return
-
-    plot_df = df[df["learner"].notna()].set_index(["learner", "library"])
-
-    # Step 2: Plot each measure
-    measures = ["accuracy", "wallclock", "cpu_time"]
-    for measure in measures:
-        fig, ax = plt.subplots(figsize=(10, 6))
-        if dark_theme:
-            fig.patch.set_facecolor("#101418")
-            ax.set_facecolor("#101418")
-            text_color = "#f3f5f7"
-            grid_color = "#3a444d"
-            error_bar_color = "#f3f5f7"
-        else:
-            text_color = "black"
-            grid_color = "#d0d7de"
-            error_bar_color = "black"
-
-        metric_title = measure.replace("_", " ").title()
-        title_base = plot_title
-        if title_base is None:
-            inferred_dataset_name = dataset_name
-            if inferred_dataset_name is None and "dataset" in df.columns and len(df) > 0:
-                inferred_dataset_name = str(df["dataset"].iloc[0])
-
-            if inferred_dataset_name is not None and max_instances is not None:
-                title_base = build_default_plot_title(
-                    inferred_dataset_name, max_instances
-                )
-        if plot_title:
-            ax.set_title(f"{plot_title}: {metric_title}", color=text_color)
-        elif title_base:
-            ax.set_title(f"{title_base} ({metric_title})", color=text_color)
-        else:
-            ax.set_title(metric_title, color=text_color)
-        ax.set_xlabel("Algorithm", color=text_color)
-        ax.set_ylabel(measure.capitalize(), color=text_color)
-        ax.tick_params(axis="x", colors=text_color, rotation=45)
-        ax.tick_params(axis="y", colors=text_color)
-        for spine in ax.spines.values():
-            spine.set_color(text_color)
-        ax.grid(axis="y", color=grid_color, alpha=0.35)
-        ax.set_axisbelow(True)
-
-        x_positions = np.arange(len(ordered_algorithms))
-        width = 0.8 / max(len(libraries), 1)
-        colors = {"capymoa": "#44d17a", "river": "#ff6b6b"} if dark_theme else {"capymoa": "green", "river": "red"}
-        paired_learners = {
-            learner
-            for learner in ordered_algorithms
-            if all((learner, library) in plot_df.index for library in libraries)
-        }
-        capymoa_only_color = "#6aa9ff" if dark_theme else "#4a7dff"
-
-        for idx, library in enumerate(libraries):
-            means = []
-            stds = []
-            bar_colors = []
-            for learner in ordered_algorithms:
-                if (learner, library) in plot_df.index:
-                    row = plot_df.loc[(learner, library)]
-                    means.append(row[f"avg_{measure}"])
-                    stds.append(row[f"std_{measure}"])
-                    if library == "capymoa" and learner not in paired_learners:
-                        bar_colors.append(capymoa_only_color)
-                    else:
-                        bar_colors.append(colors.get(library, "gray"))
-                else:
-                    means.append(np.nan)
-                    stds.append(np.nan)
-                    bar_colors.append(colors.get(library, "gray"))
-
-            means_series = pd.Series(means, index=ordered_algorithms)
-            stds_series = pd.Series(stds, index=ordered_algorithms)
-            valid_mask = means_series.notna()
-            offset = (idx - (len(libraries) - 1) / 2) * width
-            positions = x_positions + offset
-
-            ax.bar(
-                positions[valid_mask.to_numpy()],
-                means_series[valid_mask],
-                yerr=stds_series[valid_mask],
-                width=width,
-                color=pd.Series(bar_colors, index=ordered_algorithms)[valid_mask],
-                ecolor=error_bar_color,
-                capsize=4,
-            )
-
-        ax.set_xticks(x_positions, ordered_algorithms)
-
-        # Step 3: Customize plot
-        legend_handles = []
-        if "capymoa" in libraries:
-            legend_handles.append(Patch(color=colors["capymoa"], label="capymoa"))
-        if any(
-            learner not in paired_learners
-            for learner in ordered_algorithms
-            if ("capymoa" in libraries and (learner, "capymoa") in plot_df.index)
-        ):
-            legend_handles.append(
-                Patch(color=capymoa_only_color, label="capymoa-only")
-            )
-        if "river" in libraries:
-            legend_handles.append(Patch(color=colors["river"], label="river"))
-
-        legend = ax.legend(handles=legend_handles)
-        if dark_theme:
-            legend.get_frame().set_facecolor("#101418")
-            legend.get_frame().set_edgecolor("#3a444d")
-            for text in legend.get_texts():
-                text.set_color(text_color)
-        fig.tight_layout()
-        fig.savefig(f"{plot_prefix}_{measure}.png", facecolor=fig.get_facecolor())
-        plt.close(fig)
-        # plt.show()
-
-
-def sanitize_filename(value: str) -> str:
-    allowed = []
-    for ch in value:
-        if ch.isalnum() or ch in ("-", "_"):
-            allowed.append(ch)
-        else:
-            allowed.append("_")
-    return "".join(allowed).strip("_") or "plot"
-
-
-def write_pulse_plots(pulse_csv: Path, pulse_dir: Path, *, dark_theme: bool = False):
-    if not pulse_csv.exists():
-        return
-
-    pulse_df = pd.read_csv(pulse_csv)
-    if pulse_df.empty:
-        return
-
-    pulse_dir.mkdir(parents=True, exist_ok=True)
-
-    algorithms = sorted(pulse_df["algorithm"].dropna().unique())
-    for algorithm in algorithms:
-        algorithm_df = pulse_df[pulse_df["algorithm"] == algorithm].copy()
-        if algorithm_df.empty:
-            continue
-
-        algorithm_csv = pulse_dir / f"{sanitize_filename(algorithm)}_pulse.csv"
-        algorithm_df.to_csv(algorithm_csv, index=False)
-
-        fig, ax = plt.subplots(figsize=(10, 6))
-        if dark_theme:
-            fig.patch.set_facecolor("#101418")
-            ax.set_facecolor("#101418")
-            text_color = "#f3f5f7"
-            grid_color = "#3a444d"
-            colors = {"capymoa": "#44d17a", "river": "#ff6b6b"}
-        else:
-            text_color = "black"
-            grid_color = "#d0d7de"
-            colors = {"capymoa": "green", "river": "red"}
-
-        ax.set_title(f"{algorithm} Pulse", color=text_color)
-        ax.set_xlabel("Processed Instances", color=text_color)
-        ax.set_ylabel("Delta (s)", color=text_color)
-        ax.tick_params(axis="x", colors=text_color)
-        ax.tick_params(axis="y", colors=text_color)
-        for spine in ax.spines.values():
-            spine.set_color(text_color)
-        ax.grid(axis="y", color=grid_color, alpha=0.35)
-        ax.set_axisbelow(True)
-
-        for platform_name in ["capymoa", "river"]:
-            platform_df = algorithm_df[algorithm_df["platform"] == platform_name].copy()
-            if platform_df.empty:
-                continue
-            grouped = (
-                platform_df.groupby("processed_instances", as_index=False)
-                .agg(
-                    mean_delta_s=("delta_s", "mean"),
-                    std_delta_s=("delta_s", "std"),
-                    percent_processed=("percent_processed", "mean"),
-                )
-                .sort_values("processed_instances")
-            )
-            grouped["std_delta_s"] = grouped["std_delta_s"].fillna(0.0)
-            color = colors.get(platform_name, "gray")
-            ax.plot(
-                grouped["processed_instances"],
-                grouped["mean_delta_s"],
-                label=platform_name,
-                color=color,
-            )
-            ax.fill_between(
-                grouped["processed_instances"],
-                grouped["mean_delta_s"] - grouped["std_delta_s"],
-                grouped["mean_delta_s"] + grouped["std_delta_s"],
-                color=color,
-                alpha=0.2,
-            )
-
-        legend = ax.legend()
-        if legend is not None and dark_theme:
-            legend.get_frame().set_facecolor("#101418")
-            legend.get_frame().set_edgecolor("#3a444d")
-            for text in legend.get_texts():
-                text.set_color(text_color)
-
-        fig.tight_layout()
-        fig.savefig(
-            pulse_dir / f"{sanitize_filename(algorithm)}_pulse.png",
-            facecolor=fig.get_facecolor(),
-        )
-        plt.close(fig)
-
-
 if __name__ == "__main__":
     overall_start_time = time.time()
     args = parse_args()
@@ -1409,11 +1173,24 @@ if __name__ == "__main__":
             plot_title=args.plot_title,
             dataset_name=None,
             max_instances=args.max_instances,
+            algorithm_order=ALGORITHM_ORDER,
+            library_order=["capymoa", "river"],
+            unpaired_library="capymoa",
+            unpaired_label="capymoa-only",
         )
+        if not args.no_pulse:
+            write_pulse_plots(
+                output_paths["pulse_csv"],
+                output_paths["pulse_dir"],
+                dark_theme=args.dark_theme,
+            )
         print(f"Regenerated plots from {output_paths['results_csv']}")
         sys.exit(0)
 
-    for output_key in ("results_csv", "raw_results_csv", "pulse_csv"):
+    output_keys = ["results_csv", "raw_results_csv"]
+    if not args.no_pulse:
+        output_keys.append("pulse_csv")
+    for output_key in output_keys:
         output_paths[output_key].unlink(missing_ok=True)
 
     dataset_stream, dataset_csv_path, dataset_label = ensure_dataset_assets(args.dataset)
@@ -1424,6 +1201,8 @@ if __name__ == "__main__":
         else [args.library]
     )
 
+    pulse_output_csv = None if args.no_pulse else output_paths["pulse_csv"]
+
     if args.library in {"both", "capymoa"}:
         combined_results, raw_results = benchmark_classifiers_capymoa(
             intermediary_results=combined_results,
@@ -1432,7 +1211,7 @@ if __name__ == "__main__":
             dataset_names=dataset_label,
             results_output_csv=output_paths["results_csv"],
             raw_results_output_csv=output_paths["raw_results_csv"],
-            pulse_output_csv=output_paths["pulse_csv"],
+            pulse_output_csv=pulse_output_csv,
             max_instances=args.max_instances,
             repetitions=args.repetitions,
             include_threaded_arf=not args.skip_threaded_arf,
@@ -1448,26 +1227,32 @@ if __name__ == "__main__":
             dataset_names=dataset_label,
             results_output_csv=output_paths["results_csv"],
             raw_results_output_csv=output_paths["raw_results_csv"],
-            pulse_output_csv=output_paths["pulse_csv"],
+            pulse_output_csv=pulse_output_csv,
             max_instances=args.max_instances,
             repetitions=args.repetitions,
             pulse_percent=args.pulse_percent,
             selected_algorithms=selected_algorithms,
         )
 
-    plot_performance(
-        combined_results,
-        output_paths["plot_prefix"],
-        dark_theme=args.dark_theme,
-        plot_title=args.plot_title,
-        dataset_name=dataset_label,
-        max_instances=args.max_instances,
-    )
-    write_pulse_plots(
-        output_paths["pulse_csv"],
-        output_paths["pulse_dir"],
-        dark_theme=args.dark_theme,
-    )
+    if args.render_plots:
+        plot_performance(
+            combined_results,
+            output_paths["plot_prefix"],
+            dark_theme=args.dark_theme,
+            plot_title=args.plot_title,
+            dataset_name=dataset_label,
+            max_instances=args.max_instances,
+            algorithm_order=ALGORITHM_ORDER,
+            library_order=["capymoa", "river"],
+            unpaired_library="capymoa",
+            unpaired_label="capymoa-only",
+        )
+        if not args.no_pulse:
+            write_pulse_plots(
+                output_paths["pulse_csv"],
+                output_paths["pulse_dir"],
+                dark_theme=args.dark_theme,
+            )
 
     elapsed_seconds = time.time() - overall_start_time
     write_experiment_summary(
