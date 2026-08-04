@@ -18,17 +18,29 @@ PyTorch the same import raises
 install command, instead of a bare ``ModuleNotFoundError``.
 """
 
+from functools import lru_cache
 from importlib import import_module
-from typing import Any, Callable, Dict, List, Mapping, Tuple
+from typing import Any, Callable, Dict, List, Mapping, MutableSequence, Tuple
 
-__all__ = ["lazy_torch_attrs"]
+__all__ = ["lazy_torch_attrs", "torch_available"]
+
+
+@lru_cache(maxsize=1)
+def torch_available() -> bool:
+    """Whether PyTorch can be imported, resolved once per process."""
+    from importlib.util import find_spec
+
+    try:
+        return find_spec("torch") is not None
+    except (ImportError, ValueError):
+        return False
 
 
 def lazy_torch_attrs(
     package: str,
     mapping: Mapping[str, str],
     feature: str,
-    static: List[str] = (),
+    all_names: MutableSequence[str],
 ) -> Tuple[Callable[[str], Any], Callable[[], List[str]]]:
     """Build ``__getattr__``/``__dir__`` that import torch-backed names lazily.
 
@@ -37,24 +49,40 @@ def lazy_torch_attrs(
         _LAZY = {"Finetune": "._finetune"}
         __getattr__, __dir__ = lazy_torch_attrs(__name__, _LAZY, "Finetune", __all__)
 
+    When PyTorch is **not** installed the lazy names are removed from
+    ``all_names`` in place. ``__all__`` drives ``from package import *``, so
+    leaving them listed would make a wildcard import resolve every torch-backed
+    name and fail with :class:`~capymoa.exception.OptionalDependencyError`, even
+    for a user who only wanted the core names. Dropping them means
+    ``import *`` yields exactly what is usable, while an explicit
+    ``from capymoa.classifier import Finetune`` still raises the actionable
+    error. With PyTorch installed, ``__all__`` is left untouched.
+
     :param package: ``__name__`` of the calling package.
     :param mapping: Public name -> module to import it from, relative to
         ``package`` (e.g. ``{"Finetune": "._finetune"}``).
     :param feature: What the user was reaching for, used in the error message.
-    :param static: Names already imported eagerly, so ``dir()`` stays complete.
+    :param all_names: The package's ``__all__``. Filtered in place when PyTorch
+        is missing, as described above.
     :return: ``(__getattr__, __dir__)`` to assign in the calling module.
     """
     lazy: Dict[str, str] = dict(mapping)
-    known = sorted(set(static) | set(lazy))
+    known = sorted(set(all_names) | set(lazy))
+
+    if not torch_available():
+        for name in lazy:
+            while name in all_names:
+                all_names.remove(name)
 
     def __getattr__(name: str) -> Any:
         module_name = lazy.get(name)
         if module_name is None:
             raise AttributeError(f"module {package!r} has no attribute {name!r}")
         # Raise a helpful error before the ModuleNotFoundError from the import.
-        from capymoa.exception import _requires_torch
+        from capymoa.exception import OptionalDependencyError
 
-        _requires_torch(feature)
+        if not torch_available():
+            raise OptionalDependencyError("PyTorch", feature)
         module = import_module(module_name, package)
         value = getattr(module, name)
         # Cache on the package so repeated access skips this machinery.

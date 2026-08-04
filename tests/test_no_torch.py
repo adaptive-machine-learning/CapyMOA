@@ -120,3 +120,68 @@ def test_torch_backed_names_still_work_when_torch_present():
     assert all(
         isinstance(cls, type) for cls in (Batch, BatchClassifier, BatchRegressor)
     )
+
+
+@pytest.mark.parametrize(
+    "module",
+    [
+        "capymoa.base",
+        "capymoa.classifier",
+        "capymoa.stream",
+        "capymoa.anomaly",
+        "capymoa.ssl",
+        "capymoa.drift.detectors",
+    ],
+)
+def test_wildcard_import_without_torch(module: str):
+    """``import *`` must not drag in torch-only names.
+
+    ``__all__`` drives ``from package import *``. If the lazy names stayed
+    listed, a wildcard import would resolve every torch-backed name and fail
+    even for a user who only wanted the core ones.
+    """
+    result = _run_without_torch(f"""
+        from {module} import *  # noqa: F401,F403
+        print("OK")
+    """)
+    assert result.returncode == 0, result.stderr
+    assert "OK" in result.stdout
+
+
+def test_all_drops_lazy_names_without_torch():
+    """Without torch, ``__all__`` advertises only what can actually be imported."""
+    result = _run_without_torch("""
+        import capymoa.base as base
+        import capymoa.classifier as classifier
+
+        for name in ("Batch", "BatchClassifier", "BatchRegressor"):
+            assert name not in base.__all__, name
+        assert "Finetune" not in classifier.__all__
+
+        # Core names are untouched.
+        assert "Classifier" in base.__all__
+        assert "HoeffdingTree" in classifier.__all__
+
+        # And the names are still reachable by explicit import, with a
+        # helpful error rather than silence.
+        from capymoa.exception import OptionalDependencyError
+        try:
+            base.BatchClassifier
+        except OptionalDependencyError:
+            print("OK")
+        else:
+            raise AssertionError("expected OptionalDependencyError")
+    """)
+    assert result.returncode == 0, result.stderr
+    assert "OK" in result.stdout
+
+
+def test_all_keeps_lazy_names_when_torch_present():
+    """With torch installed ``__all__`` is unfiltered, so docs stay complete."""
+    pytest.importorskip("torch")
+    import capymoa.base as base
+    import capymoa.classifier as classifier
+
+    for name in ("Batch", "BatchClassifier", "BatchRegressor"):
+        assert name in base.__all__, name
+    assert "Finetune" in classifier.__all__

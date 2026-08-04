@@ -139,6 +139,29 @@ jobs:
         print(f"OK -- accuracy {accuracy:.1f} with no PyTorch installed")
         PY
 
+    - name: Wildcard imports work without PyTorch
+      working-directory: /tmp
+      run: |
+        python - <<'PY'
+        # __all__ drives `import *`; torch-only names must not be listed when
+        # torch is absent, or a wildcard import fails for core-only users.
+        import capymoa.base as base
+
+        for module in (
+            "capymoa.base",
+            "capymoa.classifier",
+            "capymoa.stream",
+            "capymoa.anomaly",
+            "capymoa.ssl",
+            "capymoa.drift.detectors",
+        ):
+            exec(f"from {module} import *")
+
+        assert "BatchClassifier" not in base.__all__
+        assert "Classifier" in base.__all__
+        print("OK -- wildcard imports resolve without PyTorch")
+        PY
+
     - name: Torch-only features raise a helpful error
       working-directory: /tmp
       run: |
