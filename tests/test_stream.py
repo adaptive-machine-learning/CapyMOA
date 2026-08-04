@@ -22,7 +22,12 @@ from capymoa.stream import (
     TorchStream,
     stream_from_file,
 )
-from capymoa.stream.drift import Drift, GradualDrift, RecurrentConceptDriftStream
+from capymoa.stream.drift import (
+    AbruptDrift,
+    Drift,
+    GradualDrift,
+    RecurrentConceptDriftStream,
+)
 from capymoa.stream.generator import LEDGeneratorDrift, RandomTreeGenerator
 from pathlib import Path
 
@@ -133,6 +138,53 @@ def test_recurrent_concept_drift_stream_accepts_gradual_position_width():
         "GradualDrift(position=100, start=95, end=105, width=10)"
     )
     assert "-w 10 -p 100" in stream._CLI
+
+
+@pytest.mark.parametrize(
+    ["kwargs", "expected"],
+    [
+        (
+            {"position": 100, "width": 10},
+            "GradualDrift(position=100, start=95, end=105, width=10)",
+        ),
+        (
+            {"start": 95, "end": 105},
+            "GradualDrift(position=100, start=95, end=105, width=10)",
+        ),
+    ],
+)
+def test_gradual_drift_valid_forms(kwargs, expected):
+    """Both ways of locating a gradual drift describe the same drift."""
+    assert str(GradualDrift(**kwargs)) == expected
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        {"position": 100},
+        {"width": 10},
+        {"start": 95},
+        {"end": 105},
+        {"position": 100, "start": 95},
+        {"width": 10, "end": 105},
+        {"position": 100, "width": 10, "start": 95, "end": 105},
+    ],
+)
+def test_gradual_drift_rejects_incomplete_forms(kwargs):
+    """Incomplete or mixed styles raise a clear error, not an internal one.
+
+    Previously these fell through the branching and raised ``TypeError`` from
+    arithmetic on ``None``, or left the object without a ``position`` at all
+    and failed later.
+    """
+    with pytest.raises(ValueError, match="exactly one of"):
+        GradualDrift(**kwargs)
+
+
+def test_abrupt_drift_requires_position():
+    with pytest.raises(ValueError, match="needs a ``position``"):
+        AbruptDrift(position=None)
 
 
 def test_recurrent_concept_drift_stream_accepts_gradual_start_end():

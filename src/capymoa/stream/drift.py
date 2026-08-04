@@ -164,29 +164,76 @@ class Drift:
 
 
 class GradualDrift(Drift):
+    """A drift where two concepts overlap over a window of instances.
+
+    The location can be given in either of two mutually exclusive ways, which
+    describe the same drift:
+
+    >>> from capymoa.stream.drift import GradualDrift
+    >>> print(GradualDrift(position=100, width=10))
+    GradualDrift(position=100, start=95, end=105, width=10)
+    >>> print(GradualDrift(start=95, end=105))
+    GradualDrift(position=100, start=95, end=105, width=10)
+
+    Supplying neither style, or only half of one, is an error -- rather than
+    building a drift with no location:
+
+    >>> GradualDrift(position=100)
+    Traceback (most recent call last):
+        ...
+    ValueError: GradualDrift needs exactly one of ``position`` and ``width``, or ``start`` and ``end``, to locate the drift. Got position=100.
+
+    >>> GradualDrift(position=100, start=95)
+    Traceback (most recent call last):
+        ...
+    ValueError: GradualDrift needs exactly one of ``position`` and ``width``, or ``start`` and ``end``, to locate the drift. Got position=100, start=95.
+    """
+
     def __init__(
         self, position=None, width=None, start=None, end=None, alpha=0.0, random_seed=1
     ):
         self.__init_args_kwargs__ = copy.copy(
             locals()
         )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
-        # since python doesn't allow overloading functions we need to check if the user hasn't defined position + width and start+end.
-        if (
-            position is not None
-            and width is not None
-            and start is not None
-            and end is not None
-        ):
+
+        # Python has no function overloading, so the location of the drift can be
+        # given in one of several mutually exclusive ways. Validate that exactly
+        # one complete style was supplied *before* assigning anything, so an
+        # invalid call raises here rather than leaving a half-built object that
+        # fails later somewhere unrelated.
+        styles = {
+            "position and width": (position is not None, width is not None),
+            "start and end": (start is not None, end is not None),
+        }
+        complete = [name for name, given in styles.items() if all(given)]
+        partial = [
+            name for name, given in styles.items() if any(given) and not all(given)
+        ]
+
+        if len(complete) != 1 or partial:
+            supplied = ", ".join(
+                f"{name}={value!r}"
+                for name, value in (
+                    ("position", position),
+                    ("width", width),
+                    ("start", start),
+                    ("end", end),
+                )
+                if value is not None
+            )
             raise ValueError(
-                "Either use start and end OR position and width to determine the location of the gradual drift."
+                "GradualDrift needs exactly one of "
+                "``position`` and ``width``, or ``start`` and ``end``, "
+                "to locate the drift. "
+                f"Got {supplied if supplied else 'no arguments'}."
             )
 
-        if start is None and end is None:
+        if complete == ["position and width"]:
             self.width = width
             self.position = position
             self.start = int(position - width / 2)
             self.end = int(position + width / 2)
-        elif position is None and width is None:
+        else:
             self.start = start
             self.end = end
             self.width = end - start
@@ -213,10 +260,28 @@ class GradualDrift(Drift):
 
 
 class AbruptDrift(Drift):
+    """An instantaneous change of concept at ``position``.
+
+    >>> from capymoa.stream.drift import AbruptDrift
+    >>> print(AbruptDrift(position=5000))
+    AbruptDrift(position=5000)
+
+    ``position`` is required. Omitting it is rejected rather than producing a
+    drift with no location:
+
+    >>> AbruptDrift(position=None)
+    Traceback (most recent call last):
+        ...
+    ValueError: AbruptDrift needs a ``position`` to locate the drift.
+    """
+
     def __init__(self, position: int, random_seed: int = 1):
         self.__init_args_kwargs__ = copy.copy(
             locals()
         )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
+
+        if position is None:
+            raise ValueError("AbruptDrift needs a ``position`` to locate the drift.")
 
         self.position = position
         self.random_seed = random_seed
