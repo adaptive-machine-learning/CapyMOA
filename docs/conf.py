@@ -59,6 +59,9 @@ nitpick_ignore_regex = [
     ("py:class", r"torchvision\..*"),
     ("py:class", r"Tensor"),
     ("py:class", r"nn\.Module"),
+    # `autodoc_typehints_format = "short"` renders
+    # torch.optim.optimizer.Optimizer as a bare name, like Tensor above.
+    ("py:class", r"Optimizer"),
 ]
 
 # These warnings are usually false positives.

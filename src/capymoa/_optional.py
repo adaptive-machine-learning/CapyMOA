@@ -62,6 +62,12 @@ def lazy_torch_attrs(
         return value
 
     def __dir__() -> List[str]:
-        return known
+        # Union with the module's real namespace rather than replacing it.
+        # Returning only the curated list hides eagerly-imported names from
+        # tools that enumerate modules via dir() -- Sphinx autosummary then
+        # documents classes under their private module path and every
+        # cross-reference to them breaks.
+        module = import_module(package)
+        return sorted(set(vars(module)) | set(known))
 
     return __getattr__, __dir__

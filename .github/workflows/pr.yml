@@ -85,6 +85,79 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         files: coverage.xml
 
+  no-torch:
+    # PyTorch is an optional extra. This job installs CapyMOA *without* extras
+    # and checks the core still imports and runs, so `pip install capymoa` never
+    # silently goes back to pulling the ~2.9 GB CUDA stack. Without this job the
+    # regression returns the first time someone adds a top-level `import torch`
+    # to a core module.
+    name: "Install without PyTorch"
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: Install CapyMOA with no extras
+      run: python -m pip install .
+
+    - name: Assert PyTorch is absent
+      run: |
+        if python -c "import torch" 2>/dev/null; then
+          echo '::error::torch was installed by a bare "pip install capymoa".'
+          python -m pip show torch
+          exit 1
+        fi
+        echo "torch is not installed, as expected"
+
+    - name: Core imports and runs without PyTorch
+      # Run from a different directory so `capymoa` resolves to the installed
+      # package rather than ./src.
+      working-directory: /tmp
+      run: |
+        python - <<'PY'
+        import sys
+
+        import capymoa
+        assert "torch" not in sys.modules, "importing capymoa pulled in torch"
+
+        from capymoa.classifier import AdaptiveRandomForestClassifier
+        from capymoa.datasets import ElectricityTiny
+        from capymoa.evaluation import prequential_evaluation
+
+        stream = ElectricityTiny()
+        learner = AdaptiveRandomForestClassifier(schema=stream.get_schema())
+        results = prequential_evaluation(stream, learner, max_instances=1000)
+        accuracy = results["cumulative"].accuracy()
+        assert accuracy > 50, accuracy
+        assert "torch" not in sys.modules, "the evaluation loop pulled in torch"
+        print(f"OK -- accuracy {accuracy:.1f} with no PyTorch installed")
+        PY
+
+    - name: Torch-only features raise a helpful error
+      working-directory: /tmp
+      run: |
+        python - <<'PY'
+        from capymoa.exception import OptionalDependencyError
+
+        for importer in (
+            lambda: __import__("capymoa.ocl"),
+            lambda: __import__("capymoa.ann"),
+        ):
+            try:
+                importer()
+            except OptionalDependencyError as err:
+                assert "pip install capymoa[torch]" in str(err), err
+            else:
+                raise AssertionError("expected OptionalDependencyError")
+        print("OK -- optional-dependency errors are actionable")
+        PY
+
   lint:
     name: "Code Style"
     timeout-minutes: 10
