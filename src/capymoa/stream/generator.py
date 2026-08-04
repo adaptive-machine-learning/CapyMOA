@@ -751,7 +751,8 @@ class LEDGeneratorDrift(MOAStream):
                 if self.noise_percentage != 10
                 else None
             ),
-            (f"reduce_data={self.reduce_data}" if self.reduce_data else None)(
+            (f"reduce_data={self.reduce_data}" if self.reduce_data else None),
+            (
                 f"number_of_attributes_with_drift={self.number_of_attributes_with_drift}"
                 if self.number_of_attributes_with_drift != 7
                 else None

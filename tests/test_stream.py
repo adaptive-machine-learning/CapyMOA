@@ -22,6 +22,8 @@ from capymoa.stream import (
     TorchStream,
     stream_from_file,
 )
+from capymoa.stream.drift import Drift, GradualDrift, RecurrentConceptDriftStream
+from capymoa.stream.generator import LEDGeneratorDrift, RandomTreeGenerator
 from pathlib import Path
 
 allclose = partial(np.allclose, atol=0.001, equal_nan=True)
@@ -104,6 +106,56 @@ DATASET_N1 = TensorDataset(torch.tensor(XN1), torch.tensor(YN1))
 DATASET_N2 = TensorDataset(torch.tensor(XN2), torch.tensor(YN2))
 ARFF = RESOURCES / "stream_test.arff"
 CSV = RESOURCES / "stream_test.csv"
+
+
+def recurrent_drift_concepts():
+    return [
+        RandomTreeGenerator(tree_random_seed=1, instance_random_seed=1),
+        RandomTreeGenerator(tree_random_seed=2, instance_random_seed=1),
+    ]
+
+
+def test_led_generator_drift_str_with_drift_attributes():
+    stream = LEDGeneratorDrift(number_of_attributes_with_drift=1)
+
+    assert str(stream) == "LEDGeneratorDrift(number_of_attributes_with_drift=1)"
+
+
+def test_recurrent_concept_drift_stream_accepts_gradual_position_width():
+    stream = RecurrentConceptDriftStream(
+        concept_list=recurrent_drift_concepts(),
+        max_recurrences_per_concept=1,
+        transition_type_template=GradualDrift(position=100, width=10),
+    )
+
+    assert stream.get_num_drifts() == 1
+    assert str(stream.get_drifts()[0]) == (
+        "GradualDrift(position=100, start=95, end=105, width=10)"
+    )
+    assert "-w 10 -p 100" in stream._CLI
+
+
+def test_recurrent_concept_drift_stream_accepts_gradual_start_end():
+    stream = RecurrentConceptDriftStream(
+        concept_list=recurrent_drift_concepts(),
+        max_recurrences_per_concept=1,
+        transition_type_template=GradualDrift(start=95, end=105),
+    )
+
+    assert stream.get_num_drifts() == 1
+    assert str(stream.get_drifts()[0]) == (
+        "GradualDrift(position=100, start=95, end=105, width=10)"
+    )
+    assert "-w 10 -p 100" in stream._CLI
+
+
+def test_recurrent_concept_drift_stream_rejects_base_drift_template():
+    with pytest.raises(ValueError, match="Unsupported drift transition type"):
+        RecurrentConceptDriftStream(
+            concept_list=recurrent_drift_concepts(),
+            max_recurrences_per_concept=1,
+            transition_type_template=Drift(position=100),
+        )
 
 
 @pytest.mark.parametrize(
