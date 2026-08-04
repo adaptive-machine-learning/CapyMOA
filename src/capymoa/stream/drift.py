@@ -78,6 +78,21 @@ class DriftStream(MOAStream):
                     self.drifts.append(drift)
                     CLI = f" -s {cli_str_stream(stream1.moa_stream)} "
 
+                else:
+                    # Anything else used to be skipped silently, which produced a
+                    # stream missing that concept while still reporting the drift
+                    # from ``get_num_drifts()``. Composition is delegated to MOA's
+                    # ConceptDriftStream, so concepts have to be MOA-backed;
+                    # Python-native streams such as NumpyStream, CSVStream and
+                    # TorchStream cannot be used here yet (see issue #90).
+                    raise ValueError(
+                        f"DriftStream cannot use {type(component).__name__} as a "
+                        "component. Concepts must be MOA-backed streams (a "
+                        "``MOAStream``, e.g. a generator or an ``ARFFStream``) and "
+                        "drifts must be ``Drift`` objects. Python-native streams "
+                        "are not supported as concepts yet."
+                    )
+
             moa_stream = MOA_ConceptDriftStream()
         else:
             # [EXPERIMENTAL]
