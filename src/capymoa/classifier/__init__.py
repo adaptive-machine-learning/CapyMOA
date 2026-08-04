@@ -1,3 +1,4 @@
+from capymoa._optional import lazy_torch_attrs
 from ._adaptive_random_forest import AdaptiveRandomForestClassifier
 from ._efdt import EFDT
 from ._hoeffding_tree import HoeffdingTree
@@ -21,7 +22,6 @@ from ._dynamic_weighted_majority import DynamicWeightedMajority
 from ._csmote import CSMOTE
 from ._weightedknn import WeightedkNN
 from ._shrubs_classifier import ShrubsClassifier
-from ._finetune import Finetune
 from ._dems import DynamicEnsembleMemberSelection
 from ._plastic import PLASTIC
 
@@ -53,3 +53,12 @@ __all__ = [
     "DynamicEnsembleMemberSelection",
     "PLASTIC",
 ]
+
+
+#: Names that need PyTorch. Imported on first access so ``import capymoa`` stays
+#: torch-free -- see :mod:`capymoa._optional`.
+_LAZY = {
+    "Finetune": "._finetune",
+}
+
+__getattr__, __dir__ = lazy_torch_attrs(__name__, _LAZY, "Finetune", __all__)

@@ -1,4 +1,4 @@
-from .abcd import ABCD
+from capymoa._optional import lazy_torch_attrs
 from .adwin import ADWIN
 from .cusum import CUSUM
 from .ddm import DDM
@@ -29,3 +29,14 @@ __all__ = [
     "STEPD",
     "STUDD",
 ]
+
+
+#: ABCD uses a torch autoencoder. Imported on first access so ``import capymoa``
+#: stays torch-free -- see :mod:`capymoa._optional`.
+_LAZY = {
+    "ABCD": ".abcd",
+}
+
+__getattr__, __dir__ = lazy_torch_attrs(
+    __name__, _LAZY, "the ABCD drift detector", __all__
+)
