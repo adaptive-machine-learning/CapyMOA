@@ -25,6 +25,7 @@ from capymoa.stream import (
 from capymoa.stream.drift import (
     AbruptDrift,
     Drift,
+    DriftStream,
     GradualDrift,
     RecurrentConceptDriftStream,
 )
@@ -185,6 +186,28 @@ def test_gradual_drift_rejects_incomplete_forms(kwargs):
 def test_abrupt_drift_requires_position():
     with pytest.raises(ValueError, match="needs a ``position``"):
         AbruptDrift(position=None)
+
+
+def test_drift_stream_rejects_python_native_concept():
+    """A concept DriftStream cannot use must raise, not be silently dropped.
+
+    Composition is delegated to MOA's ConceptDriftStream, so a Python-native
+    stream used as a concept was skipped by the builder loop: the resulting
+    stream contained only the remaining concepts while ``get_num_drifts()``
+    still reported the drift.
+    """
+    x = np.random.default_rng(0).random((20, 3))
+    y = np.zeros(20, dtype=int)
+    python_concept = NumpyStream(x, y, dataset_name="python_concept")
+
+    with pytest.raises(ValueError, match="cannot use NumpyStream"):
+        DriftStream(
+            stream=[
+                RandomTreeGenerator(tree_random_seed=1),
+                AbruptDrift(position=10),
+                python_concept,
+            ]
+        )
 
 
 def test_recurrent_concept_drift_stream_accepts_gradual_start_end():
