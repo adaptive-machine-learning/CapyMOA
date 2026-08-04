@@ -73,7 +73,10 @@ dev=[
     "pytest-subtests~=0.15",
     "pytest-xdist~=3.8",
     "pytest~=9.0",
-    "ruff~=0.14",
+    # Pinned to a single minor: `astral-sh/ruff-action` (the Code Style gate) reads this spec
+    # as >=0.14,<0.15, while pip/uv apply PEP 440 and admit 0.16.x. An explicit range keeps
+    # the lint gate and dev installs on the same ruff. Bumping is a deliberate change.
+    "ruff>=0.14,<0.15",
     "stubgenj~=0.2",
     "wget~=3.2",
 ]
