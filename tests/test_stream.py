@@ -24,12 +24,13 @@ from capymoa.stream import (
 )
 from capymoa.stream.drift import (
     AbruptDrift,
+    Concept,
     Drift,
     DriftStream,
     GradualDrift,
     RecurrentConceptDriftStream,
 )
-from capymoa.stream.generator import LEDGeneratorDrift, RandomTreeGenerator
+from capymoa.stream.generator import SEA, LEDGeneratorDrift, RandomTreeGenerator
 from pathlib import Path
 
 allclose = partial(np.allclose, atol=0.001, equal_nan=True)
@@ -184,9 +185,129 @@ def test_gradual_drift_rejects_incomplete_forms(kwargs):
         GradualDrift(**kwargs)
 
 
-def test_abrupt_drift_requires_position():
-    with pytest.raises(ValueError, match="needs a ``position``"):
-        AbruptDrift(position=None)
+def _range_and_position_equivalents():
+    """The same stream written both ways."""
+    range_form = DriftStream(
+        stream=[
+            Concept(SEA(function=1), num_instances=1000),
+            AbruptDrift(),
+            Concept(SEA(function=2), num_instances=500),
+            GradualDrift(num_instances=500),
+            Concept(SEA(function=3), num_instances=500),
+        ]
+    )
+    position_form = DriftStream(
+        stream=[
+            SEA(function=1),
+            AbruptDrift(position=1000),
+            SEA(function=2),
+            GradualDrift(position=1750, width=500),
+            SEA(function=3),
+        ]
+    )
+    return range_form, position_form
+
+
+def test_range_form_resolves_to_the_same_drifts():
+    """Lengths are translated into the positions they imply."""
+    range_form, position_form = _range_and_position_equivalents()
+
+    assert range_form.range_form is True
+    assert position_form.range_form is False
+    assert [str(d) for d in range_form.get_drifts()] == [
+        str(d) for d in position_form.get_drifts()
+    ]
+    assert str(range_form.get_drifts()[0]) == "AbruptDrift(position=1000)"
+    assert str(range_form.get_drifts()[1]) == (
+        "GradualDrift(position=1750, start=1500, end=2000, width=500)"
+    )
+
+
+def test_range_form_produces_the_same_instances():
+    """Translation only -- the two forms describe one stream."""
+    range_form, position_form = _range_and_position_equivalents()
+
+    a = np.array([range_form.next_instance().x for _ in range(2500)])
+    b = np.array([position_form.next_instance().x for _ in range(2500)])
+
+    assert np.allclose(a, b)
+
+
+def test_range_form_accepts_python_native_concepts():
+    """Lengths work with streams MOA cannot represent."""
+    rng = np.random.default_rng(0)
+    before = NumpyStream(rng.random((300, 3)), rng.integers(0, 2, 300), "before")
+    after = NumpyStream(rng.random((300, 3)) + 10, rng.integers(0, 2, 300), "after")
+
+    stream = DriftStream(
+        stream=[
+            Concept(before, num_instances=100),
+            AbruptDrift(),
+            Concept(after, num_instances=100),
+        ]
+    )
+
+    x = np.array([stream.next_instance().x for _ in range(150)])
+    assert str(stream.get_drifts()[0]) == "AbruptDrift(position=100)"
+    assert x[:98].mean() < 5
+    assert x[100:].mean() > 5
+
+
+@pytest.mark.parametrize(
+    ["definition", "match"],
+    [
+        # Mixing the two forms.
+        (
+            lambda: [Concept(SEA(function=1), 100), AbruptDrift(), SEA(function=3)],
+            "either all be wrapped",
+        ),
+        # A position alongside lengths contradicts them.
+        (
+            lambda: [
+                Concept(SEA(function=1), 100),
+                AbruptDrift(position=50),
+                Concept(SEA(function=3), 100),
+            ],
+            "cannot carry a position",
+        ),
+        (
+            lambda: [
+                Concept(SEA(function=1), 100),
+                GradualDrift(position=50, width=10),
+                Concept(SEA(function=3), 100),
+            ],
+            "cannot carry a position",
+        ),
+    ],
+)
+def test_range_form_rejects_contradictory_definitions(definition, match):
+    with pytest.raises(ValueError, match=match):
+        DriftStream(stream=definition())
+
+
+def test_concept_requires_a_positive_length():
+    for bad in (0, -1, None):
+        with pytest.raises(ValueError, match="positive ``num_instances``"):
+            Concept(SEA(function=1), bad)
+
+
+def test_abrupt_drift_without_position_is_rejected_by_position_form():
+    """An unplaced drift is only meaningful in the range form.
+
+    ``AbruptDrift()`` is how the range form spells "switch here"; the concept
+    lengths decide where that is. A definition built from positions has no such
+    information, so it rejects the drift rather than defaulting it to zero.
+    """
+    assert AbruptDrift().position is None
+
+    with pytest.raises(ValueError, match="has no position"):
+        DriftStream(
+            stream=[
+                RandomTreeGenerator(tree_random_seed=1),
+                AbruptDrift(),
+                RandomTreeGenerator(tree_random_seed=2),
+            ]
+        )
 
 
 def test_drift_stream_accepts_python_native_concepts():
