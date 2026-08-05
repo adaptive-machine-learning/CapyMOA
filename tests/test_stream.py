@@ -220,14 +220,61 @@ def test_to_moa_stream_refuses_python_native_concepts():
         stream.to_moa_stream()
 
 
-def test_drift_stream_rejects_mismatched_schemas():
-    """Concepts are interleaved, so they must describe the same instances."""
-    rng = np.random.default_rng(0)
-    three = NumpyStream(rng.random((20, 3)), rng.integers(0, 2, 20), "three")
-    four = NumpyStream(rng.random((20, 4)), rng.integers(0, 2, 20), "four")
+def _numpy_concepts(rng, n=40):
+    x = rng.random((n, 3))
+    return x, rng.integers(0, 2, n)
 
-    with pytest.raises(ValueError, match="must share the same"):
-        DriftStream(stream=[three, AbruptDrift(position=10), four])
+
+@pytest.mark.parametrize(
+    ["name", "differs_in"],
+    [
+        ("attributes", "attributes"),
+        ("classes", "classes"),
+        ("task", "task"),
+    ],
+)
+def test_drift_stream_rejects_incompatible_concepts(name, differs_in):
+    """Concepts must describe the same learning problem, not just the same count.
+
+    Every concept's instances go to the same learner and are scored with the
+    schema of the first, so a mismatch produces misinterpreted instances rather
+    than an error. Comparing only ``get_num_attributes()`` let a classification
+    concept drift into a regression one.
+    """
+    rng = np.random.default_rng(0)
+    x, y = _numpy_concepts(rng)
+    before = NumpyStream(x, y, "before")
+
+    if name == "attributes":
+        after = NumpyStream(rng.random((40, 4)), y, "after")
+    elif name == "classes":
+        after = NumpyStream(x, rng.integers(0, 3, 40), "after")
+    else:
+        after = NumpyStream(x, rng.random(40), "after", target_type="numeric")
+
+    with pytest.raises(ValueError, match=differs_in):
+        DriftStream(stream=[before, AbruptDrift(position=10), after])
+
+
+def test_drift_stream_has_more_instances_ignores_spent_concepts():
+    """A finite concept the drift has moved past must not end the stream.
+
+    ``has_more_instances`` used to require every concept to have data, so a
+    loop guarded by it stopped as soon as the *old* concept ran out, while
+    ``next_instance`` could still produce instances from the new one.
+    """
+    rng = np.random.default_rng(0)
+    before = NumpyStream(rng.random((99, 3)), rng.integers(0, 2, 99), "before")
+    after = NumpyStream(rng.random((10, 3)), rng.integers(0, 2, 10), "after")
+
+    stream = DriftStream(stream=[before, AbruptDrift(position=100), after])
+
+    consumed = 0
+    while stream.has_more_instances():
+        stream.next_instance()
+        consumed += 1
+
+    assert consumed == 109
 
 
 def test_drift_stream_rejects_non_stream_component():
