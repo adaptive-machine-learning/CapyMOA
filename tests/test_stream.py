@@ -285,6 +285,111 @@ def test_range_form_rejects_contradictory_definitions(definition, match):
         DriftStream(stream=definition())
 
 
+def test_concept_counts_match_actually_consuming_the_stream():
+    """The prediction must be exact, not an estimate.
+
+    Routing depends only on each transition's own seeded generator and
+    counter, never on the instances, so replaying it reproduces the same
+    branch pattern without generating any data.
+    """
+    from capymoa.stream.drift import _ConceptNode
+
+    def build():
+        return DriftStream(
+            stream=[
+                Concept(SEA(function=1), num_instances=1000),
+                AbruptDrift(),
+                Concept(SEA(function=2), num_instances=500),
+                GradualDrift(num_instances=500),
+                Concept(SEA(function=3), num_instances=500),
+            ]
+        )
+
+    predicted = build().get_concept_counts(2500)
+
+    # Count for real, by tagging each leaf of the composition tree.
+    stream = build()
+    leaves = []
+
+    def tag(node):
+        if isinstance(node, _ConceptNode):
+            node.drawn = 0
+            original = node.next_instance
+
+            def counting(_node=node, _original=original):
+                _node.drawn += 1
+                return _original()
+
+            node.next_instance = counting
+            leaves.append(node)
+        else:
+            tag(node.before)
+            tag(node.after)
+
+    tag(stream._root)
+    for _ in range(2500):
+        stream.next_instance()
+
+    assert predicted == [leaf.drawn for leaf in leaves]
+    assert sum(predicted) == 2500
+
+
+def test_concept_counts_show_gradual_overlap():
+    """A gradual drift makes the counts diverge from the declared lengths."""
+    stream = DriftStream(
+        stream=[
+            Concept(SEA(function=1), num_instances=1000),
+            AbruptDrift(),
+            Concept(SEA(function=2), num_instances=500),
+            GradualDrift(num_instances=500),
+            Concept(SEA(function=3), num_instances=500),
+        ]
+    )
+    counts = stream.get_concept_counts(2500)
+
+    # The abrupt drift is a clean switch, so the first concept is exact.
+    assert counts[0] == 999
+    # The two concepts either side of the gradual drift share its window, so
+    # both are drawn from more often than their declared length.
+    assert counts[1] > 500
+    assert counts[2] > 500
+
+
+def test_concept_counts_work_for_the_position_form():
+    stream = DriftStream(
+        stream=[
+            SEA(function=1),
+            AbruptDrift(position=1000),
+            SEA(function=3),
+        ]
+    )
+    assert stream.get_concept_counts(2000) == [999, 1001]
+    assert "position form" in stream.describe(2000)
+
+
+def test_concept_counts_reject_bad_input():
+    stream = DriftStream(
+        stream=[SEA(function=1), AbruptDrift(position=100), SEA(function=3)]
+    )
+    with pytest.raises(ValueError, match="zero or positive"):
+        stream.get_concept_counts(-1)
+
+
+def test_describe_reports_declared_lengths_for_the_range_form():
+    stream = DriftStream(
+        stream=[
+            Concept(SEA(function=1), num_instances=1000),
+            AbruptDrift(),
+            Concept(SEA(function=3), num_instances=500),
+        ]
+    )
+    report = stream.describe(1500)
+
+    assert "range form" in report
+    assert "declared" in report
+    assert "AbruptDrift(position=1000)" in report
+
+
 def test_concept_requires_a_positive_length():
     for bad in (0, -1, None):
         with pytest.raises(ValueError, match="positive ``num_instances``"):
