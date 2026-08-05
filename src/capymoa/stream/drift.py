@@ -154,6 +154,7 @@ class DriftStream(Stream):
             for drift, concept in zip(self.drifts, concepts[1:]):
                 root = _Transition(root, _ConceptNode(concept), drift)
             self._root = root
+            self._concepts = list(concepts)
             self._schema = schema or concepts[0].get_schema()
             self._check_concepts_agree(concepts)
         else:
@@ -187,10 +188,121 @@ class DriftStream(Stream):
                         Drift(position=int(matches_position[i]), width=1000)
                     )
 
+            self._concepts = []
             self._moa_backed = MOAStream(schema=schema, CLI=CLI, moa_stream=moa_stream)
             self._schema = self._moa_backed.get_schema()
 
         self._CLI = CLI
+
+    def get_concept_counts(self, num_instances: int):
+        """How many of the first ``num_instances`` come from each concept.
+
+        Around an :class:`AbruptDrift` this follows from the definition, but
+        around a :class:`GradualDrift` the concepts overlap and the split is a
+        property of the transition ramp, which can keep drawing from the older
+        concept past the nominal end of the window. This reports what actually
+        happens.
+
+        The stream does not need to be run. Each transition decides using only
+        its own seeded generator and its own counter -- the instances never
+        enter the decision -- so the routing is replayed with fresh generators
+        and reproduces the same branch pattern without generating any data.
+        That makes it exact rather than an estimate, and fast enough to ask
+        about millions of instances.
+
+        >>> from capymoa.stream.drift import Concept, DriftStream, GradualDrift
+        >>> from capymoa.stream.generator import SEA
+        >>> stream = DriftStream(stream=[
+        ...     Concept(SEA(function=1), num_instances=1000),
+        ...     GradualDrift(num_instances=500),
+        ...     Concept(SEA(function=3), num_instances=500),
+        ... ])
+        >>> stream.get_concept_counts(2000)
+        [1269, 731]
+
+        :param num_instances: How many instances to account for, counted from
+            the start of the stream.
+        :return: One count per concept, in the order they were defined.
+            Concepts appearing more than once are counted separately.
+        """
+        if self._root is None:
+            raise ValueError(
+                "get_concept_counts() needs a DriftStream built from a list of "
+                "concepts and drifts. This one is backed by a MOA stream, "
+                "which does not expose where each instance came from."
+            )
+        if num_instances is None or num_instances < 0:
+            raise ValueError(
+                f"num_instances must be zero or positive, got {num_instances!r}."
+            )
+
+        # Fresh state, so this always reports a run from the start of the
+        # stream rather than wherever the live stream happens to be.
+        counters = {}
+        leaves = []
+
+        def prepare(node):
+            if isinstance(node, _Transition):
+                node._replay_n = 0
+                node._replay_rng = _random.Random(node.drift.random_seed)
+                prepare(node.before)
+                prepare(node.after)
+            else:
+                counters[id(node)] = 0
+                leaves.append(node)
+
+        prepare(self._root)
+
+        for _ in range(num_instances):
+            node = self._root
+            while isinstance(node, _Transition):
+                node._replay_n += 1
+                probability = node.probability_of_new_concept(node._replay_n)
+                if node._replay_rng.random() > probability:
+                    node = node.before
+                else:
+                    node = node.after
+            counters[id(node)] += 1
+
+        return [counters[id(leaf)] for leaf in leaves]
+
+    def describe(self, num_instances: int) -> str:
+        """A readable summary of where the first ``num_instances`` come from.
+
+        Intended for reporting a stream in a paper or notebook, where the drift
+        positions alone do not say how much of each concept was actually seen.
+
+        :param num_instances: How many instances to account for.
+        :return: A table of concepts, their counts and shares, followed by the
+            drifts. When the stream was defined with lengths, the declared
+            length is shown alongside for comparison.
+        """
+        counts = self.get_concept_counts(num_instances)
+        declared = (
+            [component.num_instances for component in self.stream[0::2]]
+            if getattr(self, "range_form", False)
+            else None
+        )
+
+        form = "range form" if declared else "position form"
+        lines = [f"DriftStream over {num_instances} instances, {form}", ""]
+        header = f"  {'concept':<34}"
+        if declared:
+            header += f" {'declared':>9}"
+        lines.append(header + f" {'drawn':>8} {'share':>8}")
+
+        for i, (concept, count) in enumerate(zip(self._concepts, counts)):
+            row = f"  {str(concept)[:34]:<34}"
+            if declared:
+                row += f" {declared[i]:>9}"
+            share = count / num_instances if num_instances else 0.0
+            lines.append(row + f" {count:>8} {share:>7.1%}")
+
+        lines.append("")
+        lines.append("  drifts")
+        for drift in self.drifts:
+            lines.append(f"    {drift}")
+        return "\n".join(lines)
 
     @staticmethod
     def _uses_range_form(components):
