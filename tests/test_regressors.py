@@ -2,7 +2,7 @@ from contextlib import nullcontext
 import os
 from typing import Optional
 from capymoa.evaluation import RegressionEvaluator, RegressionWindowedEvaluator
-from capymoa.datasets import Fried
+from capymoa.datasets import Fried, FriedTiny
 from capymoa.misc import load_model, save_model
 from capymoa.regressor import (
     KNNRegressor,
@@ -15,13 +15,14 @@ from capymoa.regressor import (
     PassiveAggressiveRegressor,
     SGDRegressor,
     ShrubsRegressor,
+    StreamingGradientBoostedRegression,
     NoChange,
     TargetMean,
     FadingTargetMean,
 )
 from jpype import JException
 import pytest
-from capymoa.base import Regressor
+from capymoa.base import MOAClassifier, MOARegressor, Regressor
 from capymoa.stream import Schema, Stream
 from tempfile import TemporaryDirectory
 from dataclasses import dataclass
@@ -62,6 +63,7 @@ CASES = [
     Case(PassiveAggressiveRegressor, 3.70, 3.68),
     Case(SGDRegressor, 4.63, 3.61),
     Case(ShrubsRegressor, 5.21, 4.76),
+    Case(StreamingGradientBoostedRegression, 3.09, 2.21),
 ]
 """Add your new test cases here ^^"""
 
@@ -93,6 +95,29 @@ def test_regressor(case: Case):
 
     # Test that the model can be saved and loaded.
     subtest_save_and_load(learner, stream, True)
+
+
+def test_streaming_gradient_boosted_regression_predicts_numeric_targets():
+    stream = FriedTiny()
+    learner = StreamingGradientBoostedRegression(schema=stream.get_schema())
+
+    assert isinstance(learner, MOARegressor)
+    assert not isinstance(learner, MOAClassifier)
+
+    predictions = []
+    for _ in range(20):
+        instance = stream.next_instance()
+        predictions.append(learner.predict(instance))
+        learner.train(instance)
+
+    numeric_predictions = [
+        float(prediction) for prediction in predictions if prediction is not None
+    ]
+    rounded_predictions = {round(prediction, 6) for prediction in numeric_predictions}
+
+    assert numeric_predictions
+    assert any(prediction != 0.0 for prediction in numeric_predictions)
+    assert len(rounded_predictions) > 1
 
 
 def test_none_predict():
