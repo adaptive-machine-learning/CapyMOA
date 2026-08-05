@@ -210,6 +210,38 @@ def test_drift_stream_rejects_python_native_concept():
         )
 
 
+@pytest.mark.parametrize("cls", [Drift, GradualDrift])
+def test_drift_no_longer_accepts_alpha(cls):
+    """``alpha`` was removed: it never shaped the transition.
+
+    MOA reads it once in ``prepareForUseImpl``, where a non-zero value
+    *overwrites* ``width`` with ``1/tan(alpha)``. It was a second, obscure
+    spelling of ``width`` rather than a grade of change, and ``GradualDrift``
+    discarded it anyway.
+    """
+    kwargs = {"position": 100, "width": 10, "alpha": 0.1}
+    with pytest.raises(TypeError, match="alpha"):
+        cls(**kwargs)
+
+
+def test_drift_stream_cli_has_no_alpha_option():
+    """The generated MOA CLI no longer carries ``-a``, so width is honoured."""
+    stream = DriftStream(
+        stream=[
+            RandomTreeGenerator(tree_random_seed=1),
+            Drift(position=1000, width=500),
+            RandomTreeGenerator(tree_random_seed=2),
+        ]
+    )
+
+    assert "-a " not in stream._CLI
+    assert "-w 500 -p 1000" in stream._CLI
+
+    moa_stream = stream.moa_stream
+    moa_stream.prepareForUse()
+    assert moa_stream.widthOption.getValue() == 500
+
+
 @pytest.mark.parametrize(
     ["definition", "match"],
     [
