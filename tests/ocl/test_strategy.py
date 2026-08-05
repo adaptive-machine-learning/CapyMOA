@@ -84,8 +84,13 @@ Use the `partial` function to create a new function with hyperparameters already
 set.
 """
 TEST_CASES: List[Case] = [
-    Case("HoeffdingTree", HoeffdingTree, Result(59.49, 42.59, 45.8), batch_size=1),
-    Case("HoeffdingTree", HoeffdingTree, Result(59.00, 42.80, 42.5), batch_size=32),
+    # These improved when `MOAClassifier.predict_proba` stopped discarding
+    # predictions whose unnormalised vote total was below 1e-2. HoeffdingTree
+    # uses Naive Bayes at its leaves, whose likelihood products fall below that
+    # threshold, so most of its predictions were being thrown away and scored
+    # as misses.
+    Case("HoeffdingTree", HoeffdingTree, Result(69.50, 45.50, 56.3), batch_size=1),
+    Case("HoeffdingTree", HoeffdingTree, Result(69.50, 45.70, 51.0), batch_size=32),
     Case("RAR", _new_rar, Result(44.50, 28.20, 8.20)),
     Case(
         "Finetune",
