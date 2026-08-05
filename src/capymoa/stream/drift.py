@@ -63,7 +63,7 @@ class DriftStream(MOAStream):
 
                         CLI += (
                             f" -d {cli_str_stream(stream2.moa_stream)} -w {drift.width} -p "
-                            f"{drift.position} -r {drift.random_seed} -a {drift.alpha}"
+                            f"{drift.position} -r {drift.random_seed}"
                         )
                         CLI = CLI.replace(
                             "streams.", ""
@@ -192,17 +192,15 @@ class Drift:
     .. [1] Bifet, Albert, et al. "Data stream mining: a practical approach." COSI (2011).
     """
 
-    def __init__(self, position, width=0, alpha=0.0, random_seed=1):
+    def __init__(self, position, width=0, random_seed=1):
         """Construct a drift in a DriftStream.
 
         :param position: The location of the drift in terms of the number of instances processed prior to it occurring.
         :param width: The size of the window of change. A width of 0 or 1 corresponds to an abrupt drift.
-        :param alpha: The grade of change, defaults to 0.0.
         :param random_seed: Seed for random number generation, defaults to 1.
         """
         self.width = width
         self.position = position
-        self.alpha = alpha
         self.random_seed = random_seed
 
     def __str__(self):
@@ -212,7 +210,6 @@ class Drift:
         attributes = [
             f"position={self.position}",
             f"width={self.width}" if self.width not in [0, 1] else None,
-            f"alpha={self.alpha}" if self.alpha != 0.0 else None,
             f"random_seed={self.random_seed}" if self.random_seed != 1 else None,
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
@@ -245,9 +242,7 @@ class GradualDrift(Drift):
     ValueError: GradualDrift needs exactly one of ``position`` and ``width``, or ``start`` and ``end``, to locate the drift. Got position=100, start=95.
     """
 
-    def __init__(
-        self, position=None, width=None, start=None, end=None, alpha=0.0, random_seed=1
-    ):
+    def __init__(self, position=None, width=None, start=None, end=None, random_seed=1):
         self.__init_args_kwargs__ = copy.copy(
             locals()
         )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
@@ -295,7 +290,6 @@ class GradualDrift(Drift):
             self.width = end - start
             self.position = int((start + end) / 2)
 
-        self.alpha = alpha
         self.random_seed = random_seed
 
         super().__init__(
@@ -308,7 +302,6 @@ class GradualDrift(Drift):
             f"start={self.start}",
             f"end={self.end}",
             f"width={self.width}",
-            f"alpha={self.alpha}" if self.alpha != 0.0 else None,
             f"random_seed={self.random_seed}" if self.random_seed != 1 else None,
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
