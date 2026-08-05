@@ -192,12 +192,15 @@ class Drift:
     .. [1] Bifet, Albert, et al. "Data stream mining: a practical approach." COSI (2011).
     """
 
-    def __init__(self, position, width=0, random_seed=1):
+    def __init__(self, position, width=0, *, random_seed=1):
         """Construct a drift in a DriftStream.
 
         :param position: The location of the drift in terms of the number of instances processed prior to it occurring.
         :param width: The size of the window of change. A width of 0 or 1 corresponds to an abrupt drift.
         :param random_seed: Seed for random number generation, defaults to 1.
+            Keyword-only, so a leftover positional argument from the removed
+            ``alpha`` parameter fails at the call site rather than silently
+            becoming the seed.
         """
         self.width = width
         self.position = position
@@ -242,7 +245,9 @@ class GradualDrift(Drift):
     ValueError: GradualDrift needs exactly one of ``position`` and ``width``, or ``start`` and ``end``, to locate the drift. Got position=100, start=95.
     """
 
-    def __init__(self, position=None, width=None, start=None, end=None, random_seed=1):
+    def __init__(
+        self, position=None, width=None, start=None, end=None, *, random_seed=1
+    ):
         self.__init_args_kwargs__ = copy.copy(
             locals()
         )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
