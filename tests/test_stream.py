@@ -210,6 +210,38 @@ def test_drift_stream_rejects_python_native_concept():
         )
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        # The keyword form callers actually used.
+        lambda: Drift(position=1000, width=500, alpha=0.1),
+        lambda: GradualDrift(position=1000, width=500, alpha=0.1),
+        # The positional forms, where the leftover argument would otherwise
+        # slide into random_seed and only fail later inside MOA with
+        # `NumberFormatException: For input string: "0.1"`.
+        lambda: Drift(1000, 500, 0.1),
+        lambda: GradualDrift(1000, 500, None, None, 0.1),
+    ],
+)
+def test_drift_rejects_leftover_alpha_argument(call):
+    """A leftover ``alpha`` must fail at the call site, keyword or positional.
+
+    ``random_seed`` is keyword-only so that the extra positional argument
+    cannot quietly become the seed.
+    """
+    with pytest.raises(TypeError):
+        call()
+
+
+def test_drift_random_seed_is_keyword_only():
+    """The supported forms still work."""
+    assert Drift(1000, 500).random_seed == 1
+    assert Drift(position=1000, width=500, random_seed=7).random_seed == 7
+    assert GradualDrift(1000, 500).random_seed == 1
+    assert GradualDrift(start=750, end=1250, random_seed=7).random_seed == 7
+    assert AbruptDrift(100).random_seed == 1
+
+
 @pytest.mark.parametrize("cls", [Drift, GradualDrift])
 def test_drift_no_longer_accepts_alpha(cls):
     """``alpha`` was removed: it never shaped the transition.
