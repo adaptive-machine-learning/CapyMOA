@@ -483,6 +483,17 @@ class Concept:
     The wrapper exists because :class:`~capymoa.stream.Stream` has no notion of
     a length: MOA generators are unbounded, and giving every stream a length
     to serve this one API would not survive contact with them.
+
+    .. note::
+
+        ``num_instances`` places the drifts; it does not ration instances.
+        Around an :class:`AbruptDrift` it is exact, because the switch is a
+        step. Around a :class:`GradualDrift` the two concepts overlap, so both
+        contribute while the transition runs, and with the default sigmoid the
+        older concept keeps appearing -- with diminishing probability -- past
+        the nominal end of the window. A concept declared as 500 instances may
+        therefore be drawn from rather more often than 500 times. See
+        :class:`GradualDrift` for the shape of the ramp.
     """
 
     def __init__(self, stream, num_instances: int):
@@ -548,6 +559,15 @@ class GradualDrift(Drift):
     GradualDrift(position=100, start=95, end=105, width=10)
     >>> print(GradualDrift(start=95, end=105))
     GradualDrift(position=100, start=95, end=105, width=10)
+
+    ``start`` and ``end`` mark where the transition is centred, not where the
+    concepts stop overlapping. The default ramp is the logistic MOA uses,
+    ``1 / (1 + exp(-4 (n - position) / width))``, which reaches 0.12 at
+    ``start`` and 0.88 at ``end`` and approaches 0 and 1 only asymptotically.
+    So roughly 12% of instances at the nominal end still come from the older
+    concept, and a few continue to appear well beyond it. A ramp that
+    saturates exactly at the window edges is a different function, not a
+    different width.
 
     A third form gives the drift a length and lets :class:`DriftStream` work
     out where it lands from the concepts around it -- see :class:`Concept`:
