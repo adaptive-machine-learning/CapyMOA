@@ -210,6 +210,39 @@ def test_drift_stream_rejects_python_native_concept():
         )
 
 
+@pytest.mark.parametrize(
+    ["definition", "match"],
+    [
+        # Trailing drift: previously reported a drift that was never composed.
+        (["gen", "drift"], "must end with a concept"),
+        # Two drifts in a row: previously reported both, composed only the last.
+        (["gen", "drift", "drift", "gen"], "alternate"),
+        # Two concepts in a row, with no drift between them.
+        (["gen", "gen"], "alternate"),
+        # Leading drift.
+        (["drift", "gen"], "alternate"),
+    ],
+)
+def test_drift_stream_rejects_malformed_definitions(definition, match):
+    """A malformed definition must raise rather than compose a wrong stream.
+
+    ``get_num_drifts`` used to count every ``Drift`` in the list, including
+    ones the builder never composed into the MOA stream, so these produced a
+    stream whose declared drifts did not match its behaviour.
+    """
+    components = [
+        RandomTreeGenerator(tree_random_seed=1) if part == "gen" else AbruptDrift(100)
+        for part in definition
+    ]
+    with pytest.raises(ValueError, match=match):
+        DriftStream(stream=components)
+
+
+def test_drift_stream_rejects_empty_definition():
+    with pytest.raises(ValueError, match="non-empty"):
+        DriftStream(stream=[])
+
+
 def test_recurrent_concept_drift_stream_accepts_gradual_start_end():
     stream = RecurrentConceptDriftStream(
         concept_list=recurrent_drift_concepts(),
