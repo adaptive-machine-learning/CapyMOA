@@ -340,10 +340,12 @@ def test_drift_stream_cli_has_no_alpha_option():
         ]
     )
 
-    assert "-a " not in stream._CLI
-    assert "-w 500 -p 1000" in stream._CLI
+    # The MOA CLI is produced on demand now that composition happens in Python.
+    converted = stream.to_moa_stream()
+    assert "-a " not in converted._CLI
+    assert "-w 500 -p 1000" in converted._CLI
 
-    moa_stream = stream.moa_stream
+    moa_stream = converted.moa_stream
     moa_stream.prepareForUse()
     assert moa_stream.widthOption.getValue() == 500
 
