@@ -224,7 +224,32 @@ class DriftStream(Stream):
 
         self._CLI = CLI
 
-    def get_concept_counts(self, num_instances: int):
+    def _default_horizon(self):
+        """How many instances to report on when the caller does not say.
+
+        The range form states its own length, so the total is the sum of what
+        the definition declares. The position form has an open-ended final
+        concept, so its length is estimated from how far apart the drifts are:
+        experiments usually space concepts evenly, and the drift spacing is the
+        only evidence available.
+        """
+        if getattr(self, "range_form", False):
+            declared = sum(c.num_instances for c in self.stream[0::2])
+            declared += sum(d.width for d in self.drifts if isinstance(d, GradualDrift))
+            return declared, False
+
+        positions = [d.position for d in self.drifts]
+        if not positions:
+            raise ValueError(
+                "This DriftStream has no drifts, so there is nothing to "
+                "estimate a horizon from. Pass one explicitly."
+            )
+        gaps = [positions[0]] + [b - a for a, b in zip(positions, positions[1:])]
+        # The final concept is unbounded, so assume it runs about as long as
+        # the others did.
+        return positions[-1] + sum(gaps) // len(gaps), True
+
+    def get_concept_counts(self, horizon: int = None):
         """How many of the first ``num_instances`` come from each concept.
 
         Around an :class:`AbruptDrift` this follows from the definition, but
@@ -250,8 +275,10 @@ class DriftStream(Stream):
         >>> stream.get_concept_counts(2000)
         [1269, 731]
 
-        :param num_instances: How many instances to account for, counted from
-            the start of the stream.
+        :param horizon: How many instances to account for, counted from the
+            start of the stream. Defaults to the length the definition implies
+            -- exact for the range form, estimated for the position form, whose
+            final concept is open-ended.
         :return: One count per concept, in the order they were defined.
             Concepts appearing more than once are counted separately.
         """
@@ -261,10 +288,10 @@ class DriftStream(Stream):
                 "concepts and drifts. This one is backed by a MOA stream, "
                 "which does not expose where each instance came from."
             )
-        if num_instances is None or num_instances < 0:
-            raise ValueError(
-                f"num_instances must be zero or positive, got {num_instances!r}."
-            )
+        if horizon is None:
+            horizon, _ = self._default_horizon()
+        if horizon < 0:
+            raise ValueError(f"horizon must be zero or positive, got {horizon!r}.")
 
         # Fresh state, so this always reports a run from the start of the
         # stream rather than wherever the live stream happens to be.
@@ -283,7 +310,7 @@ class DriftStream(Stream):
 
         prepare(self._root)
 
-        for _ in range(num_instances):
+        for _ in range(horizon):
             node = self._root
             while isinstance(node, _Transition):
                 node._replay_n += 1
@@ -296,18 +323,23 @@ class DriftStream(Stream):
 
         return [counters[id(leaf)] for leaf in leaves]
 
-    def describe(self, num_instances: int) -> str:
+    def describe(self, horizon: int = None) -> str:
         """A readable summary of where the first ``num_instances`` come from.
 
         Intended for reporting a stream in a paper or notebook, where the drift
         positions alone do not say how much of each concept was actually seen.
 
-        :param num_instances: How many instances to account for.
+        :param horizon: How many instances to account for. Defaults to the
+            length the definition implies, which the report labels as exact or
+            estimated.
         :return: A table of concepts, their counts and shares, followed by the
             drifts. When the stream was defined with lengths, the declared
             length is shown alongside for comparison.
         """
-        counts = self.get_concept_counts(num_instances)
+        estimated = False
+        if horizon is None:
+            horizon, estimated = self._default_horizon()
+        counts = self.get_concept_counts(horizon)
         declared = (
             [component.num_instances for component in self.stream[0::2]]
             if getattr(self, "range_form", False)
@@ -315,7 +347,18 @@ class DriftStream(Stream):
         )
 
         form = "range form" if declared else "position form"
-        lines = [f"DriftStream over {num_instances} instances, {form}", ""]
+        how = (
+            "estimated, the final concept is open-ended"
+            if estimated
+            else "from the declared lengths"
+            if declared
+            else "given"
+        )
+        lines = [
+            f"DriftStream over {horizon} instances, {form}",
+            f"  horizon: {how}",
+            "",
+        ]
         header = f"  {'concept':<34}"
         if declared:
             header += f" {'declared':>9}"
@@ -325,7 +368,7 @@ class DriftStream(Stream):
             row = f"  {str(concept)[:34]:<34}"
             if declared:
                 row += f" {declared[i]:>9}"
-            share = count / num_instances if num_instances else 0.0
+            share = count / horizon if horizon else 0.0
             lines.append(row + f" {count:>8} {share:>7.1%}")
 
         lines.append("")
