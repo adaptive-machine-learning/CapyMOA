@@ -74,6 +74,15 @@ class _Transition:
         return self.after.next_instance()
 
     def has_more_instances(self):
+        # Only the concepts that could still be drawn from matter. Requiring
+        # both would stop the stream early once a finite concept the drift has
+        # already moved past runs out.
+        probability = self.probability_of_new_concept(self._n + 1)
+        if probability <= 0.0:
+            return self.before.has_more_instances()
+        if probability >= 1.0:
+            return self.after.has_more_instances()
+        # Mid-transition either concept can be selected for the next instance.
         return self.before.has_more_instances() and self.after.has_more_instances()
 
 
@@ -179,21 +188,50 @@ class DriftStream(Stream):
 
     @staticmethod
     def _check_concepts_agree(concepts):
-        """Reject concepts whose schemas cannot be interleaved.
+        """Reject concepts that do not describe the same learning problem.
 
-        Instances from different concepts are handed to the same learner, so a
-        differing number of attributes would silently produce a nonsense
-        stream. MOA used to reject this for us.
+        Instances from every concept are handed to the same learner and scored
+        by the same evaluator, using the schema of the first concept. A concept
+        that disagrees produces instances the rest of the pipeline
+        misinterprets rather than an error -- a classification concept drifting
+        into a regression one keeps reporting a classification schema while
+        yielding ``RegressionInstance``. MOA used to reject the mismatch for
+        us; it has to be checked here now.
         """
-        reference = concepts[0].get_schema()
+
+        def describe(schema):
+            task = "regression" if schema.is_regression() else "classification"
+            return {
+                "task": task,
+                "attributes": schema.get_num_attributes(),
+                "numeric attributes": schema.get_num_numeric_attributes(),
+                "nominal attributes": schema.get_num_nominal_attributes(),
+                "nominal attribute values": schema.get_nominal_attributes(),
+                # Only meaningful for classification; regression schemas report
+                # nothing useful here.
+                "classes": schema.get_num_classes()
+                if task == "classification"
+                else None,
+                "labels": (
+                    schema.get_label_values() if task == "classification" else None
+                ),
+            }
+
+        reference = describe(concepts[0].get_schema())
         for i, concept in enumerate(concepts[1:], start=1):
-            other = concept.get_schema()
-            if other.get_num_attributes() != reference.get_num_attributes():
+            other = describe(concept.get_schema())
+            differences = [
+                f"{name} ({reference[name]!r} vs {other[name]!r})"
+                for name in reference
+                if reference[name] != other[name]
+            ]
+            if differences:
                 raise ValueError(
-                    "All concepts in a DriftStream must share the same "
-                    f"attributes. Concept 0 has "
-                    f"{reference.get_num_attributes()} attributes but concept "
-                    f"{i} has {other.get_num_attributes()}."
+                    "All concepts in a DriftStream must describe the same "
+                    "learning problem, because instances from each are given to "
+                    f"the same learner. Concept 0 and concept {i} differ in "
+                    + "; ".join(differences)
+                    + "."
                 )
 
     @property
