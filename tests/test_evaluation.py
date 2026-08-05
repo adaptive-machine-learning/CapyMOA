@@ -1,3 +1,4 @@
+from capymoa.base import MOAClassifier
 from contextlib import nullcontext
 from itertools import product
 from capymoa.classifier import NoChange
@@ -7,7 +8,12 @@ from capymoa.evaluation.evaluation import (
     PrequentialResults,
 )
 from capymoa.regressor import KNNRegressor
-from capymoa.stream.generator import SEA, HyperPlaneRegression, RandomTreeGenerator
+from capymoa.stream.generator import (
+    SEA,
+    HyperPlaneRegression,
+    RandomTreeGenerator,
+    STAGGERGenerator,
+)
 from capymoa.classifier import NaiveBayes, HoeffdingTree
 from capymoa.evaluation import (
     prequential_evaluation,
@@ -359,3 +365,67 @@ def test_store_y_and_store_predictions(
             )  # NoChange predicts previous y
     else:
         assert pred_y is None, "predictions should not be stored"
+
+
+@pytest.mark.parametrize(
+    "make_stream",
+    [
+        lambda: SEA(function=1),
+        RandomTreeGenerator,
+        STAGGERGenerator,
+        lambda: ElectricityTiny(),
+    ],
+)
+def test_optimise_flag_does_not_change_results(make_stream):
+    """``optimise`` selects a loop, so it must not change the answer.
+
+    `MOAClassifier.predict_proba` used to discard any prediction whose
+    unnormalised vote total was below 1e-2. MOA's votes are not probabilities
+    and their scale depends on the learner, so for Naive Bayes -- products of
+    likelihoods -- that discarded nearly everything. The Python loop scored
+    each discarded prediction as a miss while the Java loop scored it
+    normally, so the two disagreed by up to 52 accuracy points.
+    """
+    accuracies = []
+    for optimise in (True, False):
+        stream = make_stream()
+        results = prequential_evaluation(
+            stream=stream,
+            learner=NaiveBayes(schema=stream.get_schema()),
+            max_instances=2000,
+            optimise=optimise,
+        )
+        accuracies.append(results["cumulative"].accuracy())
+
+    assert accuracies[0] == pytest.approx(accuracies[1], abs=0.01)
+
+
+@pytest.mark.parametrize(
+    ["votes", "expected"],
+    [
+        ([], None),  # no prediction available
+        ([0.0, 0.0], None),  # nothing but zeros
+        ([float("nan"), 1.0], None),
+        ([float("inf"), 1.0], None),
+        ([1e-30, 3e-30], [0.25, 0.75]),  # tiny but perfectly valid
+        ([2.0, 6.0], [0.25, 0.75]),
+    ],
+)
+def test_predict_proba_only_rejects_absent_predictions(votes, expected):
+    """Small vote totals are valid; only absent or degenerate ones are not."""
+
+    class _FakeMOALearner:
+        def getVotesForInstance(self, _):
+            return votes
+
+    class _FakeInstance:
+        java_instance = None
+
+    classifier = MOAClassifier.__new__(MOAClassifier)
+    classifier.moa_learner = _FakeMOALearner()
+
+    result = MOAClassifier.predict_proba(classifier, _FakeInstance())
+    if expected is None:
+        assert result is None
+    else:
+        assert result == pytest.approx(expected)

@@ -242,8 +242,13 @@ class MOAClassifier(Classifier):
 
     def predict_proba(self, instance) -> Optional[LabelProbabilities]:
         votes = np.array(self.moa_learner.getVotesForInstance(instance.java_instance))
-        total = sum(votes)
-        if total <= 1e-2 or np.isnan(total) or np.isinf(total):
+        total = votes.sum() if votes.size else 0.0
+        # MOA returns unnormalised scores, and their scale depends on the
+        # learner: majority-class leaves give integer counts, while Naive Bayes
+        # gives products of likelihoods that are routinely below 1e-2 without
+        # being any less valid. Only reject votes that carry no prediction at
+        # all -- an empty array, a non-finite total, or nothing but zeros.
+        if votes.size == 0 or not np.isfinite(total) or total <= 0.0:
             return None
         return votes / total
 
