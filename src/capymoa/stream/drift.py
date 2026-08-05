@@ -90,7 +90,10 @@ class DriftStream(Stream):
     """A stream composed of concepts separated by drifts.
 
     The stream is defined as a list that alternates concepts and drifts,
-    starting and ending with a concept:
+    starting and ending with a concept. There are **two forms**, and a
+    definition must use one or the other throughout.
+
+    **Positions** -- each drift says where it happens:
 
     >>> from capymoa.stream.drift import DriftStream, AbruptDrift, GradualDrift
     >>> from capymoa.stream.generator import SEA
@@ -103,6 +106,33 @@ class DriftStream(Stream):
     ... ])
     >>> stream.get_num_drifts()
     2
+
+    **Ranges** -- each concept says how long it lasts, and the drifts are
+    placed by what surrounds them. Every concept is wrapped in
+    :class:`Concept`, drifts carry no position, and a :class:`GradualDrift`
+    gives its length instead of a width:
+
+    >>> from capymoa.stream.drift import Concept
+    >>> stream = DriftStream(stream=[
+    ...     Concept(SEA(function=1), num_instances=5000),
+    ...     AbruptDrift(),
+    ...     Concept(SEA(function=3), num_instances=5000),
+    ...     GradualDrift(num_instances=2000),
+    ...     Concept(SEA(function=1), num_instances=1000),
+    ... ])
+    >>> for drift in stream.get_drifts():
+    ...     print(drift)
+    AbruptDrift(position=5000)
+    GradualDrift(position=11000, start=10000, end=12000, width=2000)
+
+    The two cannot be combined. A range definition does not say where its
+    drifts land, so a position supplied alongside it would describe a location
+    the rest of the definition contradicts. Mixing them is rejected rather than
+    resolved by guesswork.
+
+    Use :func:`describe` to see how many instances each concept actually
+    contributed, which around a :class:`GradualDrift` is not what the declared
+    lengths suggest.
 
     Composition happens in Python: instances are drawn from the concept
     selected for the current position, and across a :class:`GradualDrift` the
@@ -321,7 +351,7 @@ class DriftStream(Stream):
             "DriftStream concepts must either all be wrapped in ``Concept`` "
             "(the range form, giving each concept a length) or none of them "
             "(the position form, giving each drift a position). "
-            f"Got {sum(wrapped)} wrapped out of {len(wrapped)} concepts."
+            f"Got {sum(wrapped)} wrapped out of {len(wrapped)} concepts. See ``DriftStream`` for the two forms and how they differ."
         )
 
     @staticmethod
@@ -332,7 +362,7 @@ class DriftStream(Stream):
                 raise ValueError(
                     f"{type(drift).__name__} at drift {i} has no position. "
                     "Give it one, or use the range form by wrapping every "
-                    "concept in ``Concept(stream, num_instances=...)``."
+                    "concept in ``Concept(stream, num_instances=...)``. See ``DriftStream`` for the two forms and how they differ."
                 )
 
     @staticmethod
@@ -360,7 +390,7 @@ class DriftStream(Stream):
                     f"{type(component).__name__} cannot carry a position in a "
                     "range definition -- the concept lengths already determine "
                     "where it lands. Use ``AbruptDrift()`` or "
-                    "``GradualDrift(num_instances=...)``."
+                    "``GradualDrift(num_instances=...)``. See ``DriftStream`` for the two forms and how they differ."
                 )
 
             if isinstance(component, GradualDrift):
