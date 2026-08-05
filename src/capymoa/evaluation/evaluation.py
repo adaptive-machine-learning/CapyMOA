@@ -3,8 +3,9 @@ import json
 import os
 import time
 import warnings
+from collections import deque
 from itertools import islice
-from typing import Optional, Sized, Union
+from typing import Any, Deque, Optional, Sized, Tuple, Union
 
 from capymoa.base import Batch
 import torch
@@ -1169,17 +1170,15 @@ def prequential_ssl_evaluation(
             store_predictions,
         )
 
-    # IMPORTANT: delay_length and initial_window_size have not been implemented in python yet
+    # IMPORTANT: initial_window_size has not been implemented in python yet.
     # In MOA it is implemented so _prequential_ssl_evaluation_fast works just fine.
     if initial_window_size != 0:
         raise ValueError(
             "Initial window size must be 0 for this function as the feature is not implemented yet."
         )
 
-    if delay_length != 0:
-        raise ValueError(
-            "Delay length must be 0 for this function as the feature is not implemented yet."
-        )
+    if delay_length < 0:
+        raise ValueError("delay_length must be zero or positive.")
 
     # Reset the random state
     mt19937 = np.random.MT19937()
@@ -1213,10 +1212,19 @@ def prequential_ssl_evaluation(
 
     unlabeled_counter = 0
 
+    # Instances whose label is delayed: each entry is the index at which the
+    # instance reappears as labeled, paired with the instance itself.
+    delayed_labels: Deque[Tuple[int, Any]] = deque()
+
     progress_bar = _setup_progress_bar(
         "SSL Eval", progress_bar, stream, learner, max_instances
     )
     for i, instance in enumerate(stream):
+        # Deliver any labels whose delay has elapsed, before this instance is
+        # used, so the learner has everything available up to this point.
+        while delayed_labels and delayed_labels[0][0] <= i:
+            learner.train(delayed_labels.popleft()[1])
+
         prediction = learner.predict(instance)
 
         if stream.get_schema().is_classification():
@@ -1235,6 +1243,14 @@ def prequential_ssl_evaluation(
                 learner.train_on_unlabeled(instance)
                 # Otherwise, just ignore the unlabeled instance
             unlabeled_counter += 1
+        elif delay_length > 0:
+            # The label exists but arrives late: the instance is presented
+            # unlabeled now and reappears as labeled after ``delay_length``
+            # instances.
+            if isinstance(learner, ClassifierSSL):
+                learner.train_on_unlabeled(instance)
+            unlabeled_counter += 1
+            delayed_labels.append((i + delay_length, instance))
         else:
             # Labeled instance
             learner.train(instance)
