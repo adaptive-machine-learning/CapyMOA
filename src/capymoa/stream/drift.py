@@ -43,6 +43,8 @@ class DriftStream(MOAStream):
         self.drifts = []
 
         if CLI is None:
+            self._validate_stream_definition(self.stream)
+
             stream1 = None
             stream2 = None
             drift = None
@@ -78,21 +80,6 @@ class DriftStream(MOAStream):
                     self.drifts.append(drift)
                     CLI = f" -s {cli_str_stream(stream1.moa_stream)} "
 
-                else:
-                    # Anything else used to be skipped silently, which produced a
-                    # stream missing that concept while still reporting the drift
-                    # from ``get_num_drifts()``. Composition is delegated to MOA's
-                    # ConceptDriftStream, so concepts have to be MOA-backed;
-                    # Python-native streams such as NumpyStream, CSVStream and
-                    # TorchStream cannot be used here yet (see issue #90).
-                    raise ValueError(
-                        f"DriftStream cannot use {type(component).__name__} as a "
-                        "component. Concepts must be MOA-backed streams (a "
-                        "``MOAStream``, e.g. a generator or an ``ARFFStream``) and "
-                        "drifts must be ``Drift`` objects. Python-native streams "
-                        "are not supported as concepts yet."
-                    )
-
             moa_stream = MOA_ConceptDriftStream()
         else:
             # [EXPERIMENTAL]
@@ -126,6 +113,60 @@ class DriftStream(MOAStream):
                     )
 
         super().__init__(schema=schema, CLI=CLI, moa_stream=moa_stream)
+
+    @staticmethod
+    def _validate_stream_definition(stream):
+        """Check the concept/drift list before anything is composed.
+
+        The definition has to alternate concept, drift, concept, ... starting
+        and ending with a concept. Validating up front matters because the
+        builder appends each ``Drift`` to ``self.drifts`` as it sees it, before
+        it knows whether a concept follows: a malformed list would otherwise
+        report drifts through :func:`get_num_drifts` that were never composed
+        into the stream.
+        """
+        if not stream:
+            raise ValueError(
+                "DriftStream needs a non-empty list of concepts and drifts, "
+                "e.g. [concept, drift, concept]."
+            )
+
+        def kind(component):
+            if isinstance(component, Drift):
+                return "drift"
+            if isinstance(component, MOAStream):
+                return "concept"
+            return None
+
+        for i, component in enumerate(stream):
+            actual = kind(component)
+            if actual is None:
+                # Composition is delegated to MOA's ConceptDriftStream, so
+                # concepts have to be MOA-backed; Python-native streams such as
+                # NumpyStream, CSVStream and TorchStream cannot be used yet
+                # (see issue #90).
+                raise ValueError(
+                    f"DriftStream cannot use {type(component).__name__} as a "
+                    "component. Concepts must be MOA-backed streams (a "
+                    "``MOAStream``, e.g. a generator or an ``ARFFStream``) and "
+                    "drifts must be ``Drift`` objects. Python-native streams "
+                    "are not supported as concepts yet."
+                )
+            expected = "concept" if i % 2 == 0 else "drift"
+            if actual != expected:
+                raise ValueError(
+                    "DriftStream expects concepts and drifts to alternate, "
+                    "starting and ending with a concept, e.g. "
+                    "[concept, drift, concept]. Position "
+                    f"{i} is a {actual} where a {expected} was expected."
+                )
+
+        if kind(stream[-1]) == "drift":
+            raise ValueError(
+                "DriftStream must end with a concept, not a drift: a trailing "
+                f"{type(stream[-1]).__name__} has no concept to drift into. "
+                f"Got {len(stream)} components ending with a drift."
+            )
 
     def get_num_drifts(self):
         return len(self.drifts)
