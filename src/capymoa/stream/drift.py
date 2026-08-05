@@ -13,7 +13,7 @@ from capymoa._cli import cli_str_stream
 from moa.streams import ConceptDriftStream as MOA_ConceptDriftStream
 
 
-class _Concept:
+class _ConceptNode:
     """Leaf of the composition tree: draws from a single concept."""
 
     def __init__(self, stream):
@@ -139,14 +139,20 @@ class DriftStream(Stream):
         if CLI is None:
             self._validate_stream_definition(self.stream)
 
-            concepts = list(self.stream[0::2])
-            self.drifts = list(self.stream[1::2])
+            components = list(self.stream)
+            self.range_form = self._uses_range_form(components)
+            if self.range_form:
+                concepts, self.drifts = self._resolve_range_form(components)
+            else:
+                concepts = components[0::2]
+                self.drifts = components[1::2]
+                self._check_drifts_are_placed(self.drifts)
 
             # Build the same shape MOA would nest: each drift mixes everything
             # before it with the concept that follows.
-            root = _Concept(concepts[0])
+            root = _ConceptNode(concepts[0])
             for drift, concept in zip(self.drifts, concepts[1:]):
-                root = _Transition(root, _Concept(concept), drift)
+                root = _Transition(root, _ConceptNode(concept), drift)
             self._root = root
             self._schema = schema or concepts[0].get_schema()
             self._check_concepts_agree(concepts)
@@ -185,6 +191,81 @@ class DriftStream(Stream):
             self._schema = self._moa_backed.get_schema()
 
         self._CLI = CLI
+
+    @staticmethod
+    def _uses_range_form(components):
+        """Decide which of the two forms the definition uses, and reject a mix.
+
+        The two forms cannot be combined. A range definition does not say where
+        its drifts land, so a stray ``position`` alongside it would describe a
+        location the rest of the definition contradicts.
+        """
+        wrapped = [isinstance(c, Concept) for c in components[0::2]]
+        if all(wrapped):
+            return True
+        if not any(wrapped):
+            return False
+        raise ValueError(
+            "DriftStream concepts must either all be wrapped in ``Concept`` "
+            "(the range form, giving each concept a length) or none of them "
+            "(the position form, giving each drift a position). "
+            f"Got {sum(wrapped)} wrapped out of {len(wrapped)} concepts."
+        )
+
+    @staticmethod
+    def _check_drifts_are_placed(drifts):
+        """Every drift needs a position when the definition uses positions."""
+        for i, drift in enumerate(drifts):
+            if drift.position is None:
+                raise ValueError(
+                    f"{type(drift).__name__} at drift {i} has no position. "
+                    "Give it one, or use the range form by wrapping every "
+                    "concept in ``Concept(stream, num_instances=...)``."
+                )
+
+    @staticmethod
+    def _resolve_range_form(components):
+        """Turn concept and drift lengths into concrete drift positions.
+
+        Each component contributes its ``num_instances`` in order, so a
+        definition reads as a timeline: a concept runs for its length, an
+        abrupt drift switches at the point it is reached, and a gradual drift
+        spans its own stretch of the stream centred on that point.
+        """
+        concepts = []
+        drifts = []
+        cursor = 0
+        for component in components:
+            if isinstance(component, Concept):
+                concepts.append(component.stream)
+                cursor += component.num_instances
+                continue
+
+            if component.position is not None or (
+                isinstance(component, GradualDrift) and component.num_instances is None
+            ):
+                raise ValueError(
+                    f"{type(component).__name__} cannot carry a position in a "
+                    "range definition -- the concept lengths already determine "
+                    "where it lands. Use ``AbruptDrift()`` or "
+                    "``GradualDrift(num_instances=...)``."
+                )
+
+            if isinstance(component, GradualDrift):
+                width = component.num_instances
+                drifts.append(
+                    GradualDrift(
+                        position=cursor + width // 2,
+                        width=width,
+                        random_seed=component.random_seed,
+                    )
+                )
+                cursor += width
+            else:
+                drifts.append(
+                    AbruptDrift(position=cursor, random_seed=component.random_seed)
+                )
+        return concepts, drifts
 
     @staticmethod
     def _check_concepts_agree(concepts):
@@ -336,7 +417,7 @@ class DriftStream(Stream):
         def kind(component):
             if isinstance(component, Drift):
                 return "drift"
-            if isinstance(component, Stream):
+            if isinstance(component, (Stream, Concept)):
                 return "concept"
             return None
 
@@ -345,8 +426,9 @@ class DriftStream(Stream):
             if actual is None:
                 raise ValueError(
                     f"DriftStream cannot use {type(component).__name__} as a "
-                    "component. Concepts must be ``Stream`` objects and drifts "
-                    "must be ``Drift`` objects."
+                    "component. Concepts must be ``Stream`` objects, or "
+                    "``Concept`` when giving lengths, and drifts must be "
+                    "``Drift`` objects."
                 )
             expected = "concept" if i % 2 == 0 else "drift"
             if actual != expected:
@@ -380,6 +462,46 @@ class DriftStream(Stream):
 
 
 # TODO: remove width from the base Drift class and keep it only on the GradualDrift
+
+
+class Concept:
+    """A concept and the number of instances it contributes to the stream.
+
+    Used by the *range* form of :class:`DriftStream`, which specifies how long
+    each concept lasts instead of where each drift lands:
+
+    >>> from capymoa.stream.drift import Concept, DriftStream, AbruptDrift
+    >>> from capymoa.stream.generator import SEA
+    >>> stream = DriftStream(stream=[
+    ...     Concept(SEA(function=1), num_instances=1000),
+    ...     AbruptDrift(),
+    ...     Concept(SEA(function=3), num_instances=500),
+    ... ])
+    >>> print(stream.get_drifts()[0])
+    AbruptDrift(position=1000)
+
+    The wrapper exists because :class:`~capymoa.stream.Stream` has no notion of
+    a length: MOA generators are unbounded, and giving every stream a length
+    to serve this one API would not survive contact with them.
+    """
+
+    def __init__(self, stream, num_instances: int):
+        """
+        :param stream: The concept to draw instances from.
+        :param num_instances: How many instances this concept contributes.
+        """
+        if num_instances is None or num_instances <= 0:
+            raise ValueError(
+                f"Concept needs a positive ``num_instances``, got {num_instances!r}."
+            )
+        self.stream = stream
+        self.num_instances = num_instances
+
+    def get_schema(self):
+        return self.stream.get_schema()
+
+    def __str__(self):
+        return f"Concept({self.stream}, num_instances={self.num_instances})"
 
 
 class Drift:
@@ -427,22 +549,36 @@ class GradualDrift(Drift):
     >>> print(GradualDrift(start=95, end=105))
     GradualDrift(position=100, start=95, end=105, width=10)
 
+    A third form gives the drift a length and lets :class:`DriftStream` work
+    out where it lands from the concepts around it -- see :class:`Concept`:
+
+    >>> unplaced = GradualDrift(num_instances=500)
+    >>> unplaced.width, unplaced.position
+    (500, None)
+
     Supplying neither style, or only half of one, is an error -- rather than
     building a drift with no location:
 
     >>> GradualDrift(position=100)
     Traceback (most recent call last):
         ...
-    ValueError: GradualDrift needs exactly one of ``position`` and ``width``, or ``start`` and ``end``, to locate the drift. Got position=100.
+    ValueError: GradualDrift needs exactly one of ``position`` and ``width``, ``start`` and ``end``, or ``num_instances``, to locate the drift. Got position=100.
 
     >>> GradualDrift(position=100, start=95)
     Traceback (most recent call last):
         ...
-    ValueError: GradualDrift needs exactly one of ``position`` and ``width``, or ``start`` and ``end``, to locate the drift. Got position=100, start=95.
+    ValueError: GradualDrift needs exactly one of ``position`` and ``width``, ``start`` and ``end``, or ``num_instances``, to locate the drift. Got position=100, start=95.
     """
 
     def __init__(
-        self, position=None, width=None, start=None, end=None, *, random_seed=1
+        self,
+        position=None,
+        width=None,
+        start=None,
+        end=None,
+        *,
+        num_instances=None,
+        random_seed=1,
     ):
         self.__init_args_kwargs__ = copy.copy(
             locals()
@@ -456,6 +592,9 @@ class GradualDrift(Drift):
         styles = {
             "position and width": (position is not None, width is not None),
             "start and end": (start is not None, end is not None),
+            # Range form: the drift spans this many instances, and DriftStream
+            # works out where it lands from the concepts around it.
+            "num_instances": (num_instances is not None,),
         }
         complete = [name for name, given in styles.items() if all(given)]
         partial = [
@@ -470,15 +609,30 @@ class GradualDrift(Drift):
                     ("width", width),
                     ("start", start),
                     ("end", end),
+                    ("num_instances", num_instances),
                 )
                 if value is not None
             )
             raise ValueError(
                 "GradualDrift needs exactly one of "
-                "``position`` and ``width``, or ``start`` and ``end``, "
-                "to locate the drift. "
+                "``position`` and ``width``, ``start`` and ``end``, or "
+                "``num_instances``, to locate the drift. "
                 f"Got {supplied if supplied else 'no arguments'}."
             )
+
+        self.num_instances = num_instances
+        if complete == ["num_instances"]:
+            # Unplaced: DriftStream resolves it against the surrounding
+            # concepts, because the position is not knowable here.
+            self.width = num_instances
+            self.position = None
+            self.start = None
+            self.end = None
+            self.random_seed = random_seed
+            super().__init__(
+                position=None, random_seed=random_seed, width=num_instances
+            )
+            return
 
         if complete == ["position and width"]:
             self.width = width
@@ -516,22 +670,21 @@ class AbruptDrift(Drift):
     >>> print(AbruptDrift(position=5000))
     AbruptDrift(position=5000)
 
-    ``position`` is required. Omitting it is rejected rather than producing a
-    drift with no location:
+    ``position`` may be omitted only in the *range* form of
+    :class:`DriftStream`, where the lengths of the surrounding
+    :class:`Concept` objects decide where the drift lands:
 
-    >>> AbruptDrift(position=None)
-    Traceback (most recent call last):
-        ...
-    ValueError: AbruptDrift needs a ``position`` to locate the drift.
+    >>> print(AbruptDrift())
+    AbruptDrift()
+
+    A :class:`DriftStream` built from positions rejects a drift without one,
+    so an omitted position cannot quietly become a drift at instance zero.
     """
 
-    def __init__(self, position: int, random_seed: int = 1):
+    def __init__(self, position: int = None, random_seed: int = 1):
         self.__init_args_kwargs__ = copy.copy(
             locals()
         )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
-
-        if position is None:
-            raise ValueError("AbruptDrift needs a ``position`` to locate the drift.")
 
         self.position = position
         self.random_seed = random_seed
@@ -540,7 +693,7 @@ class AbruptDrift(Drift):
 
     def __str__(self):
         attributes = [
-            f"position={self.position}",
+            f"position={self.position}" if self.position is not None else None,
             f"random_seed={self.random_seed}" if self.random_seed != 1 else None,
         ]
         non_default_attributes = [attr for attr in attributes if attr is not None]
