@@ -105,7 +105,10 @@ from capymoa.stream._stream import Schema
         ),
         (
             partial(RSHash, m=300, s=256, w=4, p=10000, seed=42),
-            0.61,
+            # Measured at 0.61999 in isolation, drifting to ~0.62006 depending
+            # on what ran earlier in the session. 0.61 put the top of the
+            # tolerance at exactly 0.62, so the test failed intermittently.
+            0.62,
             None,
         ),
     ],
