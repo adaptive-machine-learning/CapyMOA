@@ -70,3 +70,65 @@ def test_ssl_classifiers(
         expectation,
         label_probability=label_probability,
     )
+
+
+def test_ssl_delay_length_in_python_loop():
+    """``delay_length`` works without the MOA fast path.
+
+    It used to be implemented only in MOA, so the Python loop raised. A
+    ``DriftStream`` composed in Python cannot use the fast path, which made the
+    feature unreachable for drifting streams.
+    """
+    from capymoa.classifier import HoeffdingTree
+    from capymoa.evaluation import prequential_ssl_evaluation
+    from capymoa.stream.drift import AbruptDrift, DriftStream
+    from capymoa.stream.generator import SEA
+
+    class _CountingHoeffdingTree(HoeffdingTree):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.labeled_train_calls = 0
+
+        def train(self, instance):
+            self.labeled_train_calls += 1
+            super().train(instance)
+
+    stream = DriftStream(
+        stream=[SEA(function=1), AbruptDrift(position=2000), SEA(function=3)]
+    )
+
+    calls = {}
+    for delay in (0, 2000):
+        stream.restart()
+        learner = _CountingHoeffdingTree(schema=stream.get_schema())
+        results = prequential_ssl_evaluation(
+            stream=stream,
+            learner=learner,
+            max_instances=4000,
+            window_size=1000,
+            label_probability=0.1,
+            delay_length=delay,
+            optimise=False,
+        )
+        assert results["cumulative"].accuracy() > 0
+        calls[delay] = learner.labeled_train_calls
+
+    # Labels queued within ``delay`` of the end are never delivered, so a delay
+    # strictly reduces the number of labeled training calls.
+    assert calls[2000] < calls[0]
+
+
+def test_ssl_rejects_negative_delay():
+    from capymoa.classifier import HoeffdingTree
+    from capymoa.evaluation import prequential_ssl_evaluation
+    from capymoa.stream.generator import SEA
+
+    stream = SEA(function=1)
+    with pytest.raises(ValueError, match="delay_length must be zero or positive"):
+        prequential_ssl_evaluation(
+            stream=stream,
+            learner=HoeffdingTree(schema=stream.get_schema()),
+            max_instances=100,
+            delay_length=-1,
+            optimise=False,
+        )

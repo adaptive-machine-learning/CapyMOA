@@ -2,85 +2,145 @@
 
 import copy
 import inspect
+import math
+import random as _random
 import re
 from collections import OrderedDict
 from itertools import cycle
 
-from capymoa.stream import MOAStream
+from capymoa.stream import MOAStream, Stream
 from capymoa._cli import cli_str_stream
 from moa.streams import ConceptDriftStream as MOA_ConceptDriftStream
 
 
-class DriftStream(MOAStream):
-    def __init__(self, schema=None, CLI=None, moa_stream=None, stream=None):
+class _Concept:
+    """Leaf of the composition tree: draws from a single concept."""
+
+    def __init__(self, stream):
+        self.stream = stream
+
+    def next_instance(self):
+        return self.stream.next_instance()
+
+    def has_more_instances(self):
+        return self.stream.has_more_instances()
+
+    def restart(self):
+        self.stream.restart()
+
+
+class _Transition:
+    """Mixes two nodes across a drift.
+
+    Mirrors the structure MOA builds by nesting ``ConceptDriftStream``: each
+    node keeps its own instance counter and its own random generator, and only
+    advances when it is actually drawn from.
+    """
+
+    def __init__(self, before, after, drift):
+        self.before = before
+        self.after = after
+        self.drift = drift
+        self.restart()
+
+    def restart(self):
+        self._n = 0
+        self._rng = _random.Random(self.drift.random_seed)
+        self.before.restart()
+        self.after.restart()
+
+    def probability_of_new_concept(self, n):
+        """Probability an instance at ``n`` is drawn from the new concept.
+
+        The default is the logistic ramp MOA uses,
+        ``1 / (1 + exp(-4 (n - position) / width))``. A width of zero is a step
+        at ``position`` -- MOA reaches the same result by dividing by zero and
+        letting the exponential saturate.
         """
-        Initialize the stream with the specified parameters.
+        width = self.drift.width
+        if not width:
+            return 1.0 if n >= self.drift.position else 0.0
+        x = -4.0 * (n - self.drift.position) / width
+        if x > 700:  # exp overflows; the ramp has saturated either way
+            return 0.0
+        if x < -700:
+            return 1.0
+        return 1.0 / (1.0 + math.exp(x))
 
-        :param schema: The schema that defines the structure of the stream. Default is None.
-        :param CLI: Command Line Interface string used to define the stream configuration
-            for the MOA (Massive Online Analysis) framework. Default is None.
-        :param moa_stream: A pre-configured ConceptDriftStream object from MOA. If specified,
-            the stream will be instantiated directly using this object. This is useful
-            for integrating with MOA-based streams. Default is None.
-        :param stream: A list that defines a composite stream consisting of various concepts
-            and drifts. If this is set, the ConceptDriftStream object will be built according
-            to the list of concepts and drifts specified. Default is None.
+    def next_instance(self):
+        self._n += 1
+        if self._rng.random() > self.probability_of_new_concept(self._n):
+            return self.before.next_instance()
+        return self.after.next_instance()
 
-        Notes:
-        ------
-        - If `moa_stream` is specified, it takes precedence, and the stream will be
-          instantiated directly from the provided ConceptDriftStream object.
+    def has_more_instances(self):
+        return self.before.has_more_instances() and self.after.has_more_instances()
 
-        - The `CLI` and `moa_stream` parameters allow users to specify the stream
-          using a ConceptDriftStream from MOA alongside its CLI. This provides
-          flexibility for users familiar with MOA's configuration style.
 
-        - In the future, we might remove the functionality associated with `CLI`
-          and `moa_stream` to simplify the code, focusing on other methods of stream
-          configuration.
+class DriftStream(Stream):
+    """A stream composed of concepts separated by drifts.
+
+    The stream is defined as a list that alternates concepts and drifts,
+    starting and ending with a concept:
+
+    >>> from capymoa.stream.drift import DriftStream, AbruptDrift, GradualDrift
+    >>> from capymoa.stream.generator import SEA
+    >>> stream = DriftStream(stream=[
+    ...     SEA(function=1),
+    ...     AbruptDrift(position=5000),
+    ...     SEA(function=3),
+    ...     GradualDrift(position=10000, width=2000),
+    ...     SEA(function=1),
+    ... ])
+    >>> stream.get_num_drifts()
+    2
+
+    Composition happens in Python: instances are drawn from the concept
+    selected for the current position, and across a :class:`GradualDrift` the
+    choice is a per-instance draw against the transition ramp. Earlier versions
+    delegated this to MOA's ``ConceptDriftStream``, which meant every concept
+    had to be a MOA-backed stream.
+
+    ``DriftStream`` is therefore a plain :class:`~capymoa.stream.Stream` rather
+    than a :class:`~capymoa.stream.MOAStream`. Where a MOA object is genuinely
+    needed -- to hand the stream to MOA code, or to print a MOA CLI -- use
+    :func:`to_moa_stream`, which builds the equivalent nested
+    ``ConceptDriftStream``. That conversion needs every concept to be
+    MOA-backed, so it is offered explicitly instead of being the implementation.
+    """
+
+    def __init__(self, schema=None, CLI=None, moa_stream=None, stream=None):
+        """Initialize the stream.
+
+        :param schema: The schema of the stream. Taken from the first concept
+            when not given.
+        :param CLI: Command Line Interface string describing a MOA
+            ``ConceptDriftStream``. Kept for backward compatibility; the stream
+            is then backed by MOA rather than composed in Python.
+        :param moa_stream: A pre-configured ``ConceptDriftStream`` from MOA,
+            used together with ``CLI``.
+        :param stream: The list of concepts and drifts to compose, alternating
+            and starting with a concept.
         """
         self.stream = stream
         self.drifts = []
+        self._root = None
+        self._moa_backed = None
 
         if CLI is None:
             self._validate_stream_definition(self.stream)
 
-            stream1 = None
-            stream2 = None
-            drift = None
+            concepts = list(self.stream[0::2])
+            self.drifts = list(self.stream[1::2])
 
-            CLI = ""
-            for component in self.stream:
-                if isinstance(component, MOAStream):
-                    if stream1 is None:
-                        stream1 = component
-                    else:
-                        stream2 = component
-                        if drift is None:
-                            raise ValueError(
-                                "A Drift object must be specified between two Stream objects."
-                            )
-
-                        CLI += (
-                            f" -d {cli_str_stream(stream2.moa_stream)} -w {drift.width} -p "
-                            f"{drift.position} -r {drift.random_seed}"
-                        )
-                        CLI = CLI.replace(
-                            "streams.", ""
-                        )  # got to remove package name from streams.ConceptDriftStream
-
-                        stream1 = MOAStream(
-                            moa_stream=MOA_ConceptDriftStream(), CLI=CLI
-                        )
-                        stream2 = None
-
-                elif isinstance(component, Drift):
-                    # print(component)
-                    drift = component
-                    self.drifts.append(drift)
-                    CLI = f" -s {cli_str_stream(stream1.moa_stream)} "
-
-            moa_stream = MOA_ConceptDriftStream()
+            # Build the same shape MOA would nest: each drift mixes everything
+            # before it with the concept that follows.
+            root = _Concept(concepts[0])
+            for drift, concept in zip(self.drifts, concepts[1:]):
+                root = _Transition(root, _Concept(concept), drift)
+            self._root = root
+            self._schema = schema or concepts[0].get_schema()
+            self._check_concepts_agree(concepts)
         else:
             # [EXPERIMENTAL]
             # If the user is attempting to create a DriftStream using a MOA CLI, we need to derive the Drift meta-data
@@ -112,7 +172,111 @@ class DriftStream(MOAStream):
                         Drift(position=int(matches_position[i]), width=1000)
                     )
 
-        super().__init__(schema=schema, CLI=CLI, moa_stream=moa_stream)
+            self._moa_backed = MOAStream(schema=schema, CLI=CLI, moa_stream=moa_stream)
+            self._schema = self._moa_backed.get_schema()
+
+        self._CLI = CLI
+
+    @staticmethod
+    def _check_concepts_agree(concepts):
+        """Reject concepts whose schemas cannot be interleaved.
+
+        Instances from different concepts are handed to the same learner, so a
+        differing number of attributes would silently produce a nonsense
+        stream. MOA used to reject this for us.
+        """
+        reference = concepts[0].get_schema()
+        for i, concept in enumerate(concepts[1:], start=1):
+            other = concept.get_schema()
+            if other.get_num_attributes() != reference.get_num_attributes():
+                raise ValueError(
+                    "All concepts in a DriftStream must share the same "
+                    f"attributes. Concept 0 has "
+                    f"{reference.get_num_attributes()} attributes but concept "
+                    f"{i} has {other.get_num_attributes()}."
+                )
+
+    @property
+    def _source(self):
+        return self._moa_backed if self._root is None else self._root
+
+    def next_instance(self):
+        return self._source.next_instance()
+
+    def has_more_instances(self):
+        return self._source.has_more_instances()
+
+    def get_schema(self):
+        return self._schema
+
+    def restart(self):
+        if self._root is not None:
+            self._root.restart()
+        else:
+            self._moa_backed.restart()
+
+    def get_moa_stream(self):
+        """Return the backing MOA stream, if there is one.
+
+        A Python-composed ``DriftStream`` has no single MOA object behind it.
+        Use :func:`to_moa_stream` to build one.
+        """
+        if self._moa_backed is not None:
+            return self._moa_backed.get_moa_stream()
+        return None
+
+    @property
+    def moa_stream(self):
+        """The backing MOA stream object, or ``None`` when composed in Python.
+
+        Kept so a ``DriftStream`` built from a MOA CLI still works with code
+        that reaches for the attribute directly, such as the optimised
+        evaluation loops.
+        """
+        if self._moa_backed is not None:
+            return self._moa_backed.moa_stream
+        return None
+
+    def to_moa_stream(self):
+        """Build the equivalent MOA ``ConceptDriftStream``.
+
+        Provided for interoperability with MOA code and for inspecting the
+        generated CLI. Requires every concept to be MOA-backed, which is the
+        restriction Python composition exists to remove -- so this raises when
+        the stream contains a concept MOA cannot represent.
+
+        :return: A :class:`~capymoa.stream.MOAStream` wrapping the nested
+            ``ConceptDriftStream``.
+        """
+        if self._moa_backed is not None:
+            return self._moa_backed
+        if self.stream is None:
+            raise ValueError("This DriftStream has no definition to convert.")
+
+        not_moa = [
+            type(component).__name__
+            for component in self.stream[0::2]
+            if not isinstance(component, MOAStream)
+        ]
+        if not_moa:
+            raise ValueError(
+                "to_moa_stream() needs every concept to be MOA-backed, but this "
+                f"stream uses {', '.join(sorted(set(not_moa)))}. MOA cannot "
+                "represent Python-native concepts."
+            )
+
+        stream1 = self.stream[0]
+        CLI = ""
+        for drift, concept in zip(self.stream[1::2], self.stream[2::2]):
+            CLI = f" -s {cli_str_stream(stream1.moa_stream)} "
+            CLI += (
+                f" -d {cli_str_stream(concept.moa_stream)} -w {drift.width} -p "
+                f"{drift.position} -r {drift.random_seed}"
+            )
+            # got to remove package name from streams.ConceptDriftStream
+            CLI = CLI.replace("streams.", "")
+            stream1 = MOAStream(moa_stream=MOA_ConceptDriftStream(), CLI=CLI)
+        return stream1
 
     @staticmethod
     def _validate_stream_definition(stream):
@@ -134,23 +298,17 @@ class DriftStream(MOAStream):
         def kind(component):
             if isinstance(component, Drift):
                 return "drift"
-            if isinstance(component, MOAStream):
+            if isinstance(component, Stream):
                 return "concept"
             return None
 
         for i, component in enumerate(stream):
             actual = kind(component)
             if actual is None:
-                # Composition is delegated to MOA's ConceptDriftStream, so
-                # concepts have to be MOA-backed; Python-native streams such as
-                # NumpyStream, CSVStream and TorchStream cannot be used yet
-                # (see issue #90).
                 raise ValueError(
                     f"DriftStream cannot use {type(component).__name__} as a "
-                    "component. Concepts must be MOA-backed streams (a "
-                    "``MOAStream``, e.g. a generator or an ``ARFFStream``) and "
-                    "drifts must be ``Drift`` objects. Python-native streams "
-                    "are not supported as concepts yet."
+                    "component. Concepts must be ``Stream`` objects and drifts "
+                    "must be ``Drift`` objects."
                 )
             expected = "concept" if i % 2 == 0 else "drift"
             if actual != expected:

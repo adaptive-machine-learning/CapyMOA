@@ -138,7 +138,8 @@ def test_recurrent_concept_drift_stream_accepts_gradual_position_width():
     assert str(stream.get_drifts()[0]) == (
         "GradualDrift(position=100, start=95, end=105, width=10)"
     )
-    assert "-w 10 -p 100" in stream._CLI
+    # The MOA CLI is now produced on demand rather than being the implementation.
+    assert "-w 10 -p 100" in stream.to_moa_stream()._CLI
 
 
 @pytest.mark.parametrize(
@@ -188,25 +189,51 @@ def test_abrupt_drift_requires_position():
         AbruptDrift(position=None)
 
 
-def test_drift_stream_rejects_python_native_concept():
-    """A concept DriftStream cannot use must raise, not be silently dropped.
+def test_drift_stream_accepts_python_native_concepts():
+    """Python-native streams work as concepts now that composition is in Python.
 
-    Composition is delegated to MOA's ConceptDriftStream, so a Python-native
-    stream used as a concept was skipped by the builder loop: the resulting
-    stream contained only the remaining concepts while ``get_num_drifts()``
-    still reported the drift.
+    Delegating to MOA's ConceptDriftStream meant concepts had to be MOA-backed,
+    and a Python-native one was silently dropped.
     """
-    x = np.random.default_rng(0).random((20, 3))
-    y = np.zeros(20, dtype=int)
-    python_concept = NumpyStream(x, y, dataset_name="python_concept")
+    rng = np.random.default_rng(0)
+    before = NumpyStream(rng.random((200, 3)), rng.integers(0, 2, 200), "before")
+    after = NumpyStream(rng.random((200, 3)) + 10, rng.integers(0, 2, 200), "after")
 
-    with pytest.raises(ValueError, match="cannot use NumpyStream"):
+    stream = DriftStream(stream=[before, AbruptDrift(position=100), after])
+    x = np.array([stream.next_instance().x for _ in range(150)])
+
+    assert stream.get_num_drifts() == 1
+    # The concepts are separated by 10 in feature space, so the switch is
+    # unambiguous either side of the drift.
+    assert x[:98].mean() < 5
+    assert x[100:].mean() > 5
+
+
+def test_to_moa_stream_refuses_python_native_concepts():
+    """The MOA conversion is opt-in and says why it cannot apply."""
+    rng = np.random.default_rng(0)
+    before = NumpyStream(rng.random((20, 3)), rng.integers(0, 2, 20), "before")
+    after = NumpyStream(rng.random((20, 3)), rng.integers(0, 2, 20), "after")
+
+    stream = DriftStream(stream=[before, AbruptDrift(position=10), after])
+    with pytest.raises(ValueError, match="every concept to be MOA-backed"):
+        stream.to_moa_stream()
+
+
+def test_drift_stream_rejects_mismatched_schemas():
+    """Concepts are interleaved, so they must describe the same instances."""
+    rng = np.random.default_rng(0)
+    three = NumpyStream(rng.random((20, 3)), rng.integers(0, 2, 20), "three")
+    four = NumpyStream(rng.random((20, 4)), rng.integers(0, 2, 20), "four")
+
+    with pytest.raises(ValueError, match="must share the same"):
+        DriftStream(stream=[three, AbruptDrift(position=10), four])
+
+
+def test_drift_stream_rejects_non_stream_component():
+    with pytest.raises(ValueError, match="cannot use str"):
         DriftStream(
-            stream=[
-                RandomTreeGenerator(tree_random_seed=1),
-                AbruptDrift(position=10),
-                python_concept,
-            ]
+            stream=[RandomTreeGenerator(tree_random_seed=1), AbruptDrift(10), "nope"]
         )
 
 
@@ -318,7 +345,8 @@ def test_recurrent_concept_drift_stream_accepts_gradual_start_end():
     assert str(stream.get_drifts()[0]) == (
         "GradualDrift(position=100, start=95, end=105, width=10)"
     )
-    assert "-w 10 -p 100" in stream._CLI
+    # The MOA CLI is now produced on demand rather than being the implementation.
+    assert "-w 10 -p 100" in stream.to_moa_stream()._CLI
 
 
 def test_recurrent_concept_drift_stream_rejects_base_drift_template():
