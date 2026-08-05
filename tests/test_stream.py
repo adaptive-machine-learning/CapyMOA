@@ -375,6 +375,44 @@ def test_concept_counts_reject_bad_input():
         stream.get_concept_counts(-1)
 
 
+def test_horizon_defaults_to_the_declared_length_for_the_range_form():
+    stream = DriftStream(
+        stream=[
+            Concept(SEA(function=1), num_instances=1000),
+            GradualDrift(num_instances=200),
+            Concept(SEA(function=3), num_instances=1000),
+        ]
+    )
+    # 1000 + 200 (the drift spends its own) + 1000
+    assert sum(stream.get_concept_counts()) == 2200
+    assert "from the declared lengths" in stream.describe()
+
+
+def test_horizon_is_estimated_for_the_position_form():
+    """The final concept is open-ended, so its length is inferred."""
+    stream = DriftStream(
+        stream=[
+            SEA(function=1),
+            AbruptDrift(position=1000),
+            SEA(function=2),
+            AbruptDrift(position=2000),
+            SEA(function=3),
+        ]
+    )
+    # drifts 1000 apart, so the last concept is assumed to run about as long
+    assert sum(stream.get_concept_counts()) == 3000
+    report = stream.describe()
+    assert "estimated" in report
+    assert "open-ended" in report
+
+
+def test_horizon_must_be_given_when_there_are_no_drifts():
+    stream = DriftStream(stream=[SEA(function=1)])
+    with pytest.raises(ValueError, match="no drifts"):
+        stream.get_concept_counts()
+    assert sum(stream.get_concept_counts(500)) == 500
+
+
 def test_describe_reports_declared_lengths_for_the_range_form():
     stream = DriftStream(
         stream=[
