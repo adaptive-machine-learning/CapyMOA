@@ -95,8 +95,8 @@ class EvaluateDriftDetector:
         >>> # Only ``ndt`` responds to a different tolerance, which is what makes it
         >>> # comparable across streams evaluated with different ``max_delay``.
         >>> lenient = EvaluateDriftDetector(max_delay=400)
-        >>> lenient = lenient.calc_performance(preds=preds, trues=trues, tot_n_instances=200)
-        >>> print(lenient.mdt, lenient.ndt)
+        >>> relaxed = lenient.calc_performance(preds=preds, trues=trues, tot_n_instances=200)
+        >>> print(relaxed.mdt, relaxed.ndt)
         150.0 0.375
 
         >>> # Example with actual detector
