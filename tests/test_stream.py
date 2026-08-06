@@ -428,6 +428,161 @@ def test_describe_reports_declared_lengths_for_the_range_form():
     assert "AbruptDrift(position=1000)" in report
 
 
+# --- transition functions ------------------------------------------------
+
+
+@pytest.mark.parametrize("transition", ["sigmoid", "linear", lambda p: p**2])
+def test_transition_is_confined_to_the_window(transition):
+    """Outside the window a concept is drawn from exclusively.
+
+    MOA's fixed steepness reached only 0.88 by the end of the window, so the
+    old concept kept appearing indefinitely. Every ramp now completes inside
+    the window, and a user-supplied one is clipped there.
+    """
+    stream = DriftStream(
+        stream=[
+            Concept(SEA(function=1), num_instances=100),
+            GradualDrift(num_instances=100, transition_function=transition),
+            Concept(SEA(function=3), num_instances=100),
+        ]
+    )
+    node = stream._root
+    drift = stream.get_drifts()[0]
+
+    assert (drift.start, drift.end) == (100, 200)
+    # Before the window, and at its opening edge, nothing of the new concept.
+    assert node.probability_of_new_concept(drift.start - 1) == 0.0
+    assert node.probability_of_new_concept(drift.start) == 0.0
+    # At and past the closing edge, nothing of the old one.
+    assert node.probability_of_new_concept(drift.end) == 1.0
+    assert node.probability_of_new_concept(drift.end + 1000) == 1.0
+    # Strictly inside, a genuine mixture.
+    middle = node.probability_of_new_concept(drift.position)
+    assert 0.0 < middle < 1.0
+
+
+def test_sigmoid_and_linear_differ_inside_the_window():
+    """The ramps are confined alike but shaped differently."""
+
+    def probability_at(transition, n):
+        stream = DriftStream(
+            stream=[
+                Concept(SEA(function=1), num_instances=100),
+                GradualDrift(num_instances=100, transition_function=transition),
+                Concept(SEA(function=3), num_instances=100),
+            ]
+        )
+        return stream._root.probability_of_new_concept(n)
+
+    # A quarter of the way in, the sigmoid is still flat while linear is not.
+    assert probability_at("linear", 125) == pytest.approx(0.25)
+    assert probability_at("sigmoid", 125) < 0.15
+    # Both are symmetric about the centre.
+    assert probability_at("linear", 150) == pytest.approx(0.5)
+    assert probability_at("sigmoid", 150) == pytest.approx(0.5)
+
+
+def test_custom_transition_is_clipped_rather_than_trusted():
+    """A ramp straying outside [0, 1] cannot corrupt the mixture."""
+    stream = DriftStream(
+        stream=[
+            Concept(SEA(function=1), num_instances=100),
+            # Deliberately badly behaved: negative early, above one late.
+            GradualDrift(num_instances=100, transition_function=lambda p: 3 * p - 1),
+            Concept(SEA(function=3), num_instances=100),
+        ]
+    )
+    node = stream._root
+    for n in range(100, 201):
+        assert 0.0 <= node.probability_of_new_concept(n) <= 1.0
+
+
+def test_unknown_transition_function_is_rejected_at_construction():
+    with pytest.raises(ValueError, match="Unknown transition_function"):
+        GradualDrift(num_instances=100, transition_function="cubic")
+
+
+def test_transition_function_survives_range_resolution():
+    """The resolved drift keeps the ramp the definition asked for."""
+    stream = DriftStream(
+        stream=[
+            Concept(SEA(function=1), num_instances=100),
+            GradualDrift(num_instances=100, transition_function="linear"),
+            Concept(SEA(function=3), num_instances=100),
+        ]
+    )
+    assert stream.get_drifts()[0].transition_function == "linear"
+    assert stream._root.probability_of_new_concept(125) == pytest.approx(0.25)
+
+
+@pytest.mark.parametrize("transition", ["sigmoid", "linear"])
+def test_both_forms_agree_for_every_transition(transition):
+    """Range and position forms stay equivalent whatever the ramp."""
+    range_form = DriftStream(
+        stream=[
+            Concept(SEA(function=1), num_instances=1000),
+            GradualDrift(num_instances=200, transition_function=transition),
+            Concept(SEA(function=3), num_instances=1000),
+        ]
+    )
+    position_form = DriftStream(
+        stream=[
+            SEA(function=1),
+            GradualDrift(position=1100, width=200, transition_function=transition),
+            SEA(function=3),
+        ]
+    )
+    assert range_form.get_concept_counts(2200) == position_form.get_concept_counts(2200)
+
+    a = np.array([range_form.next_instance().x for _ in range(2200)])
+    b = np.array([position_form.next_instance().x for _ in range(2200)])
+    assert np.allclose(a, b)
+
+
+def test_abrupt_drift_is_unaffected_by_confinement():
+    """A step has no window, so nothing about it changes."""
+    stream = DriftStream(
+        stream=[
+            Concept(SEA(function=1), num_instances=100),
+            AbruptDrift(),
+            Concept(SEA(function=3), num_instances=100),
+        ]
+    )
+    node = stream._root
+    assert node.probability_of_new_concept(99) == 0.0
+    assert node.probability_of_new_concept(100) == 1.0
+    assert stream.get_concept_counts(200) == [99, 101]
+
+
+def test_confinement_lets_a_spent_concept_stop_blocking():
+    """Once the window closes, an exhausted old concept must not end the stream.
+
+    Previously the ramp never reached 1, so ``has_more_instances`` demanded
+    both concepts forever and the stream died as soon as the first ran out --
+    discarding whatever the second still held.
+    """
+    rng = np.random.default_rng(0)
+    # 100 declared plus half the window is what the old concept actually needs.
+    old = NumpyStream(rng.random((150, 3)), rng.integers(0, 2, 150), "old")
+    new = NumpyStream(rng.random((1000, 3)), rng.integers(0, 2, 1000), "new")
+
+    stream = DriftStream(
+        stream=[
+            Concept(old, num_instances=100),
+            GradualDrift(num_instances=100),
+            Concept(new, num_instances=100),
+        ]
+    )
+    consumed = 0
+    while stream.has_more_instances() and consumed < 3000:
+        stream.next_instance()
+        consumed += 1
+
+    # The new concept carries the stream well past the window.
+    assert consumed > 1000
+    assert not new.has_more_instances()
+
+
 def test_concept_requires_a_positive_length():
     for bad in (0, -1, None):
         with pytest.raises(ValueError, match="positive ``num_instances``"):
