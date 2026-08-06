@@ -13,6 +13,34 @@ from capymoa._cli import cli_str_stream
 from moa.streams import ConceptDriftStream as MOA_ConceptDriftStream
 
 
+#: Named transition ramps. Each maps progress through the drift window,
+#: ``0.0`` at the start and ``1.0`` at the end, to the probability that an
+#: instance is drawn from the new concept.
+TRANSITION_FUNCTIONS = {
+    # Scaled so the transition completes inside the window: 0.01 at the start
+    # and 0.99 at the end, rather than MOA's fixed steepness which is only at
+    # 0.88 by the time the window closes.
+    "sigmoid": lambda progress: 1.0
+    / (1.0 + math.exp(-2.0 * math.log(99.0) * (progress - 0.5))),
+    "linear": lambda progress: progress,
+}
+
+
+def _resolve_transition_function(transition_function):
+    """Turn a name or a callable into the ramp used across a drift window."""
+    if callable(transition_function):
+        return transition_function
+    try:
+        return TRANSITION_FUNCTIONS[transition_function]
+    except KeyError:
+        raise ValueError(
+            f"Unknown transition_function {transition_function!r}. Use one of "
+            f"{sorted(TRANSITION_FUNCTIONS)}, or pass a callable mapping "
+            "progress through the window (0.0 to 1.0) to the probability of "
+            "the new concept."
+        ) from None
+
+
 class _ConceptNode:
     """Leaf of the composition tree: draws from a single concept."""
 
@@ -41,6 +69,9 @@ class _Transition:
         self.before = before
         self.after = after
         self.drift = drift
+        self.ramp = _resolve_transition_function(
+            getattr(drift, "transition_function", "sigmoid")
+        )
         self.restart()
 
     def restart(self):
@@ -52,20 +83,24 @@ class _Transition:
     def probability_of_new_concept(self, n):
         """Probability an instance at ``n`` is drawn from the new concept.
 
-        The default is the logistic ramp MOA uses,
-        ``1 / (1 + exp(-4 (n - position) / width))``. A width of zero is a step
-        at ``position`` -- MOA reaches the same result by dividing by zero and
-        letting the exponential saturate.
+        The transition is confined to the drift's window. Before it, the
+        instance comes from the old concept; after it, from the new one; inside
+        it, the drift's ramp decides. A width of zero is a step at
+        ``position``.
         """
-        width = self.drift.width
+        drift = self.drift
+        width = drift.width
         if not width:
-            return 1.0 if n >= self.drift.position else 0.0
-        x = -4.0 * (n - self.drift.position) / width
-        if x > 700:  # exp overflows; the ramp has saturated either way
+            return 1.0 if n >= drift.position else 0.0
+
+        progress = (n - (drift.position - width / 2.0)) / width
+        if progress <= 0.0:
             return 0.0
-        if x < -700:
+        if progress >= 1.0:
             return 1.0
-        return 1.0 / (1.0 + math.exp(x))
+        # A user-supplied ramp is clipped rather than trusted, so a function
+        # that strays outside [0, 1] cannot corrupt the mixture.
+        return min(1.0, max(0.0, self.ramp(progress)))
 
     def next_instance(self):
         self._n += 1
@@ -273,7 +308,7 @@ class DriftStream(Stream):
         ...     Concept(SEA(function=3), num_instances=500),
         ... ])
         >>> stream.get_concept_counts(2000)
-        [1269, 731]
+        [1251, 749]
 
         :param horizon: How many instances to account for, counted from the
             start of the stream. Defaults to the length the definition implies
@@ -442,6 +477,7 @@ class DriftStream(Stream):
                     GradualDrift(
                         position=cursor + width // 2,
                         width=width,
+                        transition_function=component.transition_function,
                         random_seed=component.random_seed,
                     )
                 )
@@ -754,6 +790,17 @@ class GradualDrift(Drift):
     saturates exactly at the window edges is a different function, not a
     different width.
 
+    ``transition_function`` chooses the ramp across the window: ``"sigmoid"``
+    (the default, scaled so the transition completes within the window),
+    ``"linear"``, or a callable mapping progress through the window -- ``0.0``
+    at the start, ``1.0`` at the end -- to the probability of the new concept.
+    A callable is **clipped at the window edges**, so a ramp that has not
+    finished by the end of the window is cut off there. To spread a transition
+    over more instances, widen the window rather than stretching the function.
+
+    >>> print(GradualDrift(position=100, width=10, transition_function="linear"))
+    GradualDrift(position=100, start=95, end=105, width=10)
+
     A third form gives the drift a length and lets :class:`DriftStream` work
     out where it lands from the concepts around it -- see :class:`Concept`:
 
@@ -783,6 +830,7 @@ class GradualDrift(Drift):
         end=None,
         *,
         num_instances=None,
+        transition_function="sigmoid",
         random_seed=1,
     ):
         self.__init_args_kwargs__ = copy.copy(
@@ -824,6 +872,11 @@ class GradualDrift(Drift):
                 "``num_instances``, to locate the drift. "
                 f"Got {supplied if supplied else 'no arguments'}."
             )
+
+        # Resolve now so an unknown name fails at construction rather than on
+        # the first instance.
+        _resolve_transition_function(transition_function)
+        self.transition_function = transition_function
 
         self.num_instances = num_instances
         if complete == ["num_instances"]:
