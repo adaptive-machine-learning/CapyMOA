@@ -28,6 +28,20 @@ class DriftDetectionMetrics:
     """F1 score (harmonic mean of precision and recall)."""
     mdt: float
     """Mean time to detect successful detections."""
+    ndt: float
+    """:py:attr:`mdt` divided by :py:attr:`EvaluateDriftDetector.max_delay`, so that
+    detection delay is expressed as a fraction of the delay that was deemed acceptable.
+
+    For abrupt drifts this runs from 0 (detected the instant the drift began) to 1
+    (detected just as the drift became obvious anyway). It can fall outside that range
+    in two cases: with gradual drifts, because the delay is measured from the drift
+    start while detections stay valid until ``end + max_delay``; and with
+    :py:attr:`EvaluateDriftDetector.max_early_detection` above zero, which admits
+    detections before the drift and so negative delays.
+
+    Unlike :py:attr:`mdt`, which is a count of instances, ``ndt`` is comparable across
+    streams that were evaluated with different values of ``max_delay``.
+    """
     far: float
     """False alarm rate per :py:attr:`EvaluateDriftDetector.rate_period` instances"""
     ar: float
@@ -57,6 +71,8 @@ class EvaluateDriftDetector:
             * Gradual drifts: ``start_location < end_location``, e.g., (100, 150)
         - Considers maximum acceptable detection delay
         - Calculates comprehensive performance metrics (precision, recall, F1)
+        - Reports detection delay both in instances (:py:attr:`DriftDetectionMetrics.mdt`)
+          and relative to ``max_delay`` (:py:attr:`DriftDetectionMetrics.ndt`)
 
     Examples:
         >>> import numpy as np
@@ -70,6 +86,18 @@ class EvaluateDriftDetector:
         >>> metrics = eval.calc_performance(preds=preds, trues=trues, tot_n_instances=200)
         >>> print(metrics.f1)
         0.6666666666666666
+
+        >>> # ``mdt`` counts instances, ``ndt`` states the same delay as a fraction of
+        >>> # ``max_delay``: here the detector used three quarters of its allowance.
+        >>> print(metrics.mdt, metrics.ndt)
+        150.0 0.75
+
+        >>> # Only ``ndt`` responds to a different tolerance, which is what makes it
+        >>> # comparable across streams evaluated with different ``max_delay``.
+        >>> lenient = EvaluateDriftDetector(max_delay=400)
+        >>> lenient = lenient.calc_performance(preds=preds, trues=trues, tot_n_instances=200)
+        >>> print(lenient.mdt, lenient.ndt)
+        150.0 0.375
 
         >>> # Example with actual detector
         >>> import numpy as np
@@ -143,7 +171,12 @@ class EvaluateDriftDetector:
 
         Evaluates drift detection performance by comparing predicted drift points against
         true drift points, considering a maximum allowable delay. Calculates various metrics
-        including precision, recall, F1-score, mean time to detect (MTD), and false alarm rate.
+        including precision, recall, F1-score, mean time to detect (MDT), normalized
+        detection time (NDT), and false alarm rate.
+
+        Detection delay is defined only over the drifts that were actually detected, so
+        both :py:attr:`DriftDetectionMetrics.mdt` and :py:attr:`DriftDetectionMetrics.ndt`
+        are ``nan`` when the detector missed every drift.
 
         This method supports two modes of operation:
 
@@ -235,6 +268,7 @@ class EvaluateDriftDetector:
         false_alarm_rate = (fp / max(1, tot_n_instances)) * self.rate_period
         alarm_rate = (n_alarms / max(1, tot_n_instances)) * self.rate_period
         mean_detection_time = np.nanmean(detection_times) if detection_times else np.nan
+        normalized_detection_time = mean_detection_time / self.max_delay
         ep_recall = etp / max(1, n_episodes)
 
         self.metrics = DriftDetectionMetrics(
@@ -246,6 +280,7 @@ class EvaluateDriftDetector:
             episode_recall=ep_recall,
             f1=f1,
             mdt=mean_detection_time,
+            ndt=normalized_detection_time,
             far=false_alarm_rate,
             ar=alarm_rate,
             n_episodes=n_episodes,
