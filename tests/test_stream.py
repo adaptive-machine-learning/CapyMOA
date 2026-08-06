@@ -566,13 +566,9 @@ def test_confinement_lets_a_spent_concept_stop_blocking():
     old = NumpyStream(rng.random((150, 3)), rng.integers(0, 2, 150), "old")
     new = NumpyStream(rng.random((1000, 3)), rng.integers(0, 2, 1000), "new")
 
-    stream = DriftStream(
-        stream=[
-            Concept(old, num_instances=100),
-            GradualDrift(num_instances=100),
-            Concept(new, num_instances=100),
-        ]
-    )
+    # The position form is used deliberately: the range form stops at its
+    # declared length, which would mask the behaviour under test.
+    stream = DriftStream(stream=[old, GradualDrift(position=150, width=100), new])
     consumed = 0
     while stream.has_more_instances() and consumed < 3000:
         stream.next_instance()
@@ -965,3 +961,61 @@ def test_regression_stream(stream: Stream[RegressionInstance], target: str):
         instance = stream.next_instance()
         check_instance(instance, X[i], Y[i])
         i += 1
+
+
+def test_range_form_ends_at_its_declared_length():
+    """A range definition states its own length, so the stream ends there."""
+    stream = DriftStream(
+        stream=[
+            Concept(SEA(function=1), num_instances=300),
+            GradualDrift(num_instances=100),
+            Concept(SEA(function=3), num_instances=300),
+        ]
+    )
+    assert stream.length == 700
+
+    consumed = 0
+    while stream.has_more_instances():
+        stream.next_instance()
+        consumed += 1
+    assert consumed == 700
+
+    # And again after restarting, rather than staying spent.
+    stream.restart()
+    replayed = 0
+    while stream.has_more_instances():
+        stream.next_instance()
+        replayed += 1
+    assert replayed == 700
+
+
+def test_position_form_stays_unbounded():
+    """Its final concept is deliberately open-ended, so it has no length."""
+    stream = DriftStream(
+        stream=[SEA(function=1), AbruptDrift(position=300), SEA(function=3)]
+    )
+    assert stream.length is None
+
+    for _ in range(5000):
+        stream.next_instance()
+    assert stream.has_more_instances()
+
+
+def test_range_length_counts_gradual_windows():
+    """A gradual drift spends its own instances, so it adds to the length."""
+    with_gradual = DriftStream(
+        stream=[
+            Concept(SEA(function=1), num_instances=100),
+            GradualDrift(num_instances=50),
+            Concept(SEA(function=3), num_instances=100),
+        ]
+    )
+    with_abrupt = DriftStream(
+        stream=[
+            Concept(SEA(function=1), num_instances=100),
+            AbruptDrift(),
+            Concept(SEA(function=3), num_instances=100),
+        ]
+    )
+    assert with_gradual.length == 250
+    assert with_abrupt.length == 200
