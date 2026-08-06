@@ -352,9 +352,20 @@ class DriftStream(Stream):
         if horizon < 0:
             raise ValueError(f"horizon must be zero or positive, got {horizon!r}.")
 
+        counts, _ = self._replay(horizon)
+        return counts
+
+    def _replay(self, horizon):
+        """Route ``horizon`` instances without generating any.
+
+        Returns the count per concept and, alongside it, how many of those
+        draws fell inside a gradual drift's window -- which is what makes a
+        concept drawn from more often than its declared length.
+        """
         # Fresh state, so this always reports a run from the start of the
         # stream rather than wherever the live stream happens to be.
         counters = {}
+        in_transition = {}
         leaves = []
 
         def prepare(node):
@@ -365,11 +376,19 @@ class DriftStream(Stream):
                 prepare(node.after)
             else:
                 counters[id(node)] = 0
+                in_transition[id(node)] = 0
                 leaves.append(node)
 
         prepare(self._root)
 
-        for _ in range(horizon):
+        windows = [
+            (d.start, d.end)
+            for d in self.drifts
+            if isinstance(d, GradualDrift) and d.start is not None
+        ]
+
+        for position in range(1, horizon + 1):
+            mixing = any(start < position <= end for start, end in windows)
             node = self._root
             while isinstance(node, _Transition):
                 node._replay_n += 1
@@ -379,8 +398,13 @@ class DriftStream(Stream):
                 else:
                     node = node.after
             counters[id(node)] += 1
+            if mixing:
+                in_transition[id(node)] += 1
 
-        return [counters[id(leaf)] for leaf in leaves]
+        return (
+            [counters[id(leaf)] for leaf in leaves],
+            [in_transition[id(leaf)] for leaf in leaves],
+        )
 
     def describe(self, horizon: int = None) -> str:
         """A readable summary of where the first ``num_instances`` come from.
@@ -398,7 +422,7 @@ class DriftStream(Stream):
         estimated = False
         if horizon is None:
             horizon, estimated = self._default_horizon()
-        counts = self.get_concept_counts(horizon)
+        counts, mixed = self._replay(horizon)
         declared = (
             [component.num_instances for component in self.stream[0::2]]
             if getattr(self, "range_form", False)
@@ -421,14 +445,14 @@ class DriftStream(Stream):
         header = f"  {'concept':<34}"
         if declared:
             header += f" {'declared':>9}"
-        lines.append(header + f" {'drawn':>8} {'share':>8}")
+        lines.append(header + f" {'drawn':>8} {'in drift':>9} {'share':>8}")
 
         for i, (concept, count) in enumerate(zip(self._concepts, counts)):
             row = f"  {str(concept)[:34]:<34}"
             if declared:
                 row += f" {declared[i]:>9}"
             share = count / horizon if horizon else 0.0
-            lines.append(row + f" {count:>8} {share:>7.1%}")
+            lines.append(row + f" {count:>8} {mixed[i]:>9} {share:>7.1%}")
 
         lines.append("")
         lines.append("  drifts")
