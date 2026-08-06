@@ -198,6 +198,7 @@ class DriftStream(Stream):
         """
         self.stream = stream
         self.drifts = []
+        self.range_form = False
         self._root = None
         self._moa_backed = None
 
@@ -220,6 +221,10 @@ class DriftStream(Stream):
                 root = _Transition(root, _ConceptNode(concept), drift)
             self._root = root
             self._concepts = list(concepts)
+            # A range definition states its own length, so the stream ends
+            # there. A position definition does not: its final concept is
+            # deliberately open-ended.
+            self._length = self._declared_length() if self.range_form else None
             self._schema = schema or concepts[0].get_schema()
             self._check_concepts_agree(concepts)
         else:
@@ -254,10 +259,29 @@ class DriftStream(Stream):
                     )
 
             self._concepts = []
+            self._length = None
             self._moa_backed = MOAStream(schema=schema, CLI=CLI, moa_stream=moa_stream)
             self._schema = self._moa_backed.get_schema()
 
         self._CLI = CLI
+        self._produced = 0
+
+    def _declared_length(self):
+        """Total instances a range definition asks for."""
+        return sum(c.num_instances for c in self.stream[0::2]) + sum(
+            d.width for d in self.drifts if isinstance(d, GradualDrift)
+        )
+
+    @property
+    def length(self):
+        """How many instances the stream produces, if that is known.
+
+        A range definition states its own length -- every concept and gradual
+        drift contributes its declared number of instances -- and the stream
+        ends there. A position definition has an open-ended final concept, so
+        this is ``None``.
+        """
+        return self._length
 
     def _default_horizon(self):
         """How many instances to report on when the caller does not say.
@@ -541,15 +565,19 @@ class DriftStream(Stream):
         return self._moa_backed if self._root is None else self._root
 
     def next_instance(self):
+        self._produced += 1
         return self._source.next_instance()
 
     def has_more_instances(self):
+        if self._length is not None and self._produced >= self._length:
+            return False
         return self._source.has_more_instances()
 
     def get_schema(self):
         return self._schema
 
     def restart(self):
+        self._produced = 0
         if self._root is not None:
             self._root.restart()
         else:
