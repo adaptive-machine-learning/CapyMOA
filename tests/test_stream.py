@@ -1,5 +1,6 @@
 """This module is for testing the speeds of different stream implementations."""
 
+import inspect
 from functools import partial
 from typing import Optional
 
@@ -30,7 +31,13 @@ from capymoa.stream.drift import (
     GradualDrift,
     RecurrentConceptDriftStream,
 )
-from capymoa.stream.generator import SEA, LEDGeneratorDrift, RandomTreeGenerator
+from capymoa.stream import generator
+from capymoa.stream.generator import (
+    SEA,
+    LEDGeneratorDrift,
+    RandomRBFGenerator,
+    RandomTreeGenerator,
+)
 from pathlib import Path
 
 allclose = partial(np.allclose, atol=0.001, equal_nan=True)
@@ -126,6 +133,58 @@ def test_led_generator_drift_str_with_drift_attributes():
     stream = LEDGeneratorDrift(number_of_attributes_with_drift=1)
 
     assert str(stream) == "LEDGeneratorDrift(number_of_attributes_with_drift=1)"
+
+
+def _public_generators():
+    """Every generator class defined in :mod:`capymoa.stream.generator`.
+
+    Discovered rather than listed so that a newly added generator is covered
+    without anyone remembering to extend this test.
+    """
+    return [
+        member
+        for member in vars(generator).values()
+        if inspect.isclass(member)
+        and member.__module__ == generator.__name__
+        and not member.__name__.startswith("_")
+    ]
+
+
+@pytest.mark.parametrize(
+    "generator_class", _public_generators(), ids=lambda cls: cls.__name__
+)
+def test_generator_can_be_printed(generator_class):
+    """Printing a generator must not raise.
+
+    The generators that build their MOA CLI from ``locals()`` never assigned
+    their arguments to ``self``, so ``__str__`` read attributes that did not
+    exist and ``print(stream)`` raised ``AttributeError``.
+    """
+    assert str(generator_class())
+
+
+def test_drift_stream_describes_a_random_rbf_concept():
+    """A concept that cannot be printed takes the whole report down with it.
+
+    ``DriftStream.__str__`` and :meth:`DriftStream.describe` both print their
+    concepts, so an unprintable generator made them fail for the stream as a
+    whole rather than only for that one concept.
+    """
+    stream = DriftStream(
+        stream=[
+            RandomRBFGenerator(model_random_seed=1),
+            Drift(position=2000),
+            RandomRBFGenerator(model_random_seed=99),
+        ]
+    )
+
+    assert str(stream) == (
+        "RandomRBFGenerator(),AbruptDrift(position=2000),"
+        "RandomRBFGenerator(model_random_seed=99)"
+    )
+    report = stream.describe()
+    assert "RandomRBFGenerator" in report
+    assert "AbruptDrift(position=2000)" in report
 
 
 def test_recurrent_concept_drift_stream_accepts_gradual_position_width():
