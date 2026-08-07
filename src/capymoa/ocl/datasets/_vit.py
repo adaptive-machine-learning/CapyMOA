@@ -6,7 +6,8 @@ from torch import Tensor
 from torch.utils.data import ConcatDataset, Dataset, Subset
 
 from capymoa.datasets import get_download_dir
-from capymoa.datasets._utils import TensorDatasetWithTransform, download_numpy_dataset
+from capymoa.datasets._torch_utils import TensorDatasetWithTransform
+from capymoa.datasets._utils import download_numpy_dataset
 from capymoa.ocl.util.data import group_indicies
 from capymoa.stream import TorchStream
 

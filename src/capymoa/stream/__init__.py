@@ -1,3 +1,4 @@
+from capymoa._optional import lazy_torch_attrs
 from ._stream import (
     Stream,
     Schema,
@@ -7,7 +8,6 @@ from ._stream import (
 )
 from ._csv_stream import CSVStream
 from ._stream_from_file import stream_from_file
-from .torch import TorchStream
 from . import drift, generator, preprocessing
 
 __all__ = [
@@ -23,3 +23,12 @@ __all__ = [
     "MOAStream",
     "stream_from_file",
 ]
+
+
+#: Names that need PyTorch. Imported on first access so ``import capymoa`` stays
+#: torch-free -- see :mod:`capymoa._optional`.
+_LAZY = {
+    "TorchStream": ".torch",
+}
+
+__getattr__, __dir__ = lazy_torch_attrs(__name__, _LAZY, "TorchStream", __all__)

@@ -16,14 +16,21 @@ offline. CapyMOA is a toolbox of methods and evaluators for: classification, reg
 clustering, anomaly detection, semi-supervised learning, online continual learning, and
 drift detection for data streams.
 
-For the default PyTorch CUDA GPU installation, run:
+To install:
 
 ```
 pip install capymoa
 ```
 
+The deep-learning parts of CapyMOA (`capymoa.ocl`, `capymoa.ann`, the `Batch*`
+learners) need PyTorch, which is an optional extra:
+
+```
+pip install capymoa[torch]
+```
+
 Refer to the [Setup](https://capymoa.org/setup) guide for other options,
-including CPU-only and dev dependencies.
+including CPU-only PyTorch and dev dependencies.
 
 ```python
 from capymoa.datasets import Electricity

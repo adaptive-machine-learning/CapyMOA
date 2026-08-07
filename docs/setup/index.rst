@@ -105,16 +105,35 @@ or have Java installed outside of the system path.
 PyTorch
 ~~~~~~~
 
-The CapyMOA algorithms using deep learning require PyTorch. If you want to use
-these algorithms, follow the instructions
-`here <https://pytorch.org/get-started/locally/>`__ to get the correct version for
-your hardware. Ensure that you install PyTorch in the same virtual environment
-where you want to install CapyMOA.
+PyTorch is **optional**. ``pip install capymoa`` does not install it, so the
+core of CapyMOA -- streams, classifiers, regressors, drift detectors and
+evaluation -- installs without pulling a deep-learning stack.
 
-For CPU only, you can install PyTorch with:
+The parts of CapyMOA that use deep learning do require it:
+:mod:`capymoa.ocl`, :mod:`capymoa.ann`, :class:`capymoa.stream.TorchStream`,
+the ``Batch*`` learners, :class:`capymoa.anomaly.Autoencoder`,
+:class:`capymoa.classifier.Finetune`, :class:`capymoa.ssl.OSNN` and the ABCD
+drift detector. Using one of those without PyTorch raises an
+``OptionalDependencyError`` telling you what to install.
+
+Install CapyMOA with PyTorch using the ``torch`` extra:
 
 .. code:: bash
 
-   pip3 install torch torchvision torchaudio \
-      --index-url https://download.pytorch.org/whl/cpu
+   pip install capymoa[torch]
+
+.. note::
+
+   On Linux the default PyPI PyTorch wheel is CUDA-enabled and pulls the NVIDIA
+   stack (several GB). If you do not need a GPU, install the CPU build *first*
+   and then CapyMOA -- pip will keep the version you already have:
+
+   .. code:: bash
+
+      pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+      pip install capymoa[torch]
+
+To match a specific GPU or CUDA version instead, follow the instructions
+`here <https://pytorch.org/get-started/locally/>`__, and make sure PyTorch goes
+into the same virtual environment as CapyMOA.
 

@@ -1,5 +1,5 @@
+from capymoa._optional import lazy_torch_attrs
 from ._adaptive_isolation_forest import AdaptiveIsolationForest
-from ._autoencoder import Autoencoder
 from ._half_space_trees import HalfSpaceTrees
 from ._iforest_asd import IForestASD
 from ._online_isolation_forest import OnlineIsolationForest
@@ -24,3 +24,12 @@ __all__ = [
     "IForestASD",
     "Loda",
 ]
+
+
+#: Names that need PyTorch. Imported on first access so ``import capymoa`` stays
+#: torch-free -- see :mod:`capymoa._optional`.
+_LAZY = {
+    "Autoencoder": "._autoencoder",
+}
+
+__getattr__, __dir__ = lazy_torch_attrs(__name__, _LAZY, "Autoencoder", __all__)

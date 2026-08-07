@@ -5,10 +5,9 @@ import time
 import warnings
 from collections import deque
 from itertools import islice
+import sys
 from typing import Any, Deque, Optional, Sized, Tuple, Union
 
-from capymoa.base import Batch
-import torch
 import numpy as np
 import pandas as pd
 from com.yahoo.labs.samoa.instances import Attribute, DenseInstance, Instances
@@ -31,8 +30,6 @@ from tqdm import tqdm
 from capymoa._utils import _translate_metric_name, batched
 from capymoa.base import (
     AnomalyDetector,
-    BatchClassifier,
-    BatchRegressor,
     Classifier,
     ClassifierSSL,
     Clusterer,
@@ -923,6 +920,33 @@ def stop_time_measuring(start_wallclock_time, start_cpu_time):
     return elapsed_wallclock_time, elapsed_cpu_time
 
 
+def _batch_learner_class(name: str):
+    """Return a ``capymoa.base`` batch class, or ``None`` if torch is absent.
+
+    These classes require PyTorch, which is an optional extra. An instance of
+    one cannot exist unless its module has already been imported, so checking
+    :data:`sys.modules` lets evaluation support batch learners without dragging
+    torch into a torch-free install.
+    """
+    module = sys.modules.get(_BATCH_MODULES[name])
+    return getattr(module, name, None) if module is not None else None
+
+
+_BATCH_MODULES = {
+    "Batch": "capymoa.base._batch",
+    "BatchClassifier": "capymoa.base._batch_classifier",
+    "BatchRegressor": "capymoa.base._batch_regressor",
+}
+
+
+def _isinstance_batch(learner, *names: str) -> bool:
+    """``isinstance`` against batch classes, without importing torch."""
+    classes = tuple(
+        cls for cls in (_batch_learner_class(name) for name in names) if cls is not None
+    )
+    return bool(classes) and isinstance(learner, classes)
+
+
 def _get_target(
     instance: Union[LabeledInstance, RegressionInstance],
 ) -> Union[int, np.double]:
@@ -977,7 +1001,9 @@ def prequential_evaluation(
     """
     if restart_stream:
         stream.restart()
-    if batch_size != 1 and not isinstance(learner, (BatchClassifier, BatchRegressor)):
+    if batch_size != 1 and not _isinstance_batch(
+        learner, "BatchClassifier", "BatchRegressor"
+    ):
         raise ValueError(
             "The learner is not a batch learner, but mini_batch is set to a value greater than 1."
         )
@@ -1038,8 +1064,10 @@ def prequential_evaluation(
         yb_true = [_get_target(instance) for instance in batch]  # batch of targets
         yb_pred = []
 
-        if isinstance(learner, Batch):
+        if _isinstance_batch(learner, "Batch"):
             # Collect a batch of instances and predict them all at once
+            import torch  # optional extra; a Batch learner guarantees it
+
             np_x = np.stack([instance.x for instance in batch])
             torch_x = torch.from_numpy(np_x).to(
                 device=learner.device, dtype=learner.x_dtype

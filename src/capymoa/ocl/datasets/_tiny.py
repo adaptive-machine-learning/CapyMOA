@@ -5,7 +5,8 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from capymoa.datasets._utils import TensorDatasetWithTransform, download_numpy_dataset
+from capymoa.datasets._torch_utils import TensorDatasetWithTransform
+from capymoa.datasets._utils import download_numpy_dataset
 
 from ._base import _BuiltInCIScenario, _BuiltInRotatedDomainScenario
 from ._constants import _SOURCES

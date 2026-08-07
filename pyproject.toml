@@ -58,13 +58,25 @@ dependencies = [
     "scikit-learn~=1.7",
     "seaborn~=0.13",
     "tqdm~=4.67",
+    # `typing_extensions.override` is used across the core modules. It used to
+    # arrive transitively via torch; now that torch is an optional extra it has
+    # to be declared explicitly.
+    "typing-extensions~=4.10",
+]
+
+[project.optional-dependencies]
+# PyTorch is optional: it is only needed by the deep-learning parts of CapyMOA
+# (capymoa.ocl, capymoa.ann, capymoa.stream.torch, the Batch* learners,
+# Autoencoder and ABCD's feature extraction). Keeping it out of the default
+# install avoids pulling the CUDA stack (~2.9 GB on Linux) on `pip install capymoa`.
+torch=[
     "torch~=2.9",
     "torchvision~=0.24",
 ]
 
-[project.optional-dependencies]
 # Development dependencies
 dev=[
+    "capymoa[torch]",
     "commitizen~=3.24",
     "invoke~=3.0",
     "jupyter~=1.1",

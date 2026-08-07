@@ -1,3 +1,4 @@
+from capymoa._optional import lazy_torch_attrs
 from capymoa.base._base import (
     AnomalyDetector,
     Clusterer,
@@ -8,17 +9,15 @@ from capymoa.base._base import (
     PredictionIntervalLearner,
 )
 from capymoa.base._classifier import (
-    BatchClassifier,
     Classifier,
     MOAClassifier,
     SKClassifier,
 )
-from capymoa.base._regressor import BatchRegressor, MOARegressor, Regressor, SKRegressor
+from capymoa.base._regressor import MOARegressor, Regressor, SKRegressor
 from capymoa.base._ssl import (
     ClassifierSSL,
     MOAClassifierSSL,
 )
-from ._batch import Batch
 
 __all__ = [
     "Classifier",
@@ -40,3 +39,15 @@ __all__ = [
     "MOAPredictionIntervalLearner",
     "PredictionIntervalLearner",
 ]
+
+#: Names that need PyTorch. Imported on first access so ``import capymoa`` stays
+#: torch-free -- see :mod:`capymoa._optional`.
+_LAZY = {
+    "Batch": "._batch",
+    "BatchClassifier": "._batch_classifier",
+    "BatchRegressor": "._batch_regressor",
+}
+
+__getattr__, __dir__ = lazy_torch_attrs(
+    __name__, _LAZY, "the Batch* base classes", __all__
+)
