@@ -434,6 +434,12 @@ class RandomRBFGenerator(MOAStream):
         :param number_of_drifting_centroids: The number of drifting attributes, defaults to 2
         """
 
+        self.model_random_seed = model_random_seed
+        self.instance_random_seed = instance_random_seed
+        self.number_of_classes = number_of_classes
+        self.number_of_attributes = number_of_attributes
+        self.number_of_centroids = number_of_centroids
+
         mapping = {
             "model_random_seed": "-r",
             "instance_random_seed": "-i",
@@ -503,6 +509,14 @@ class RandomRBFGeneratorDrift(MOAStream):
         :param noise_percentage: Percentage of noise to add to the data, defaults to 10
         :param sigma_percentage: Percentage of sigma to add to the data, defaults to 10
         """
+
+        self.model_random_seed = model_random_seed
+        self.instance_random_seed = instance_random_seed
+        self.number_of_classes = number_of_classes
+        self.number_of_attributes = number_of_attributes
+        self.number_of_centroids = number_of_centroids
+        self.number_of_drifting_centroids = number_of_drifting_centroids
+        self.magnitude_of_change = magnitude_of_change
 
         mapping = {
             "model_random_seed": "-r",
@@ -796,6 +810,9 @@ class WaveformGenerator(MOAStream):
         :param noise: Adds noise for a total of 40 attributes
         """
 
+        self.instance_random_seed = instance_random_seed
+        self.noise = noise
+
         mapping = {
             "instance_random_seed": "-i",
             "noise": "-n",
@@ -852,6 +869,10 @@ class WaveformGeneratorDrift(MOAStream):
         :param noise: Adds noise for a total of 40 attributes
         :param number_of_attributes_with_drift: Number of attributes with drift
         """
+
+        self.instance_random_seed = instance_random_seed
+        self.noise = noise
+        self.number_of_attributes_with_drift = number_of_attributes_with_drift
 
         mapping = {
             "instance_random_seed": "-i",
@@ -911,6 +932,10 @@ class STAGGERGenerator(MOAStream):
         :param classification_function: Classification function used, as defined in the original paper.
         :param balance: Balance the number of instances of each class.
         """
+
+        self.instance_random_seed = instance_random_seed
+        self.classification_function = classification_function
+        self.balance_classes = balance_classes
 
         mapping = {
             "instance_random_seed": "-i",
@@ -976,6 +1001,11 @@ class SineGenerator(MOAStream):
         :param suppress_irrelevant_attributes: Reduce the data to only contain 2 relevant numeric attributes
         :param balance: Balance the number of instances of each class.
         """
+
+        self.instance_random_seed = instance_random_seed
+        self.classification_function = classification_function
+        self.suppress_irrelevant_attributes = suppress_irrelevant_attributes
+        self.balance_classes = balance_classes
 
         mapping = {
             "instance_random_seed": "-i",
