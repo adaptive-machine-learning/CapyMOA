@@ -185,3 +185,79 @@ def test_all_keeps_lazy_names_when_torch_present():
     for name in ("Batch", "BatchClassifier", "BatchRegressor"):
         assert name in base.__all__, name
     assert "Finetune" in classifier.__all__
+
+
+def test_abcd_runs_without_torch_on_its_scikit_learn_models():
+    """ABCD's ``pca``/``kpca`` models reconstruct with scikit-learn, not PyTorch.
+
+    The autoencoder lives in its own module for exactly this reason, so these
+    two configurations have to stay usable in a default install.
+    """
+    result = _run_without_torch("""
+        import numpy as np
+        from capymoa.drift.detectors import ABCD
+
+        rng = np.random.default_rng(0)
+        data = np.vstack([rng.uniform(0, 0.5, (300, 2)), rng.uniform(0.5, 1.0, (300, 2))])
+
+        for model_id in ("pca", "kpca"):
+            detector = ABCD(model_id=model_id)
+            for row in data:
+                detector.add_element(row)
+
+        # The default must be one of them, or a plain ABCD() breaks the default install.
+        ABCD()
+        print("OK")
+    """)
+    assert result.returncode == 0, result.stderr
+    assert "OK" in result.stdout
+
+
+def test_abcd_autoencoder_reports_the_model_not_the_detector():
+    """``model_id="ae"`` is the only ABCD configuration needing the extra.
+
+    The error names the model rather than ABCD as a whole, so it does not imply
+    the detector is unavailable when only one of its three models is.
+    """
+    result = _run_without_torch("""
+        from capymoa.drift.detectors import ABCD
+        from capymoa.exception import OptionalDependencyError
+
+        try:
+            ABCD(model_id="ae")
+        except OptionalDependencyError as error:
+            assert "model_id='ae'" in str(error), str(error)
+            print("OK")
+        else:
+            raise AssertionError("expected OptionalDependencyError")
+    """)
+    assert result.returncode == 0, result.stderr
+    assert "OK" in result.stdout
+
+
+def test_abcd_stays_in_all_without_torch():
+    """ABCD is importable in a torch-free install, so it must stay advertised."""
+    result = _run_without_torch("""
+        import capymoa.drift.detectors as detectors
+
+        assert "ABCD" in detectors.__all__
+        assert detectors.ABCD is not None
+        print("OK")
+    """)
+    assert result.returncode == 0, result.stderr
+    assert "OK" in result.stdout
+
+
+def test_abcd_autoencoder_still_works_when_torch_present():
+    """The move to a separate module must not change behaviour with torch installed."""
+    pytest.importorskip("torch")
+    import numpy as np
+    from capymoa.drift.detectors import ABCD
+
+    rng = np.random.default_rng(0)
+    data = np.vstack([rng.uniform(0, 0.5, (200, 2)), rng.uniform(0.5, 1.0, (200, 2))])
+
+    detector = ABCD(model_id="ae")
+    for row in data:
+        detector.add_element(row)
+    assert detector.idx == len(data)
