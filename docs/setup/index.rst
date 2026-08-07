@@ -112,9 +112,13 @@ evaluation -- installs without pulling a deep-learning stack.
 The parts of CapyMOA that use deep learning do require it:
 :mod:`capymoa.ocl`, :mod:`capymoa.ann`, :class:`capymoa.stream.TorchStream`,
 the ``Batch*`` learners, :class:`capymoa.anomaly.Autoencoder`,
-:class:`capymoa.classifier.Finetune`, :class:`capymoa.ssl.OSNN` and the ABCD
-drift detector. Using one of those without PyTorch raises an
-``OptionalDependencyError`` telling you what to install.
+:class:`capymoa.classifier.Finetune` and :class:`capymoa.ssl.OSNN`. Using one of
+those without PyTorch raises an ``OptionalDependencyError`` telling you what to
+install.
+
+:class:`capymoa.drift.detectors.ABCD` is a partial case: it works without
+PyTorch on its default ``model_id="pca"`` and on ``"kpca"``, and needs the extra
+only for the autoencoder model, ``model_id="ae"``.
 
 Install CapyMOA with PyTorch using the ``torch`` extra:
 

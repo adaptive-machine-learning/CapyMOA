@@ -5,7 +5,6 @@ from typing import Any, Dict
 import numpy as np
 
 from .abcd_components.feature_extraction import (
-    AutoEncoder,
     EncoderDecoder,
     PCAModel,
     KernelPCAModel,
@@ -20,7 +19,7 @@ class ABCD(BaseDriftDetector):
         self,
         delta_drift: float = 0.002,
         delta_warn: float = 0.01,
-        model_id: str = "ae",
+        model_id: str = "pca",
         split_type: str = "ed",
         encoding_factor: float = 0.5,
         update_epochs: int = 50,
@@ -34,7 +33,10 @@ class ABCD(BaseDriftDetector):
         """
         :param delta_drift: The desired confidence level at which a drift is detected
         :param delta_warn: The desired confidence level at which a warning is detected
-        :param model_id: The name of the model to use
+        :param model_id: Which encoder-decoder to reconstruct instances with:
+            ``"pca"``, ``"kpca"`` or ``"ae"``. ``"pca"`` is the default because
+            it needs only scikit-learn, whereas ``"ae"`` is backed by PyTorch,
+            which CapyMOA installs only as the ``torch`` extra.
         :param update_epochs: The number of epochs to train the AE after a change occurred
         :param split_type: Investigation of different split types
         :param subspace_threshold: Called tau in the paper
@@ -78,9 +80,23 @@ class ABCD(BaseDriftDetector):
         elif model_id == "kpca":
             self.model_class = KernelPCAModel
         elif model_id == "ae":
+            # Imported here rather than at module level so that the two
+            # scikit-learn models stay usable without the ``torch`` extra.
+            from capymoa._optional import torch_available
+
+            if not torch_available():
+                from capymoa.exception import OptionalDependencyError
+
+                raise OptionalDependencyError(
+                    "PyTorch", "ABCD's autoencoder model (model_id='ae')"
+                )
+            from .abcd_components._autoencoder import AutoEncoder
+
             self.model_class = AutoEncoder
         else:
-            raise ValueError
+            raise ValueError(
+                f"Unknown model_id {model_id!r}, expected 'pca', 'kpca' or 'ae'"
+            )
         super(ABCD, self).__init__()
 
     def get_params(self) -> Dict[str, Any]:
