@@ -28,9 +28,9 @@ class SLEADE(MOAClassifierSSL):
 
     Reference:
 
-    Gomes, H. M., Read, J., Grzenda, M., Pfahringer, B., & Bifet, A. *SLEADE:
-    Disagreement-Based Semi-Supervised Learning for Sparsely Labeled Evolving Data
-    Streams.* IEEE Transactions on Knowledge and Data Engineering.
+    Gomes, H. M., Read, J., Grzenda, M., Pfahringer, B., & Bifet, A. (2025).
+    *SLEADE: Disagreement-Based Semi-Supervised Learning for Sparsely Labeled
+    Evolving Data Streams.* IEEE Transactions on Knowledge and Data Engineering.
 
     >>> from capymoa.ssl import SLEADE
     >>> from capymoa.datasets import ElectricityTiny
@@ -102,8 +102,11 @@ class SLEADE(MOAClassifierSSL):
             ``instance weight * 1/ws``.
         :param use_unsupervised_drift_detection: Whether to use the unsupervised
             drift detection and recovery strategy.
-        :param student_learner: Model trained to mimic the ensemble, whose error is
-            monitored for unsupervised drift detection. Defaults to
+        :param student_learner: Model trained to mimic the ensemble's predictions.
+            Because it learns from those predictions rather than from labels, its
+            error can be tracked without any labelled data, and a change in that
+            error is what signals drift. Only used when
+            ``use_unsupervised_drift_detection`` is set. Defaults to
             ``HoeffdingTree(grace_period=50, confidence=0.01)``.
         :param drift_detection_method: Change detector applied to the student's
             error. Defaults to ``ADWIN(delta=1e-5)``.
