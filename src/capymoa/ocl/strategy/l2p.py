@@ -8,12 +8,13 @@
 """
 
 from capymoa.base import BatchClassifier
+from capymoa.ocl.events import Handler, Dispatcher
+from capymoa.ocl.evaluation.events import TrainTaskBegin
 
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Tuple, Callable
 
 from capymoa.stream import Schema
-from capymoa.ocl.base import TrainTaskAware
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -210,7 +211,7 @@ class _L2PModel(nn.Module):
         return self.head(features), cosine_distance
 
 
-class L2P(BatchClassifier, TrainTaskAware):
+class L2P(BatchClassifier, Handler):
     """Learning to Prompt.
 
     Learning to Prompt (L2P) [#f1]_ is a continual learning strategy that leverages a
@@ -308,6 +309,13 @@ class L2P(BatchClassifier, TrainTaskAware):
     def on_train_task(self, task_id: int):
         self._train_task = task_id
         self._optimizer = self._new_optimizer()
+
+    def attach_with(self, source: Dispatcher) -> "L2P":
+        source.subscribe(TrainTaskBegin, self._on_train_task_start)
+        return self
+
+    def _on_train_task_start(self, event: TrainTaskBegin) -> None:
+        self.on_train_task(event.train_task)
 
     def batch_train(self, x: torch.Tensor, y: torch.Tensor) -> None:
         x = x.view(x.size(0), *self.schema.shape)  # Reshape to the original shape

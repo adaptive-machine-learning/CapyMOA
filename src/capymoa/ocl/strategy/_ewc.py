@@ -3,7 +3,8 @@ from capymoa.stream._stream import Schema
 from torch import Tensor, nn
 import torch
 from capymoa.base import BatchClassifier
-from capymoa.ocl.base import TrainTaskAware, TestTaskAware
+from capymoa.ocl.events import Handler, Dispatcher
+from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.util._buffer_list import BufferList
 from capymoa.ocl.util._replay import SlidingWindow
 from torch.utils.data import DataLoader
@@ -103,7 +104,7 @@ def fd_compute(
     return fisher_diagonals
 
 
-class EWC(BatchClassifier, nn.Module, TrainTaskAware, TestTaskAware):
+class EWC(BatchClassifier, nn.Module, Handler):
     """Elastic Weight Consolidation learner.
 
     Elastic Weight Consolidation (EWC) is a regularisation-based continual learning
@@ -216,14 +217,19 @@ class EWC(BatchClassifier, nn.Module, TrainTaskAware, TestTaskAware):
         y_hat = self._test_forward(x)
         return torch.softmax(y_hat, dim=1)
 
-    def on_train_task(self, task_id: int) -> None:
-        if task_id > 0:
+    def attach_with(self, source: Dispatcher) -> "EWC":
+        source.subscribe(TrainTaskBegin, self.on_train_task)
+        source.subscribe(TestTaskBegin, self.on_test_task)
+        return self
+
+    def on_train_task(self, event: TrainTaskBegin) -> None:
+        if event.train_task > 0:
             self._update_fisher_diags()
             self._update_anchor_params()
-        self._train_task = task_id
+        self._train_task = event.train_task
 
-    def on_test_task(self, task_id: int) -> None:
-        self._test_task = task_id
+    def on_test_task(self, event: TestTaskBegin) -> None:
+        self._test_task = event.test_task
 
     def _update_fisher_diags(self) -> None:
         """Estimate and accumulate Fisher diagonals from the replay buffer."""
