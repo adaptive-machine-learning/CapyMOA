@@ -1,5 +1,5 @@
 from capymoa.base import AnomalyDetector
-from capymoa.instance import Instance
+from capymoa.core import Instance
 import torch
 import torch.nn as nn
 import torch.optim as optim

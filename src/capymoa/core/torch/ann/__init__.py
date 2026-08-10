@@ -16,7 +16,7 @@ except ModuleNotFoundError as _err:  # pragma: no cover
     if (_err.name or "").split(".")[0] in ("torch", "torchvision"):
         from capymoa.exception import OptionalDependencyError
 
-        raise OptionalDependencyError("PyTorch", "capymoa.ann") from _err
+        raise OptionalDependencyError("PyTorch", "capymoa.core.torch.ann") from _err
     raise
 
 __all__ = [

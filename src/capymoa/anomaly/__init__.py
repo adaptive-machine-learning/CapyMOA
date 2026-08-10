@@ -1,3 +1,11 @@
+"""Anomaly detection.
+
+Anomaly detection identifies instances that deviate substantially from normal
+behavior. In data stream learning, the notion of normal behavior can evolve
+over time, so detectors must adapt to concept drift while flagging outliers
+in real time.
+"""
+
 from capymoa._optional import lazy_torch_attrs
 from ._adaptive_isolation_forest import AdaptiveIsolationForest
 from ._half_space_trees import HalfSpaceTrees

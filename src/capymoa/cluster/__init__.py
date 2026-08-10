@@ -1,3 +1,10 @@
+"""Clustering.
+
+Clustering groups similar instances together without using labels. In the
+data stream setting, clusters must be discovered and updated incrementally as
+new instances arrive, while adapting to concept drift and bounded memory.
+"""
+
 from ._clustream import Clustream
 from ._clustream_with_kmeans import Clustream_with_kmeans
 from ._clustree import ClusTree

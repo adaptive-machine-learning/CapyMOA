@@ -14,7 +14,7 @@ from com.yahoo.labs.samoa.instances import (
 from moa.streams import InstanceStream
 from torch.utils.data import TensorDataset
 
-from capymoa.instance import Instance, LabeledInstance, RegressionInstance
+from capymoa.core import Instance, LabeledInstance, RegressionInstance
 from capymoa.stream import (
     ARFFStream,
     CSVStream,

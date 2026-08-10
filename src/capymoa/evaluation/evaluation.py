@@ -38,7 +38,7 @@ from capymoa.base import (
 )
 from capymoa.evaluation._progress_bar import resolve_progress_bar
 from capymoa.evaluation.results import PrequentialResults
-from capymoa.instance import LabeledInstance, RegressionInstance
+from capymoa.core import LabeledInstance, RegressionInstance
 from capymoa.stream import Schema, Stream
 
 

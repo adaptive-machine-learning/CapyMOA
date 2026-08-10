@@ -4,7 +4,7 @@ import pytest
 from capymoa.base import Classifier, MOAClassifier
 from capymoa.classifier import HoeffdingTree
 from capymoa.datasets import ElectricityTiny
-from capymoa.feature_selection import (
+from capymoa.feature import (
     FeatureImportanceClassifier,
     MOAFeatureImportanceClassifier,
 )

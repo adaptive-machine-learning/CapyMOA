@@ -8,7 +8,7 @@ import torch
 from capymoa.ocl.events import Handler, Dispatcher
 from capymoa.evaluation.results import PrequentialResults
 from capymoa.ocl.evaluation import events
-from capymoa.type_alias import LabelIndex
+from capymoa.core import LabelIndex
 
 from ._metrics import (
     OCLMetrics,

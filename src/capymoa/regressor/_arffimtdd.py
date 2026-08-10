@@ -3,7 +3,10 @@ from typing import Optional, Union
 
 from capymoa.base import MOARegressor
 
-from capymoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
+from capymoa.core.moa.splitcriteria import (
+    SplitCriterion,
+    _split_criterion_to_cli_str,
+)
 from capymoa.stream._stream import Schema
 from moa.classifiers.trees import ARFFIMTDD as _MOA_ARFFIMTDD
 

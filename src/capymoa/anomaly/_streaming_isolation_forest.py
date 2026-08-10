@@ -4,9 +4,9 @@ import math
 import random
 import typing
 from capymoa.base import AnomalyDetector
-from capymoa.instance import LabeledInstance
+from capymoa.core import LabeledInstance
 from capymoa.stream._stream import Schema
-from capymoa.type_alias import LabelIndex
+from capymoa.core import LabelIndex
 
 
 __all__ = ["StreamingIsolationForest"]

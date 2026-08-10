@@ -1,3 +1,5 @@
+"""Data stream preprocessing and pipelines."""
+
 from .pipeline import (
     BasePipeline,
     ClassifierPipeline,

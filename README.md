@@ -22,7 +22,7 @@ To install:
 pip install capymoa
 ```
 
-The deep-learning parts of CapyMOA (`capymoa.ocl`, `capymoa.ann`, the `Batch*`
+The deep-learning parts of CapyMOA (`capymoa.ocl`, `capymoa.core.torch.ann`, the `Batch*`
 learners) need PyTorch, which is an optional extra:
 
 ```

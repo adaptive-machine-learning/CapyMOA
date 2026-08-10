@@ -1,3 +1,10 @@
+"""Base classes for CapyMOA learners.
+
+This module defines the abstract interfaces that all CapyMOA learners implement,
+including classifiers, regressors, anomaly detectors, clusterers, prediction
+interval learners, and their semi-supervised and MOA-backed variants.
+"""
+
 from capymoa._optional import lazy_torch_attrs
 from capymoa.base._base import (
     AnomalyDetector,

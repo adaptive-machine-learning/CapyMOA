@@ -4,7 +4,7 @@ from capymoa.evaluation import (
 )
 from capymoa.datasets import Fried
 from capymoa.base import PredictionIntervalLearner
-from capymoa.prediction_interval import (
+from capymoa.pi import (
     MVE,
     AdaPI,
 )

@@ -1,7 +1,7 @@
 import numpy as np
 
 from capymoa.base._base import AnomalyDetector
-from capymoa.instance import Instance
+from capymoa.core import Instance
 from capymoa.stream._stream import Schema
 
 

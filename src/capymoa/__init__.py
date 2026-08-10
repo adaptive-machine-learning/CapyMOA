@@ -6,11 +6,10 @@ from .__about__ import __version__
 # It is important that this is called before importing any other module
 _start_jpype()
 
-from . import stream  # noqa Module imported here to ensure that jpype has been started
-
+from . import core  # noqa: E402
 
 __all__ = [
     "about",
     "__version__",
-    "stream",
+    "core",
 ]

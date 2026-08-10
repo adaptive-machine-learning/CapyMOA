@@ -5,9 +5,9 @@ import numpy as np
 from jpype import _jpype
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
-from capymoa.instance import Instance, LabeledInstance
+from capymoa.core import Instance, LabeledInstance
 from capymoa.stream._stream import Schema
-from capymoa.type_alias import LabelIndex, LabelProbabilities
+from capymoa.core import LabelIndex, LabelProbabilities
 
 
 class Classifier(ABC):

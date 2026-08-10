@@ -7,10 +7,10 @@ import numpy as np
 
 from capymoa.base import Classifier, Regressor
 from capymoa.drift.base_detector import BaseDriftDetector
-from capymoa.instance import LabeledInstance, Instance, RegressionInstance
+from capymoa.core._instance import LabeledInstance, Instance, RegressionInstance
 
-from capymoa.stream.preprocessing.transformer import Transformer
-from capymoa.type_alias import LabelProbabilities, LabelIndex, TargetValue
+from .transformer import Transformer
+from capymoa.core import LabelProbabilities, LabelIndex, TargetValue
 
 
 class PipelineElement(Protocol):

@@ -7,7 +7,7 @@ import numpy as np
 from capymoa.base import MOAClassifier
 from capymoa.stream import Schema
 from capymoa._utils import build_cli_str_from_mapping_and_locals
-from capymoa.type_alias import LabelProbabilities
+from capymoa.core import LabelProbabilities
 
 from moa.classifiers.meta import DynamicEnsembleMemberSelection as _MOA_DEMS
 

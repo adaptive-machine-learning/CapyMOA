@@ -10,8 +10,8 @@ import torch
 from java.lang import Exception as JException
 from pytest_subtests import SubTests
 
-from capymoa._cli import cli_str_classifier
-from capymoa.ann import Perceptron
+from capymoa.core.moa._cli import cli_str_classifier
+from capymoa.core.torch.ann import Perceptron
 from capymoa.base import Classifier, MOAClassifier
 from capymoa.classifier import (
     CSMOTE,
@@ -43,8 +43,8 @@ from capymoa.classifier import (
 )
 from capymoa.datasets import ElectricityTiny
 from capymoa.evaluation import ClassificationEvaluator, prequential_evaluation
-from capymoa.misc import load_model, save_model
-from capymoa.splitcriteria import GiniSplitCriterion
+from capymoa.core.io import load_model, save_model
+from capymoa.core.moa.splitcriteria import GiniSplitCriterion
 from capymoa.stream import Schema, Stream
 import numpy as np
 

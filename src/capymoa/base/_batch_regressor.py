@@ -11,8 +11,8 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from capymoa.instance import RegressionInstance
-from capymoa.type_alias import TargetValue
+from capymoa.core import RegressionInstance
+from capymoa.core import TargetValue
 
 from ._batch import Batch
 from ._regressor import Regressor

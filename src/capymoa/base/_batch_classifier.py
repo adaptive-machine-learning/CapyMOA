@@ -11,8 +11,8 @@ from typing import Optional
 import numpy as np
 import torch
 
-from capymoa.instance import Instance, LabeledInstance
-from capymoa.type_alias import LabelProbabilities
+from capymoa.core import Instance, LabeledInstance
+from capymoa.core import LabelProbabilities
 
 from ._batch import Batch
 from ._classifier import Classifier

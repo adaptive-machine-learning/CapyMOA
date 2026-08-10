@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal, Optional
 
 from capymoa._utils import build_cli_str_from_mapping_and_locals
-from capymoa._cli import cli_str_classifier, cli_str_drift_detector
+from capymoa.core.moa._cli import cli_str_classifier, cli_str_drift_detector
 from capymoa.base import Classifier, MOAClassifierSSL
 from capymoa.classifier import HoeffdingTree
 from capymoa.drift.base_detector import MOADriftDetector

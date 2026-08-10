@@ -3,7 +3,7 @@
 CapyMOA keeps PyTorch out of the default installation (see the ``torch`` extra in
 ``pyproject.toml``). Some public names -- ``capymoa.classifier.Finetune``,
 ``capymoa.anomaly.Autoencoder``, the ``Batch*`` base classes, everything in
-``capymoa.ocl`` and ``capymoa.ann`` -- genuinely need PyTorch and cannot be
+``capymoa.ocl`` and ``capymoa.core.torch.ann`` -- genuinely need PyTorch and cannot be
 imported without it.
 
 Re-exporting those eagerly from a package ``__init__`` would drag PyTorch into

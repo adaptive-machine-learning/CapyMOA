@@ -1,9 +1,9 @@
 # Library imports
 
 from capymoa.base import MOARegressor
-from capymoa._cli import cli_str
+from capymoa.core.moa._cli import cli_str
 from ._arffimtdd import ARFFIMTDD
-from capymoa._cli import (
+from capymoa.core.moa._cli import (
     cli_str_drift_detector,
 )
 from capymoa.drift.base_detector import MOADriftDetector

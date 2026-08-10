@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from capymoa.instance import Instance
+from capymoa.core import Instance
 from capymoa.stream._stream import Schema
 from capymoa.base import AnomalyDetector
 

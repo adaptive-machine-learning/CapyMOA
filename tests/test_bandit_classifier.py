@@ -3,7 +3,7 @@ import tempfile
 
 from capymoa.automl import BanditClassifier, EpsilonGreedy
 from capymoa.stream.generator import SEA
-from capymoa._cli import cli_str_classifier
+from capymoa.core.moa._cli import cli_str_classifier
 
 
 def test_bandit_classifier_parameter_initialization():

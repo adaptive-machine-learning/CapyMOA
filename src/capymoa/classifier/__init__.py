@@ -1,3 +1,10 @@
+"""Classification.
+
+Classification assigns discrete labels to instances. In data stream learning,
+classifiers must learn incrementally from a single pass over the data,
+adapting to concept drift while making predictions in real time.
+"""
+
 from capymoa._optional import lazy_torch_attrs
 from ._adaptive_random_forest import AdaptiveRandomForestClassifier
 from ._efdt import EFDT

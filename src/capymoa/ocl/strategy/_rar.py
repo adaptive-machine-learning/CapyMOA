@@ -28,7 +28,7 @@ class RAR(BatchClassifier, Handler):
       But the choice of augmentation is important and should be chosen based on the
       problem domain.
 
-    >>> from capymoa.ann import Perceptron
+    >>> from capymoa.core.torch.ann import Perceptron
     >>> from capymoa.classifier import Finetune
     >>> from capymoa.ocl.strategy import RAR
     >>> from capymoa.ocl.datasets import TinySplitMNIST

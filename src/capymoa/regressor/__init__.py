@@ -1,3 +1,10 @@
+"""Regression.
+
+Regression predicts continuous target values. In data stream learning,
+regressors must be updated incrementally from a single pass over the data
+and adapt their predictions as the underlying target function drifts.
+"""
+
 from ._soknl_base_tree import SOKNLBT
 from ._soknl import SOKNL
 from ._orto import ORTO

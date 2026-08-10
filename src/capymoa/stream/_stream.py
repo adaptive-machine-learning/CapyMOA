@@ -1,7 +1,7 @@
 import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Generic, Iterator, Literal, Optional, Sequence, TypeVar, Union
+from typing import Dict, Generic, Iterator, Literal, Optional, Sequence, Union
 
 from capymoa.exception import StreamTypeError
 import numpy as np
@@ -14,10 +14,10 @@ from com.yahoo.labs.samoa.instances import (
 from moa.core import FastVector
 from moa.streams import ArffFileStream, InstanceStream
 
-from capymoa.instance import (
-    Instance,
+from capymoa.core._instance import (
     LabeledInstance,
     RegressionInstance,
+    _AnyInstance,
 )
 
 
@@ -191,7 +191,7 @@ class Schema:
     def shape(self) -> Sequence[int]:
         """The shape of the input ``x`` instances.
 
-        Usually :py:attr:`capymoa.instance.Instance.x` is a vector but some learners
+        Usually :py:attr:`capymoa.core.Instance.x` is a vector but some learners
         need to know the shape of the input. For example, a CNN needs to know the height
         and width of an image.
         """
@@ -282,13 +282,6 @@ class Schema:
     def __str__(self):
         """Return a string representation of the schema as an ARFF header."""
         return str(self._moa_header.toString()).strip()
-
-
-_AnyInstance = TypeVar("_AnyInstance", bound=Instance)
-"""A generic type that is bound to an instance type.
-
-Such as :class:`LabeledInstance` or :class:`RegressionInstance`.
-"""
 
 
 class Stream(ABC, Generic[_AnyInstance], Iterator[_AnyInstance]):

@@ -1,6 +1,6 @@
 from typing import Optional
 from capymoa.base import MOAClassifier
-from capymoa._cli import cli_str_drift_detector, cli_str_classifier
+from capymoa.core.moa._cli import cli_str_drift_detector, cli_str_classifier
 
 from capymoa.drift.base_detector import MOADriftDetector
 from capymoa.drift.detectors import ADWIN

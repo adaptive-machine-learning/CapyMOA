@@ -3,7 +3,7 @@ import inspect
 from capymoa.base import (
     MOAPredictionIntervalLearner,
 )
-from capymoa._cli import cli_str_regressor
+from capymoa.core.moa._cli import cli_str_regressor
 
 from capymoa.regressor import AdaptiveRandomForestRegressor
 

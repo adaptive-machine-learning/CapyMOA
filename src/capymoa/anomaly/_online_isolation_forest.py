@@ -1,6 +1,7 @@
 from __future__ import annotations
 from capymoa.base import AnomalyDetector
-from capymoa.instance import Instance, LabelIndex
+from capymoa.core import Instance
+from capymoa.core import LabelIndex
 from capymoa.stream._stream import Schema
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass

@@ -16,7 +16,7 @@ class ExperienceReplay(BatchClassifier, Handler):
     * The replay buffer is implemented using reservoir sampling, which allows for
       uniform sampling over the entire stream [#f1]_.
 
-    >>> from capymoa.ann import Perceptron
+    >>> from capymoa.core.torch.ann import Perceptron
     >>> from capymoa.classifier import Finetune
     >>> from capymoa.ocl.strategy import ExperienceReplay
     >>> from capymoa.ocl.datasets import TinySplitMNIST

@@ -1,3 +1,5 @@
+"""Online Continual Learning (OCL) strategies."""
+
 from ._experience_replay import ExperienceReplay
 from ._slda import SLDA
 from ._ncm import NCM

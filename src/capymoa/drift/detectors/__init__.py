@@ -1,3 +1,5 @@
+"""Concept drift detectors."""
+
 from .abcd import ABCD
 from .adwin import ADWIN
 from .cusum import CUSUM

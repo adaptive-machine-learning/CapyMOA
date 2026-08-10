@@ -6,9 +6,9 @@ import typing
 from itertools import count
 
 from capymoa.base import AnomalyDetector
-from capymoa.instance import Instance
+from capymoa.core import Instance
 from capymoa.stream import Schema
-from capymoa.type_alias import LabelIndex
+from capymoa.core import LabelIndex
 
 __all__ = ["AdaptiveIsolationForest"]
 
