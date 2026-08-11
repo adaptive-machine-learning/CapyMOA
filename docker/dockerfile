@@ -14,9 +14,10 @@ USER ${NB_UID}
 
 # Install the latest version of the `capymoa` package.
 ARG CAPYMOA_VERSION
-RUN python -m pip install --no-cache-dir torch torchvision \
+RUN python -m pip install --no-cache-dir uv && \
+    uv pip install --system --no-cache torch torchvision \
         --index-url https://download.pytorch.org/whl/cpu && \
-    python -m pip install --no-cache-dir capymoa==${CAPYMOA_VERSION}
+    uv pip install --system --no-cache capymoa==${CAPYMOA_VERSION}
 
 ENV CAPYMOA_DATASETS_DIR=${HOME}/data
 COPY  --chown=${NB_UID} data ${HOME}/sample/data

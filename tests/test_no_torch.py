@@ -40,6 +40,13 @@ def _run_without_torch(body: str) -> subprocess.CompletedProcess:
     )
 
 
+@pytest.mark.no_torch_env
+def test_torch_not_installed_on_disk():
+    """A base install (no ``torch``/``torch-cpu`` extra) must never pull torch onto disk."""
+    with pytest.raises(ModuleNotFoundError):
+        import torch  # noqa: F401
+
+
 def test_import_capymoa_without_torch():
     """``import capymoa`` must not need PyTorch."""
     result = _run_without_torch("""

@@ -41,7 +41,7 @@ keywords = [
 ]
 
 long_description_content_type = "text/markdown"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 # Defines the pip packages that are required by this package. These should be
 # as permissive as possible, since capymoa should collaborate with other
 # packages.
@@ -70,6 +70,18 @@ dependencies = [
 # Autoencoder and ABCD's feature extraction). Keeping it out of the default
 # install avoids pulling the CUDA stack (~2.9 GB on Linux) on `pip install capymoa`.
 torch=[
+    "torch~=2.9",
+    "torchvision~=0.24",
+]
+
+# Same spec as `torch`, but routed to the CPU-only wheel index by
+# [tool.uv.sources] below. Exists so `uv sync --extra dev --extra torch-cpu`
+# (used by CI, Docker and the devcontainer, all GPU-less) gets small CPU
+# wheels instead of the ~2.9 GB CUDA stack `torch` pulls by default on Linux.
+# Only affects `uv sync`/workspace installs -- [tool.uv] config isn't
+# distributed in the published wheel, so `pip install capymoa[torch-cpu]` is
+# identical to `capymoa[torch]`.
+torch-cpu=[
     "torch~=2.9",
     "torchvision~=0.24",
 ]
@@ -106,6 +118,27 @@ doc=[
 Documentation = "https://capymoa.org"
 Source = "https://github.com/adaptive-machine-learning/CapyMOA"
 
+[tool.uv]
+# `torch` and `torch-cpu` declare the same version spec but resolve from
+# different indexes (see [tool.uv.sources]); requesting both at once is
+# nonsensical, so reject it instead of silently picking one.
+conflicts = [
+    [ { extra = "torch" }, { extra = "torch-cpu" } ],
+]
+
+[tool.uv.sources]
+# Only the `torch-cpu` extra is routed to the CPU-only index, and only on
+# Linux -- the platform where the default PyPI wheel pulls the CUDA stack.
+# On Windows/macOS `torch-cpu` falls through to the default index, same as
+# plain `torch` would.
+torch = [{ index = "pytorch-cpu", extra = "torch-cpu", marker = "platform_system == 'Linux'" }]
+torchvision = [{ index = "pytorch-cpu", extra = "torch-cpu", marker = "platform_system == 'Linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [tool.pytest.ini_options]
 addopts = [
     "--import-mode=importlib",
@@ -117,6 +150,9 @@ pythonpath = ["src"]
 testpaths = ["tests", "src"]
 norecursedirs = [
     "docs/*"
+]
+markers = [
+    "no_torch_env: requires a real torch-free installed environment (see tests/test_no_torch.py)",
 ]
 
 [tool.hatch]

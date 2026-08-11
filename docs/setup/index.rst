@@ -37,6 +37,19 @@ projects that require different versions of the same dependencies.
 
 If you chose to use a virtual environment, you have some choices:
 
+*  **uv**
+   `uv <https://docs.astral.sh/uv/>`__ is a fast Python package and project
+   manager. You can create a new virtual environment with:
+
+   .. code:: bash
+
+      uv venv .capymoa-venv
+      source .capymoa-venv/bin/activate
+      # On Windows, use `.capymoa-venv\Scripts\activate`
+
+   uv can also install and manage the Python version itself with
+   ``uv python install``, so you do not need a separate Python installation.
+
 *  **Python Virtual Environment**
    PyVenv is a built-in tool for creating virtual
    environments in Python. You can create a new virtual environment with:
@@ -130,12 +143,23 @@ Install CapyMOA with PyTorch using the ``torch`` extra:
 
    On Linux the default PyPI PyTorch wheel is CUDA-enabled and pulls the NVIDIA
    stack (several GB). If you do not need a GPU, install the CPU build *first*
-   and then CapyMOA -- pip will keep the version you already have:
+   and then CapyMOA -- pip (or uv) will keep the version you already have:
 
-   .. code:: bash
+   .. tab-set::
 
-      pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-      pip install capymoa[torch]
+      .. tab-item:: pip
+
+         .. code-block:: bash
+
+            pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+            pip install capymoa[torch]
+
+      .. tab-item:: uv
+
+         .. code-block:: bash
+
+            uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+            uv pip install capymoa[torch]
 
 To match a specific GPU or CUDA version instead, follow the instructions
 `here <https://pytorch.org/get-started/locally/>`__, and make sure PyTorch goes
