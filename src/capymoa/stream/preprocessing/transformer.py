@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from .._stream import Schema, MOAStream
-from capymoa.core._instance import Instance
+from capymoa.core import Instance
 from moa.streams import FilteredQueueStream
 import moa.streams.filters
 

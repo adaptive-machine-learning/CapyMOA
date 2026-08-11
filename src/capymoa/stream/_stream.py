@@ -14,7 +14,7 @@ from com.yahoo.labs.samoa.instances import (
 from moa.core import FastVector
 from moa.streams import ArffFileStream, InstanceStream
 
-from capymoa.core._instance import (
+from capymoa.core import (
     LabeledInstance,
     RegressionInstance,
     _AnyInstance,

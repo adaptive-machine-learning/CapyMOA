@@ -1,5 +1,5 @@
 from pathlib import Path
-from capymoa.core._instance import LabeledInstance, RegressionInstance, _AnyInstance
+from capymoa.core import LabeledInstance, RegressionInstance, _AnyInstance
 from ._stream import Stream, Schema
 from typing import Mapping, TextIO, Sequence, Optional
 from typing_extensions import override

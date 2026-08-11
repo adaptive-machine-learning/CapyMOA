@@ -3,7 +3,7 @@ from typing import Optional, Sequence, Tuple
 import torch
 
 from ._stream import Stream, Schema
-from capymoa.core._instance import LabeledInstance, RegressionInstance
+from capymoa.core import LabeledInstance, RegressionInstance
 from torch.utils.data import Dataset
 
 

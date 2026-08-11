@@ -6,6 +6,7 @@ from .__about__ import __version__
 # It is important that this is called before importing any other module
 _start_jpype()
 
+# Imported here (after _start_jpype) to ensure jpype has been started
 from . import core  # noqa: E402
 
 __all__ = [
