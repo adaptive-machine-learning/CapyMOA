@@ -29,7 +29,11 @@ jobs:
         run: uv sync --extra dev --extra torch-cpu
 
       - name: PyTest
-        run: uv run invoke test.pytest -- -m "not no_torch_env"
+        run: uv run invoke test.pytest
+        env:
+          # See the equivalent step in pr.yml for why this isn't
+          # `invoke test.pytest -- -m "not no_torch_env"`.
+          PYTEST_ADDOPTS: -m "not no_torch_env"
 
       - name: Doctest
         run: uv run invoke test.doctest

@@ -63,7 +63,16 @@ jobs:
         key: "test-datasets"
 
     - name: PyTest
-      run: uv run invoke test.pytest --coverage -- -m "not no_torch_env"
+      run: uv run invoke test.pytest --coverage
+      env:
+        # Passed via env rather than `invoke test.pytest -- -m "..."`: invoke's
+        # `ctx.remainder` rejoins argv tokens with plain spaces, which drops the
+        # quoting needed to keep `not no_torch_env` together as one `-m` value
+        # by the time it reaches pytest (confirmed: it turns into `-m not
+        # no_torch_env`, where pytest reads `no_torch_env` as a stray file
+        # path). PYTEST_ADDOPTS is read and shlex-split by pytest directly, no
+        # extra shell round-trip, so the quoting survives.
+        PYTEST_ADDOPTS: -m "not no_torch_env"
 
     - name: Doctest
       run: uv run invoke test.doctest --coverage
@@ -110,7 +119,12 @@ jobs:
       run: uv sync
 
     - name: PyTest (no-torch checks)
-      run: uv run --with pytest pytest -m no_torch_env
+      # Scoped to this one file: a bare `pytest -m no_torch_env` still
+      # collects every file under `testpaths` (tests, src) before filtering by
+      # marker, and several test modules `import torch` at the top level --
+      # collection itself fails in this torch-free environment before the
+      # marker filter ever runs.
+      run: uv run --with pytest pytest tests/test_no_torch.py -m no_torch_env
 
   lint:
     name: "Code Style"
