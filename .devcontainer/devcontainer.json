@@ -24,7 +24,7 @@
     }
   },
   "mounts": [
-    "source=capymoa-pip-cache,target=/home/vscode/.cache/pip,type=volume"
+    "source=capymoa-uv-cache,target=/home/vscode/.cache/uv,type=volume"
   ],
-  "postCreateCommand": "python -m pip install -e '.[dev,doc]'"
+  "postCreateCommand": "uv sync --extra dev --extra doc --extra torch-cpu"
 }

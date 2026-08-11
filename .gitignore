@@ -127,6 +127,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+uv.lock
 env/
 venv/
 ENV/
@@ -171,7 +172,6 @@ cython_debug/
 # MOABridge
 # 
 src/capymoa/jar/moa.jar
-condaenv.*.requirements.txt
 data
 notebooks/*.png
 docs/notebooks

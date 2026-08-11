@@ -21,31 +21,25 @@ jobs:
         python-version: ['3.10', '3.11', '3.12']
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip" # caching pip dependencies
 
-      - name: CPU PyTorch (Windows/MacOS)
-        if: matrix.operating-system == 'windows-latest' || matrix.operating-system == 'macos-latest'
-        run: python -m pip install torch torchvision
-
-      - name: CPU PyTorch (Linux)
-        if: matrix.operating-system == 'ubuntu-latest'
-        run: python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-              
       - name: Install dependencies
-        run: python -m pip install ".[dev]"
+        run: uv sync --extra dev --extra torch-cpu
 
       - name: PyTest
-        run: python -m invoke test.pytest
+        run: uv run invoke test.pytest
+        env:
+          # See the equivalent step in pr.yml for why this isn't
+          # `invoke test.pytest -- -m "not no_torch_env"`.
+          PYTEST_ADDOPTS: -m "not no_torch_env"
 
       - name: Doctest
-        run: python -m invoke test.doctest
+        run: uv run invoke test.doctest
 
       - name: Notebooks
-        run: python -m invoke test.nb
+        run: uv run invoke test.nb
 
   documentation:
     name: Documentation
@@ -53,18 +47,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - uses: astral-sh/setup-uv@v6
       with:
-        python-version: 3.11
-        cache: 'pip' # caching pip dependencies
+        python-version: "3.11"
     - name: Install Dependencies
       run: |
         sudo apt-get install -y pandoc
-        python -m pip install torch~=2.9.1 torchvision~=0.24.1 --index-url https://download.pytorch.org/whl/cpu
-        python -m pip install -U ".[dev,doc]"
+        uv sync --extra dev --extra doc --extra torch-cpu
     - name: Build Documentation
-      run: python -m invoke docs.build
+      run: uv run invoke docs.build
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:

@@ -8,5 +8,4 @@ RUN apt-get update --yes \
     && rm -rf /var/lib/apt/lists/*
 
 
-RUN python -m pip install --upgrade pip \
-    && python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/

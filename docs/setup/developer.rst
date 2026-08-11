@@ -63,15 +63,33 @@ dependencies.
    To install CapyMOA in editable mode with development and documentation
    dependencies, navigate to the root of the repository and run:
 
-   .. code-block:: bash
+   .. tab-set::
 
-      cd CapyMOA
-      pip install --editable ".[dev,doc]"
+      .. tab-item:: uv (recommended)
 
-   The ``dev`` extra includes the ``torch`` extra, so a development install has
-   PyTorch and can run the whole test suite. On Linux, install the CPU build of
-   PyTorch first if you do not want the CUDA packages -- see the PyTorch note in
-   :doc:`/setup/index`.
+         .. code-block:: bash
+
+            cd CapyMOA
+            uv sync --extra dev --extra doc --extra torch-cpu
+
+         ``--extra torch-cpu`` installs CPU-only PyTorch wheels, resolved
+         automatically via the ``pytorch-cpu`` index configured in
+         ``pyproject.toml`` -- no manual ``--index-url`` step needed. If you
+         have a GPU and want CUDA-enabled PyTorch instead, use
+         ``--extra torch`` in place of ``--extra torch-cpu`` (the two are
+         mutually exclusive).
+
+      .. tab-item:: pip / conda
+
+         .. code-block:: bash
+
+            cd CapyMOA
+            pip install --editable ".[dev,doc]"
+
+         The ``dev`` extra includes the ``torch`` extra, so a development
+         install has PyTorch and can run the whole test suite. On Linux,
+         install the CPU build of PyTorch first if you do not want the CUDA
+         packages -- see the PyTorch note in :doc:`/setup/index`.
 
 
 #. **Congratulations!**
@@ -81,17 +99,70 @@ dependencies.
    A number of utility scripts are defined in ``tasks.py`` to perform common
    tasks. You can list all available tasks by running:
 
-   .. code-block:: bash
+   .. tab-set::
 
-      python -m invoke --list # or `invoke --list`
+      .. tab-item:: uv
+
+         .. code-block:: bash
+
+            uv run invoke --list
+
+      .. tab-item:: pip / conda (activated venv)
+
+         .. code-block:: bash
+
+            python -m invoke --list # or `invoke --list`
 
    .. program-output:: python -m invoke --list
 
-   Each of these tasks can be run in the terminal through ``invoke <task>``. Running the task to build documentation would look like this:
+   Each of these tasks can be run in the terminal through ``invoke <task>``.
+   If you installed with ``uv sync`` (and have not separately activated
+   ``.venv``), prefix every invocation with ``uv run`` instead --
+   ``uv sync`` does not put ``.venv`` on ``PATH`` the way activating it does.
+   Running the task to build documentation would look like this:
 
-   .. code-block:: bash
+   .. tab-set::
 
-      invoke docs.build
+      .. tab-item:: uv
+
+         .. code-block:: bash
+
+            uv run invoke docs.build
+
+      .. tab-item:: pip / conda (activated venv)
+
+         .. code-block:: bash
+
+            invoke docs.build
 
    See the :doc:`/contributing/index` guide for more information on how to
    contribute to CapyMOA.
+
+Testing PyTorch-Optional Code
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+PyTorch is an optional extra (see the PyTorch note in :doc:`/setup/index`), so
+code that touches it needs to be tested on both sides of that boundary. Which
+pattern to reach for depends on what you're asserting, all illustrated in
+``tests/no_torch/test_no_torch.py``:
+
+* **"Needs torch installed"** -- ``pytest.importorskip("torch")`` at the top
+  of the test. Use this for anything that only makes sense with the extra
+  present; it skips cleanly in a torch-free run rather than failing.
+
+* **"Must work without torch, even though torch happens to be installed"**
+  -- the ``run_without_torch`` fixture (``tests/no_torch/conftest.py``), which
+  runs a code snippet in a subprocess with ``torch`` blocked on
+  ``sys.meta_path``. This is what most torch-optional tests want: it runs in
+  the normal CI matrix and dev machines without needing a separate
+  environment, so it catches a stray top-level ``import torch`` immediately.
+
+* **"Needs torch to be genuinely absent from the environment"** -- a plain
+  ``@pytest.mark.skipif(importlib.util.find_spec("torch") is not None, ...)``.
+  Reserve this for the rare assertion the subprocess simulation can't make
+  (e.g. that torch was never pulled onto disk in the first place). It only
+  runs for real in the CI job that installs with no extras.
+
+Any test using the second or third pattern belongs under ``tests/no_torch/``:
+CI points at that whole directory when checking the no-extras install, so a
+new file there is picked up automatically -- no workflow changes needed.
