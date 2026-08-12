@@ -137,3 +137,32 @@ dependencies.
 
    See the :doc:`/contributing/index` guide for more information on how to
    contribute to CapyMOA.
+
+Testing PyTorch-Optional Code
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+PyTorch is an optional extra (see the PyTorch note in :doc:`/setup/index`), so
+code that touches it needs to be tested on both sides of that boundary. Which
+pattern to reach for depends on what you're asserting, all illustrated in
+``tests/no_torch/test_no_torch.py``:
+
+* **"Needs torch installed"** -- ``pytest.importorskip("torch")`` at the top
+  of the test. Use this for anything that only makes sense with the extra
+  present; it skips cleanly in a torch-free run rather than failing.
+
+* **"Must work without torch, even though torch happens to be installed"**
+  -- the ``run_without_torch`` fixture (``tests/no_torch/conftest.py``), which
+  runs a code snippet in a subprocess with ``torch`` blocked on
+  ``sys.meta_path``. This is what most torch-optional tests want: it runs in
+  the normal CI matrix and dev machines without needing a separate
+  environment, so it catches a stray top-level ``import torch`` immediately.
+
+* **"Needs torch to be genuinely absent from the environment"** -- a plain
+  ``@pytest.mark.skipif(importlib.util.find_spec("torch") is not None, ...)``.
+  Reserve this for the rare assertion the subprocess simulation can't make
+  (e.g. that torch was never pulled onto disk in the first place). It only
+  runs for real in the CI job that installs with no extras.
+
+Any test using the second or third pattern belongs under ``tests/no_torch/``:
+CI points at that whole directory when checking the no-extras install, so a
+new file there is picked up automatically -- no workflow changes needed.
