@@ -74,13 +74,9 @@ torch=[
     "torchvision~=0.24",
 ]
 
-# Same spec as `torch`, but routed to the CPU-only wheel index by
-# [tool.uv.sources] below. Exists so `uv sync --extra dev --extra torch-cpu`
-# (used by CI, Docker and the devcontainer, all GPU-less) gets small CPU
-# wheels instead of the ~2.9 GB CUDA stack `torch` pulls by default on Linux.
-# Only affects `uv sync`/workspace installs -- [tool.uv] config isn't
-# distributed in the published wheel, so `pip install capymoa[torch-cpu]` is
-# identical to `capymoa[torch]`.
+# Same spec as `torch`, but routed to the CPU-only wheel index via
+# [tool.uv.sources] below. Only affects `uv sync`; `pip install capymoa[torch-cpu]`
+# is identical to `capymoa[torch]`.
 torch-cpu=[
     "torch~=2.9",
     "torchvision~=0.24",
@@ -102,10 +98,7 @@ dev=[
     # the lint gate and dev installs on the same ruff. Bumping is a deliberate change.
     "ruff>=0.14,<0.15",
     "stubgenj~=0.2",
-    # notebooks/06_advanced_API.ipynb imports torch.utils.tensorboard, which needs the
-    # standalone tensorboard package. The notebook installs it itself via `%pip install`
-    # for readers, but that relies on `pip` being present in the venv -- not true for a
-    # `uv sync` venv, so it's declared here to keep `invoke test.nb` hermetic.
+    # Needed for notebooks/06_advanced_API.ipynb (torch.utils.tensorboard).
     "tensorboard~=2.20",
     "wget~=3.2",
 ]

@@ -96,15 +96,8 @@ jobs:
     # and checks the core still imports and runs, so `pip install capymoa` never
     # silently goes back to pulling the ~2.9 GB CUDA stack. Without this job the
     # regression returns the first time someone adds a top-level `import torch`
-    # to a core module.
-    #
-    # The actual assertions live in tests/test_no_torch.py: the one check that
-    # needs a genuinely torch-free installed environment (rather than the
-    # sys.meta_path simulation the other tests there use) carries the
-    # `no_torch_env` pytest marker, run here with `-m no_torch_env`. The rest
-    # of that file's checks (core imports, wildcard imports, actionable
-    # errors on torch-only features) already run torch-free via subprocess
-    # simulation inside the normal `tests` job matrix.
+    # to a core module. Assertions live in tests/test_no_torch.py, behind the
+    # `no_torch_env` marker.
     name: "Install without PyTorch"
     timeout-minutes: 20
     runs-on: ubuntu-latest

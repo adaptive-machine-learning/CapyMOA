@@ -47,9 +47,6 @@ If you chose to use a virtual environment, you have some choices:
       source .capymoa-venv/bin/activate
       # On Windows, use `.capymoa-venv\Scripts\activate`
 
-   uv can also install and manage the Python version itself with
-   ``uv python install``, so you do not need a separate Python installation.
-
 *  **Python Virtual Environment**
    PyVenv is a built-in tool for creating virtual
    environments in Python. You can create a new virtual environment with:
