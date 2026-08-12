@@ -141,7 +141,7 @@ jobs:
       run: >-
         uv --quiet run --exact
         --extra dev --extra doc --extra torch-cpu
-        invoke doc.build
+        invoke docs.build
 
     - name: Artifact name
       run: echo DOC_ARTIFACT_NAME=doc-${GITHUB_REF//\//-} >> $GITHUB_ENV
