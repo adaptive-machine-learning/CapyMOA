@@ -67,15 +67,17 @@ jobs:
         invoke test.pytest --coverage
       env:
         PYTEST_ADDOPTS: -m "not torch"
+        COVERAGE_FILE: .coverage.pytest-base
 
     # Run ONLY tests marked as requiring the PyTorch optional dependency.
     - name: PyTest (torch)
       run: >-
-        uv --quiet run --exact 
+        uv --quiet run --exact
         --extra dev --extra torch-cpu
         invoke test.pytest --coverage
       env:
-        PYTEST_ADDOPTS: -m "not torch"
+        PYTEST_ADDOPTS: -m "torch"
+        COVERAGE_FILE: .coverage.pytest-torch
 
     - name: Doctest
       run: >-

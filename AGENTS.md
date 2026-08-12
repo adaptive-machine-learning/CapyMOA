@@ -10,3 +10,4 @@
 * Build documentation with `uv run invoke docs`.
 * Clean documentation with `uv run invoke docs.clean`.
 * Formatter `uv run invoke fmt`.
+* Never add `Co-Authored-By: Claude <noreply@anthropic.com>` (or similar) to commit messages.

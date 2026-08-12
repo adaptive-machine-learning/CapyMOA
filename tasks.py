@@ -289,7 +289,7 @@ def pytest(
 
         invoke test.pytest -- tests/test_classifiers.py -k "HoeffdingTree"
     """
-    env = {"COVERAGE_FILE": ".coverage.pytest"}
+    env = {"COVERAGE_FILE": environ.get("COVERAGE_FILE", ".coverage.pytest")}
     cmd = [
         python_exe(profile),
         "-m pytest",
@@ -322,7 +322,7 @@ def doctest(
 
         invoke test.doctest -- src/capymoa/classifier/_hoeffding_tree.py
     """
-    env = {"COVERAGE_FILE": ".coverage.doctest"}
+    env = {"COVERAGE_FILE": environ.get("COVERAGE_FILE", ".coverage.doctest")}
     cmd = [
         python_exe(profile),
         "-m pytest",
@@ -339,16 +339,18 @@ def doctest(
 
 @task(aliases=["cov-combine"])
 def coverage_combine(ctx: Context):
-    """Combine coverage data from different sources."""
-    cmd = ["python -m coverage combine --keep"]
-    covfiles = [
-        ".coverage.pytest",
-        ".coverage.doctest",
-    ]
-    for covfile in covfiles:
-        if Path(covfile).exists():
-            cmd += [covfile]
-    ctx.run(" ".join(cmd), echo=True)
+    """Combine coverage data from different sources.
+
+    Discovers every ``.coverage.*`` file in the repo root rather than a fixed
+    list, since CI produces a variable number of them: the pytest step's
+    ``COVERAGE_FILE`` changes per invocation (see ``pytest`` above) so that
+    running it more than once in the same job -- once without PyTorch, once
+    with -- doesn't have the second run's coverage data silently overwrite
+    the first's.
+    """
+    covfiles = sorted(str(p) for p in Path(".").glob(".coverage.*"))
+    if covfiles:
+        ctx.run(" ".join(["python -m coverage combine --keep", *covfiles]), echo=True)
 
 
 @task(aliases=["cov-report"], pre=[coverage_combine])
