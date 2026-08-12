@@ -15,6 +15,54 @@ from capymoa.core import Instance
 
 
 class ABCD(BaseDriftDetector):
+    """Adaptive Bernstein Change Detector (ABCD).
+
+    ABCD is a drift detector for **multivariate** data streams. It fits an
+    encoder-decoder model of the incoming feature vectors, monitors how well
+    that model reconstructs them, and signals a change when the reconstruction
+    error shifts by more than a Bernstein-bound-based test allows. Because it
+    watches the *input distribution* rather than a single value, it detects
+    drift that changes the features, not drift that only changes the labels.
+    The reconstruction model is selected with ``model_id``: ``"pca"`` (default)
+    and ``"kpca"`` rely only on scikit-learn, while ``"ae"`` uses a PyTorch
+    autoencoder and therefore needs the ``torch`` extra.
+
+    Example:
+    --------
+
+    >>> from capymoa.drift.detectors import ABCD
+    >>> from capymoa.stream.drift import AbruptDrift, DriftStream
+    >>> from capymoa.stream.generator import RandomRBFGenerator
+    >>>
+    >>> def rbf(seed):
+    ...     return RandomRBFGenerator(
+    ...         model_random_seed=seed,
+    ...         instance_random_seed=seed,
+    ...         number_of_attributes=6,
+    ...         number_of_centroids=20,
+    ...     )
+    ...
+    >>> # A stream whose input distribution changes at instance 2000.
+    >>> stream = DriftStream(stream=[rbf(1), AbruptDrift(position=2000), rbf(99)])
+    >>> detector = ABCD(model_id="pca", maximum_absolute_value=0.2)
+    >>>
+    >>> i = 0
+    >>> while stream.has_more_instances() and i < 4000:
+    ...     instance = stream.next_instance()
+    ...     i += 1
+    ...     detector.add_element(instance.x)
+    ...     if detector.detected_change():
+    ...         print(f"Change detected at index: {i}")
+    Change detected at index: 2324
+
+    Reference:
+    ----------
+
+    Heyden, M., Fouché, E., Arzamasov, V., Fenn, T., Kalinke, F., & Böhm, K.
+    (2024). Adaptive Bernstein change detector for high-dimensional data
+    streams. Data Mining and Knowledge Discovery, 38(3), 1334-1363. Springer.
+    """
+
     def __init__(
         self,
         delta_drift: float = 0.002,
@@ -44,6 +92,8 @@ class ABCD(BaseDriftDetector):
         :param encoding_factor: The relative size of the bottleneck
         :param maximum_absolute_value: The maximum absolute value that one can expect (e.g. 1.0 for normalized data). Smaller values can increase false alarms but speed up change detection
         :param num_splits: The number of time point to evaluate
+        :param max_size: The maximum number of instances kept in the adaptive window; older instances beyond this size are discarded. Defaults to no limit.
+        :param n_min: The number of initial instances collected to pre-train the reconstruction model before change monitoring begins
         """
         self.split_type = split_type
         self.delta_drift = delta_drift
