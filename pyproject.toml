@@ -102,6 +102,11 @@ dev=[
     # the lint gate and dev installs on the same ruff. Bumping is a deliberate change.
     "ruff>=0.14,<0.15",
     "stubgenj~=0.2",
+    # notebooks/06_advanced_API.ipynb imports torch.utils.tensorboard, which needs the
+    # standalone tensorboard package. The notebook installs it itself via `%pip install`
+    # for readers, but that relies on `pip` being present in the venv -- not true for a
+    # `uv sync` venv, so it's declared here to keep `invoke test.nb` hermetic.
+    "tensorboard~=2.20",
     "wget~=3.2",
 ]
 
