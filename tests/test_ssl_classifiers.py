@@ -1,11 +1,24 @@
 from capymoa.datasets._datasets import ElectricityTiny, CovtypeTiny
-from capymoa.ssl import OSNN, SLEADE
 
 import pytest
 from capymoa.evaluation.evaluation import prequential_ssl_evaluation
 from capymoa.base import ClassifierSSL
 from capymoa.stream import Stream
 from functools import partial
+
+
+def _make_osnn(**kwargs):
+    pytest.markskip("torch")
+    from capymoa.ssl import OSNN
+
+    return OSNN(**kwargs)
+
+
+def _make_sleade(**kwargs):
+    pytest.markskip("torch")
+    from capymoa.ssl import SLEADE
+
+    return SLEADE(**kwargs)
 
 
 def assert_ssl_evaluation(
@@ -32,19 +45,33 @@ def assert_ssl_evaluation(
 @pytest.mark.parametrize(
     "learner_constructor, stream_constructor, expectation, label_probability",
     [
-        (partial(OSNN, optim_steps=10), ElectricityTiny, 46.1, None),
-        (partial(OSNN, optim_steps=10), CovtypeTiny, 26.3, None),
-        (
-            partial(SLEADE, ensemble_size=3),
+        pytest.param(
+            partial(_make_osnn, optim_steps=10),
+            ElectricityTiny,
+            46.1,
+            None,
+            marks=pytest.mark.torch,
+        ),
+        pytest.param(
+            partial(_make_osnn, optim_steps=10),
+            CovtypeTiny,
+            26.3,
+            None,
+            marks=pytest.mark.torch,
+        ),
+        pytest.param(
+            partial(_make_sleade, ensemble_size=3),
             ElectricityTiny,
             50.8,
             None,
+            marks=pytest.mark.torch,
         ),
-        (
-            partial(SLEADE, ensemble_size=3),
+        pytest.param(
+            partial(_make_sleade, ensemble_size=3),
             CovtypeTiny,
             43.0,
             None,
+            marks=pytest.mark.torch,
         ),
     ],
     ids=[

@@ -2,17 +2,15 @@
 
 import inspect
 from functools import partial
-from typing import Optional
+from typing import Callable, Optional
 
 from capymoa.exception import StreamTypeError
 import numpy as np
 import pytest
-import torch
 from com.yahoo.labs.samoa.instances import (
     InstancesHeader,
 )
 from moa.streams import InstanceStream
-from torch.utils.data import TensorDataset
 
 from capymoa.core import Instance, LabeledInstance, RegressionInstance
 from capymoa.stream import (
@@ -20,7 +18,6 @@ from capymoa.stream import (
     CSVStream,
     NumpyStream,
     Stream,
-    TorchStream,
     stream_from_file,
 )
 from capymoa.stream.drift import (
@@ -114,12 +111,38 @@ XC1 = np.delete(DATA, 2, axis=1)
 YC1 = DATA[:, 2]
 XC2 = np.delete(DATA, 3, axis=1)
 YC2 = DATA[:, 3]
-DATASET_C1 = TensorDataset(torch.tensor(XC1), torch.tensor(YC1))
-DATASET_C2 = TensorDataset(torch.tensor(XC2), torch.tensor(YC2))
-DATASET_N1 = TensorDataset(torch.tensor(XN1), torch.tensor(YN1))
-DATASET_N2 = TensorDataset(torch.tensor(XN2), torch.tensor(YN2))
 ARFF = RESOURCES / "stream_test.arff"
 CSV = RESOURCES / "stream_test.csv"
+
+
+def _is_numpy_or_torch_stream(stream) -> bool:
+    if isinstance(stream, NumpyStream):
+        return True
+    try:
+        from capymoa.stream import TorchStream
+    except ImportError:
+        return False
+    return isinstance(stream, TorchStream)
+
+
+def _torch_classification_stream(x: np.ndarray, y: np.ndarray, n_classes: int):
+    pytest.markskip("torch")
+    import torch
+    from torch.utils.data import TensorDataset
+    from capymoa.stream import TorchStream
+
+    dataset = TensorDataset(torch.tensor(x), torch.tensor(y))
+    return TorchStream.from_classification(dataset, n_classes)
+
+
+def _torch_regression_stream(x: np.ndarray, y: np.ndarray):
+    pytest.markskip("torch")
+    import torch
+    from torch.utils.data import TensorDataset
+    from capymoa.stream import TorchStream
+
+    dataset = TensorDataset(torch.tensor(x), torch.tensor(y))
+    return TorchStream.from_regression(dataset)
 
 
 def recurrent_drift_concepts():
@@ -882,26 +905,39 @@ def test_recurrent_concept_drift_stream_rejects_base_drift_template():
 
 
 @pytest.mark.parametrize(
-    ["stream", "target", "length"],
+    ["stream_factory", "target", "length"],
     [
-        (ARFFStream(ARFF, class_index=2), "cat1", None),
-        (ARFFStream(ARFF, class_index=-1), "cat2", None),
-        (stream_from_file(ARFF, class_index=2), "cat1", None),
-        (stream_from_file(ARFF, class_index=-1), "cat2", None),
-        (CSVStream(CSV, "cat1", NOMINAL_ATTRS), "cat1", None),
-        (CSVStream(CSV, "cat2", NOMINAL_ATTRS), "cat2", None),
-        (stream_from_file(CSV, class_index=2), "cat1", 5),
-        (stream_from_file(CSV, class_index=3), "cat2", 5),
-        (NumpyStream(XC1, YC1, target_type="categorical"), "cat1", 5),
-        (NumpyStream(XC2, YC2, target_type="categorical"), "cat2", 5),
-        (TorchStream.from_classification(DATASET_C1, 3), "cat1", 5),  # type: ignore
-        (TorchStream.from_classification(DATASET_C2, 2), "cat2", 5),  # type: ignore
+        (lambda: ARFFStream(ARFF, class_index=2), "cat1", None),
+        (lambda: ARFFStream(ARFF, class_index=-1), "cat2", None),
+        (lambda: stream_from_file(ARFF, class_index=2), "cat1", None),
+        (lambda: stream_from_file(ARFF, class_index=-1), "cat2", None),
+        (lambda: CSVStream(CSV, "cat1", NOMINAL_ATTRS), "cat1", None),
+        (lambda: CSVStream(CSV, "cat2", NOMINAL_ATTRS), "cat2", None),
+        (lambda: stream_from_file(CSV, class_index=2), "cat1", 5),
+        (lambda: stream_from_file(CSV, class_index=3), "cat2", 5),
+        (lambda: NumpyStream(XC1, YC1, target_type="categorical"), "cat1", 5),
+        (lambda: NumpyStream(XC2, YC2, target_type="categorical"), "cat2", 5),
+        pytest.param(
+            lambda: _torch_classification_stream(XC1, YC1, 3),
+            "cat1",
+            5,
+            marks=pytest.mark.torch,
+        ),
+        pytest.param(
+            lambda: _torch_classification_stream(XC2, YC2, 2),
+            "cat2",
+            5,
+            marks=pytest.mark.torch,
+        ),
     ],
 )
 def test_stream_classification(
-    stream: Stream[LabeledInstance], target: str, length: Optional[int]
+    stream_factory: Callable[[], Stream[LabeledInstance]],
+    target: str,
+    length: Optional[int],
 ):
     """Test the classification stream interface for a variety of stream types."""
+    stream = stream_factory()
 
     # Expected schema/attributes
     numeric_attributes = NUMERIC_ATTRS.copy()
@@ -912,7 +948,7 @@ def test_stream_classification(
     num_attributes = len(numeric_attributes) + len(nominal_attributes)
 
     # NumpyStream and PyTorch streams do not have nominal labels by default.
-    if isinstance(stream, (NumpyStream, TorchStream)):
+    if _is_numpy_or_torch_stream(stream):
         numeric_attributes = list(map(str, range(num_attributes)))
         nominal_attributes = {}
         label_values = [str(i) for i in label_indexes]
@@ -964,30 +1000,37 @@ def test_stream_classification(
 
 
 @pytest.mark.parametrize(
-    ["stream", "target"],
+    ["stream_factory", "target"],
     [
-        (ARFFStream(ARFF, class_index=0), "num1"),
-        (ARFFStream(ARFF, class_index=1), "num2"),
-        (stream_from_file(ARFF, class_index=0), "num1"),
-        (stream_from_file(ARFF, class_index=1), "num2"),
-        (CSVStream(CSV, "num1", NOMINAL_ATTRS), "num1"),
-        (CSVStream(CSV, "num2", NOMINAL_ATTRS), "num2"),
-        (stream_from_file(CSV, class_index=0), "num1"),
-        (stream_from_file(CSV, class_index=1), "num2"),
-        (NumpyStream(XN1, YN1, target_type="numeric"), "num1"),
-        (NumpyStream(XN2, YN2, target_type="numeric"), "num2"),
-        (TorchStream.from_regression(DATASET_N1), "num1"),
-        (TorchStream.from_regression(DATASET_N2), "num2"),
+        (lambda: ARFFStream(ARFF, class_index=0), "num1"),
+        (lambda: ARFFStream(ARFF, class_index=1), "num2"),
+        (lambda: stream_from_file(ARFF, class_index=0), "num1"),
+        (lambda: stream_from_file(ARFF, class_index=1), "num2"),
+        (lambda: CSVStream(CSV, "num1", NOMINAL_ATTRS), "num1"),
+        (lambda: CSVStream(CSV, "num2", NOMINAL_ATTRS), "num2"),
+        (lambda: stream_from_file(CSV, class_index=0), "num1"),
+        (lambda: stream_from_file(CSV, class_index=1), "num2"),
+        (lambda: NumpyStream(XN1, YN1, target_type="numeric"), "num1"),
+        (lambda: NumpyStream(XN2, YN2, target_type="numeric"), "num2"),
+        pytest.param(
+            lambda: _torch_regression_stream(XN1, YN1), "num1", marks=pytest.mark.torch
+        ),
+        pytest.param(
+            lambda: _torch_regression_stream(XN2, YN2), "num2", marks=pytest.mark.torch
+        ),
     ],
 )
-def test_regression_stream(stream: Stream[RegressionInstance], target: str):
+def test_regression_stream(
+    stream_factory: Callable[[], Stream[RegressionInstance]], target: str
+):
+    stream = stream_factory()
     numeric_attributes = NUMERIC_ATTRS.copy()
     numeric_attributes.remove(target)
     nominal_attributes = NOMINAL_ATTRS.copy()
     num_attributes = len(numeric_attributes) + len(nominal_attributes)
 
     # Stream treats nominal attributes as numeric
-    if isinstance(stream, (NumpyStream, TorchStream)):
+    if _is_numpy_or_torch_stream(stream):
         numeric_attributes = list(map(str, range(num_attributes)))
         nominal_attributes = {}
 

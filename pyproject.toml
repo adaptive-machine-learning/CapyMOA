@@ -82,9 +82,10 @@ torch-cpu=[
     "torchvision~=0.24",
 ]
 
-# Development dependencies
+# Development dependencies. Deliberately does not pull in `torch`/`torch-cpu`:
+# combine with one of those extras explicitly (e.g. `--extra dev --extra torch-cpu`)
+# when a torch-backed test run is needed.
 dev=[
-    "capymoa[torch]",
     "commitizen~=3.24",
     "invoke~=3.0",
     "jupyter~=1.1",
@@ -98,8 +99,6 @@ dev=[
     # the lint gate and dev installs on the same ruff. Bumping is a deliberate change.
     "ruff>=0.14,<0.15",
     "stubgenj~=0.2",
-    # Needed for notebooks/06_advanced_API.ipynb (torch.utils.tensorboard).
-    "tensorboard~=2.20",
     "wget~=3.2",
 ]
 

@@ -1,6 +1,10 @@
-import torch
+import pytest
 
-from capymoa.ocl.util._buffer_list import BufferList
+pytest.markskip("torch")
+
+import torch  # noqa: E402
+
+from capymoa.ocl.util._buffer_list import BufferList  # noqa: E402
 
 
 def test_buffer_list_mutations_preserve_order_and_identity():

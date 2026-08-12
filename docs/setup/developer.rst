@@ -84,12 +84,12 @@ dependencies.
          .. code-block:: bash
 
             cd CapyMOA
-            pip install --editable ".[dev,doc]"
+            pip install --editable ".[dev,doc,torch]"
 
-         The ``dev`` extra includes the ``torch`` extra, so a development
-         install has PyTorch and can run the whole test suite. On Linux,
-         install the CPU build of PyTorch first if you do not want the CUDA
-         packages -- see the PyTorch note in :doc:`/setup/index`.
+         The ``dev`` extra does not include ``torch`` -- add it explicitly (as
+         above) to run the whole test suite. On Linux, install the CPU build of
+         PyTorch first if you do not want the CUDA packages -- see the PyTorch
+         note in :doc:`/setup/index`.
 
 
 #. **Congratulations!**

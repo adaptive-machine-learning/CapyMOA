@@ -3,7 +3,13 @@
 - https://docs.pytest.org/en/stable/reference/fixtures.html#conftest-py-sharing-fixtures-across-multiple-files
 """
 
+import inspect
 import os
+
+import pytest
+from _pytest.mark.expression import Expression
+from _pytest.outcomes import Skipped
+
 from capymoa.datasets._source_list import SOURCE_LIST
 from capymoa.datasets._utils import (
     get_download_dir,
@@ -13,13 +19,39 @@ from capymoa.datasets._utils import (
 
 
 def pytest_configure(config):
+    # Working directory used to be wherever pytest was invoked from, breaking
+    # relative paths in tests.
     os.chdir(config.rootpath)
-    """Ensure that the working directory is the root of the project.
 
-    We added this because previously, the working directory was wherever the
-    pytest command was run from. This caused issues with relative paths in the
-    tests.
-    """
+    def markskip(mark: str, *, reason: str | None = None) -> None:
+        """Skip the current test/module if `-m` doesn't select `mark`.
+
+        Called at module scope, this also applies `pytestmark = pytest.mark.<mark>`
+        to the caller's module -- equivalent to writing that line yourself --
+        so a single call both marks the module and guards its imports.
+        """
+        __tracebackhide__ = True
+        caller = inspect.stack()[1].frame
+        if caller.f_code.co_name == "<module>":
+            existing = caller.f_globals.get("pytestmark", [])
+            if not isinstance(existing, list):
+                existing = [existing]
+            caller.f_globals["pytestmark"] = [*existing, getattr(pytest.mark, mark)]
+
+        markexpr = config.getoption("markexpr")
+        selected = not markexpr or Expression.compile(markexpr).evaluate(
+            lambda name: name == mark
+        )
+        if not selected:
+            raise Skipped(
+                reason or f"tests marked {mark!r} are excluded by -m",
+                allow_module_level=True,
+            )
+
+    # --import-mode=importlib makes `from conftest import markskip`
+    # unreliable from other test files, so expose it the way
+    # pytest.importorskip is exposed.
+    pytest.markskip = markskip
 
 
 def download_required_testfiles():

@@ -1,10 +1,13 @@
 from typing import Type
-from capymoa.ocl import datasets
-from capymoa.stream import Stream
-from capymoa.stream._stream import Schema
 import numpy as np
 import pytest
 import inspect
+
+pytest.markskip("torch")
+
+from capymoa.ocl import datasets  # noqa: E402
+from capymoa.stream import Stream  # noqa: E402
+from capymoa.stream._stream import Schema  # noqa: E402
 
 ALL_OCL_SCENARIO = [
     cls
