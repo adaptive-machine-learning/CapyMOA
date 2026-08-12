@@ -142,27 +142,37 @@ Testing PyTorch-Optional Code
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 PyTorch is an optional extra (see the PyTorch note in :doc:`/setup/index`), so
-code that touches it needs to be tested on both sides of that boundary. Which
-pattern to reach for depends on what you're asserting, all illustrated in
-``tests/no_torch/test_no_torch.py``:
+code that touches it needs to be tested on both sides of that boundary. CI
+runs the suite twice: once with ``-m "not torch"`` and no PyTorch installed,
+once with ``-m "torch"`` and ``--extra torch-cpu``.
 
-* **"Needs torch installed"** -- ``pytest.importorskip("torch")`` at the top
-  of the test. Use this for anything that only makes sense with the extra
-  present; it skips cleanly in a torch-free run rather than failing.
+Mark any test that needs torch with ``@pytest.mark.torch`` (or
+``pytest.param(..., marks=pytest.mark.torch)`` for one case of a
+parametrized test), so ``-m "not torch"`` deselects it.
 
-* **"Must work without torch, even though torch happens to be installed"**
-  -- the ``run_without_torch`` fixture (``tests/no_torch/conftest.py``), which
-  runs a code snippet in a subprocess with ``torch`` blocked on
-  ``sys.meta_path``. This is what most torch-optional tests want: it runs in
-  the normal CI matrix and dev machines without needing a separate
-  environment, so it catches a stray top-level ``import torch`` immediately.
+That alone isn't enough for a module that needs torch just to be
+*collected* -- e.g. one that imports ``capymoa.ocl`` at module scope --
+since collection happens before marker-based deselection. For those, call
+``pytest.markskip("torch")`` (defined in ``tests/conftest.py``) before the
+torch-touching import:
 
-* **"Needs torch to be genuinely absent from the environment"** -- a plain
-  ``@pytest.mark.skipif(importlib.util.find_spec("torch") is not None, ...)``.
-  Reserve this for the rare assertion the subprocess simulation can't make
-  (e.g. that torch was never pulled onto disk in the first place). It only
-  runs for real in the CI job that installs with no extras.
+.. code-block:: python
 
-Any test using the second or third pattern belongs under ``tests/no_torch/``:
-CI points at that whole directory when checking the no-extras install, so a
-new file there is picked up automatically -- no workflow changes needed.
+   import pytest
+
+   pytest.markskip("torch")
+
+   import torch
+   from capymoa.ocl.util._buffer_list import BufferList
+
+   pytestmark = pytest.mark.torch
+
+``markskip`` only checks whether ``-m`` selects the mark, not whether the
+dependency is actually importable, so it's safe to rely on at module level:
+when torch tests are wanted (``-m "torch"``, or no ``-m`` filter at all) but
+torch isn't installed, the import right after ``markskip`` fails loudly
+instead of being silently skipped.
+
+For a file that mixes torch and non-torch cases, call ``markskip`` lazily
+inside the constructor for just the torch-only case instead of guarding the
+whole module -- see ``_make_finetune`` in ``tests/test_classifiers.py``.

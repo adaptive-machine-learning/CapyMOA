@@ -29,11 +29,9 @@ jobs:
         run: uv sync --extra dev --extra torch-cpu
 
       - name: PyTest
+        # torch-cpu is installed above, so this runs the whole suite,
+        # torch-marked tests included -- no -m filter needed.
         run: uv run invoke test.pytest
-        env:
-          # See the equivalent step in pr.yml for why this isn't
-          # `invoke test.pytest -- -m "not no_torch_env"`.
-          PYTEST_ADDOPTS: -m "not no_torch_env"
 
       - name: Doctest
         run: uv run invoke test.doctest

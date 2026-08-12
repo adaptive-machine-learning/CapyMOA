@@ -43,7 +43,7 @@ def _requires_torch(feature: str) -> None:
         found = find_spec("torch") is not None
     except (ImportError, ValueError):
         # A finder may raise rather than return None when torch is absent or
-        # deliberately blocked (see tests/test_no_torch.py).
+        # deliberately blocked (e.g. via a sys.meta_path import blocker).
         found = False
     if not found:
         raise OptionalDependencyError("PyTorch", feature)
