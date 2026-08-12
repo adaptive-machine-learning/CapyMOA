@@ -8,8 +8,8 @@ import re
 from collections import OrderedDict
 from itertools import cycle
 
-from capymoa.stream import MOAStream, Stream
-from capymoa._cli import cli_str_stream
+from ._stream import MOAStream, Stream
+from capymoa.core.moa._cli import cli_str_stream
 from moa.streams import ConceptDriftStream as MOA_ConceptDriftStream
 
 

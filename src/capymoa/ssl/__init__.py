@@ -1,3 +1,10 @@
+"""Semi-supervised learning.
+
+Semi-supervised learning trains models using a mix of labeled and unlabeled
+instances. In data stream learning, labels are often scarce or delayed, so
+learners must exploit the abundant unlabeled data to improve predictions.
+"""
+
 from capymoa._optional import lazy_torch_attrs
 from ._sleade import SLEADE
 

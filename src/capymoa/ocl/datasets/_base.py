@@ -9,7 +9,7 @@ from torchvision.transforms import Compose, Lambda, Normalize, ToTensor
 from torchvision.transforms.functional import rotate
 
 from capymoa.datasets import get_download_dir
-from capymoa.instance import LabeledInstance
+from capymoa.core import LabeledInstance
 from capymoa.ocl.util.data import (
     class_incremental_schedule,
     class_schedule_to_task_mask,

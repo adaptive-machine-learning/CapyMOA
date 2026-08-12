@@ -11,7 +11,7 @@ from .abcd_components.feature_extraction import (
 )
 from .abcd_components.windowing import AdaptiveWindow, p_bernstein
 from capymoa.drift.base_detector import BaseDriftDetector
-from ...instance import Instance
+from capymoa.core import Instance
 
 
 class ABCD(BaseDriftDetector):

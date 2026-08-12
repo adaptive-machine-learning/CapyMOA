@@ -4,7 +4,7 @@ from ._soknl_base_tree import SOKNLBT
 from moa.classifiers.meta import SelfOptimisingKNearestLeaves as _MOA_SOKNL
 
 from capymoa.base import MOARegressor
-from capymoa._cli import cli_str_regressor
+from capymoa.core.moa._cli import cli_str_regressor
 
 
 class SOKNL(MOARegressor):

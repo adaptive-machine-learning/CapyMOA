@@ -3,7 +3,7 @@ import os
 from typing import Optional
 from capymoa.evaluation import RegressionEvaluator, RegressionWindowedEvaluator
 from capymoa.datasets import Fried, FriedTiny
-from capymoa.misc import load_model, save_model
+from capymoa.core.io import load_model, save_model
 from capymoa.regressor import (
     KNNRegressor,
     AdaptiveRandomForestRegressor,

@@ -5,9 +5,9 @@ from jpype import _jpype
 from moa.core import Utils
 
 from capymoa.base._regressor import MOARegressor, Regressor
-from capymoa.instance import Instance
+from capymoa.core import Instance
 from capymoa.stream._stream import Schema
-from capymoa.type_alias import LabelIndex
+from capymoa.core import LabelIndex
 
 ##############################################################
 ######################### REGRESSORS #########################

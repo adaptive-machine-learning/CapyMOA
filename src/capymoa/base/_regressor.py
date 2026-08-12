@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 
 from sklearn.base import RegressorMixin as _SKRegressorMixin
 
-from capymoa.instance import Instance, RegressionInstance
+from capymoa.core import Instance, RegressionInstance
 from capymoa.stream._stream import Schema
-from capymoa.type_alias import TargetValue
+from capymoa.core import TargetValue
 
 
 class Regressor(ABC):

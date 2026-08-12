@@ -2,8 +2,8 @@ from typing import Optional, Sequence, Tuple
 
 import torch
 
-from capymoa.stream import Stream, Schema
-from capymoa.instance import LabeledInstance, RegressionInstance
+from ._stream import Stream, Schema
+from capymoa.core import LabeledInstance, RegressionInstance
 from torch.utils.data import Dataset
 
 

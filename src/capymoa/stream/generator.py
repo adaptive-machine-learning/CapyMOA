@@ -2,7 +2,7 @@
 
 import copy
 
-from capymoa.stream import MOAStream
+from ._stream import MOAStream
 from moa.streams.generators import RandomTreeGenerator as MOA_RandomTreeGenerator
 from moa.streams.generators import SEAGenerator as MOA_SEAGenerator
 from moa.streams.generators import HyperplaneGenerator as MOA_HyperplaneGenerator

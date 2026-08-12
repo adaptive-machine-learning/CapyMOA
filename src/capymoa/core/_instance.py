@@ -1,17 +1,45 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 import numpy as np
 from com.yahoo.labs.samoa.instances import DenseInstance, InstancesHeader
 from moa.core import InstanceExample
 from typing import Optional, Union, Tuple, Sequence
 from jpype import JArray, JDouble
-
-from capymoa.type_alias import FeatureVector, Label, LabelIndex, TargetValue
+from numpy import double
+from numpy.typing import NDArray
 
 # Schema is only imported for type hinting. If we were to import Schema directly
 # in this file, it would create a circular import.
 if TYPE_CHECKING:
     from capymoa.stream import Schema
+
+FeatureVector = NDArray[double]
+"""
+Type definition for a feature vector, which is represented as a one dimensional
+NumPy array of double precision floating-point numbers.
+"""
+
+LabelIndex = int
+"""
+Type definition for a class-label index, which is a non-negative integer that is
+the index of the label in a list of labels.
+"""
+
+LabelProbabilities = NDArray[double]
+"""
+Type definition for a prediction probability, which is represented as a one
+dimensional NumPy array of double precision floating-point numbers.
+"""
+
+Label = str
+"""
+Type definition for a class label.
+"""
+
+TargetValue = double
+"""
+Alias for a dependent variable in a regression task.
+"""
 
 
 def _features_to_string(
@@ -84,7 +112,7 @@ class Instance:
 
         >>> from capymoa.stream import Schema
         ...
-        >>> from capymoa.instance import Instance
+        >>> from capymoa.core import Instance
         >>> import numpy as np
         >>> schema = Schema.from_custom(["f1", "f2", "target"], "target")
         >>> x = np.array([0.1, 0.2])
@@ -106,7 +134,7 @@ class Instance:
         """Create an instance from a CSV row.
 
         >>> from capymoa.stream import Schema
-        >>> from capymoa.instance import Instance
+        >>> from capymoa.core import Instance
         >>> schema = Schema.from_custom(
         ...     ["feature1", "feature2", "target"],
         ...     target="target",
@@ -235,6 +263,13 @@ class Instance:
         )
 
 
+_AnyInstance = TypeVar("_AnyInstance", bound=Instance)
+"""A generic type that is bound to an instance type.
+
+Such as :class:`LabeledInstance` or :class:`RegressionInstance`.
+"""
+
+
 class LabeledInstance(Instance):
     """An :class:`Instance` with a class label.
 
@@ -244,7 +279,7 @@ class LabeledInstance(Instance):
 
     >>> from capymoa.datasets import ElectricityTiny
     ...
-    >>> from capymoa.instance import LabeledInstance
+    >>> from capymoa.core import LabeledInstance
     >>> stream = ElectricityTiny()
     >>> instance: LabeledInstance = stream.next_instance()
     >>> instance.y_label
@@ -280,7 +315,7 @@ class LabeledInstance(Instance):
 
         >>> from capymoa.stream import Schema
         ...
-        >>> from capymoa.instance import LabeledInstance
+        >>> from capymoa.core import LabeledInstance
         >>> import numpy as np
         >>> schema = Schema.from_custom(
         ...     ["f1", "f2", "class"],
@@ -358,7 +393,7 @@ class RegressionInstance(Instance):
 
     >>> from capymoa.datasets import Fried
     ...
-    >>> from capymoa.instance import RegressionInstance
+    >>> from capymoa.core import RegressionInstance
     >>> stream = Fried()
     >>> instance: RegressionInstance = stream.next_instance()
     >>> instance.y_value
@@ -391,7 +426,7 @@ class RegressionInstance(Instance):
 
         >>> from capymoa.stream import Schema
         ...
-        >>> from capymoa.instance import LabeledInstance
+        >>> from capymoa.core import LabeledInstance
         >>> import numpy as np
         >>> schema = Schema.from_custom(
         ...     ["f1", "f2", "target"],

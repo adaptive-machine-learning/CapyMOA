@@ -1,8 +1,9 @@
-{{ name | escape | underline}}
+{{ ('``' ~ name  ~ '``') | underline}}
 
-..  currentmodule:: {{ fullname }}
+.. currentmodule:: {{ fullname }}
 
-..  automodule:: {{ fullname }}
+.. automodule:: {{ fullname }}
+
 {% block modules %}
 {%- if modules %}
 Modules
@@ -16,16 +17,18 @@ Modules
 {%- endfor %}
 {%- endif %}
 {% endblock %}
+
 {% block classes %}
+{%- set classes = classes | reject("in", attributes) | list %}
 {%- if classes %}
 Classes
 -------
 
-..  autosummary::
-    :toctree:
-    :nosignatures:
+.. autosummary::
+   :toctree:
+   :nosignatures:
 {% for item in classes %}
-    {{ item }}
+   {{ item }}
 {%- endfor %}
 {%- endif %}
 {%- endblock %}
@@ -35,19 +38,31 @@ Classes
 Module Attributes
 -----------------
 
-{%- for item in attributes %}
-.. autodata:: {{ item }}
+.. autosummary::
+{% for item in attributes %}
+   {{ item }}
 {%- endfor %}
+
+{% for item in attributes %}
+.. autodata:: {{ item }}
+{% endfor %}
 {%- endif %}
 {%- endblock %}
+
 {% block functions %}
 {%- if functions %}
 Functions
 ---------
 
-{%- for item in functions %}
-.. autofunction:: {{ item }}
+.. autosummary::
+   :nosignatures:
+{% for item in functions %}
+   {{ item }}
 {%- endfor %}
+
+{% for item in functions %}
+.. autofunction:: {{ item }}
+{% endfor %}
 {%- endif %}
 {%- endblock %}
 
@@ -56,8 +71,13 @@ Functions
 Exceptions
 ----------
 
-{%- for item in exceptions %}
-.. autoexception:: {{ item }}
+.. autosummary::
+{% for item in exceptions %}
+   {{ item }}
 {%- endfor %}
+
+{% for item in exceptions %}
+.. autoexception:: {{ item }}
+{% endfor %}
 {%- endif %}
 {%- endblock %}

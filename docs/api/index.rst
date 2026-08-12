@@ -8,88 +8,43 @@ and functions available in CapyMOA.
 If you are looking to just use CapyMOA, you should start with the
 :ref:`tutorials<tutorials>`.
 
-Types
------
-
-These modules provide interfaces for learners, and other basic types used by
-CapyMOA.
-
-..  autosummary::
-    :toctree: modules
-    :caption: Types
-    :recursive:
-
-    capymoa.base
-    capymoa.type_alias
-    capymoa.instance
-
-Data Streams
-------------
-
-These modules provide classes for loading, and simulating data streams. It also
-includes utilities for simulating concept drifts.
-
-..  autosummary::
-    :toctree: modules
-    :caption: Data Streams
-    :recursive:
-
-    capymoa.datasets
-    capymoa.stream
-
-Problem Settings
+Research Domains
 ----------------
 
-These modules provide classes for defining machine learning problem settings.
+Modules for different research domains in online and data stream machine learning.
     
 ..  autosummary::
     :toctree: modules
-    :caption: Problem Settings
+    :caption: Research Domains
     :recursive:
 
     capymoa.classifier
     capymoa.regressor
-    capymoa.anomaly
-    capymoa.ssl
     capymoa.ocl
     capymoa.drift
-    capymoa.clusterers
+    capymoa.anomaly
     capymoa.automl
-    capymoa.feature_selection
+    capymoa.cluster
+    capymoa.feature
+    capymoa.interval
+    capymoa.ssl
 
-Evaluation
-----------
+CapyMOA Core
+------------
 
-These modules provide classes for evaluating learners.
+Core and utility modules.
 
 ..  autosummary::
     :toctree: modules
-    :caption: Evaluation
+    :caption: CapyMOA Core
     :recursive:
 
+    capymoa.base
+    capymoa.core
+    capymoa.datasets
     capymoa.evaluation
-    capymoa.prediction_interval
-
-Miscellaneous
--------------
-
-These modules provide miscellaneous utilities.
-
-..  autosummary::
-    :toctree: modules
-    :caption: Miscellaneous
-    :recursive:
-
-    capymoa.ann
-    capymoa.splitcriteria
-    capymoa.misc
+    capymoa.stream
     capymoa.env
-
-Functions
----------
-
-..  automodule:: capymoa
-    :members:
 
 
 Indices and tables

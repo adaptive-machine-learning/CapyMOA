@@ -1,5 +1,5 @@
 from typing import Union, List
-from capymoa.type_alias import LabelIndex
+from capymoa.core import LabelIndex
 from typing_extensions import override
 
 import numpy as np
@@ -7,7 +7,7 @@ import numpy as np
 from capymoa.base import MOAClassifier
 from capymoa.drift.detectors import ADWIN
 from capymoa.drift.base_detector import BaseDriftDetector, MOADriftDetector
-from capymoa.instance import LabeledInstance, Instance
+from capymoa.core import LabeledInstance, Instance
 
 ArrayOrList = Union[np.ndarray, List[float]]
 ArrayOrInstance = Union[ArrayOrList, Instance]

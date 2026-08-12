@@ -170,7 +170,7 @@ jobs:
 
         for importer in (
             lambda: __import__("capymoa.ocl"),
-            lambda: __import__("capymoa.ann"),
+            lambda: __import__("capymoa.core.torch.ann"),
         ):
             try:
                 importer()

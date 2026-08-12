@@ -1,7 +1,7 @@
 from capymoa.base import (
     MOAClassifier,
 )
-from capymoa._cli import cli_str_classifier
+from capymoa.core.moa._cli import cli_str_classifier
 import os
 from moa.classifiers.meta import OzaBag as _MOA_OzaBag
 from moa.classifiers.meta.minibatch import OzaBagMB as _MOA_OzaBagMB

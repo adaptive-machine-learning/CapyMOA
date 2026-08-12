@@ -1,4 +1,4 @@
-{{ name | escape | underline}}
+{{ ('``' ~ name ~ '``') | underline}}
 
 .. currentmodule:: {{ module }}
 .. autoclass:: {{ objname }}

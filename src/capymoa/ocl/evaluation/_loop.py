@@ -9,9 +9,9 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 from capymoa.base import BatchClassifier, Classifier
-from capymoa.instance import Instance, LabeledInstance
+from capymoa.core import Instance, LabeledInstance
 from capymoa.ocl.events import Event, Handler, Dispatcher
-from capymoa.type_alias import LabelIndex
+from capymoa.core import LabelIndex
 
 from ._metrics_handler import _OCLMetricsHandler
 from ._metrics import OCLMetrics

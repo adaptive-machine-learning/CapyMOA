@@ -1,4 +1,4 @@
-"""
+"""Set and get capymoa environment variables.
 
 CapyMOA supports a few environment variables that can be used to customize its behavior.
 None of these are required, but they can be useful in certain situations.

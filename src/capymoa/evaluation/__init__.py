@@ -1,3 +1,10 @@
+"""Evaluation procedures and evaluators for CapyMOA learners.
+
+This module provides prequential evaluation functions and evaluator classes for
+classification, regression, prediction interval, anomaly detection, and
+clustering tasks.
+"""
+
 from .evaluation import (
     prequential_evaluation,
     prequential_evaluation_multiple_learners,

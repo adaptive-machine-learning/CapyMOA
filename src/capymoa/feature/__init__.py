@@ -1,3 +1,10 @@
+"""Feature selection.
+
+Feature selection identifies the subset of features that are most relevant
+to the learning task. In data stream learning, feature relevance can change
+over time, so importance must be estimated and updated incrementally.
+"""
+
 from ._feature_importance import (
     FeatureImportanceClassifier,
     MOAFeatureImportanceClassifier,

@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pytest
 
-from capymoa.ann import Perceptron
+from capymoa.core.torch.ann import Perceptron
 from capymoa.base import Classifier
 from capymoa.classifier import Finetune, HoeffdingTree
 from capymoa.ocl.datasets import TinySplitMNIST

@@ -14,7 +14,7 @@ class Finetune(BatchClassifier):
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.evaluation import prequential_evaluation
     >>> from capymoa.classifier import Finetune
-    >>> from capymoa.ann import Perceptron
+    >>> from capymoa.core.torch.ann import Perceptron
     >>> from torch import nn
     >>> from torch.optim import Adam
     >>> from functools import partial

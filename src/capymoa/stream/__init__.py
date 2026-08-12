@@ -1,3 +1,5 @@
+"""Data stream representations and related utilities."""
+
 from capymoa._optional import lazy_torch_attrs
 from ._stream import (
     Stream,

@@ -1,7 +1,10 @@
 from capymoa.stream import Schema
 from capymoa.base import MOAClassifier
 from typing import Literal, Union
-from capymoa.splitcriteria import SplitCriterion, _split_criterion_to_cli_str
+from capymoa.core.moa.splitcriteria import (
+    SplitCriterion,
+    _split_criterion_to_cli_str,
+)
 from moa.classifiers.trees import PLASTIC as _PLASTIC
 
 

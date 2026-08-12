@@ -1,6 +1,6 @@
 from pathlib import Path
-from capymoa.instance import LabeledInstance, RegressionInstance
-from capymoa.stream._stream import Stream, Schema, _AnyInstance
+from capymoa.core import LabeledInstance, RegressionInstance, _AnyInstance
+from ._stream import Stream, Schema
 from typing import Mapping, TextIO, Sequence, Optional
 from typing_extensions import override
 import csv
@@ -15,7 +15,7 @@ class CSVStream(Stream[_AnyInstance]):
     * CSV is read line by line, so it can handle large files.
 
     When 'categories' are provided for the target attribute, then the stream returns
-    :class:`~capymoa.instance.LabeledInstance` objects.
+    :class:`~capymoa.core.LabeledInstance` objects.
 
     >>> from io import StringIO
     >>> from capymoa.stream import CSVStream
@@ -42,7 +42,7 @@ class CSVStream(Stream[_AnyInstance]):
     [nan nan] -1 None
 
     When no categories are provided for the target attribute, then the stream returns
-    :class:`~capymoa.instance.RegressionInstance` objects.
+    :class:`~capymoa.core.RegressionInstance` objects.
 
     >>> csv_content = '''target,feature1,feature2
     ... 0.0,A,1

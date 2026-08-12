@@ -3,7 +3,7 @@ from functools import partial
 
 import pytest
 
-from capymoa._cli import cli_str_classifier
+from capymoa.core.moa._cli import cli_str_classifier
 from capymoa.anomaly import (
     AdaptiveIsolationForest,
     Autoencoder,
@@ -19,7 +19,7 @@ from capymoa.anomaly import (
 from capymoa.base import AnomalyDetector, MOAClassifier
 from capymoa.datasets import ElectricityTiny
 from capymoa.evaluation import AnomalyDetectionEvaluator
-from capymoa.instance import Optional
+from typing import Optional
 from capymoa.stream._stream import Schema
 
 
