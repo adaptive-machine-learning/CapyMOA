@@ -10,6 +10,7 @@ environment. They are the regression guard: the first time someone adds a
 top-level ``import torch`` to a core module, this fails.
 """
 
+import importlib.util
 import subprocess
 import sys
 import textwrap
@@ -40,7 +41,10 @@ def _run_without_torch(body: str) -> subprocess.CompletedProcess:
     )
 
 
-@pytest.mark.no_torch_env
+@pytest.mark.skipif(
+    importlib.util.find_spec("torch") is not None,
+    reason="only meaningful in a genuinely torch-free environment",
+)
 def test_torch_not_installed_on_disk():
     """A base install (no ``torch``/``torch-cpu`` extra) must never pull torch onto disk."""
     with pytest.raises(ModuleNotFoundError):

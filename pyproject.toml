@@ -149,9 +149,6 @@ testpaths = ["tests", "src"]
 norecursedirs = [
     "docs/*"
 ]
-markers = [
-    "no_torch_env: requires a real torch-free installed environment (see tests/test_no_torch.py)",
-]
 
 [tool.hatch]
 [tool.hatch.version]

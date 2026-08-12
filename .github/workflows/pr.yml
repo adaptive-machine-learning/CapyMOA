@@ -64,15 +64,6 @@ jobs:
 
     - name: PyTest
       run: uv run invoke test.pytest --coverage
-      env:
-        # Passed via env rather than `invoke test.pytest -- -m "..."`: invoke's
-        # `ctx.remainder` rejoins argv tokens with plain spaces, which drops the
-        # quoting needed to keep `not no_torch_env` together as one `-m` value
-        # by the time it reaches pytest (confirmed: it turns into `-m not
-        # no_torch_env`, where pytest reads `no_torch_env` as a stray file
-        # path). PYTEST_ADDOPTS is read and shlex-split by pytest directly, no
-        # extra shell round-trip, so the quoting survives.
-        PYTEST_ADDOPTS: -m "not no_torch_env"
 
     - name: Doctest
       run: uv run invoke test.doctest --coverage
@@ -96,8 +87,7 @@ jobs:
     # and checks the core still imports and runs, so `pip install capymoa` never
     # silently goes back to pulling the ~2.9 GB CUDA stack. Without this job the
     # regression returns the first time someone adds a top-level `import torch`
-    # to a core module. Assertions live in tests/test_no_torch.py, behind the
-    # `no_torch_env` marker.
+    # to a core module. Assertions live in tests/test_no_torch.py.
     name: "Install without PyTorch"
     timeout-minutes: 20
     runs-on: ubuntu-latest
@@ -112,12 +102,10 @@ jobs:
       run: uv sync
 
     - name: PyTest (no-torch checks)
-      # Scoped to this one file: a bare `pytest -m no_torch_env` still
-      # collects every file under `testpaths` (tests, src) before filtering by
-      # marker, and several test modules `import torch` at the top level --
-      # collection itself fails in this torch-free environment before the
-      # marker filter ever runs.
-      run: uv run --with pytest pytest tests/test_no_torch.py -m no_torch_env
+      # Scoped to this one file: several other test modules `import torch` at
+      # the top level, so collecting the full `testpaths` fails outright in
+      # this torch-free environment.
+      run: uv run --with pytest pytest tests/test_no_torch.py
 
   lint:
     name: "Code Style"
