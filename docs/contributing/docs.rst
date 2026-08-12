@@ -256,6 +256,8 @@ Block equation:
 
 Inline equation: :math:`E = mc^2`.
 
+.. _contributing-docs-notebooks:
+
 Notebooks
 ---------
 

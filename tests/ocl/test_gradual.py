@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 import pytest
 
-pytest.markskip("torch")
+pytestmark = pytest.markskip("torch")
 
 import torch  # noqa: E402
 from torch import BoolTensor, IntTensor  # noqa: E402

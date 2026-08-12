@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 import inspect
 
-pytest.markskip("torch")
+pytestmark = pytest.markskip("torch")
 
 from capymoa.ocl import datasets  # noqa: E402
 from capymoa.stream import Stream  # noqa: E402

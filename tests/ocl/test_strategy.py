@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pytest
 
-pytest.markskip("torch")
+pytestmark = pytest.markskip("torch")
 
 from capymoa.core.torch.ann import Perceptron  # noqa: E402
 from capymoa.base import Classifier  # noqa: E402

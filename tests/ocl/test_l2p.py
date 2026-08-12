@@ -6,7 +6,7 @@ can mock a dummy ViT model to test that the training loop does not error at leas
 
 import pytest
 
-pytest.markskip("torch")
+pytestmark = pytest.markskip("torch")
 
 from capymoa.ocl.strategy.l2p import L2P, L2PViT  # noqa: E402
 from capymoa.ocl.datasets import TinySplitMNIST  # noqa: E402

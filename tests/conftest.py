@@ -3,11 +3,11 @@
 - https://docs.pytest.org/en/stable/reference/fixtures.html#conftest-py-sharing-fixtures-across-multiple-files
 """
 
-import inspect
 import os
 
 import pytest
 from _pytest.mark.expression import Expression
+from _pytest.mark.structures import MarkDecorator
 from _pytest.outcomes import Skipped
 
 from capymoa.datasets._source_list import SOURCE_LIST
@@ -23,21 +23,15 @@ def pytest_configure(config):
     # relative paths in tests.
     os.chdir(config.rootpath)
 
-    def markskip(mark: str, *, reason: str | None = None) -> None:
-        """Skip the current test/module if `-m` doesn't select `mark`.
+    def markskip(mark: str, *, reason: str | None = None) -> MarkDecorator:
+        """Return `pytest.mark.<mark>`, or skip if `-m` doesn't select it.
 
-        Called at module scope, this also applies `pytestmark = pytest.mark.<mark>`
-        to the caller's module -- equivalent to writing that line yourself --
-        so a single call both marks the module and guards its imports.
+        Assign the result to `pytestmark` to mark and, when excluded, skip a
+        whole module in one line: `pytestmark = pytest.markskip("torch")`.
+        Call it bare (return value discarded) inside a lazy constructor to
+        guard just one case of an otherwise mixed file instead.
         """
         __tracebackhide__ = True
-        caller = inspect.stack()[1].frame
-        if caller.f_code.co_name == "<module>":
-            existing = caller.f_globals.get("pytestmark", [])
-            if not isinstance(existing, list):
-                existing = [existing]
-            caller.f_globals["pytestmark"] = [*existing, getattr(pytest.mark, mark)]
-
         markexpr = config.getoption("markexpr")
         selected = not markexpr or Expression.compile(markexpr).evaluate(
             lambda name: name == mark
@@ -47,6 +41,7 @@ def pytest_configure(config):
                 reason or f"tests marked {mark!r} are excluded by -m",
                 allow_module_level=True,
             )
+        return getattr(pytest.mark, mark)
 
     # --import-mode=importlib makes `from conftest import markskip`
     # unreliable from other test files, so expose it the way

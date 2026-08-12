@@ -136,43 +136,5 @@ dependencies.
             invoke docs.build
 
    See the :doc:`/contributing/index` guide for more information on how to
-   contribute to CapyMOA.
-
-Testing PyTorch-Optional Code
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-PyTorch is an optional extra (see the PyTorch note in :doc:`/setup/index`), so
-code that touches it needs to be tested on both sides of that boundary. CI
-runs the suite twice: once with ``-m "not torch"`` and no PyTorch installed,
-once with ``-m "torch"`` and ``--extra torch-cpu``.
-
-Mark any test that needs torch with ``@pytest.mark.torch`` (or
-``pytest.param(..., marks=pytest.mark.torch)`` for one case of a
-parametrized test), so ``-m "not torch"`` deselects it.
-
-That alone isn't enough for a module that needs torch just to be
-*collected* -- e.g. one that imports ``capymoa.ocl`` at module scope --
-since collection happens before marker-based deselection. For those, call
-``pytest.markskip("torch")`` (defined in ``tests/conftest.py``) before the
-torch-touching import:
-
-.. code-block:: python
-
-   import pytest
-
-   pytest.markskip("torch")
-
-   import torch
-   from capymoa.ocl.util._buffer_list import BufferList
-
-   pytestmark = pytest.mark.torch
-
-``markskip`` only checks whether ``-m`` selects the mark, not whether the
-dependency is actually importable, so it's safe to rely on at module level:
-when torch tests are wanted (``-m "torch"``, or no ``-m`` filter at all) but
-torch isn't installed, the import right after ``markskip`` fails loudly
-instead of being silently skipped.
-
-For a file that mixes torch and non-torch cases, call ``markskip`` lazily
-inside the constructor for just the torch-only case instead of guarding the
-whole module -- see ``_make_finetune`` in ``tests/test_classifiers.py``.
+   contribute to CapyMOA, including how to test PyTorch-optional code in
+   :doc:`/contributing/tests`.

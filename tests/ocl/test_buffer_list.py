@@ -1,6 +1,6 @@
 import pytest
 
-pytest.markskip("torch")
+pytestmark = pytest.markskip("torch")
 
 import torch  # noqa: E402
 
