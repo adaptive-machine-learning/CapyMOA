@@ -89,7 +89,7 @@ jobs:
       run: >-
         uv --quiet run --exact
         --extra dev --extra torch-cpu
-        invoke test.doctest --coverage
+        invoke test.nb
 
     - name: Combine Test Coverages & Generate XML Report
       run: |
