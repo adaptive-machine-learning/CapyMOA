@@ -41,7 +41,7 @@ keywords = [
 ]
 
 long_description_content_type = "text/markdown"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 # Defines the pip packages that are required by this package. These should be
 # as permissive as possible, since capymoa should collaborate with other
 # packages.
@@ -74,9 +74,18 @@ torch=[
     "torchvision~=0.24",
 ]
 
-# Development dependencies
+# Same spec as `torch`, but routed to the CPU-only wheel index via
+# [tool.uv.sources] below. Only affects `uv sync`; `pip install capymoa[torch-cpu]`
+# is identical to `capymoa[torch]`.
+torch-cpu=[
+    "torch~=2.9",
+    "torchvision~=0.24",
+]
+
+# Development dependencies. Deliberately does not pull in `torch`/`torch-cpu`:
+# combine with one of those extras explicitly (e.g. `--extra dev --extra torch-cpu`)
+# when a torch-backed test run is needed.
 dev=[
-    "capymoa[torch]",
     "commitizen~=3.24",
     "invoke~=3.0",
     "jupyter~=1.1",
@@ -106,6 +115,27 @@ doc=[
 Documentation = "https://capymoa.org"
 Source = "https://github.com/adaptive-machine-learning/CapyMOA"
 
+[tool.uv]
+# `torch` and `torch-cpu` declare the same version spec but resolve from
+# different indexes (see [tool.uv.sources]); requesting both at once is
+# nonsensical, so reject it instead of silently picking one.
+conflicts = [
+    [ { extra = "torch" }, { extra = "torch-cpu" } ],
+]
+
+[tool.uv.sources]
+# Only the `torch-cpu` extra is routed to the CPU-only index, and only on
+# Linux -- the platform where the default PyPI wheel pulls the CUDA stack.
+# On Windows/macOS `torch-cpu` falls through to the default index, same as
+# plain `torch` would.
+torch = [{ index = "pytorch-cpu", extra = "torch-cpu", marker = "platform_system == 'Linux'" }]
+torchvision = [{ index = "pytorch-cpu", extra = "torch-cpu", marker = "platform_system == 'Linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [tool.pytest.ini_options]
 addopts = [
     "--import-mode=importlib",
@@ -117,6 +147,9 @@ pythonpath = ["src"]
 testpaths = ["tests", "src"]
 norecursedirs = [
     "docs/*"
+]
+markers = [
+    "torch: tests that require PyTorch to run"
 ]
 
 [tool.hatch]

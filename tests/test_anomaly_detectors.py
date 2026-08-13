@@ -6,7 +6,6 @@ import pytest
 from capymoa.core.moa._cli import cli_str_classifier
 from capymoa.anomaly import (
     AdaptiveIsolationForest,
-    Autoencoder,
     HalfSpaceTrees,
     IForestASD,
     Loda,
@@ -21,6 +20,13 @@ from capymoa.datasets import ElectricityTiny
 from capymoa.evaluation import AnomalyDetectionEvaluator
 from typing import Optional
 from capymoa.stream._stream import Schema
+
+
+def _make_autoencoder(**kwargs):
+    pytest.markskip("torch")
+    from capymoa.anomaly import Autoencoder
+
+    return Autoencoder(**kwargs)
 
 
 @pytest.mark.parametrize(
@@ -41,10 +47,13 @@ from capymoa.stream._stream import Schema
             0.42,
             None,
         ),
-        (
-            partial(Autoencoder, hidden_layer=2, learning_rate=0.5, threshold=0.6),
+        pytest.param(
+            partial(
+                _make_autoencoder, hidden_layer=2, learning_rate=0.5, threshold=0.6
+            ),
             0.57,
             None,
+            marks=pytest.mark.torch,
         ),
         (partial(StreamRHF, num_trees=5, max_height=3), 0.72, None),
         (

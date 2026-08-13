@@ -6,17 +6,19 @@ import os
 import numpy as np
 import pytest
 
-from capymoa.core.torch.ann import Perceptron
-from capymoa.base import Classifier
-from capymoa.classifier import Finetune, HoeffdingTree
-from capymoa.ocl.datasets import TinySplitMNIST
-from capymoa.ocl.evaluation import ocl_train_eval_loop
+pytestmark = pytest.markskip("torch")
 
-from capymoa.ocl.strategy import ExperienceReplay, SLDA, NCM, GDumb, RAR, EWC
-from capymoa.stream import Schema
+from capymoa.core.torch.ann import Perceptron  # noqa: E402
+from capymoa.base import Classifier  # noqa: E402
+from capymoa.classifier import Finetune, HoeffdingTree  # noqa: E402
+from capymoa.ocl.datasets import TinySplitMNIST  # noqa: E402
+from capymoa.ocl.evaluation import ocl_train_eval_loop  # noqa: E402
 
-import torch
-from torch import nn
+from capymoa.ocl.strategy import ExperienceReplay, SLDA, NCM, GDumb, RAR, EWC  # noqa: E402
+from capymoa.stream import Schema  # noqa: E402
+
+import torch  # noqa: E402
+from torch import nn  # noqa: E402
 
 # PyTorch is notorious for non-deterministic behavior between versions and platforms.
 # Here we set a fixed absolute tolerance of +-1.5 for percentage-based metrics.

@@ -6,12 +6,10 @@ from tempfile import TemporaryDirectory
 from typing import Callable, Optional
 
 import pytest
-import torch
 from java.lang import Exception as JException
 from pytest_subtests import SubTests
 
 from capymoa.core.moa._cli import cli_str_classifier
-from capymoa.core.torch.ann import Perceptron
 from capymoa.base import Classifier, MOAClassifier
 from capymoa.classifier import (
     CSMOTE,
@@ -20,7 +18,6 @@ from capymoa.classifier import (
     LAST,
     AdaptiveRandomForestClassifier,
     DynamicWeightedMajority,
-    Finetune,
     HoeffdingAdaptiveTree,
     HoeffdingTree,
     LeveragingBagging,
@@ -49,6 +46,20 @@ from capymoa.stream import Schema, Stream
 import numpy as np
 
 
+def _make_finetune(schema, **kwargs):
+    pytest.markskip("torch")
+    import torch
+    from capymoa.classifier import Finetune
+    from capymoa.core.torch.ann import Perceptron
+
+    return Finetune(
+        schema,
+        model=Perceptron,
+        optimizer=partial(torch.optim.Adam, lr=0.001),
+        **kwargs,
+    )
+
+
 @dataclass
 class ClassifierTestCase:
     test_name: str
@@ -71,6 +82,9 @@ class ClassifierTestCase:
 
     skip_reason: Optional[str] = None
     """A reason to skip the test. If set, the test will be skipped with this reason."""
+
+    needs_torch: bool = False
+    """Whether this test case requires PyTorch. Deselected by `-m "not torch"`."""
 
 
 """
@@ -234,15 +248,12 @@ test_cases = [
     ClassifierTestCase("ShrubsClassifier", partial(ShrubsClassifier), 89.6, 91),
     ClassifierTestCase(
         "Finetune",
-        partial(
-            Finetune,
-            model=Perceptron,
-            optimizer=partial(torch.optim.Adam, lr=0.001),
-        ),
+        _make_finetune,
         60.4,
         66.0,
         batch_size=32,
         skip_prediction_check_before_training=True,
+        needs_torch=True,
     ),
     ClassifierTestCase(
         "DynamicEnsembleMemberSelection",
@@ -296,7 +307,10 @@ def subtest_save_and_load(
 
 @pytest.mark.parametrize(
     "test_case",
-    test_cases,
+    [
+        pytest.param(c, marks=pytest.mark.torch) if c.needs_torch else c
+        for c in test_cases
+    ],
     ids=[c.test_name for c in test_cases],
 )
 def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):

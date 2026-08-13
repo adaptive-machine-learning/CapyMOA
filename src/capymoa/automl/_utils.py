@@ -52,11 +52,15 @@ def generate_parameter_combinations(parameters):
 
 def create_capymoa_classifier(algorithm_name, params, schema):
     """Create a CapyMOA classifier instance with the specified parameters."""
-    # Map MOA class names to CapyMOA classifier classes
-    capymoa_classifiers = {
-        name: getattr(capymoa_classifier_module, name)
-        for name in dir(capymoa_classifier_module)
-    }
+    # Map MOA class names to CapyMOA classifier classes. Some names require an
+    # optional dependency (e.g. PyTorch) that may not be installed; skip those
+    # rather than letting attribute access blow up the whole lookup.
+    capymoa_classifiers = {}
+    for name in dir(capymoa_classifier_module):
+        try:
+            capymoa_classifiers[name] = getattr(capymoa_classifier_module, name)
+        except ImportError:
+            continue
 
     # Find matching classifier in CapyMOA
     if algorithm_name in capymoa_classifiers:

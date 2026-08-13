@@ -4,11 +4,15 @@ Unfortunantely we cannot test with the real ViT model due to resource limits but
 can mock a dummy ViT model to test that the training loop does not error at least.
 """
 
-from capymoa.ocl.strategy.l2p import L2P, L2PViT
-from capymoa.ocl.datasets import TinySplitMNIST
-from capymoa.ocl.evaluation import ocl_train_eval_loop
-from torch import Tensor, nn
-import torch
+import pytest
+
+pytestmark = pytest.markskip("torch")
+
+from capymoa.ocl.strategy.l2p import L2P, L2PViT  # noqa: E402
+from capymoa.ocl.datasets import TinySplitMNIST  # noqa: E402
+from capymoa.ocl.evaluation import ocl_train_eval_loop  # noqa: E402
+from torch import Tensor, nn  # noqa: E402
+import torch  # noqa: E402
 
 
 class DummyViT(L2PViT, nn.Module):

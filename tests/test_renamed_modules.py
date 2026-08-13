@@ -16,8 +16,23 @@ def _clean_sys_modules():
         sys.modules.pop(old_name, None)
 
 
-@pytest.mark.parametrize("old_name,new_name", sorted(_RENAMED_MODULES.items()))
+def _needs_torch(old_name: str, new_name: str) -> bool:
+    return new_name == "capymoa.core.torch.ann"
+
+
+@pytest.mark.parametrize(
+    "old_name,new_name",
+    [
+        pytest.param(old_name, new_name, marks=pytest.mark.torch)
+        if _needs_torch(old_name, new_name)
+        else (old_name, new_name)
+        for old_name, new_name in sorted(_RENAMED_MODULES.items())
+    ],
+)
 def test_renamed_module_raises(old_name, new_name):
+    if _needs_torch(old_name, new_name):
+        pytest.markskip("torch")
+
     with pytest.raises(ModuleRenamedError, match=new_name):
         importlib.import_module(old_name)
 

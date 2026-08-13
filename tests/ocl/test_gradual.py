@@ -1,10 +1,14 @@
 from collections.abc import Sequence
 
-import torch
-from torch import BoolTensor, IntTensor
-from torch.utils.data import Dataset, TensorDataset
+import pytest
 
-from capymoa.ocl.datasets.gradual import (
+pytestmark = pytest.markskip("torch")
+
+import torch  # noqa: E402
+from torch import BoolTensor, IntTensor  # noqa: E402
+from torch.utils.data import Dataset, TensorDataset  # noqa: E402
+
+from capymoa.ocl.datasets.gradual import (  # noqa: E402
     SigmoidFn,
     TransitionFn,
     _gradual_task_idx,

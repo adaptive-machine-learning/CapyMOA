@@ -63,7 +63,7 @@ python -m pytest -k MyNewLearner
 The `-k MyNewLearner` flag tells PyTest to run tests containing `MyNewLearner` in the test ID.
 
 * If you want to add documented exemplar usage of your learner, you can add doctests.
-See the [testing guide](tests.md) for more information.
+See the [testing guide](tests.rst) for more information.
 
 * If you need custom test code for your learner, you can add a new test file in
 `tests`.
@@ -80,9 +80,9 @@ If a check fails, review the error messages and try to reproduce the issue local
 
 **Automated Checks:**
 - **Tests:**  
-    - **PyTest** (`invoke test.pytest`): Runs all unit tests in the `/tests` directory. See the [PyTest guide](./tests.md#pytest).
-    - **Doctest** (`invoke test.doctest`): Runs documentation tests. See the [doctest guide](./tests.md#doctest).
-    - **Notebooks** (`invoke test.nb`): Executes all notebooks in `/notebooks` to ensure they run without errors. See the [notebook guide](./tests.md#notebooks).
+    - **PyTest** (`invoke test.pytest`): Runs all unit tests in the `/tests` directory. See the [PyTest guide](./tests.rst#pytest).
+    - **Doctest** (`invoke test.doctest`): Runs documentation tests. See the [doctest guide](./tests.rst#doctest).
+    - **Notebooks** (`invoke test.nb`): Executes all notebooks in `/notebooks` to ensure they run without errors. See the [notebook guide](./tests.rst#notebooks).
 - **Code Style:**  
     - **Formatting** (`invoke fmt`): Checks code formatting and style.
 - **Documentation:**  
