@@ -26,7 +26,7 @@ Modules for different research domains in online and data stream machine learnin
     capymoa.automl
     capymoa.cluster
     capymoa.feature
-    capymoa.interval
+    capymoa.uncertainty
     capymoa.ssl
 
 CapyMOA Core

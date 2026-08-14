@@ -32,7 +32,8 @@ _RENAMED_MODULES = {
     "capymoa.ann": "capymoa.core.torch.ann",
     "capymoa.clusterers": "capymoa.cluster",
     "capymoa.feature_selection": "capymoa.feature",
-    "capymoa.prediction_interval": "capymoa.interval",
+    "capymoa.prediction_interval": "capymoa.uncertainty",
+    "capymoa.interval": "capymoa.uncertainty",
 }
 
 
