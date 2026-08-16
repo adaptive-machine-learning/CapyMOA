@@ -9,7 +9,7 @@
 /src/capymoa/cluster/   @cassales
 /src/capymoa/drift/     @vcerqueira
 /src/capymoa/feature/   @hmgomes
-/src/capymoa/ocl/       @tachyonicClock
+/src/capymoa/ocl/       @tachyonicClock @nuwangunasekara
 /src/capymoa/interval/  @YibinSun
-/src/capymoa/regressor/ @YibinSun
+/src/capymoa/regressor/ @YibinSun @nuwangunasekara
 /src/capymoa/ssl/       @tachyonicClock
