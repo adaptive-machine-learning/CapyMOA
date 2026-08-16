@@ -1,0 +1,22 @@
+/* Make the "Copy page" button look like the other secondary-sidebar links
+   (e.g. "Show Source", "Edit on GitHub") instead of a default <button>. */
+.llm-copy-page-button {
+    display: inline-flex;
+    align-items: center;
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: var(--pst-color-link);
+    cursor: pointer;
+}
+
+.llm-copy-page-button:hover {
+    color: var(--pst-color-link-hover);
+    text-decoration: underline;
+}
+
+.llm-copy-page-button i {
+    padding-right: .5rem;
+}
