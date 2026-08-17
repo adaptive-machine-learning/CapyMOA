@@ -147,7 +147,10 @@ addopts = [
 ]
 # Fail fast on any single test/doctest that runs unexpectedly long, so slow
 # additions are caught immediately instead of silently inflating CI time.
-timeout = 30
+# CI runs with --cov, which roughly 5x's the runtime of instance-heavy tests
+# (e.g. anomaly detector tests), so this needs generous headroom over local,
+# uninstrumented timings.
+timeout = 90
 timeout_method = "thread"
 pythonpath = ["src"]
 testpaths = ["tests", "src"]
