@@ -60,11 +60,11 @@ def _make_autoencoder(**kwargs):
             partial(
                 StreamingIsolationForest,
                 window_size=256,
-                n_trees=100,
+                n_trees=20,
                 height=None,
                 seed=42,
             ),
-            0.60,
+            0.62,
             None,
         ),
         (

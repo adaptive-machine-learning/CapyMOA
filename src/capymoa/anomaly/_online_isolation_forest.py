@@ -45,7 +45,7 @@ class OnlineIsolationForest(AnomalyDetector):
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
-    >>> learner = OnlineIsolationForest(schema=schema)
+    >>> learner = OnlineIsolationForest(schema=schema, window_size=100)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -54,7 +54,7 @@ class OnlineIsolationForest(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.39
+    AUC: 0.42
 
     """
 
