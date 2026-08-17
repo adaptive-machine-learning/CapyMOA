@@ -20,6 +20,16 @@ import os
 IS_CI = environ.get("CI", "false").lower() == "true"
 COVERAGE_DEFAULT = False
 
+# Scales the pytest/doctest/notebook timeouts below. Release CI runs on
+# Windows/macOS runners that are noticeably slower than the Linux runner the
+# base timeouts are tuned for, so `release.yml` sets this to `2` to double
+# them. Keep the base values here in sync with pyproject.toml's
+# `[tool.pytest.ini_options] timeout`, which is the fallback used when pytest
+# is invoked directly (bypassing these tasks and thus this factor).
+PYTEST_TIMEOUT_FACTOR = float(environ.get("PYTEST_TIMEOUT_FACTOR", "1"))
+PYTEST_TIMEOUT = int(90 * PYTEST_TIMEOUT_FACTOR)
+NOTEBOOK_FAST_TIMEOUT = int(60 * 3 * PYTEST_TIMEOUT_FACTOR)
+
 
 def python_exe(profile: Optional[str] = None) -> str:
     if profile:
@@ -235,7 +245,7 @@ def notebooks(
         environ["NB_FAST"] = "true"
         # Per-cell timeout. Windows CI runners are several times slower than
         # Linux/macOS, so keep some headroom over local fast-mode timings.
-        timeout = 60 * 3
+        timeout = NOTEBOOK_FAST_TIMEOUT
     else:
         timeout = -1
 
@@ -294,6 +304,7 @@ def pytest(
         "-m pytest",
         "--durations=5",  # Show the duration of each test
         "--exitfirst",  # Exit instantly on first error or failed test
+        f"--timeout={PYTEST_TIMEOUT}",
     ]
     cmd += ["--cov"] if coverage else []
     cmd += ["-n=auto"] if parallel else []
@@ -329,6 +340,7 @@ def doctest(
         "--durations=5",  # Show the duration of each test
         "--exitfirst",  # Exit instantly on first error or failed test
         "src/capymoa",  # Don't run tests in the `tests` directory
+        f"--timeout={PYTEST_TIMEOUT}",
     ]
     cmd += ["--cov"] if coverage else []
     cmd += ["-n=auto"] if parallel else []

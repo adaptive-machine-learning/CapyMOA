@@ -13,6 +13,11 @@ jobs:
     name: Tests
     timeout-minutes: 120
     runs-on: ${{ matrix.operating-system }}
+    env:
+      # Windows/macOS runners are noticeably slower than the Linux runner the
+      # pytest/doctest/notebook timeouts in tasks.py are tuned for. Double
+      # them here rather than loosening the timeouts everyone else runs with.
+      PYTEST_TIMEOUT_FACTOR: "2"
     strategy:
       fail-fast: true
       matrix:
