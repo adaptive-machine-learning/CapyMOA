@@ -233,14 +233,9 @@ def notebooks(
     # Set the environment variable to run the notebooks in fast mode.
     if not slow:
         environ["NB_FAST"] = "true"
-        # Ten minutes, not three. The Windows runners are several times slower than
-        # Linux, and `anomaly_detection.ipynb` crossed the old cap there during the
-        # 0.14.0 release while passing comfortably on Linux and macOS. Skipping the
-        # notebook was the alternative, and `invoke.yml` rightly argues against that:
-        # a skipped notebook stops telling us when it breaks. The underlying cost is
-        # a defect in OnlineIsolationForest rather than a notebook that is genuinely
-        # this expensive; once that is fixed this can come back down.
-        timeout = 60 * 10
+        # Per-cell timeout. Windows CI runners are several times slower than
+        # Linux/macOS, so keep some headroom over local fast-mode timings.
+        timeout = 60 * 3
     else:
         timeout = -1
 
