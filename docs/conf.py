@@ -12,6 +12,7 @@ from typing import Optional
 import re
 from capymoa.__about__ import __version__
 from docs.util.github_link import make_linkcode_resolve
+from docs.util.sphinx_llm import fix_markdown_image, fix_nbsphinx
 
 # Any subprocesses created during document building should use the same python environment
 os.environ["PYTHONEXECUTABLE"] = sys.executable
@@ -41,6 +42,7 @@ extensions = [
     "sphinx_design",
     "sphinxcontrib.programoutput",
     "myst_parser",
+    "sphinx_llm.txt",
 ]
 
 nitpick_ignore_regex = [
@@ -108,8 +110,15 @@ rst_epilog = f"""
 
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
-html_css_files = ["css/citation.css"]
+html_css_files = ["css/citation.css", "css/llm-page-actions.css"]
+html_js_files = ["js/llm-page-actions.js"]
 html_show_sourcelink = False
+
+# "auto" (the default) names the generated markdown files "<page>.html.md",
+# but sphinx_markdown_builder writes cross-page links as "<page>.md", which
+# breaks navigation between generated markdown files. "replace" makes the
+# file names match those links.
+llms_txt_suffix_mode = "replace"
 
 # Setup symbolic links for notebooks
 
@@ -179,6 +188,12 @@ html_theme_options = {
             "type": "fontawesome",
         },
     ],
+    "secondary_sidebar_items": [
+        "page-toc",
+        "edit-this-page",
+        "sourcelink",
+        "components/llm-page-actions.html",
+    ],
 }
 
 autodoc_skip_member_patterns = [
@@ -203,3 +218,7 @@ def autodoc_skip_member(app, obj_type, name, obj, skip, options) -> Optional[boo
 
 def setup(app):
     app.connect("autodoc-skip-member", autodoc_skip_member)
+
+    # Patches for sphinx_llm extension.
+    fix_nbsphinx(app)
+    fix_markdown_image(app)
