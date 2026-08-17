@@ -253,6 +253,10 @@ def notebooks(
         "python -m pytest --nbmake",
         "-x",  # Stop after the first failure
         f"--nbmake-timeout={timeout}",
+        # Disable the global per-test pytest-timeout (see pyproject.toml):
+        # it wraps the whole notebook run and would kill legitimately long
+        # --slow notebooks; --nbmake-timeout above is the right timeout here.
+        "--timeout=0",
         "notebooks",
         "--durations=5",  # Show the duration of each notebook
     ]

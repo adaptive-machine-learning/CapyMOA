@@ -415,7 +415,7 @@ class StreamingIsolationForest(AnomalyDetector):
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
-    >>> learner = StreamingIsolationForest(schema, window_size=256, n_trees=100, seed=42)
+    >>> learner = StreamingIsolationForest(schema, window_size=256, n_trees=20, seed=42)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -424,7 +424,7 @@ class StreamingIsolationForest(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.61
+    AUC: 0.62
 
     ..  [#f0] Liu, J.J., Cassales, G.W., Liu, F.T., Pfahringer, B., Bifet, A. (2025).
         Streaming Isolation Forest. In: Wu, X., et al. Advances in Knowledge Discovery

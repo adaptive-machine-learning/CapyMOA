@@ -92,6 +92,7 @@ dev=[
     "nbmake~=1.5",
     "pytest-cov~=7.0",
     "pytest-subtests~=0.15",
+    "pytest-timeout~=2.4",
     "pytest-xdist~=3.8",
     "pytest~=9.0",
     # Pinned to a single minor: `astral-sh/ruff-action` (the Code Style gate) reads this spec
@@ -144,6 +145,10 @@ addopts = [
     # https://github.com/jpype-project/jpype/issues/561
     "-p no:faulthandler"
 ]
+# Fail fast on any single test/doctest that runs unexpectedly long, so slow
+# additions are caught immediately instead of silently inflating CI time.
+timeout = 30
+timeout_method = "thread"
 pythonpath = ["src"]
 testpaths = ["tests", "src"]
 norecursedirs = [
