@@ -328,6 +328,9 @@ class Airlines(_DownloadableARFF):
 
     **References:**
 
+    #.  Ikonomovska, Elena. "Airline Data Set." Data Expo Competition (2009):
+        http://kt.ijs.si/elena_ikonomovska/data.html (archived:
+        https://web.archive.org/web/20110718072348/http://kt.ijs.si/elena_ikonomovska/data.html).
     #.  Bifet, Albert, and Elena Ikonomovska. "airlines." OpenML (2014):
         https://www.openml.org/d/1169.
     """
@@ -351,9 +354,10 @@ class KDD99(_DownloadableARFF):
 
     **References:**
 
-    #.  Stolfo, Salvatore J., Wei Fan, Wenke Lee, Andreas Prodromidis, and Philip
-        K. Chan. "KDD cup 1999 data." OpenML (1999):
-        https://www.openml.org/d/1113.
+    #.  Stolfo, Salvatore, Wei Fan, Wenke Lee, Andreas Prodromidis, and Philip
+        Chan. "KDD Cup 1999 Data." UCI Machine Learning Repository (1999):
+        https://doi.org/10.24432/C51C7N.
+    #.  "KDDCup99." OpenML (2014): https://www.openml.org/d/1113.
     """
 
     _target_type = "categorical"
@@ -377,8 +381,9 @@ class Nomao(_DownloadableARFF):
 
     #.  Candillier, Laurent, and Vincent Lemaire. "Design and analysis of the
         Nomao challenge active learning in the real-world." Proceedings of the
-        ALRA: Active Learning in Real-world Applications, Workshop ECML-PKDD.
-        2012: https://www.openml.org/d/1486.
+        ALRA: Active Learning in Real-world Applications, Workshop ECML-PKDD
+        (2012): https://archive.ics.uci.edu/ml/datasets/Nomao.
+    #.  "nomao." OpenML (2015): https://www.openml.org/d/1486.
     """
 
     _target_type = "categorical"
@@ -403,7 +408,9 @@ class Spambase(_DownloadableARFF):
 
     #.  Hopkins, Mark, Erik Reeber, George Forman, and Jaap Suermondt.
         "Spambase." UCI Machine Learning Repository (1999):
-        https://www.openml.org/d/44.
+        https://archive.ics.uci.edu/dataset/94/spambase,
+        https://doi.org/10.24432/C53G6X.
+    #.  "spambase." OpenML (2014): https://www.openml.org/d/44.
     """
 
     _target_type = "categorical"
@@ -427,8 +434,8 @@ class PokerHand(_DownloadableARFF):
 
     #.  Cattral, Robert, Franz Oppacher, and Dwight Deugo. "Evolutionary data
         mining with automatic rule generalization." Recent Advances in
-        Computers, Computing and Communications (2002):
-        https://www.openml.org/d/1567.
+        Computers, Computing and Communications (2002).
+    #.  "poker-hand." OpenML (2015): https://www.openml.org/d/1567.
     """
 
     _target_type = "categorical"
