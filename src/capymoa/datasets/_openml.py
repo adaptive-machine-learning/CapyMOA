@@ -2,9 +2,11 @@
 
 import json
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional, Union
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
+
+from moa.streams import ArffFileStream
 
 from capymoa.datasets._utils import (
     download_unpacked,
@@ -12,17 +14,14 @@ from capymoa.datasets._utils import (
     infer_unpacked_path,
     is_already_downloaded,
 )
-from capymoa.stream import Stream, stream_from_file
+from capymoa.stream import ARFFStream, Stream
 
 _OPENML_API = "https://www.openml.org/api/v1/json/data/{id}"
 
 
 def _fetch_description(openml_id: int, cache_dir: Path, auto_download: bool) -> dict:
-    """Return the OpenML API JSON description for a dataset id.
-
-    Cached as ``<cache_dir>/description.json`` so repeated loads never re-hit
-    the OpenML API once fetched once.
-    """
+    # Cached as `<cache_dir>/description.json` so repeated loads never re-hit
+    # the OpenML API once fetched once.
     cache_path = cache_dir / "description.json"
     if cache_path.exists():
         return json.loads(cache_path.read_text())
@@ -38,14 +37,8 @@ def _fetch_description(openml_id: int, cache_dir: Path, auto_download: bool) -> 
         with urlopen(url) as response:
             payload = json.load(response)
     except HTTPError as e:
-        message = f"OpenML API returned HTTP {e.code} for dataset {openml_id}."
-        try:
-            body = json.loads(e.read())
-            message = body["error"]["message"]
-        except (json.JSONDecodeError, KeyError, ValueError):
-            pass
         raise ValueError(
-            f"Could not fetch OpenML dataset {openml_id}: {message}"
+            f"Could not fetch OpenML dataset {openml_id}: HTTP {e.code} {e.reason}"
         ) from e
     except URLError as e:
         raise ConnectionError(f"Could not reach the OpenML API: {e.reason}") from e
@@ -55,25 +48,16 @@ def _fetch_description(openml_id: int, cache_dir: Path, auto_download: bool) -> 
     return description
 
 
-def _attribute_names(path: Path) -> List[str]:
-    """Parse ``@attribute <name> <type>`` lines from an ARFF file, up to ``@data``."""
-    names = []
-    with open(path, "r", encoding="utf-8", errors="replace") as f:
-        for line in f:
-            stripped = line.strip()
-            if stripped.lower().startswith("@data"):
-                break
-            if not stripped.lower().startswith("@attribute"):
-                continue
-            rest = stripped[len("@attribute") :].strip()
-            if rest.startswith("'") or rest.startswith('"'):
-                quote = rest[0]
-                end = rest.find(quote, 1)
-                name = rest[1:end]
-            else:
-                name = rest.split(None, 1)[0]
-            names.append(name)
-    return names
+def _resolve_class_index(path: Path, target: str) -> int:
+    # Let MOA parse the ARFF header (it has to anyway) rather than hand-rolling
+    # an ARFF parser, and find the 0-based index of the named target attribute.
+    header = ArffFileStream(str(path), -1).getHeader()
+    for i in range(header.numAttributes()):
+        if str(header.attribute(i).name()) == target:
+            return i
+    raise ValueError(
+        f"Target attribute {target!r} was not found among the ARFF attributes in {path}."
+    )
 
 
 def load_openml_dataset(
@@ -83,14 +67,15 @@ def load_openml_dataset(
 ) -> Stream:
     """Load any OpenML dataset by numeric id as a :class:`~capymoa.stream.Stream`.
 
-    Fetches the dataset's metadata from the OpenML API (cached to disk after
-    the first call, so subsequent loads never re-hit OpenML), downloads its
-    ARFF file (cached under ``<download_dir>/openml/<openml_id>/``), resolves
-    the target column declared by OpenML's ``default_target_attribute``, and
-    returns a :class:`~capymoa.stream.Stream`.
-
     >>> from capymoa.datasets import load_openml_dataset
-    >>> stream = load_openml_dataset(1169)  # doctest: +SKIP
+    >>> stream = load_openml_dataset(61)  # iris
+    >>> stream.next_instance()
+    LabeledInstance(
+        Schema(iris),
+        x=[5.1 3.5 1.4 0.2],
+        y_index=0,
+        y_label='Iris-setosa'
+    )
 
     :param openml_id: The numeric OpenML dataset id, e.g. ``1169`` for
         https://www.openml.org/d/1169.
@@ -103,6 +88,9 @@ def load_openml_dataset(
     :raises FileNotFoundError: If the metadata or dataset is missing locally
         and ``auto_download`` is False.
     """
+    # Cache metadata and the ARFF file together, namespaced by id, so repeated
+    # loads for the same dataset never re-download or re-hit the OpenML API,
+    # and different ids never collide on a shared filename.
     dataset_dir = get_download_dir(directory) / "openml" / str(openml_id)
     dataset_dir.mkdir(parents=True, exist_ok=True)
 
@@ -131,17 +119,5 @@ def load_openml_dataset(
         download_unpacked(url, dataset_dir)
     path = infer_unpacked_path(url, dataset_dir)
 
-    names = _attribute_names(path)
-    try:
-        class_index = names.index(target)
-    except ValueError:
-        raise ValueError(
-            f"Target attribute {target!r} for OpenML dataset {openml_id} was not "
-            f"found among the ARFF attributes in {path}."
-        ) from None
-
-    return stream_from_file(
-        path,
-        dataset_name=description.get("name", f"openml_{openml_id}"),
-        class_index=class_index,
-    )
+    class_index = _resolve_class_index(path, target)
+    return ARFFStream(path=path, class_index=class_index)
