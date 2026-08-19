@@ -1,7 +1,7 @@
 from typing import Sized, Type
 import capymoa.datasets as capymoa_datasets
 from capymoa.stream import Stream
-from capymoa.datasets import ElectricityTiny
+from capymoa.datasets import ElectricityTiny, load_openml_dataset
 from tempfile import TemporaryDirectory
 import pytest
 import numpy as np
@@ -54,6 +54,26 @@ def test_electricity_tiny_schema():
     for y_index, y_value in enumerate(schema.get_label_values()):
         assert schema.get_index_for_label(y_value) == y_index
         assert schema.get_value_for_index(y_index) == y_value
+
+
+@pytest.mark.skip("Avoid hitting the OpenML API during routine test runs")
+def test_load_openml_dataset_iris():
+    if platform.system() == "Windows":
+        pytest.skip("Skipping on Windows, because TemporaryDirectory fails to cleanup.")
+
+    with TemporaryDirectory() as tmp_dir:
+        with pytest.raises(FileNotFoundError):
+            load_openml_dataset(61, directory=tmp_dir, auto_download=False)
+
+        stream = load_openml_dataset(61, directory=tmp_dir)
+        schema = stream.get_schema()
+        assert schema.get_num_attributes() == 4
+        assert schema.get_num_classes() == 3
+        assert schema.is_classification()
+
+        # Cached path should work without downloading again.
+        stream2 = load_openml_dataset(61, directory=tmp_dir, auto_download=False)
+        assert stream2.get_schema().get_num_attributes() == 4
 
 
 @pytest.mark.skip("This test is too slow")

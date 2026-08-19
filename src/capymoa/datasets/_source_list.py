@@ -67,4 +67,24 @@ SOURCE_LIST: Dict[str, _Source] = {
         "https://www.dropbox.com/scl/fi/r3lmdpzhyzv2h0mdh4802/bike.arff.gz?rlkey=9eq3x5onmgtpmhi1kpjs25u4c&st=ikx0urzf&dl=1",
         "https://www.dropbox.com/scl/fi/srwuiua429eqf4um750z0/bike.csv.gz?rlkey=6e537xxjvs2hcaev73fkpc4yy&st=2gebrfhf&dl=1",
     ),
+    "Airlines": _Source(
+        "https://www.openml.org/data/download/66526/phpvcoG8S.arff",
+        None,
+    ),
+    "KDD99": _Source(
+        "https://www.openml.org/data/download/53996/KDDCup99.arff",
+        None,
+    ),
+    "Nomao": _Source(
+        "https://www.openml.org/data/download/1592278/nomao.arff",
+        None,
+    ),
+    "Spambase": _Source(
+        "https://www.openml.org/data/download/44/spambase.arff",
+        None,
+    ),
+    "PokerHand": _Source(
+        "https://www.openml.org/data/download/1675986/poker-hand.arff",
+        None,
+    ),
 }
