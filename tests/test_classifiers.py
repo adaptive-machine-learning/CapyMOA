@@ -43,6 +43,7 @@ from capymoa.evaluation import ClassificationEvaluator, prequential_evaluation
 from capymoa.core.io import load_model, save_model
 from capymoa.core.moa.splitcriteria import GiniSplitCriterion
 from capymoa.stream import Schema, Stream
+from capymoa.stream.generator import RandomTreeGenerator
 import numpy as np
 
 
@@ -370,3 +371,23 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     if isinstance(learner, MOAClassifier) and test_case.cli_string is not None:
         cli_str = cli_str_classifier(learner).strip("()")
         assert cli_str == test_case.cli_string, "CLI does not match expected value"
+
+    # `predict_proba` must always be shaped by the schema, not by the classes
+    # seen so far (https://github.com/adaptive-machine-learning/backlog/issues/96).
+    with subtests.test(msg="predict_proba_shape"):
+        many_classes_stream = RandomTreeGenerator(num_classes=7)
+        many_classes_learner: Classifier = test_case.learner_constructor(
+            schema=many_classes_stream.get_schema()
+        )
+        for _ in range(5):
+            many_classes_learner.train(next(many_classes_stream))
+        many_classes_proba = many_classes_learner.predict_proba(
+            next(many_classes_stream)
+        )
+        if many_classes_proba is not None:
+            assert many_classes_proba.shape == (7,), (
+                f"Expected shape (7,), got {many_classes_proba.shape}"
+            )
+            assert sum(many_classes_proba) == pytest.approx(1.0, abs=1e-5), (
+                "Probability sum != 1"
+            )
