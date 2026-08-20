@@ -77,7 +77,11 @@ def download_unpacked(url: str, downloads: Path | str) -> Path:
             with open(path, "xb") as fdst:
                 copyfileobj(fin, fdst)
     elif format is not None:
-        unpack_archive(tmpfile, path, format=format)
+        # Python 3.14 makes ``filter="data"`` the default for tar archives and
+        # warns until then. Ask for it explicitly: it rejects members that would
+        # escape the destination directory. The zip unpacker takes no filter.
+        filter_kwargs = {} if format == "zip" else {"filter": "data"}
+        unpack_archive(tmpfile, path, format=format, **filter_kwargs)
     else:
         move(tmpfile, path)
     return path
