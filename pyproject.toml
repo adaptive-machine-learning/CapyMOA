@@ -41,7 +41,7 @@ keywords = [
 ]
 
 long_description_content_type = "text/markdown"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 # Defines the pip packages that are required by this package. These should be
 # as permissive as possible, since capymoa should collaborate with other
 # packages.
@@ -251,7 +251,7 @@ upload_to_vcs_release = true
 
 # Configuration for the formatter
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 
 
 [tool.coverage.report]
