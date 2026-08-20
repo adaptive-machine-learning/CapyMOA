@@ -1,0 +1,15 @@
+# CODEOWNERS
+#
+# Each line maps a domain of src/capymoa to its maintainer.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+/src/capymoa/anomaly/   @justinuliu
+/src/capymoa/automl/    @hmgomes
+/src/capymoa/classifier/ @hmgomes
+/src/capymoa/cluster/   @cassales
+/src/capymoa/drift/     @vcerqueira
+/src/capymoa/feature/   @hmgomes
+/src/capymoa/ocl/       @tachyonicClock @nuwangunasekara
+/src/capymoa/interval/  @YibinSun
+/src/capymoa/regressor/ @YibinSun @nuwangunasekara
+/src/capymoa/ssl/       @tachyonicClock
