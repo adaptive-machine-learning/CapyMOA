@@ -20,7 +20,7 @@ permissions:
   pull-requests: read
 
 env:
-  PYTHON_VERSION: "3.10"
+  PYTHON_VERSION: "3.11"
 
 jobs:
   tests:
@@ -30,16 +30,16 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        # For Pull Requests we run tests on Ubuntu with Python 3.10.
+        # For Pull Requests we run tests on Ubuntu with Python 3.11.
         # In releases we will test on more configurations.
         operating-system:
           - ubuntu-latest
           # - windows-latest
           # - macos-latest
         python-version:
-          - '3.10'
-          # - '3.11'
+          - '3.11'
           # - '3.12'
+          # - '3.13'
 
     steps:
     - uses: actions/checkout@v3
