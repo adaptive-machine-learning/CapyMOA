@@ -55,7 +55,7 @@ dependencies = [
     "matplotlib~=3.10",
     "numpy~=2.2",
     "pandas~=2.2",
-    "scikit-learn~=1.7",
+    "scikit-learn~=1.8",
     "seaborn~=0.13",
     "tqdm~=4.67",
     # `typing_extensions.override` is used across the core modules. It used to

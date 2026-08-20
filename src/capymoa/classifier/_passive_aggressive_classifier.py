@@ -1,18 +1,22 @@
 from typing import Optional, Dict, Union, Literal
 from capymoa.base import SKClassifier
 from sklearn.linear_model import (
-    PassiveAggressiveClassifier as _SKPassiveAggressiveClassifier,
+    SGDClassifier as _SKSGDClassifier,
 )
 from capymoa.stream._stream import Schema
+
+# Maps the passive aggressive loss onto the equivalent scikit-learn learning
+# rate schedule: PA-I for the hinge loss and PA-II for the squared hinge loss.
+_LOSS_TO_LEARNING_RATE = {"hinge": "pa1", "squared_hinge": "pa2"}
 
 
 class PassiveAggressiveClassifier(SKClassifier):
     """Streaming Passive Aggressive Classifier.
 
     Streaming Passive Aggressive Classifier [#0]_ is a classifier. This wraps
-    :class:`~sklearn.linear_model.PassiveAggressiveClassifier` for ease of use in the streaming
-    context. Some options are missing because they are not relevant in the streaming
-    context.
+    :class:`~sklearn.linear_model.SGDClassifier` with a passive aggressive
+    learning rate schedule for ease of use in the streaming context. Some
+    options are missing because they are not relevant in the streaming context.
 
     >>> from capymoa.classifier import PassiveAggressiveClassifier
     >>> from capymoa.datasets import ElectricityTiny
@@ -29,15 +33,15 @@ class PassiveAggressiveClassifier(SKClassifier):
              <http://jmlr.csail.mit.edu/papers/volume7/crammer06a/crammer06a.pdf>`_
     """
 
-    sklearner: _SKPassiveAggressiveClassifier
-    """The underlying scikit-learn object. See: :sklearn:`linear_model.PassiveAggressiveClassifier`"""
+    sklearner: _SKSGDClassifier
+    """The underlying scikit-learn object. See: :sklearn:`linear_model.SGDClassifier`"""
 
     def __init__(
         self,
         schema: Schema,
         max_step_size: float = 1.0,
         fit_intercept: bool = True,
-        loss: str = "hinge",
+        loss: Literal["hinge", "squared_hinge"] = "hinge",
         n_jobs: Optional[int] = None,
         class_weight: Union[Dict[int, float], None, Literal["balanced"]] = None,
         average: bool = False,
@@ -68,16 +72,26 @@ class PassiveAggressiveClassifier(SKClassifier):
             seen reaches average. So ``average=10`` will begin averaging after
             seeing 10 samples.
         :param random_seed: Seed for the random number generator.
+        :raises ValueError: If ``loss`` is not one of the supported losses.
         """
 
+        if loss not in _LOSS_TO_LEARNING_RATE:
+            raise ValueError(
+                f"Unknown loss {loss!r}, expected one of "
+                f"{sorted(_LOSS_TO_LEARNING_RATE)}."
+            )
+
         super().__init__(
-            _SKPassiveAggressiveClassifier(
-                C=max_step_size,
+            _SKSGDClassifier(
+                loss="hinge",
+                penalty=None,
+                alpha=1.0,
+                learning_rate=_LOSS_TO_LEARNING_RATE[loss],
+                eta0=max_step_size,
                 fit_intercept=fit_intercept,
                 early_stopping=False,
                 shuffle=False,
                 verbose=0,
-                loss=loss,
                 n_jobs=n_jobs,
                 warm_start=False,
                 class_weight=class_weight,
