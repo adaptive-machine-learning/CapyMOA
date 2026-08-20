@@ -67,4 +67,24 @@ SOURCE_LIST: Dict[str, _Source] = {
         "https://www.dropbox.com/scl/fi/r3lmdpzhyzv2h0mdh4802/bike.arff.gz?rlkey=9eq3x5onmgtpmhi1kpjs25u4c&st=ikx0urzf&dl=1",
         "https://www.dropbox.com/scl/fi/srwuiua429eqf4um750z0/bike.csv.gz?rlkey=6e537xxjvs2hcaev73fkpc4yy&st=2gebrfhf&dl=1",
     ),
+    "Airlines": _Source(
+        "https://www.dropbox.com/scl/fi/eqd4umtf2zfnpnxhih6g2/airlines.arff.gz?rlkey=llyu3ykwgwoy8u71y96nspoh4&st=e52abisn&dl=1",
+        "https://www.dropbox.com/scl/fi/yodn679r1isxo8nwwvtqi/airlines.csv.gz?rlkey=cnuukfv2yq9duau97lx753ajl&st=ofu92em1&dl=1",
+    ),
+    "KDD99": _Source(
+        "https://www.dropbox.com/scl/fi/flainlfk15tut2p3qxdgd/KDDCup99.arff.gz?rlkey=gt03mezzps6euezgmhgpqsifv&st=ky0dt0dg&dl=1",
+        "https://www.dropbox.com/scl/fi/om7h280kd8ngpqrbf1pwb/KDDCup99.csv.gz?rlkey=o9v8doagsblac92s4540vfxnu&st=x246j61e&dl=1",
+    ),
+    "Nomao": _Source(
+        "https://www.dropbox.com/scl/fi/w9mhmi9zs4ie67m4412es/nomao.arff.gz?rlkey=p3gbrolfhell804buxdhvm8wb&st=u4ijyoad&dl=1",
+        "https://www.dropbox.com/scl/fi/jiotnvoamhgybykfzhc2s/nomao.csv.gz?rlkey=tnc7cucfccgycwdrhp3fjqslr&st=rxisj2x3&dl=1",
+    ),
+    "Spambase": _Source(
+        "https://www.dropbox.com/scl/fi/cc2gfwpti7vkv6d4vea62/spambase.arff.gz?rlkey=k2w0jzvfkawsljw32ex8s9yxu&st=z8twhqoh&dl=1",
+        "https://www.dropbox.com/scl/fi/et2h3ufed4dhp5enmiais/spambase.csv.gz?rlkey=gicmu7l309g5c7jdazuhlwp5q&st=pbnrrwi7&dl=1",
+    ),
+    "PokerHand": _Source(
+        "https://www.dropbox.com/scl/fi/6od40wxphdsgo20hxyama/poker-hand.arff.gz?rlkey=0pmk5fb8al4aw7r1xfb41hux5&st=ar7ub159&dl=1",
+        "https://www.dropbox.com/scl/fi/zvw65ifq8w1i85wh68qq2/poker-hand.csv.gz?rlkey=j7pamjd4kqeaymzs8x2f32mku&st=nmuxbghi&dl=1",
+    ),
 }

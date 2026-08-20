@@ -314,3 +314,129 @@ class Bike(_DownloadableARFF):
 
     _target_type = "numeric"
     _length = 17_379
+
+
+class Airlines(_DownloadableARFF):
+    """Airlines dataset inspired in the regression dataset from Elena Ikonomovska.
+
+    * Number of instances: 539,383
+    * Number of attributes: 8
+    * Number of targets: 2
+
+    The task is to predict whether a given flight will be delayed, given the information
+    of the scheduled departure.
+
+    **References:**
+
+    #.  Ikonomovska, Elena. "Airline Data Set." Data Expo Competition (2009):
+        http://kt.ijs.si/elena_ikonomovska/data.html (archived:
+        https://web.archive.org/web/20110718072348/http://kt.ijs.si/elena_ikonomovska/data.html).
+    #.  Bifet, Albert, and Elena Ikonomovska. "airlines." OpenML (2014):
+        https://www.openml.org/d/1169.
+    """
+
+    _target_type = "categorical"
+    _length = 539383
+
+
+class KDD99(_DownloadableARFF):
+    """KDD99 is a network intrusion detection problem based on a 10% stratified
+    subsample of the 1998 DARPA Intrusion Detection Evaluation Program data.
+
+    * Number of instances: 494,020
+    * Number of attributes: 41
+    * Number of classes: 23
+
+    The task is to distinguish between normal connections and different types of
+    network intrusions (attacks), grouped into four main categories: denial-of-service,
+    unauthorized access from a remote machine, unauthorized access to local
+    superuser privileges, and surveillance/probing.
+
+    **References:**
+
+    #.  Stolfo, Salvatore, Wei Fan, Wenke Lee, Andreas Prodromidis, and Philip
+        Chan. "KDD Cup 1999 Data." UCI Machine Learning Repository (1999):
+        https://doi.org/10.24432/C51C7N.
+    #.  "KDDCup99." OpenML (2014): https://www.openml.org/d/1113.
+    """
+
+    _target_type = "categorical"
+    _length = 494_020
+
+
+class Nomao(_DownloadableARFF):
+    """Nomao is a deduplication classification problem based on data aggregated
+    by the Nomao Labs search engine.
+
+    * Number of instances: 34,465
+    * Number of attributes: 118
+    * Number of classes: 2
+
+    The task is to determine whether two place records (containing information
+    such as names, phone numbers, and addresses collected from several sources)
+    refer to the same real-world place. The attributes measure similarity and
+    matching characteristics across the various fields of the records being compared.
+
+    **References:**
+
+    #.  Candillier, Laurent, and Vincent Lemaire. "Design and analysis of the
+        Nomao challenge active learning in the real-world." Proceedings of the
+        ALRA: Active Learning in Real-world Applications, Workshop ECML-PKDD
+        (2012): https://archive.ics.uci.edu/ml/datasets/Nomao.
+    #.  "nomao." OpenML (2015): https://www.openml.org/d/1486.
+    """
+
+    _target_type = "categorical"
+    _length = 34_465
+
+
+class Spambase(_DownloadableARFF):
+    """Spambase is a classification problem based on the classic UCI Spambase
+    email dataset from Hewlett-Packard Labs.
+
+    * Number of instances: 4,601
+    * Number of attributes: 57
+    * Number of classes: 2
+
+    The task is to predict whether a given email is spam. Spam emails were
+    collected from postmaster and individual submissions, while non-spam
+    emails came from filed work and personal correspondence. Attributes
+    consist of word and character frequency measures as well as measures of
+    the length of consecutive sequences of capital letters.
+
+    **References:**
+
+    #.  Hopkins, Mark, Erik Reeber, George Forman, and Jaap Suermondt.
+        "Spambase." UCI Machine Learning Repository (1999):
+        https://archive.ics.uci.edu/dataset/94/spambase,
+        https://doi.org/10.24432/C53G6X.
+    #.  "spambase." OpenML (2014): https://www.openml.org/d/44.
+    """
+
+    _target_type = "categorical"
+    _length = 4_601
+
+
+class PokerHand(_DownloadableARFF):
+    """PokerHand is a classification problem where each instance is an example
+    of a hand consisting of five playing cards drawn from a standard deck of 52.
+
+    * Number of instances: 1,025,009
+    * Number of attributes: 10
+    * Number of classes: 10
+
+    Each card is described using two attributes (suit and rank), for a total
+    of 10 predictive attributes. The task is to predict the poker hand,
+    ranging from nothing to royal flush. Note that the order of cards is
+    important, so there are 480 possible Royal Flush hands instead of just 4.
+
+    **References:**
+
+    #.  Cattral, Robert, Franz Oppacher, and Dwight Deugo. "Evolutionary data
+        mining with automatic rule generalization." Recent Advances in
+        Computers, Computing and Communications (2002).
+    #.  "poker-hand." OpenML (2015): https://www.openml.org/d/1567.
+    """
+
+    _target_type = "categorical"
+    _length = 1_025_009
