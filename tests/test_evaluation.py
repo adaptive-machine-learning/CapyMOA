@@ -421,8 +421,13 @@ def test_predict_proba_only_rejects_absent_predictions(votes, expected):
     class _FakeInstance:
         java_instance = None
 
+    class _FakeSchema:
+        def get_num_classes(self):
+            return 2
+
     classifier = MOAClassifier.__new__(MOAClassifier)
     classifier.moa_learner = _FakeMOALearner()
+    classifier.schema = _FakeSchema()
 
     result = MOAClassifier.predict_proba(classifier, _FakeInstance())
     if expected is None:
