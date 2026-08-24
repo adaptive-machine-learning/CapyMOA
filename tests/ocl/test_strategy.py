@@ -14,7 +14,7 @@ from capymoa.classifier import Finetune, HoeffdingTree  # noqa: E402
 from capymoa.ocl.datasets import TinySplitMNIST  # noqa: E402
 from capymoa.ocl.evaluation import ocl_train_eval_loop  # noqa: E402
 
-from capymoa.ocl.strategy import ExperienceReplay, SLDA, NCM, GDumb, RAR, EWC, SI  # noqa: E402
+from capymoa.ocl.strategy import ExperienceReplay, SLDA, NCM, GDumb, RAR, EWC, SI, LWF  # noqa: E402
 from capymoa.stream import Schema  # noqa: E402
 
 import torch  # noqa: E402
@@ -155,6 +155,11 @@ TEST_CASES: List[Case] = [
         ),
         Result(96.5, 80.8, 34.4),
         task_mask=True,
+    ),
+    Case(
+        "LWF",
+        new_constructor(LWF, lr=0.10, alpha=4.66, temperature=1.67),
+        Result(36.49, 25.09, 17.59),
     ),
 ]
 
