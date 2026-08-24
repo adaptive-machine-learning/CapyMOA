@@ -7,5 +7,6 @@ from ._gdumb import GDumb
 from ._rar import RAR
 from . import l2p
 from ._ewc import EWC
+from ._si import SI
 
-__all__ = ["ExperienceReplay", "SLDA", "NCM", "GDumb", "RAR", "l2p", "EWC"]
+__all__ = ["ExperienceReplay", "SLDA", "NCM", "GDumb", "RAR", "l2p", "EWC", "SI"]
