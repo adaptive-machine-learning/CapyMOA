@@ -24,6 +24,7 @@ from capymoa.ocl.strategy import (  # noqa: E402
     SI,
     LWF,
     MAS,
+    RWalk,
 )
 from capymoa.stream import Schema  # noqa: E402
 
@@ -190,6 +191,31 @@ TEST_CASES: List[Case] = [
             mask_test=True,
         ),
         Result(96.0, 81.2, 31.8),
+        task_mask=True,
+    ),
+    Case(
+        "RWalk",
+        new_constructor(
+            RWalk,
+            optimiser_type=torch.optim.Adam,
+            lr=0.0037,
+            lambda_=53.4,
+            alpha=0.84,
+            delta_t=51,
+        ),
+        Result(43.0, 28.9, 10.8),
+    ),
+    Case(
+        "RWalk(task_mask)",
+        new_constructor(
+            RWalk,
+            optimiser_type=torch.optim.Adam,
+            lr=0.0037,
+            lambda_=53.4,
+            alpha=0.84,
+            delta_t=51,
+        ),
+        Result(87.5, 76.9, 31.1),
         task_mask=True,
     ),
 ]
