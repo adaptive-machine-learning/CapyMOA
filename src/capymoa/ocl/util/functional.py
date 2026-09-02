@@ -10,7 +10,7 @@ def hinton_distillation_loss(
     """Hinton's distillation loss [#f1]_ .
 
     .. math::
-        L_{KD} = T^2 KL(softmax(z_s / T), softmax(z_t / T))
+        L_{KD} = T^2 KL(softmax(z_t / T), softmax(z_s / T))
 
     where :math:`T` is the temperature, :math:`z_s` are the student logits, and
     :math:`z_t` are the teacher logits.

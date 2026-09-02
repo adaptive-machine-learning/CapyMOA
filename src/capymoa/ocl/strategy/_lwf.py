@@ -6,10 +6,12 @@ from torch import Tensor, nn
 
 from capymoa.base import BatchClassifier
 from capymoa.ocl.events import Dispatcher, Handler
-from capymoa.ocl.evaluation.events import TrainTaskBegin
+from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.util._optim import reset_optimizer_state
 from capymoa.ocl.util.functional import hinton_distillation_loss
 from capymoa.stream._stream import Schema
+
+NEG_INF = float("-inf")
 
 
 class LWF(BatchClassifier, nn.Module, Handler):
@@ -31,6 +33,9 @@ class LWF(BatchClassifier, nn.Module, Handler):
         alpha: float = 1.0,
         temperature: float = 2.0,
         device: torch.device = torch.device("cpu"),
+        mask_test: bool = False,
+        mask_train: bool = False,
+        task_mask: Optional[Tensor] = None,
     ) -> None:
         """Construct an LWF learner.
 
@@ -40,8 +45,13 @@ class LWF(BatchClassifier, nn.Module, Handler):
         :param alpha: Weight of the distillation loss term.
         :param temperature: Distillation temperature.
         :param device: Compute device.
-        :raises ValueError: If ``alpha`` is negative or ``temperature`` is not
-            positive.
+        :param mask_test: Whether to apply per-task masking during testing. This is a
+            task incremental scenario.
+        :param mask_train: Whether to apply per-task masking during training. This is
+            also known as the labels trick.
+        :param task_mask: Optional per-task mask applied to output logits.
+        :raises ValueError: If ``alpha`` is negative, ``temperature`` is not positive,
+            or task-specific masking is requested without ``task_mask``.
         """
         super().__init__(schema, 0)
         nn.Module.__init__(self)
@@ -49,11 +59,17 @@ class LWF(BatchClassifier, nn.Module, Handler):
             raise ValueError("alpha must be non-negative.")
         if temperature <= 0:
             raise ValueError("temperature must be greater than zero.")
+        if (mask_train or mask_test) and task_mask is None:
+            raise ValueError(
+                "Task schedule must be provided for task incremental or labels trick scenarios."
+            )
 
         self.device = device
 
         self._alpha = alpha
         self._temperature = temperature
+        self._mask_train = mask_train
+        self._mask_test = mask_test
 
         self._optimiser = optimiser
         self._model = model
@@ -61,6 +77,11 @@ class LWF(BatchClassifier, nn.Module, Handler):
 
         self._teacher: Optional[torch.nn.Module] = None
         self._train_task = 0
+        self._test_task = 0
+        if task_mask is None:
+            self._task_mask = None
+        else:
+            self._task_mask = nn.Buffer(task_mask)
 
         # Move all model parameters and buffers to the specified device
         self.to(device)
@@ -69,11 +90,10 @@ class LWF(BatchClassifier, nn.Module, Handler):
         self._model.train()
         self._optimiser.zero_grad()
 
-        student_logits = self._model(x)
+        raw_logits = self._model(x)
+        student_logits = self._apply_train_mask(raw_logits)
         task_loss = self._criterion(student_logits, y)
-        total_loss = task_loss + self._alpha * self._distillation_loss(
-            x, student_logits
-        )
+        total_loss = task_loss + self._alpha * self._distillation_loss(x, raw_logits)
 
         total_loss.backward()
         self._optimiser.step()
@@ -81,11 +101,12 @@ class LWF(BatchClassifier, nn.Module, Handler):
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
         self._model.eval()
-        y_hat = self._model(x)
+        y_hat = self._apply_test_mask(self._model(x))
         return torch.softmax(y_hat, dim=1)
 
     def attach_with(self, source: Dispatcher) -> "LWF":
         source.subscribe(TrainTaskBegin, self._on_train_task_begin)
+        source.subscribe(TestTaskBegin, self._on_test_task_begin)
         return self
 
     def _on_train_task_begin(self, event: TrainTaskBegin) -> None:
@@ -95,6 +116,21 @@ class LWF(BatchClassifier, nn.Module, Handler):
                 deepcopy(self._model).to(self.device).eval().requires_grad_(False)
             )
         self._train_task = event.train_task
+
+    def _on_test_task_begin(self, event: TestTaskBegin) -> None:
+        self._test_task = event.test_task
+
+    def _apply_train_mask(self, y_hat: Tensor) -> Tensor:
+        """Apply the train-task mask to logits, if enabled."""
+        if self._task_mask is not None and self._mask_train:
+            y_hat = y_hat.masked_fill(self._task_mask[self._train_task] == 0, NEG_INF)
+        return y_hat
+
+    def _apply_test_mask(self, y_hat: Tensor) -> Tensor:
+        """Apply the test-task mask to logits, if enabled."""
+        if self._task_mask is not None and self._mask_test:
+            y_hat = y_hat.masked_fill(self._task_mask[self._test_task] == 0, NEG_INF)
+        return y_hat
 
     @torch.no_grad()
     def _teacher_forward(self, x: Tensor) -> Tensor:
