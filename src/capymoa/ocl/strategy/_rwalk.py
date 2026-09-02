@@ -149,6 +149,8 @@ class RWalk(BatchClassifier, nn.Module, Handler):
         alpha: float = 0.9,
         delta_t: int = 10,
         device: torch.device = torch.device("cpu"),
+        mask_test: bool = False,
+        mask_train: bool = False,
         task_mask: Optional[Tensor] = None,
     ) -> None:
         """Construct an RWalk learner.
@@ -157,17 +159,26 @@ class RWalk(BatchClassifier, nn.Module, Handler):
         :param model: Torch model that outputs class logits.
         :param optimiser: Optimiser used to update ``model`` parameters.
         :param lambda_: Weight of the RWalk regularisation term.
-        :param alpha: Decay factor for the exponential moving average of squared
-            gradients. A value of ``1.0`` keeps only the most recent estimate.
+        :param alpha: EMA decay factor weighting the *new* gradient estimate
+            (``alpha=1.0`` keeps only the most recent estimate). MAS's ``alpha``
+            weights the old estimate instead.
         :param delta_t: Number of training steps between score checkpoints.
         :param device: Compute device.
-        :param task_mask: Optional per-task mask applied to output logits during both
-            training and testing.
-        :raises ValueError: If ``lambda_`` is negative, ``alpha`` is outside
-            ``[0, 1]``, or ``delta_t`` is less than 1.
+        :param mask_test: Whether to apply per-task masking during testing. This is a
+            task incremental scenario.
+        :param mask_train: Whether to apply per-task masking during training. This is
+            also known as the labels trick.
+        :param task_mask: Optional per-task mask applied to output logits.
+        :raises ValueError: If ``lambda_`` is negative, ``alpha`` is outside ``[0, 1]``,
+            ``delta_t`` is less than 1, or task-specific masking is requested without
+            ``task_mask``.
         """
         super().__init__(schema, 0)
         nn.Module.__init__(self)
+        if (mask_train or mask_test) and task_mask is None:
+            raise ValueError(
+                "Task schedule must be provided for task incremental or labels trick scenarios."
+            )
         if lambda_ < 0:
             raise ValueError("lambda_ must be non-negative.")
         if not (0.0 <= alpha <= 1.0):
@@ -181,6 +192,8 @@ class RWalk(BatchClassifier, nn.Module, Handler):
         self._lambda = lambda_
         self._alpha = alpha
         self._delta_t = delta_t
+        self._mask_train = mask_train
+        self._mask_test = mask_test
 
         # Modules
         self._optimiser = optimiser
@@ -204,7 +217,6 @@ class RWalk(BatchClassifier, nn.Module, Handler):
         # Task tracking
         self._train_task = 0
         self._test_task = 0
-        self._train_steps = 0
         self._steps_since_checkpoint = 0
         self._has_completed_task = False
         if task_mask is None:
@@ -245,7 +257,6 @@ class RWalk(BatchClassifier, nn.Module, Handler):
             self._iter_grads,
         )
 
-        self._train_steps += 1
         self._steps_since_checkpoint += 1
         if self._steps_since_checkpoint >= self._delta_t:
             self._flush_checkpoint_scores()
@@ -309,16 +320,16 @@ class RWalk(BatchClassifier, nn.Module, Handler):
         self._steps_since_checkpoint = 0
 
     def _test_forward(self, x: Tensor) -> Tensor:
-        """Compute logits for inference, optionally applying a task mask."""
+        """Compute logits for inference, optionally applying a test-task mask."""
         y_hat = self._model(x)
-        if self._task_mask is not None:
+        if self._task_mask is not None and self._mask_test:
             y_hat = y_hat.masked_fill(self._task_mask[self._test_task] == 0, NEG_INF)
         return y_hat
 
     def _train_forward(self, x: Tensor) -> Tensor:
-        """Compute logits for training, optionally applying a task mask."""
+        """Compute logits for training, optionally applying a train-task mask."""
         y_hat = self._model(x)
-        if self._task_mask is not None:
+        if self._task_mask is not None and self._mask_train:
             y_hat = y_hat.masked_fill(self._task_mask[self._train_task] == 0, NEG_INF)
         return y_hat
 

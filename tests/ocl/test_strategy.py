@@ -214,6 +214,8 @@ TEST_CASES: List[Case] = [
             lambda_=53.4,
             alpha=0.84,
             delta_t=51,
+            mask_train=True,
+            mask_test=True,
         ),
         Result(87.5, 76.9, 31.1),
         task_mask=True,
