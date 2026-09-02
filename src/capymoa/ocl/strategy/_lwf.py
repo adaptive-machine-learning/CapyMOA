@@ -21,6 +21,8 @@ class LWF(BatchClassifier, nn.Module, Handler):
     predictions from a frozen teacher snapshot of the previous task while learning the
     current task.
 
+    LWF does not support task-incremental masking; its source paper has no per-task mask.
+
     ..  [#f1] Li, Z., & Hoiem, D. (2016). Learning without forgetting. CoRR,
         abs/1606.09282. http://arxiv.org/abs/1606.09282
     """
