@@ -123,6 +123,8 @@ class MAS(BatchClassifier, nn.Module, Handler):
         buffer_capacity: int = 256,
         importance_batch_size: int = 32,
         device: torch.device = torch.device("cpu"),
+        mask_test: bool = False,
+        mask_train: bool = False,
         task_mask: Optional[Tensor] = None,
     ) -> None:
         """Construct a MAS learner.
@@ -131,19 +133,27 @@ class MAS(BatchClassifier, nn.Module, Handler):
         :param model: Torch model that outputs class logits.
         :param optimiser: Optimiser used to update ``model`` parameters.
         :param lambda_: Weight of the MAS regularisation term.
-        :param alpha: Exponential moving average factor used when consolidating
-            importance across tasks. A value of ``1.0`` keeps only the earliest
-            estimate, while ``0.0`` keeps only the most recent one.
+        :param alpha: EMA factor weighting the *old* importance estimate (``alpha=1.0``
+            means the importance never updates past its initial zero value;
+            ``alpha=0.0`` keeps only the most recent estimate). RWalk's ``alpha``
+            weights the new estimate instead.
         :param buffer_capacity: Replay window size used to estimate importance.
         :param importance_batch_size: Mini-batch size used when estimating importance.
         :param device: Compute device.
-        :param task_mask: Optional per-task mask applied to output logits during both
-            training and testing.
-        :raises ValueError: If ``lambda_`` is negative or ``alpha`` is outside
-            ``[0, 1]``.
+        :param mask_test: Whether to apply per-task masking during testing. This is a
+            task incremental scenario.
+        :param mask_train: Whether to apply per-task masking during training. This is
+            also known as the labels trick.
+        :param task_mask: Optional per-task mask applied to output logits.
+        :raises ValueError: If ``lambda_`` is negative, ``alpha`` is outside ``[0, 1]``,
+            or task-specific masking is requested without ``task_mask``.
         """
         super().__init__(schema, 0)
         nn.Module.__init__(self)
+        if (mask_train or mask_test) and task_mask is None:
+            raise ValueError(
+                "Task schedule must be provided for task incremental or labels trick scenarios."
+            )
         if lambda_ < 0:
             raise ValueError("lambda_ must be non-negative.")
         if not (0.0 <= alpha <= 1.0):
@@ -155,6 +165,8 @@ class MAS(BatchClassifier, nn.Module, Handler):
         self._lambda = lambda_
         self._alpha = alpha
         self._importance_batch_size = importance_batch_size
+        self._mask_train = mask_train
+        self._mask_test = mask_test
 
         # Modules
         self._optimiser = optimiser
@@ -205,6 +217,8 @@ class MAS(BatchClassifier, nn.Module, Handler):
     def _on_train_task_begin(self, event: TrainTaskBegin) -> None:
         reset_optimizer_state(self._optimiser)
         if event.train_task > 0:
+            # Estimate importance before advancing _train_task: _importance_forward
+            # reads _train_task to pick the mask, and must use the outgoing task's.
             self._update_importance()
             self._update_anchor_params()
         self._train_task = event.train_task
@@ -234,16 +248,16 @@ class MAS(BatchClassifier, nn.Module, Handler):
             anchor_param.copy_(param.detach())
 
     def _test_forward(self, x: Tensor) -> Tensor:
-        """Compute logits for inference, optionally applying a task mask."""
+        """Compute logits for inference, optionally applying a test-task mask."""
         y_hat = self._model(x)
-        if self._task_mask is not None:
+        if self._task_mask is not None and self._mask_test:
             y_hat = y_hat.masked_fill(self._task_mask[self._test_task] == 0, NEG_INF)
         return y_hat
 
     def _train_forward(self, x: Tensor) -> Tensor:
-        """Compute logits for training, optionally applying a task mask."""
+        """Compute logits for training, optionally applying a train-task mask."""
         y_hat = self._model(x)
-        if self._task_mask is not None:
+        if self._task_mask is not None and self._mask_train:
             y_hat = y_hat.masked_fill(self._task_mask[self._train_task] == 0, NEG_INF)
         return y_hat
 
@@ -255,7 +269,7 @@ class MAS(BatchClassifier, nn.Module, Handler):
         into NaNs.
         """
         y_hat = self._model(x)
-        if self._task_mask is not None:
+        if self._task_mask is not None and self._mask_train:
             y_hat = y_hat[:, self._task_mask[self._train_task]]
         return y_hat
 

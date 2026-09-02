@@ -181,7 +181,13 @@ TEST_CASES: List[Case] = [
     Case(
         "MAS(task_mask)",
         new_constructor(
-            MAS, optimiser_type=torch.optim.Adam, lr=0.004, lambda_=30, alpha=0.5
+            MAS,
+            optimiser_type=torch.optim.Adam,
+            lr=0.004,
+            lambda_=30,
+            alpha=0.5,
+            mask_train=True,
+            mask_test=True,
         ),
         Result(96.0, 81.2, 31.8),
         task_mask=True,
