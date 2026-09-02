@@ -2,6 +2,7 @@ from typing import Iterable, Iterator, Optional, Sequence
 
 import torch
 from torch import Tensor, nn
+from torch.nn.functional import relu
 
 from capymoa.base import BatchClassifier
 from capymoa.ocl.events import Dispatcher, Handler
@@ -104,6 +105,10 @@ def update_importance_weights_(
         # stability).
         param_shift_squared = (end_param - start_param).pow(2)
         task_importance = traj / (param_shift_squared + damping)
+
+        # Clamp to non-negative: a negative value would reward moving away from
+        # the anchor instead of penalising it.
+        task_importance = relu(task_importance)
 
         # Accumulate importance across sequential tasks
         omega.add_(task_importance)
