@@ -213,6 +213,7 @@ class EvaluateDriftDetector:
                     UserWarning,
                 )
             drift_eps = drift_episodes
+            trailing_fp_count = 0
         else:
             if trues is None or preds is None:
                 raise ValueError(
@@ -221,6 +222,13 @@ class EvaluateDriftDetector:
 
             self._check_arrays(trues, preds)
             drift_eps = self._get_drift_episodes(trues=trues, preds=preds)
+
+            trues_array = np.asarray(trues)
+            if trues_array.ndim == 1:
+                trues_array = np.column_stack((trues_array, trues_array))
+            last_episode_end = int(trues_array[-1, 1]) + self.max_delay
+            preds_array = np.asarray(preds)
+            trailing_fp_count = int(np.sum(preds_array > last_episode_end))
 
         fp, tp, fn = 0, 0, 0
         etp = 0  # episode true positives
@@ -263,6 +271,9 @@ class EvaluateDriftDetector:
                 detection_times.append(episode_detection_time)
             else:
                 fn += 1
+
+        fp += trailing_fp_count
+        n_alarms += trailing_fp_count
 
         precision, recall, f1 = self._calc_classification_metrics(tp=tp, fp=fp, fn=fn)
         false_alarm_rate = (fp / max(1, tot_n_instances)) * self.rate_period
