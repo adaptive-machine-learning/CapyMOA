@@ -4,6 +4,22 @@ import pytest
 from capymoa.drift.eval_detector import EvaluateDriftDetector
 
 
+def test_trailing_predictions_after_last_drift_window_are_false_positives():
+    metrics = EvaluateDriftDetector(max_delay=50).calc_performance(
+        trues=np.asarray([(5000, 5000)], dtype=int),
+        preds=np.asarray([576, 5024, 5216, 5696, 6848], dtype=int),
+        tot_n_instances=10_000,
+    )
+
+    assert metrics.tp == 1
+    assert metrics.fp == 4
+    assert metrics.n_alarms == 5
+    assert metrics.precision == pytest.approx(0.2)
+    assert metrics.f1 == pytest.approx(1 / 3)
+    assert metrics.far == pytest.approx(0.4)
+    assert metrics.ar == pytest.approx(0.5)
+
+
 def test_ndt_is_mdt_over_max_delay():
     """``ndt`` restates ``mdt`` as a fraction of the acceptable delay."""
     metrics = EvaluateDriftDetector(max_delay=200).calc_performance(
