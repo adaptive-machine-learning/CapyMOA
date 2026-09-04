@@ -10,6 +10,7 @@ from ._ewc import EWC
 from ._si import SI
 from ._lwf import LWF
 from ._mas import MAS
+from ._rwalk import RWalk
 
 __all__ = [
     "ExperienceReplay",
@@ -22,4 +23,5 @@ __all__ = [
     "SI",
     "LWF",
     "MAS",
+    "RWalk",
 ]
