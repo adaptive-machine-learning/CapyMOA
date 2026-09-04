@@ -1,16 +1,25 @@
+from typing import Literal
 from capymoa.base import SKRegressor
 from sklearn.linear_model import (
-    PassiveAggressiveRegressor as _SKPassiveAggressiveRegressor,
+    SGDRegressor as _SKSGDRegressor,
 )
 from capymoa.stream._stream import Schema
+
+# Maps the passive aggressive loss onto the equivalent scikit-learn learning
+# rate schedule: PA-I for the epsilon insensitive loss and PA-II for its
+# squared variant.
+_LOSS_TO_LEARNING_RATE = {
+    "epsilon_insensitive": "pa1",
+    "squared_epsilon_insensitive": "pa2",
+}
 
 
 class PassiveAggressiveRegressor(SKRegressor):
     """Streaming Passive Aggressive regressor
 
-    This wraps :sklearn:`linear_model.PassiveAggressiveRegressor` for
-    ease of use in the streaming context. Some options are missing because
-    they are not relevant in the streaming context.
+    This wraps :sklearn:`linear_model.SGDRegressor` with a passive aggressive
+    learning rate schedule for ease of use in the streaming context. Some
+    options are missing because they are not relevant in the streaming context.
 
     Reference:
 
@@ -31,15 +40,17 @@ class PassiveAggressiveRegressor(SKRegressor):
     3.700...
     """
 
-    sklearner: _SKPassiveAggressiveRegressor
-    """The underlying scikit-learn object. See: :sklearn:`linear_model.PassiveAggressiveRegressor`"""
+    sklearner: _SKSGDRegressor
+    """The underlying scikit-learn object. See: :sklearn:`linear_model.SGDRegressor`"""
 
     def __init__(
         self,
         schema: Schema,
         max_step_size: float = 1.0,
         fit_intercept: bool = True,
-        loss: str = "epsilon_insensitive",
+        loss: Literal[
+            "epsilon_insensitive", "squared_epsilon_insensitive"
+        ] = "epsilon_insensitive",
         average: bool = False,
         random_seed=1,
     ):
@@ -61,16 +72,26 @@ class PassiveAggressiveRegressor(SKRegressor):
             seen reaches average. So ``average=10`` will begin averaging after
             seeing 10 samples.
         :param random_seed: Seed for the random number generator.
+        :raises ValueError: If ``loss`` is not one of the supported losses.
         """
 
+        if loss not in _LOSS_TO_LEARNING_RATE:
+            raise ValueError(
+                f"Unknown loss {loss!r}, expected one of "
+                f"{sorted(_LOSS_TO_LEARNING_RATE)}."
+            )
+
         super().__init__(
-            _SKPassiveAggressiveRegressor(
-                C=max_step_size,
+            _SKSGDRegressor(
+                loss="epsilon_insensitive",
+                penalty=None,
+                alpha=1.0,
+                learning_rate=_LOSS_TO_LEARNING_RATE[loss],
+                eta0=max_step_size,
                 fit_intercept=fit_intercept,
                 early_stopping=False,
                 shuffle=False,
                 verbose=0,
-                loss=loss,
                 warm_start=False,
                 average=average,
                 random_state=random_seed,
