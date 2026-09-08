@@ -33,7 +33,7 @@ def _make_autoencoder(**kwargs):
     [
         (
             partial(HalfSpaceTrees, window_size=100, number_of_trees=25, max_depth=15),
-            0.54,
+            0.87,
             None,
         ),
         (
@@ -43,18 +43,18 @@ def _make_autoencoder(**kwargs):
                 num_trees=32,
                 max_leaf_samples=32,
             ),
-            0.42,
+            0.59,
             None,
         ),
         pytest.param(
             partial(
                 _make_autoencoder, hidden_layer=2, learning_rate=0.5, threshold=0.6
             ),
-            0.57,
+            0.49,
             None,
             marks=pytest.mark.torch,
         ),
-        (partial(StreamRHF, num_trees=5, max_height=3), 0.72, None),
+        (partial(StreamRHF, num_trees=5, max_height=3), 0.80, None),
         (
             partial(
                 StreamingIsolationForest,
@@ -63,7 +63,7 @@ def _make_autoencoder(**kwargs):
                 height=None,
                 seed=42,
             ),
-            0.62,
+            0.79,
             None,
         ),
         (
@@ -73,7 +73,7 @@ def _make_autoencoder(**kwargs):
                 n_trees=10,
                 random_state=42,
             ),
-            0.54,
+            0.82,
             None,
         ),
         (
@@ -86,7 +86,7 @@ def _make_autoencoder(**kwargs):
                 m_trees=1,
                 weights=0.5,
             ),
-            0.83,
+            0.72,
             None,
         ),
         (
@@ -98,7 +98,7 @@ def _make_autoencoder(**kwargs):
                 height_limit=None,
                 random_state=42,
             ),
-            0.61,
+            0.72,
             None,
         ),
         (
@@ -108,15 +108,12 @@ def _make_autoencoder(**kwargs):
                 window_size=100,
                 random_state=42,
             ),
-            0.65,
+            0.57,
             None,
         ),
         (
             partial(RSHash, m=300, s=256, w=4, p=10000, seed=42),
-            # Measured at 0.61999 in isolation, drifting to ~0.62006 depending
-            # on what ran earlier in the session. 0.61 put the top of the
-            # tolerance at exactly 0.62, so the test failed intermittently.
-            0.62,
+            0.76,
             None,
         ),
     ],
@@ -157,7 +154,8 @@ def test_anomaly_detectors(
     for instance in stream:
         score = learner.score_instance(instance)
         evaluator.update(instance.y_index, score)
-        learner.train(instance)
+        if instance.y_index != 1:
+            learner.train(instance)
 
     # Check if the AUC score matches the expected value for both evaluator types
     actual_auc = evaluator.auc()
