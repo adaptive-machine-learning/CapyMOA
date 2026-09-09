@@ -1189,7 +1189,11 @@ def _plot_clustering_state(
     # # Create a proxy artist for the minimum weight and add to the legend
     # proxy_artist = plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=plt.cm.copper(0), markersize=10, label=f'Centers')
     # ax.legend(handles=[proxy_artist])
-    ax.axis("equal")  # Ensure that the circles are not distorted
+    # Ensure that the circles are not distorted. Use adjustable="box" (rather than
+    # the "datalim" default from ax.axis("equal")) so that later calls to set_xlim
+    # / set_ylim in plot_clustering_evolution don't trigger a "fixed data aspect"
+    # UserWarning for every frame.
+    ax.set_aspect("equal", adjustable="box")
     # Show the plot or save it to the specified path
     if show_fig:
         plt.show()
