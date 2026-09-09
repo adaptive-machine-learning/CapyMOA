@@ -50,7 +50,7 @@ def _make_autoencoder(**kwargs):
             partial(
                 _make_autoencoder, hidden_layer=2, learning_rate=0.5, threshold=0.6
             ),
-            0.49,
+            0.51,
             None,
             marks=pytest.mark.torch,
         ),
@@ -161,6 +161,14 @@ def test_anomaly_detectors(
     actual_auc = evaluator.auc()
     assert actual_auc == pytest.approx(auc, abs=0.01), (
         f"Basic Eval: Expected accuracy of {auc:0.1f} got {actual_auc: 0.01f}"
+    )
+
+    # A pin catches "this changed". It does not catch "this never worked". AUC is
+    # prevalence independent, so 0.5 is chance on any dataset and a detector below
+    # it is not separating the labels it was given.
+    assert actual_auc > 0.5, (
+        f"AUROC floor: {actual_auc:.4f} is at or below chance, "
+        f"the detector does not separate the fixture labels"
     )
 
     # Optionally check the CLI string if it was provided
