@@ -33,7 +33,7 @@ class Autoencoder(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.58
+    AUC: 0.42
 
     """
 
@@ -110,9 +110,9 @@ class Autoencoder(AnomalyDetector):
 
     def predict(self, instance: Instance) -> int:
         if self.score_instance(instance) > 0.5:
-            return 0
-        else:
             return 1
+        else:
+            return 0
 
     def score_instance(self, instance: Instance) -> float:
         # Convert the input to a tensor
@@ -124,4 +124,4 @@ class Autoencoder(AnomalyDetector):
         # Compute the reconstruction error
         error = torch.mean(torch.square(input - output))
 
-        return 2.0 ** (-(error.item() / self.threshold))
+        return 1.0 - 2.0 ** (-(error.item() / self.threshold))
