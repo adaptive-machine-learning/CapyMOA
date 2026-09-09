@@ -34,6 +34,7 @@ from capymoa.classifier import (
     SAMkNN,
     SGDClassifier,
     ShrubsClassifier,
+    StochasticGradientTree,
     StreamingGradientBoostedTrees,
     StreamingRandomPatches,
     WeightedkNN,
@@ -141,6 +142,12 @@ test_cases = [
         skip_reason="https://github.com/adaptive-machine-learning/backlog/issues/59",
     ),
     ClassifierTestCase("PLASTIC", PLASTIC, 83.25, 83.0),
+    ClassifierTestCase(
+        "StochasticGradientTree",
+        partial(StochasticGradientTree),
+        63.35,
+        80.0,
+    ),
     ClassifierTestCase(
         "NaiveBayes",
         partial(NaiveBayes),

@@ -15,6 +15,7 @@ from ._orto import ORTO
 from ._passive_aggressive_regressor import PassiveAggressiveRegressor
 from ._sgbr import StreamingGradientBoostedRegression
 from ._sgd_regressor import SGDRegressor
+from ._sgt import StochasticGradientTree
 from ._shrubs_regressor import ShrubsRegressor
 from ._soknl import SOKNL
 from ._soknl_base_tree import SOKNLBT
@@ -33,6 +34,7 @@ __all__ = [
     "PassiveAggressiveRegressor",
     "SGDRegressor",
     "ShrubsRegressor",
+    "StochasticGradientTree",
     "StreamingGradientBoostedRegression",
     "TargetMean",
 ]

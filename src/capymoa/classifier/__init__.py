@@ -35,6 +35,7 @@ from ._plastic import PLASTIC
 from ._samknn import SAMkNN
 from ._sgbt import StreamingGradientBoostedTrees
 from ._sgd_classifier import SGDClassifier
+from ._sgt import StochasticGradientTree
 from ._shrubs_classifier import ShrubsClassifier
 from ._srp import StreamingRandomPatches
 from ._weightedknn import WeightedkNN
@@ -63,6 +64,7 @@ __all__ = [
     "SAMkNN",
     "SGDClassifier",
     "ShrubsClassifier",
+    "StochasticGradientTree",
     "StreamingGradientBoostedTrees",
     "StreamingRandomPatches",
     "WeightedkNN",

@@ -23,6 +23,7 @@ from capymoa.regressor import (
     PassiveAggressiveRegressor,
     SGDRegressor,
     ShrubsRegressor,
+    StochasticGradientTree,
     StreamingGradientBoostedRegression,
     TargetMean,
 )
@@ -64,6 +65,7 @@ CASES = [
     Case(PassiveAggressiveRegressor, 3.70, 3.68),
     Case(SGDRegressor, 4.63, 3.61),
     Case(ShrubsRegressor, 5.21, 4.76),
+    Case(StochasticGradientTree, 15.49, 16.19),
     Case(StreamingGradientBoostedRegression, 3.09, 2.21),
 ]
 """Add your new test cases here ^^"""
