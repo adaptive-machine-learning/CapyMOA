@@ -99,31 +99,27 @@ class MMD(BaseDataDriftDetector):
         else:
             self._kernel = lambda X, Y: rbf_kernel(X, Y, sigma=sigma)
         self._n_permutations = n_permutations
-        # Pre-computed reference kernel sum (set in _fit)
-        self._k_xx_mean: Optional[float] = None
+        self._K_ref: Optional[np.ndarray] = None
 
     def _fit(self, X: np.ndarray) -> None:
         self._X_ref = X
-        K_XX = self._kernel(X, X)
-        n = X.shape[0]
-        self._k_xx_mean = (K_XX.sum() - np.trace(K_XX)) / (n * (n - 1))
+        self._K_ref = self._kernel(X, X)
 
     def _test(self, X_ref: np.ndarray, X_test: np.ndarray) -> DataDriftResult:
-        # Observed MMD
-        K_XX = self._kernel(X_ref, X_ref)
+        # Reuse the cached reference kernel when possible.
+        K_XX = self._K_ref if self._K_ref is not None else self._kernel(X_ref, X_ref)
         K_YY = self._kernel(X_test, X_test)
         K_XY = self._kernel(X_ref, X_test)
         observed = _mmd2_from_matrices(K_XX, K_YY, K_XY)
 
-        # Permutation test: compute full kernel matrix once, then
-        # re-index for each permutation to avoid redundant computation.
-        combined = np.vstack([X_ref, X_test])
+        # Build the full kernel matrix from blocks so the reference
+        # kernel is not recomputed.
         n = X_ref.shape[0]
-        K_full = self._kernel(combined, combined)
+        K_full = np.block([[K_XX, K_XY], [K_XY.T, K_YY]])
 
         rng = np.random.default_rng()
         count = 0
-        total = len(combined)
+        total = K_full.shape[0]
         for _ in range(self._n_permutations):
             perm = rng.permutation(total)
             idx_a, idx_b = perm[:n], perm[n:]
@@ -150,4 +146,5 @@ class MMD(BaseDataDriftDetector):
             "alpha": self._alpha,
             "sigma": self._sigma,
             "n_permutations": self._n_permutations,
+            "auto_fit_samples": self._auto_fit_samples,
         }

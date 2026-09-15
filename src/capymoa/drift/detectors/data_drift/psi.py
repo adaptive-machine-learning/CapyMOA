@@ -1,6 +1,5 @@
 """Population Stability Index (PSI) for data drift."""
 
-import sys
 from typing import Any, Dict, Literal, Optional
 
 import numpy as np
@@ -89,12 +88,12 @@ class PSI(BaseDataDriftDetector):
         ref_counts, _ = np.histogram(x_ref, bins=edges)
         test_counts, _ = np.histogram(x_test, bins=edges)
 
-        ref_pct = ref_counts.astype(float) / max(ref_counts.sum(), 1)
-        test_pct = test_counts.astype(float) / max(test_counts.sum(), 1)
-
-        # Replace zeros with smallest float to avoid log(0)
-        ref_pct[ref_pct == 0] = sys.float_info.min
-        test_pct[test_pct == 0] = sys.float_info.min
+        # Laplace smoothing: add 1 to every bin to avoid log(0) and
+        # prevent inflated PSI when tail bins are empty in one sample.
+        ref_pct = (ref_counts + 1).astype(float) / (ref_counts.sum() + self._num_bins)
+        test_pct = (test_counts + 1).astype(float) / (
+            test_counts.sum() + self._num_bins
+        )
 
         psi_value = float(np.sum((test_pct - ref_pct) * np.log(test_pct / ref_pct)))
         return DataDriftResult(
@@ -109,4 +108,5 @@ class PSI(BaseDataDriftDetector):
             "num_bins": self._num_bins,
             "threshold": self._threshold,
             "correction": self._correction,
+            "auto_fit_samples": self._auto_fit_samples,
         }

@@ -1,30 +1,11 @@
 """Jensen-Shannon distance for data drift."""
 
-import sys
 from typing import Any, Dict, Literal, Optional
 
 import numpy as np
 from scipy.spatial.distance import jensenshannon
 
-from .base import BaseDataDriftDetector, DataDriftResult
-
-
-def _bin_probabilities(x_ref: np.ndarray, x_test: np.ndarray, num_bins: int) -> tuple:
-    """Compute bin probabilities for reference and test samples.
-
-    :returns: ``(ref_probs, test_probs)`` each of shape ``(num_bins,)``.
-    """
-    combined = np.concatenate([x_ref, x_test])
-    edges = np.linspace(combined.min(), combined.max(), num_bins + 1)
-    ref_counts, _ = np.histogram(x_ref, bins=edges)
-    test_counts, _ = np.histogram(x_test, bins=edges)
-    ref_counts = ref_counts.astype(float)
-    test_counts = test_counts.astype(float)
-    ref_counts[ref_counts == 0] = sys.float_info.min
-    test_counts[test_counts == 0] = sys.float_info.min
-    ref_probs = ref_counts / ref_counts.sum()
-    test_probs = test_counts / test_counts.sum()
-    return ref_probs, test_probs
+from .base import BaseDataDriftDetector, DataDriftResult, _bin_probabilities
 
 
 class JensenShannon(BaseDataDriftDetector):
@@ -112,4 +93,5 @@ class JensenShannon(BaseDataDriftDetector):
             "num_bins": self._num_bins,
             "threshold": self._threshold,
             "correction": self._correction,
+            "auto_fit_samples": self._auto_fit_samples,
         }

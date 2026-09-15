@@ -88,4 +88,5 @@ class EnergyDistance(BaseDataDriftDetector):
             "window_size": self._window_size,
             "threshold": self._threshold,
             "correction": self._correction,
+            "auto_fit_samples": self._auto_fit_samples,
         }

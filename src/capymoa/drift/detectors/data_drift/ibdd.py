@@ -108,6 +108,8 @@ class IBDD(BaseDataDriftDetector):
     def get_params(self) -> Dict[str, Any]:
         return {
             "window_size": self._window_size,
+            "alpha": self._alpha,
             "n_permutations": self._n_permutations,
             "seed": self._seed,
+            "auto_fit_samples": self._auto_fit_samples,
         }
