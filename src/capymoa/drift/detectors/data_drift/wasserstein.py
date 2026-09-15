@@ -1,6 +1,6 @@
 """Wasserstein distance (Earth Mover's Distance) for data drift."""
 
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 
 import numpy as np
 from scipy.stats import wasserstein_distance
@@ -52,7 +52,7 @@ class Wasserstein(BaseDataDriftDetector):
         window_size: int,
         threshold: float = 0.5,
         correction: Literal["bonferroni", "none"] = "bonferroni",
-        auto_fit_samples: Optional[int] = None,
+        auto_fit_samples: int | None = None,
     ):
         """Create a Wasserstein data drift detector.
 
@@ -84,7 +84,7 @@ class Wasserstein(BaseDataDriftDetector):
             distance=dist,
         )
 
-    def get_params(self) -> Dict[str, Any]:
+    def get_params(self) -> dict[str, Any]:
         return {
             "window_size": self._window_size,
             "threshold": self._threshold,

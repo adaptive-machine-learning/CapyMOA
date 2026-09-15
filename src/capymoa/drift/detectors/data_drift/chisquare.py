@@ -1,7 +1,7 @@
 """Chi-square test for data drift on categorical features."""
 
 import collections
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 
 import numpy as np
 from scipy.stats import chi2_contingency
@@ -55,7 +55,7 @@ class ChiSquare(BaseDataDriftDetector):
         window_size: int,
         alpha: float = 0.05,
         correction: Literal["bonferroni", "none"] = "bonferroni",
-        auto_fit_samples: Optional[int] = None,
+        auto_fit_samples: int | None = None,
     ):
         """Create a Chi-square data drift detector.
 
@@ -80,7 +80,7 @@ class ChiSquare(BaseDataDriftDetector):
         stat, p, _, _ = chi2_contingency(np.array([f_ref, f_test]))
         return DataDriftResult(is_drift=False, statistic=stat, p_value=p)
 
-    def get_params(self) -> Dict[str, Any]:
+    def get_params(self) -> dict[str, Any]:
         return {
             "window_size": self._window_size,
             "alpha": self._alpha,

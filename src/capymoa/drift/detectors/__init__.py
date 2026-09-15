@@ -91,6 +91,24 @@ Data drift
 from .abcd import ABCD
 from .adwin import ADWIN
 from .cusum import CUSUM
+from .data_drift import (
+    BNDM,
+    D3,
+    IBDD,
+    MMD,
+    PSI,
+    AndersonDarling,
+    BaseDataDriftDetector,
+    ChiSquare,
+    CramerVonMises,
+    DataDriftResult,
+    EnergyDistance,
+    Hellinger,
+    JensenShannon,
+    KLDivergence,
+    KolmogorovSmirnov,
+    Wasserstein,
+)
 from .ddm import DDM
 from .ewma_chart import EWMAChart
 from .geometric_ma import GeometricMovingAverage
@@ -102,54 +120,36 @@ from .rddm import RDDM
 from .seed import SEED
 from .stepd import STEPD
 from .studd import STUDD
-from .data_drift import (
-    AndersonDarling,
-    BaseDataDriftDetector,
-    BNDM,
-    ChiSquare,
-    CramerVonMises,
-    D3,
-    DataDriftResult,
-    EnergyDistance,
-    Hellinger,
-    IBDD,
-    JensenShannon,
-    KLDivergence,
-    KolmogorovSmirnov,
-    MMD,
-    PSI,
-    Wasserstein,
-)
 
 __all__ = [
     "ABCD",
     "ADWIN",
+    "BNDM",
     "CUSUM",
+    "D3",
     "DDM",
-    "EWMAChart",
-    "GeometricMovingAverage",
-    "HDDMAverage",
-    "HDDMWeighted",
+    "IBDD",
+    "MMD",
     "OPTWIN",
-    "PageHinkley",
+    "PSI",
     "RDDM",
     "SEED",
     "STEPD",
     "STUDD",
     "AndersonDarling",
     "BaseDataDriftDetector",
-    "BNDM",
     "ChiSquare",
     "CramerVonMises",
-    "D3",
     "DataDriftResult",
+    "EWMAChart",
     "EnergyDistance",
+    "GeometricMovingAverage",
+    "HDDMAverage",
+    "HDDMWeighted",
     "Hellinger",
-    "IBDD",
     "JensenShannon",
     "KLDivergence",
     "KolmogorovSmirnov",
-    "MMD",
-    "PSI",
+    "PageHinkley",
     "Wasserstein",
 ]

@@ -17,7 +17,7 @@ def test_from_cli():
 
 
 def test_concept_and_data_drift_share_namespace():
-    from capymoa.drift.detectors import ADWIN, KolmogorovSmirnov, MMD
+    from capymoa.drift.detectors import ADWIN, MMD, KolmogorovSmirnov
 
     assert ADWIN is detectors.ADWIN
     assert KolmogorovSmirnov is detectors.KolmogorovSmirnov
@@ -65,6 +65,7 @@ def test_requires_fit_flag():
 
 def test_is_fitted_after_explicit_fit():
     import numpy as np
+
     from capymoa.drift.detectors import KolmogorovSmirnov
 
     detector = KolmogorovSmirnov(window_size=10)
@@ -75,6 +76,7 @@ def test_is_fitted_after_explicit_fit():
 
 def test_auto_fit_via_add_element():
     import numpy as np
+
     from capymoa.drift.detectors import KolmogorovSmirnov
 
     rng = np.random.default_rng(0)
@@ -90,6 +92,7 @@ def test_auto_fit_via_add_element():
 
 def test_add_element_without_reference_raises():
     import numpy as np
+
     from capymoa.drift.detectors import KolmogorovSmirnov
 
     detector = KolmogorovSmirnov(window_size=10)
@@ -99,6 +102,7 @@ def test_add_element_without_reference_raises():
 
 def test_compare_without_reference_raises():
     import numpy as np
+
     from capymoa.drift.detectors import KolmogorovSmirnov
 
     detector = KolmogorovSmirnov(window_size=10)
