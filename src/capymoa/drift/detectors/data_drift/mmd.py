@@ -1,6 +1,7 @@
 """Maximum Mean Discrepancy (MMD) for data drift."""
 
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -66,9 +67,9 @@ class MMD(BaseDataDriftDetector):
         window_size: int,
         alpha: float = 0.05,
         sigma: float = 1.0,
-        kernel: Optional[Callable] = None,
+        kernel: Callable | None = None,
         n_permutations: int = 100,
-        auto_fit_samples: Optional[int] = None,
+        auto_fit_samples: int | None = None,
     ):
         """Create an MMD data drift detector.
 
@@ -99,7 +100,7 @@ class MMD(BaseDataDriftDetector):
         else:
             self._kernel = lambda X, Y: rbf_kernel(X, Y, sigma=sigma)
         self._n_permutations = n_permutations
-        self._K_ref: Optional[np.ndarray] = None
+        self._K_ref: np.ndarray | None = None
 
     def _fit(self, X: np.ndarray) -> None:
         self._X_ref = X
@@ -140,7 +141,7 @@ class MMD(BaseDataDriftDetector):
             distance=observed,
         )
 
-    def get_params(self) -> Dict[str, Any]:
+    def get_params(self) -> dict[str, Any]:
         return {
             "window_size": self._window_size,
             "alpha": self._alpha,

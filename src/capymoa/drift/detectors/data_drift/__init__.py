@@ -23,20 +23,20 @@ from .psi import PSI
 from .wasserstein import Wasserstein
 
 __all__ = [
+    "BNDM",
+    "D3",
+    "IBDD",
+    "MMD",
+    "PSI",
     "AndersonDarling",
     "BaseDataDriftDetector",
-    "BNDM",
     "ChiSquare",
     "CramerVonMises",
-    "D3",
     "DataDriftResult",
     "EnergyDistance",
     "Hellinger",
-    "IBDD",
     "JensenShannon",
     "KLDivergence",
     "KolmogorovSmirnov",
-    "MMD",
-    "PSI",
     "Wasserstein",
 ]

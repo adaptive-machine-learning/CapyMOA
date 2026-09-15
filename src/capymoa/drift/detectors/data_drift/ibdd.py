@@ -1,6 +1,6 @@
 """Image-Based Drift Detector (IBDD) for data drift."""
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import numpy as np
 
@@ -48,8 +48,8 @@ class IBDD(BaseDataDriftDetector):
         window_size: int,
         alpha: float = 0.05,
         n_permutations: int = 50,
-        seed: Optional[int] = None,
-        auto_fit_samples: Optional[int] = None,
+        seed: int | None = None,
+        auto_fit_samples: int | None = None,
     ):
         """Create an IBDD data drift detector.
 
@@ -73,7 +73,7 @@ class IBDD(BaseDataDriftDetector):
         )
         self._n_permutations = n_permutations
         self._seed = seed
-        self._upper_threshold: Optional[float] = None
+        self._upper_threshold: float | None = None
 
     def _fit(self, X: np.ndarray) -> None:
         self._X_ref = X
@@ -105,7 +105,7 @@ class IBDD(BaseDataDriftDetector):
             distance=msd,
         )
 
-    def get_params(self) -> Dict[str, Any]:
+    def get_params(self) -> dict[str, Any]:
         return {
             "window_size": self._window_size,
             "alpha": self._alpha,

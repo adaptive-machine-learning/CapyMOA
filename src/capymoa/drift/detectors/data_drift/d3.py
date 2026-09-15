@@ -1,6 +1,6 @@
 """Discriminative Drift Detector (D3) for data drift."""
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
@@ -55,8 +55,8 @@ class D3(BaseDataDriftDetector):
         window_size: int,
         threshold: float = 0.7,
         n_splits: int = 2,
-        seed: Optional[int] = None,
-        auto_fit_samples: Optional[int] = None,
+        seed: int | None = None,
+        auto_fit_samples: int | None = None,
     ):
         """Create a D3 data drift detector.
 
@@ -116,7 +116,7 @@ class D3(BaseDataDriftDetector):
             distance=auc,
         )
 
-    def get_params(self) -> Dict[str, Any]:
+    def get_params(self) -> dict[str, Any]:
         return {
             "window_size": self._window_size,
             "threshold": self._threshold,

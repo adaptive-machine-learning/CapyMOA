@@ -1,6 +1,6 @@
 """Population Stability Index (PSI) for data drift."""
 
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 
 import numpy as np
 
@@ -53,7 +53,7 @@ class PSI(BaseDataDriftDetector):
         num_bins: int = 10,
         threshold: float = 0.2,
         correction: Literal["bonferroni", "none"] = "bonferroni",
-        auto_fit_samples: Optional[int] = None,
+        auto_fit_samples: int | None = None,
     ):
         """Create a PSI data drift detector.
 
@@ -102,7 +102,7 @@ class PSI(BaseDataDriftDetector):
             distance=psi_value,
         )
 
-    def get_params(self) -> Dict[str, Any]:
+    def get_params(self) -> dict[str, Any]:
         return {
             "window_size": self._window_size,
             "num_bins": self._num_bins,

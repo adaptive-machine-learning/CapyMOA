@@ -21,8 +21,9 @@ and need no reference data (``REQUIRES_FIT = False``).
 import sys
 from abc import abstractmethod
 from collections import deque
+from collections.abc import Hashable, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union, Hashable
+from typing import Any, Literal
 
 import numpy as np
 
@@ -31,7 +32,7 @@ from capymoa.drift.base_detector import BaseDriftDetector
 
 def _bin_probabilities(
     x_ref: np.ndarray, x_test: np.ndarray, num_bins: int
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute bin probabilities for reference and test samples.
 
     Bin edges span the combined range of both samples so that every
@@ -76,18 +77,18 @@ class DataDriftResult:
     """Overall drift decision (any feature, after correction)."""
     statistic: float
     """Aggregate test statistic (max across features for univariate)."""
-    p_value: Optional[float] = None
+    p_value: float | None = None
     """Aggregate p-value (min across features for univariate)."""
-    distance: Optional[float] = None
+    distance: float | None = None
     """Distance metric, if applicable (e.g. MMD, EMD)."""
-    feature_statistics: Optional[Dict[Hashable, float]] = None
+    feature_statistics: dict[Hashable, float] | None = None
     """Per-feature statistics. Keys are feature names when available,
     otherwise integer indices. ``None`` for multivariate tests."""
-    feature_p_values: Optional[Dict[Hashable, float]] = None
+    feature_p_values: dict[Hashable, float] | None = None
     """Per-feature p-values. Keys are feature names when available,
     otherwise integer indices. ``None`` when the test has no p-value
     or for multivariate tests."""
-    feature_is_drift: Optional[Dict[Hashable, bool]] = None
+    feature_is_drift: dict[Hashable, bool] | None = None
     """Per-feature drift flags. Keys are feature names when available,
     otherwise integer indices. ``None`` for multivariate tests."""
 
@@ -141,7 +142,7 @@ class BaseDataDriftDetector(BaseDriftDetector):
         window_size: int,
         alpha: float = 0.05,
         correction: Literal["bonferroni", "none"] = "bonferroni",
-        auto_fit_samples: Optional[int] = None,
+        auto_fit_samples: int | None = None,
     ):
         """Create a data drift detector.
 
@@ -170,37 +171,38 @@ class BaseDataDriftDetector(BaseDriftDetector):
             raise ValueError("alpha must be in (0, 1]")
         if correction not in ("bonferroni", "none"):
             raise ValueError("correction must be 'bonferroni' or 'none'")
-        if auto_fit_samples is not None:
-            if not isinstance(auto_fit_samples, int) or auto_fit_samples <= 0:
-                raise ValueError("auto_fit_samples must be a positive integer")
+        if auto_fit_samples is not None and (
+            not isinstance(auto_fit_samples, int) or auto_fit_samples <= 0
+        ):
+            raise ValueError("auto_fit_samples must be a positive integer")
 
         super().__init__()
         self.in_warning_zone = False
-        self._X_ref: Optional[np.ndarray] = None
-        self._n_features: Optional[int] = None
-        self._feature_names: Optional[List[str]] = None
+        self._X_ref: np.ndarray | None = None
+        self._n_features: int | None = None
+        self._feature_names: list[str] | None = None
         self._window_size: int = window_size
         self._window: deque = deque(maxlen=window_size)
-        self._result: Optional[DataDriftResult] = None
+        self._result: DataDriftResult | None = None
         self._alpha: float = alpha
         self._correction: str = correction
-        self._auto_fit_samples: Optional[int] = auto_fit_samples
-        self._ref_buffer: Optional[List[np.ndarray]] = (
+        self._auto_fit_samples: int | None = auto_fit_samples
+        self._ref_buffer: list[np.ndarray] | None = (
             [] if auto_fit_samples is not None else None
         )
 
     @property
-    def X_ref(self) -> Optional[np.ndarray]:
+    def X_ref(self) -> np.ndarray | None:
         """The reference data set with ``fit``."""
         return self._X_ref
 
     @property
-    def n_features(self) -> Optional[int]:
+    def n_features(self) -> int | None:
         """Number of features in the reference data, or ``None`` before fit."""
         return self._n_features
 
     @property
-    def feature_names(self) -> Optional[List[str]]:
+    def feature_names(self) -> list[str] | None:
         """Feature names passed to :meth:`fit`, or ``None``."""
         return self._feature_names
 
@@ -220,7 +222,7 @@ class BaseDataDriftDetector(BaseDriftDetector):
         return self._correction
 
     @property
-    def auto_fit_samples(self) -> Optional[int]:
+    def auto_fit_samples(self) -> int | None:
         """Number of samples for auto-fit, or ``None`` if explicit fit."""
         return self._auto_fit_samples
 
@@ -234,14 +236,14 @@ class BaseDataDriftDetector(BaseDriftDetector):
         return self._X_ref is not None
 
     @property
-    def result(self) -> Optional[DataDriftResult]:
+    def result(self) -> DataDriftResult | None:
         """Most recent comparison result, or ``None`` during warm-up."""
         return self._result
 
     def fit(
         self,
-        X: Union[np.ndarray, Any],
-        feature_names: Optional[Sequence[str]] = None,
+        X: np.ndarray | Any,
+        feature_names: Sequence[str] | None = None,
     ) -> None:
         """Set the reference distribution.
 
@@ -284,7 +286,7 @@ class BaseDataDriftDetector(BaseDriftDetector):
         self._ref_buffer = None  # no longer collecting
         self._fit(X)
 
-    def add_element(self, element: Union[float, int, np.ndarray]) -> None:
+    def add_element(self, element: float | np.ndarray) -> None:
         """Add one observation and check for drift.
 
         The observation is appended to a sliding window of size
@@ -395,9 +397,9 @@ class BaseDataDriftDetector(BaseDriftDetector):
         """Loop over features, apply the test, then combine results."""
         n_features = X_ref.shape[1]
         names = self._feature_names
-        feature_statistics: Dict[Hashable, float] = {}
-        feature_p_values: Dict[Hashable, float] = {}
-        feature_is_drift_raw: Dict[Hashable, bool] = {}
+        feature_statistics: dict[Hashable, float] = {}
+        feature_p_values: dict[Hashable, float] = {}
+        feature_is_drift_raw: dict[Hashable, bool] = {}
         has_p_values = True
 
         for i in range(n_features):
@@ -417,7 +419,7 @@ class BaseDataDriftDetector(BaseDriftDetector):
                 if self._correction == "bonferroni"
                 else self._alpha
             )
-            feature_p_values_out: Optional[Dict[Hashable, float]] = feature_p_values
+            feature_p_values_out: dict[Hashable, float] | None = feature_p_values
             feature_is_drift = {k: p < threshold for k, p in feature_p_values.items()}
         else:
             # Distance-based tests: use is_drift from subclass
@@ -471,5 +473,5 @@ class BaseDataDriftDetector(BaseDriftDetector):
         """
 
     @abstractmethod
-    def get_params(self) -> Dict[str, Any]:
+    def get_params(self) -> dict[str, Any]:
         """Return the hyper-parameters of this detector."""

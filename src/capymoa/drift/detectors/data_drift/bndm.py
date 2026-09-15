@@ -1,6 +1,6 @@
 """Bayesian Nonparametric Detection Method (BNDM) for data drift."""
 
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 
 import numpy as np
 from scipy import stats
@@ -120,7 +120,7 @@ class BNDM(BaseDataDriftDetector):
         threshold: float = 0.5,
         max_depth: int = 3,
         correction: Literal["bonferroni", "none"] = "bonferroni",
-        auto_fit_samples: Optional[int] = None,
+        auto_fit_samples: int | None = None,
     ):
         """Create a BNDM data drift detector.
 
@@ -171,7 +171,7 @@ class BNDM(BaseDataDriftDetector):
             statistic=similarity,
         )
 
-    def get_params(self) -> Dict[str, Any]:
+    def get_params(self) -> dict[str, Any]:
         return {
             "window_size": self._window_size,
             "const": self._const,

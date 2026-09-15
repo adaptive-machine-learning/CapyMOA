@@ -1,7 +1,7 @@
 """Anderson-Darling k-sample test for data drift."""
 
 import warnings
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 
 import numpy as np
 from scipy.stats import anderson_ksamp
@@ -51,7 +51,7 @@ class AndersonDarling(BaseDataDriftDetector):
         window_size: int,
         alpha: float = 0.05,
         correction: Literal["bonferroni", "none"] = "bonferroni",
-        auto_fit_samples: Optional[int] = None,
+        auto_fit_samples: int | None = None,
     ):
         """Create an Anderson-Darling data drift detector.
 
@@ -78,7 +78,7 @@ class AndersonDarling(BaseDataDriftDetector):
             p_value=result.pvalue,
         )
 
-    def get_params(self) -> Dict[str, Any]:
+    def get_params(self) -> dict[str, Any]:
         return {
             "window_size": self._window_size,
             "alpha": self._alpha,

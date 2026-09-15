@@ -1,7 +1,7 @@
 """Hellinger distance for data drift."""
 
 import sys
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 
 import numpy as np
 
@@ -54,7 +54,7 @@ class Hellinger(BaseDataDriftDetector):
         num_bins: int = 10,
         threshold: float = 0.1,
         correction: Literal["bonferroni", "none"] = "bonferroni",
-        auto_fit_samples: Optional[int] = None,
+        auto_fit_samples: int | None = None,
     ):
         """Create a Hellinger data drift detector.
 
@@ -106,7 +106,7 @@ class Hellinger(BaseDataDriftDetector):
             distance=dist,
         )
 
-    def get_params(self) -> Dict[str, Any]:
+    def get_params(self) -> dict[str, Any]:
         return {
             "window_size": self._window_size,
             "num_bins": self._num_bins,
