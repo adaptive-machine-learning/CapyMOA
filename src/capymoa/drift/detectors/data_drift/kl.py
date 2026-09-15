@@ -6,12 +6,10 @@ from typing import Any, Dict, Literal, Optional
 import numpy as np
 from scipy.special import rel_entr
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
-def _bin_probabilities(
-    x_ref: np.ndarray, x_test: np.ndarray, num_bins: int
-) -> tuple:
+def _bin_probabilities(x_ref: np.ndarray, x_test: np.ndarray, num_bins: int) -> tuple:
     """Compute bin probabilities for reference and test samples.
 
     Bin edges span the combined range of both samples so that every
@@ -50,7 +48,7 @@ class KLDivergence(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import KLDivergence
+    >>> from capymoa.drift.detectors import KLDivergence
     >>> rng = np.random.default_rng(42)
     >>> detector = KLDivergence(window_size=50, num_bins=20, threshold=0.1)
     >>> detector.fit(rng.normal(0, 1, size=(200, 2)))
@@ -95,7 +93,9 @@ class KLDivergence(BaseDataDriftDetector):
         if threshold <= 0:
             raise ValueError("threshold must be positive")
         super().__init__(
-            window_size, alpha=0.05, correction=correction,
+            window_size,
+            alpha=0.05,
+            correction=correction,
             auto_fit_samples=auto_fit_samples,
         )
         self._num_bins = num_bins

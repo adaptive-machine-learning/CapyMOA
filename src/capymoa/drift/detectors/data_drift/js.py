@@ -6,12 +6,10 @@ from typing import Any, Dict, Literal, Optional
 import numpy as np
 from scipy.spatial.distance import jensenshannon
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
-def _bin_probabilities(
-    x_ref: np.ndarray, x_test: np.ndarray, num_bins: int
-) -> tuple:
+def _bin_probabilities(x_ref: np.ndarray, x_test: np.ndarray, num_bins: int) -> tuple:
     """Compute bin probabilities for reference and test samples.
 
     :returns: ``(ref_probs, test_probs)`` each of shape ``(num_bins,)``.
@@ -44,7 +42,7 @@ class JensenShannon(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import JensenShannon
+    >>> from capymoa.drift.detectors import JensenShannon
     >>> rng = np.random.default_rng(42)
     >>> detector = JensenShannon(window_size=50, num_bins=20, threshold=0.1)
     >>> detector.fit(rng.normal(0, 1, size=(200, 2)))
@@ -88,7 +86,9 @@ class JensenShannon(BaseDataDriftDetector):
         if not 0.0 < threshold <= 1.0:
             raise ValueError("threshold must be in (0, 1]")
         super().__init__(
-            window_size, alpha=0.05, correction=correction,
+            window_size,
+            alpha=0.05,
+            correction=correction,
             auto_fit_samples=auto_fit_samples,
         )
         self._num_bins = num_bins

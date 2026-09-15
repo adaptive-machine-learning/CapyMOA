@@ -6,7 +6,7 @@ from typing import Any, Dict, Literal, Optional
 import numpy as np
 from scipy.stats import anderson_ksamp
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
 class AndersonDarling(BaseDataDriftDetector):
@@ -27,7 +27,7 @@ class AndersonDarling(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import AndersonDarling
+    >>> from capymoa.drift.detectors import AndersonDarling
     >>> rng = np.random.default_rng(42)
     >>> detector = AndersonDarling(window_size=50)
     >>> detector.fit(rng.normal(0, 1, size=(200, 2)))

@@ -7,7 +7,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
 class D3(BaseDataDriftDetector):
@@ -29,7 +29,7 @@ class D3(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import D3
+    >>> from capymoa.drift.detectors import D3
     >>> rng = np.random.default_rng(42)
     >>> detector = D3(window_size=50, threshold=0.7, seed=42)
     >>> detector.fit(rng.normal(0, 1, size=(200, 2)))
@@ -75,7 +75,9 @@ class D3(BaseDataDriftDetector):
         if n_splits < 2:
             raise ValueError("n_splits must be at least 2")
         super().__init__(
-            window_size, alpha=0.05, correction="none",
+            window_size,
+            alpha=0.05,
+            correction="none",
             auto_fit_samples=auto_fit_samples,
         )
         self._threshold = threshold
@@ -91,10 +93,14 @@ class D3(BaseDataDriftDetector):
         labels = np.concatenate([np.zeros(n_ref), np.ones(n_test)])
 
         kfold = StratifiedKFold(
-            n_splits=self._n_splits, shuffle=True, random_state=self._seed,
+            n_splits=self._n_splits,
+            shuffle=True,
+            random_state=self._seed,
         )
         clf = LogisticRegression(
-            solver="liblinear", max_iter=1000, random_state=self._seed,
+            solver="liblinear",
+            max_iter=1000,
+            random_state=self._seed,
         )
 
         predictions = np.zeros(len(X))

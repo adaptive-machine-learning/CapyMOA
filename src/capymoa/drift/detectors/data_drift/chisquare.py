@@ -6,7 +6,7 @@ from typing import Any, Dict, Literal, Optional
 import numpy as np
 from scipy.stats import chi2_contingency
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
 class ChiSquare(BaseDataDriftDetector):
@@ -27,7 +27,7 @@ class ChiSquare(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import ChiSquare
+    >>> from capymoa.drift.detectors import ChiSquare
     >>> rng = np.random.default_rng(42)
     >>> ref = rng.choice(["a", "b", "c"], size=(200, 2), p=[0.5, 0.3, 0.2])
     >>> detector = ChiSquare(window_size=50)

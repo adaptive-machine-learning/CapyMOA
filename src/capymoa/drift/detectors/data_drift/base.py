@@ -1,14 +1,20 @@
 """Base class for data drift detectors.
 
 Data drift detectors compare a sliding window of recent observations against
-a fixed reference distribution. The reference is set once with :meth:`fit`;
-after that, each call to :meth:`add_element` appends one observation to an
-internal window. Once the window is full the detector runs a statistical
-comparison and exposes the result through :meth:`detected_change`,
-:attr:`result`, and the inherited :attr:`detection_index` list.
+a fixed reference distribution. Provide that reference in one of two ways:
+
+* Call :meth:`fit` with a reference sample, then stream with
+  :meth:`add_element`.
+* Set ``auto_fit_samples`` at construction. That many initial
+  :meth:`add_element` calls build the reference; no explicit :meth:`fit`
+  is needed.
+
+Once the sliding window is full the detector runs a statistical comparison
+and exposes the result through :meth:`detected_change`, :attr:`result`,
+and the inherited :attr:`detection_index` list.
 
 This differs from concept drift detectors, which track a scalar error signal
-and need no reference data.
+and need no reference data (``REQUIRES_FIT = False``).
 """
 
 from abc import abstractmethod
@@ -60,6 +66,10 @@ class DataDriftResult:
 class BaseDataDriftDetector(BaseDriftDetector):
     """Base class for detectors that monitor the input data distribution.
 
+    These detectors have :attr:`REQUIRES_FIT` set to ``True``: they need
+    a reference distribution. Provide it with :meth:`fit`, or construct
+    with ``auto_fit_samples`` so :meth:`add_element` collects it.
+
     Subclasses set the class variable :attr:`IS_UNIVARIATE` and implement:
 
     * :meth:`_fit` -- store or preprocess the reference data.
@@ -71,17 +81,22 @@ class BaseDataDriftDetector(BaseDriftDetector):
     univariate tests, Bonferroni correction, and detection bookkeeping.
     """
 
+    REQUIRES_FIT: bool = True
+    """Data drift detectors need a reference distribution. Call
+    :meth:`fit` or set ``auto_fit_samples`` so :meth:`add_element`
+    can collect it."""
+
     IS_UNIVARIATE: bool = True
     """If ``True`` the test is applied to each feature separately and
     results are combined. If ``False`` the test runs on the joint
     distribution."""
 
     def __init__(
-            self,
-            window_size: int,
-            alpha: float = 0.05,
-            correction: Literal["bonferroni", "none"] = "bonferroni",
-            auto_fit_samples: Optional[int] = None,
+        self,
+        window_size: int,
+        alpha: float = 0.05,
+        correction: Literal["bonferroni", "none"] = "bonferroni",
+        auto_fit_samples: Optional[int] = None,
     ):
         """Create a data drift detector.
 
@@ -97,9 +112,9 @@ class BaseDataDriftDetector(BaseDriftDetector):
             directly. Ignored for multivariate tests.
         :param auto_fit_samples: If set, the first *auto_fit_samples*
             observations are used as the reference (auto-fit mode).
-            No explicit :meth:`fit` call is needed. If ``None``
-            (default), :meth:`fit` must be called before
-            :meth:`add_element`.
+            No explicit :meth:`fit` call is needed; :meth:`add_element`
+            collects the reference. If ``None`` (default), :meth:`fit`
+            must be called before :meth:`add_element` or :meth:`compare`.
         :raises ValueError: If *window_size* is not a positive integer,
             *alpha* is not in ``(0, 1]``, *correction* is unknown, or
             *auto_fit_samples* is not a positive integer when set.
@@ -164,19 +179,30 @@ class BaseDataDriftDetector(BaseDriftDetector):
         return self._auto_fit_samples
 
     @property
+    def is_fitted(self) -> bool:
+        """Whether the reference distribution has been set.
+
+        ``True`` after :meth:`fit`, or after :meth:`add_element` has
+        collected :attr:`auto_fit_samples` observations.
+        """
+        return self._X_ref is not None
+
+    @property
     def result(self) -> Optional[DataDriftResult]:
         """Most recent comparison result, or ``None`` during warm-up."""
         return self._result
 
     def fit(
-            self,
-            X: Union[np.ndarray, Any],
-            feature_names: Optional[Sequence[str]] = None,
+        self,
+        X: Union[np.ndarray, Any],
+        feature_names: Optional[Sequence[str]] = None,
     ) -> None:
         """Set the reference distribution.
 
-        Must be called before :meth:`add_element` or :meth:`compare`
-        unless ``auto_fit_samples`` was set.
+        This detector has :attr:`REQUIRES_FIT` set to ``True``. Call
+        :meth:`fit` before :meth:`add_element` or :meth:`compare`, unless
+        ``auto_fit_samples`` was set so :meth:`add_element` can collect
+        the reference.
 
         :param X: Reference data, shape ``(n_samples,)`` or
             ``(n_samples, n_features)``. May also be a pandas DataFrame,
@@ -218,13 +244,16 @@ class BaseDataDriftDetector(BaseDriftDetector):
         :attr:`window_size`. Once full, the detector compares the window
         against the reference on every call.
 
-        In auto-fit mode, the first :attr:`auto_fit_samples` observations
-        build the reference. No comparison happens until then.
+        If the detector is not yet fitted and :attr:`auto_fit_samples`
+        is set, those initial observations build the reference.
+        No comparison happens until then. If it is not fitted and
+        auto-fit is not enabled, this raises :class:`RuntimeError`.
 
         :param element: A single observation -- a scalar for univariate
             data, or a 1-D array for multivariate data.
-        :raises RuntimeError: If :meth:`fit` has not been called and
-            auto-fit mode is not enabled.
+        :raises RuntimeError: If the detector is not fitted and
+            auto-fit mode is not enabled. Call :meth:`fit` first, or
+            construct with ``auto_fit_samples``.
         :raises ValueError: If the observation has a different number of
             features than the reference.
         """
@@ -239,7 +268,9 @@ class BaseDataDriftDetector(BaseDriftDetector):
 
         if self._X_ref is None:
             raise RuntimeError(
-                "fit() must be called with reference data before add_element()"
+                "This detector requires reference data. Call fit(X) first, "
+                "or construct with auto_fit_samples so add_element() can "
+                "collect the reference."
             )
 
         if element.size != self._n_features:
@@ -265,6 +296,7 @@ class BaseDataDriftDetector(BaseDriftDetector):
 
         Unlike :meth:`add_element`, this does not update the internal
         window or detection history. It is useful for offline evaluation.
+        ``auto_fit_samples`` does not apply here; call :meth:`fit` first.
 
         :param X_test: Test data with the same number of features as the
             reference.
@@ -275,7 +307,8 @@ class BaseDataDriftDetector(BaseDriftDetector):
         """
         if self._X_ref is None:
             raise RuntimeError(
-                "fit() must be called with reference data before compare()"
+                "This detector requires reference data. Call fit(X) before "
+                "compare(). auto_fit_samples only applies to add_element()."
             )
         X_test = np.asarray(X_test)
         if X_test.ndim == 1:
@@ -305,17 +338,13 @@ class BaseDataDriftDetector(BaseDriftDetector):
             if self._auto_fit_samples is not None:
                 self._ref_buffer = []
 
-    def _run_comparison(
-            self, X_ref: np.ndarray, X_test: np.ndarray
-    ) -> DataDriftResult:
+    def _run_comparison(self, X_ref: np.ndarray, X_test: np.ndarray) -> DataDriftResult:
         """Route to univariate (per-feature) or multivariate comparison."""
         if self.IS_UNIVARIATE:
             return self._run_univariate(X_ref, X_test)
         return self._test(X_ref, X_test)
 
-    def _run_univariate(
-            self, X_ref: np.ndarray, X_test: np.ndarray
-    ) -> DataDriftResult:
+    def _run_univariate(self, X_ref: np.ndarray, X_test: np.ndarray) -> DataDriftResult:
         """Loop over features, apply the test, then combine results."""
         n_features = X_ref.shape[1]
         names = self._feature_names
@@ -341,12 +370,8 @@ class BaseDataDriftDetector(BaseDriftDetector):
                 if self._correction == "bonferroni"
                 else self._alpha
             )
-            feature_p_values_out: Optional[Dict[Hashable, float]] = (
-                feature_p_values
-            )
-            feature_is_drift = {
-                k: p < threshold for k, p in feature_p_values.items()
-            }
+            feature_p_values_out: Optional[Dict[Hashable, float]] = feature_p_values
+            feature_is_drift = {k: p < threshold for k, p in feature_p_values.items()}
         else:
             # Distance-based tests: use is_drift from subclass
             feature_p_values_out = None
@@ -376,9 +401,7 @@ class BaseDataDriftDetector(BaseDriftDetector):
         """
 
     @abstractmethod
-    def _test(
-            self, X_ref: np.ndarray, X_test: np.ndarray
-    ) -> DataDriftResult:
+    def _test(self, X_ref: np.ndarray, X_test: np.ndarray) -> DataDriftResult:
         """Run the underlying statistical test or distance measure.
 
         When ``IS_UNIVARIATE = True`` this receives **one feature** at a

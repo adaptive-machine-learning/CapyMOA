@@ -5,7 +5,7 @@ from typing import Any, Dict, Literal, Optional
 import numpy as np
 from scipy.stats import cramervonmises_2samp
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
 class CramerVonMises(BaseDataDriftDetector):
@@ -22,7 +22,7 @@ class CramerVonMises(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import CramerVonMises
+    >>> from capymoa.drift.detectors import CramerVonMises
     >>> rng = np.random.default_rng(42)
     >>> detector = CramerVonMises(window_size=50)
     >>> detector.fit(rng.normal(0, 1, size=(200, 2)))

@@ -5,7 +5,7 @@ from typing import Any, Dict, Literal, Optional
 import numpy as np
 from scipy.stats import energy_distance
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
 class EnergyDistance(BaseDataDriftDetector):
@@ -26,7 +26,7 @@ class EnergyDistance(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import EnergyDistance
+    >>> from capymoa.drift.detectors import EnergyDistance
     >>> rng = np.random.default_rng(42)
     >>> detector = EnergyDistance(window_size=50, threshold=0.5)
     >>> detector.fit(rng.normal(0, 1, size=(200, 2)))
@@ -65,7 +65,9 @@ class EnergyDistance(BaseDataDriftDetector):
         if threshold <= 0:
             raise ValueError("threshold must be positive")
         super().__init__(
-            window_size, alpha=0.05, correction=correction,
+            window_size,
+            alpha=0.05,
+            correction=correction,
             auto_fit_samples=auto_fit_samples,
         )
         self._threshold = threshold

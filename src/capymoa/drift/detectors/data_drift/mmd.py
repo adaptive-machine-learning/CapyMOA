@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, Optional
 import numpy as np
 from scipy.spatial.distance import cdist
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
 def rbf_kernel(X: np.ndarray, Y: np.ndarray, sigma: float = 1.0) -> np.ndarray:
@@ -19,9 +19,7 @@ def rbf_kernel(X: np.ndarray, Y: np.ndarray, sigma: float = 1.0) -> np.ndarray:
     return np.exp(-cdist(X, Y, "sqeuclidean") / (2.0 * sigma**2))
 
 
-def _mmd2_from_matrices(
-    K_XX: np.ndarray, K_YY: np.ndarray, K_XY: np.ndarray
-) -> float:
+def _mmd2_from_matrices(K_XX: np.ndarray, K_YY: np.ndarray, K_XY: np.ndarray) -> float:
     """Compute the unbiased MMD^2 estimate from pre-computed kernel matrices."""
     n = K_XX.shape[0]
     m = K_YY.shape[0]
@@ -44,7 +42,7 @@ class MMD(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import MMD
+    >>> from capymoa.drift.detectors import MMD
     >>> rng = np.random.default_rng(42)
     >>> detector = MMD(window_size=50, n_permutations=100, sigma=1.0)
     >>> detector.fit(rng.normal(0, 1, size=(100, 2)))
@@ -90,7 +88,9 @@ class MMD(BaseDataDriftDetector):
         if n_permutations < 1:
             raise ValueError("n_permutations must be at least 1")
         super().__init__(
-            window_size, alpha=alpha, correction="none",
+            window_size,
+            alpha=alpha,
+            correction="none",
             auto_fit_samples=auto_fit_samples,
         )
         self._sigma = sigma
