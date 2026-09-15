@@ -506,11 +506,11 @@ class RobustRandomCutForest(AnomalyDetector):
 
     This implementation is adapted from https://klabum.github.io/rrcf/
 
-    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import RobustRandomCutForest
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
 
-    >>> stream = ElectricityTiny()
+    >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = RobustRandomCutForest(schema, tree_size=50, n_trees=10, random_state=42)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
@@ -521,7 +521,7 @@ class RobustRandomCutForest(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.54
+    AUC: 0.97
 
 
     .. [#f0] Guha, S., Mishra, N., Roy, G., & Schrijvers, O. (2016, June). Robust random

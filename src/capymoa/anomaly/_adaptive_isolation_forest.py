@@ -235,10 +235,10 @@ class AdaptiveIsolationForest(AnomalyDetector):
 
     Example:
 
-    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import AdaptiveIsolationForest
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
-    >>> stream = ElectricityTiny()
+    >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = AdaptiveIsolationForest(schema, window_size=256, n_trees=100)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
@@ -249,7 +249,7 @@ class AdaptiveIsolationForest(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.81
+    AUC: 0.96
     """
 
     def __init__(

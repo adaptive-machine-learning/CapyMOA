@@ -111,10 +111,10 @@ class RSHash(AnomalyDetector):
     Time with Randomized Hashing. IEEE ICDM, pp. 459-468.
 
     Example:
-    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import RSHash
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
-    >>> stream = ElectricityTiny()
+    >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = RSHash(schema)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
@@ -125,7 +125,7 @@ class RSHash(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.61
+    AUC: 0.50
     """
 
     def __init__(

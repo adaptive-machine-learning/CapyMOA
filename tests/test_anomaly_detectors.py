@@ -14,9 +14,9 @@ from capymoa.anomaly import (
     StreamingIsolationForest,
     StreamRHF,
 )
+from capymoa.anomaly.datasets import TinyBlobs
 from capymoa.base import AnomalyDetector, MOAClassifier
 from capymoa.core.moa._cli import cli_str_classifier
-from capymoa.datasets import ElectricityTiny
 from capymoa.evaluation import AnomalyDetectionEvaluator
 from capymoa.stream._stream import Schema
 
@@ -33,7 +33,7 @@ def _make_autoencoder(**kwargs):
     [
         (
             partial(HalfSpaceTrees, window_size=100, number_of_trees=25, max_depth=15),
-            0.87,
+            0.84,
             None,
         ),
         (
@@ -43,18 +43,18 @@ def _make_autoencoder(**kwargs):
                 num_trees=32,
                 max_leaf_samples=32,
             ),
-            0.59,
+            0.75,
             None,
         ),
         pytest.param(
             partial(
                 _make_autoencoder, hidden_layer=2, learning_rate=0.5, threshold=0.6
             ),
-            0.51,
+            0.85,
             None,
             marks=pytest.mark.torch,
         ),
-        (partial(StreamRHF, num_trees=5, max_height=3), 0.80, None),
+        (partial(StreamRHF, num_trees=5, max_height=3), 0.82, None),
         (
             partial(
                 StreamingIsolationForest,
@@ -63,7 +63,7 @@ def _make_autoencoder(**kwargs):
                 height=None,
                 seed=42,
             ),
-            0.79,
+            0.96,
             None,
         ),
         (
@@ -73,7 +73,7 @@ def _make_autoencoder(**kwargs):
                 n_trees=10,
                 random_state=42,
             ),
-            0.82,
+            0.97,
             None,
         ),
         (
@@ -86,7 +86,7 @@ def _make_autoencoder(**kwargs):
                 m_trees=1,
                 weights=0.5,
             ),
-            0.72,
+            0.97,
             None,
         ),
         (
@@ -98,7 +98,7 @@ def _make_autoencoder(**kwargs):
                 height_limit=None,
                 random_state=42,
             ),
-            0.72,
+            0.96,
             None,
         ),
         (
@@ -108,12 +108,12 @@ def _make_autoencoder(**kwargs):
                 window_size=100,
                 random_state=42,
             ),
-            0.57,
+            0.86,
             None,
         ),
         (
             partial(RSHash, m=300, s=256, w=4, p=10000, seed=42),
-            0.76,
+            0.78,
             None,
         ),
     ],
@@ -146,7 +146,7 @@ def test_anomaly_detectors(
     :param auc: Expected AUC score
     :param cli_string: Expected CLI string for the learner or None
     """
-    stream = ElectricityTiny()
+    stream = TinyBlobs()
     evaluator = AnomalyDetectionEvaluator(schema=stream.get_schema())
 
     learner: AnomalyDetector = learner_constructor(schema=stream.get_schema())
@@ -154,8 +154,7 @@ def test_anomaly_detectors(
     for instance in stream:
         score = learner.score_instance(instance)
         evaluator.update(instance.y_index, score)
-        if instance.y_index != 1:
-            learner.train(instance)
+        learner.train(instance)
 
     # Check if the AUC score matches the expected value for both evaluator types
     actual_auc = evaluator.auc()

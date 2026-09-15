@@ -409,10 +409,10 @@ class StreamingIsolationForest(AnomalyDetector):
     instance in a tree of equivalent size. Scores are scaled between 0 and 1, with
     higher values indicating greater anomaly likelihood.
 
-    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import StreamingIsolationForest
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
-    >>> stream = ElectricityTiny()
+    >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = StreamingIsolationForest(schema, window_size=256, n_trees=20, seed=42)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
@@ -423,7 +423,7 @@ class StreamingIsolationForest(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.62
+    AUC: 0.96
 
     ..  [#f0] Liu, J.J., Cassales, G.W., Liu, F.T., Pfahringer, B., Bifet, A. (2025).
         Streaming Isolation Forest. In: Wu, X., et al. Advances in Knowledge Discovery
