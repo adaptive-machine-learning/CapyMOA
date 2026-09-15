@@ -53,7 +53,7 @@ class TinyBlobs(NumpyStream):
         )
         out_data = rng.uniform(*center_box, size=(out_samples, features))
 
-        # Combin in and out distributions
+        # Combine in and out distributions
         data_x = np.vstack([in_data, out_data])
         data_y = np.hstack([np.zeros(in_samples), np.ones(out_samples)])
 
