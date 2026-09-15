@@ -447,6 +447,8 @@ class BaseDataDriftDetector(BaseDriftDetector):
         2-D ``np.ndarray`` with shape ``(n_samples, n_features)``.
 
         At minimum, implementations should set ``self._X_ref = X``.
+
+        :meta public: include 'protected' method in documentation
         """
 
     @abstractmethod
@@ -470,6 +472,8 @@ class BaseDataDriftDetector(BaseDriftDetector):
         both arrays are 2-D with shapes ``(n_ref, n_features)`` and
         ``(n_test, n_features)``. The subclass is responsible for
         the full ``DataDriftResult`` including ``is_drift``.
+
+        :meta public: include 'protected' method in documentation
         """
 
     @abstractmethod
