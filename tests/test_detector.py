@@ -1,10 +1,12 @@
 import inspect
 
+import numpy as np
 import pytest
 
 from capymoa.core.moa._cli import cli_str_drift_detector
 from capymoa.drift import detectors
 from capymoa.drift.base_detector import BaseDriftDetector, MOADriftDetector
+from capymoa.drift.detectors.data_drift import BaseDataDriftDetector
 
 
 def test_from_cli():
@@ -102,3 +104,118 @@ def test_compare_without_reference_raises():
     detector = KolmogorovSmirnov(window_size=10)
     with pytest.raises(RuntimeError, match="requires reference data"):
         detector.compare(np.zeros((10, 2)))
+
+
+# ---------------------------------------------------------------------------
+# Data drift detector tests
+# ---------------------------------------------------------------------------
+
+# Every concrete data drift detector with its required constructor kwargs.
+# Window and reference sizes are kept small for speed but large enough
+# to avoid stochastic false alarms on same-distribution data.
+_DATA_DRIFT_DETECTORS = [
+    ("AndersonDarling", {"window_size": 50}),
+    ("BNDM", {"window_size": 50, "threshold": 0.3, "max_depth": 3}),
+    ("ChiSquare", {"window_size": 50}),
+    ("CramerVonMises", {"window_size": 50}),
+    ("D3", {"window_size": 50, "threshold": 0.7, "seed": 0}),
+    ("EnergyDistance", {"window_size": 50, "threshold": 1.0}),
+    ("Hellinger", {"window_size": 50, "num_bins": 10, "threshold": 0.3}),
+    ("IBDD", {"window_size": 200, "n_permutations": 100, "seed": 0}),
+    ("JensenShannon", {"window_size": 50, "num_bins": 10, "threshold": 0.2}),
+    ("KLDivergence", {"window_size": 50, "num_bins": 10, "threshold": 0.5}),
+    ("KolmogorovSmirnov", {"window_size": 50}),
+    ("MMD", {"window_size": 50, "n_permutations": 30, "sigma": 1.0}),
+    ("PSI", {"window_size": 50, "num_bins": 10, "threshold": 0.5}),
+    ("Wasserstein", {"window_size": 50, "threshold": 1.0}),
+]
+
+
+def _make_detector(name, kwargs):
+    cls = getattr(detectors, name)
+    return cls(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "name,kwargs", _DATA_DRIFT_DETECTORS, ids=[n for n, _ in _DATA_DRIFT_DETECTORS]
+)
+def test_data_drift_instantiation(name, kwargs):
+    """Every data drift detector can be instantiated and has REQUIRES_FIT=True."""
+    det = _make_detector(name, kwargs)
+    assert isinstance(det, BaseDataDriftDetector)
+    assert det.REQUIRES_FIT is True
+    assert det.is_fitted is False
+
+
+@pytest.mark.parametrize(
+    "name,kwargs", _DATA_DRIFT_DETECTORS, ids=[n for n, _ in _DATA_DRIFT_DETECTORS]
+)
+def test_data_drift_fit_and_detect(name, kwargs):
+    """Fit on stable data, stream shifted data, and check drift is detected."""
+    rng = np.random.default_rng(42)
+    n_features = 2
+
+    if name == "ChiSquare":
+        ref = rng.choice(["a", "b", "c"], size=(100, n_features), p=[0.5, 0.3, 0.2])
+        shifted = rng.choice(
+            ["a", "b", "c"], size=(40, n_features), p=[0.05, 0.05, 0.9]
+        )
+    else:
+        ref = rng.normal(0, 1, size=(100, n_features))
+        shifted = rng.normal(5, 1, size=(40, n_features))
+
+    det = _make_detector(name, kwargs)
+    det.fit(ref)
+    assert det.is_fitted is True
+
+    for x in shifted:
+        det.add_element(x)
+
+    assert det.detection_index, f"{name} should detect drift on shifted data"
+
+
+@pytest.mark.parametrize(
+    "name,kwargs", _DATA_DRIFT_DETECTORS, ids=[n for n, _ in _DATA_DRIFT_DETECTORS]
+)
+def test_data_drift_no_false_alarm(name, kwargs):
+    """Stream data from the same distribution; no drift should be flagged."""
+    rng = np.random.default_rng(42)
+    n_features = 2
+    ws = kwargs["window_size"]
+
+    if name == "ChiSquare":
+        ref = rng.choice(["a", "b", "c"], size=(500, n_features), p=[0.5, 0.3, 0.2])
+        same = rng.choice(["a", "b", "c"], size=(ws, n_features), p=[0.5, 0.3, 0.2])
+    else:
+        ref = rng.normal(0, 1, size=(500, n_features))
+        same = rng.normal(0, 1, size=(ws, n_features))
+
+    det = _make_detector(name, kwargs)
+    det.fit(ref)
+
+    for x in same:
+        det.add_element(x)
+
+    assert not det.detection_index, (
+        f"{name} should not raise false alarms on same-distribution data"
+    )
+
+
+@pytest.mark.parametrize(
+    "name,kwargs", _DATA_DRIFT_DETECTORS, ids=[n for n, _ in _DATA_DRIFT_DETECTORS]
+)
+def test_data_drift_get_params_has_auto_fit(name, kwargs):
+    """get_params() must include auto_fit_samples."""
+    det = _make_detector(name, kwargs)
+    params = det.get_params()
+    assert "auto_fit_samples" in params
+    assert "window_size" in params
+
+
+@pytest.mark.parametrize(
+    "name,kwargs", _DATA_DRIFT_DETECTORS, ids=[n for n, _ in _DATA_DRIFT_DETECTORS]
+)
+def test_data_drift_warning_zone_is_bool(name, kwargs):
+    """detected_warning() must return False (not None) for data drift detectors."""
+    det = _make_detector(name, kwargs)
+    assert det.detected_warning() is False

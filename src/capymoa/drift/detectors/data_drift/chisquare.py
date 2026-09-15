@@ -85,4 +85,5 @@ class ChiSquare(BaseDataDriftDetector):
             "window_size": self._window_size,
             "alpha": self._alpha,
             "correction": self._correction,
+            "auto_fit_samples": self._auto_fit_samples,
         }

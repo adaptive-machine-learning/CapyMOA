@@ -178,4 +178,5 @@ class BNDM(BaseDataDriftDetector):
             "threshold": self._threshold,
             "max_depth": self._max_depth,
             "correction": self._correction,
+            "auto_fit_samples": self._auto_fit_samples,
         }

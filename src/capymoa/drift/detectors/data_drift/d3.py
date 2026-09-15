@@ -111,7 +111,7 @@ class D3(BaseDataDriftDetector):
         auc = float(roc_auc_score(labels, predictions))
 
         return DataDriftResult(
-            is_drift=auc >= self._threshold,
+            is_drift=auc > self._threshold,
             statistic=auc,
             distance=auc,
         )
@@ -122,4 +122,5 @@ class D3(BaseDataDriftDetector):
             "threshold": self._threshold,
             "n_splits": self._n_splits,
             "seed": self._seed,
+            "auto_fit_samples": self._auto_fit_samples,
         }

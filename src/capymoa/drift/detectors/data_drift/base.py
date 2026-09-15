@@ -9,22 +9,51 @@ a fixed reference distribution. Provide that reference in one of two ways:
   :meth:`add_element` calls build the reference; no explicit :meth:`fit`
   is needed.
 
-Once the sliding window is full the detector runs a statistical comparison
-and exposes the result through :meth:`detected_change`, :attr:`result`,
-and the inherited :attr:`detection_index` list.
+The reference stays fixed unless you call :meth:`fit` again along the
+stream. Once the test window is full the detector runs a statistical
+comparison and exposes the result through :meth:`detected_change`,
+:attr:`result`, and the inherited :attr:`detection_index` list.
 
 This differs from concept drift detectors, which track a scalar error signal
 and need no reference data (``REQUIRES_FIT = False``).
 """
 
+import sys
 from abc import abstractmethod
 from collections import deque
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Sequence, Union, Hashable
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union, Hashable
 
 import numpy as np
 
 from capymoa.drift.base_detector import BaseDriftDetector
+
+
+def _bin_probabilities(
+    x_ref: np.ndarray, x_test: np.ndarray, num_bins: int
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Compute bin probabilities for reference and test samples.
+
+    Bin edges span the combined range of both samples so that every
+    observation falls inside a bin. Zeros are replaced with
+    ``sys.float_info.min`` to avoid ``log(0)`` and division by zero.
+
+    :param x_ref: 1-D reference sample.
+    :param x_test: 1-D test sample.
+    :param num_bins: Number of equal-width bins.
+    :returns: ``(ref_probs, test_probs)`` each of shape ``(num_bins,)``.
+    """
+    combined = np.concatenate([x_ref, x_test])
+    edges = np.linspace(combined.min(), combined.max(), num_bins + 1)
+    ref_counts, _ = np.histogram(x_ref, bins=edges)
+    test_counts, _ = np.histogram(x_test, bins=edges)
+    ref_counts = ref_counts.astype(float)
+    test_counts = test_counts.astype(float)
+    ref_counts[ref_counts == 0] = sys.float_info.min
+    test_counts[test_counts == 0] = sys.float_info.min
+    ref_probs = ref_counts / ref_counts.sum()
+    test_probs = test_counts / test_counts.sum()
+    return ref_probs, test_probs
 
 
 @dataclass
@@ -77,8 +106,24 @@ class BaseDataDriftDetector(BaseDriftDetector):
       all features when multivariate).
     * :meth:`get_params` -- return detector hyper-parameters.
 
-    The base class handles the sliding window, feature-wise looping for
-    univariate tests, Bonferroni correction, and detection bookkeeping.
+    The base class handles the sliding test window, feature-wise looping for
+    univariate tests, Bonferroni correction [#rabanser2019]_, and detection
+    bookkeeping.
+
+    By default the reference window is fixed after :meth:`fit` (or after
+    auto-fit) [#cerqueira2023]_ [#lukats2025]_. Call :meth:`fit` again
+    along the stream to use a sliding reference.
+
+    .. [#rabanser2019] Rabanser, S., Günnemann, S., and Lipton, Z. (2019).
+        Failing loudly: An empirical study of methods for detecting dataset
+        shift. Advances in Neural Information Processing Systems, 32.
+    .. [#cerqueira2023] Cerqueira, V., Gomes, H. M., Bifet, A., and Torgo,
+        L. (2023). STUDD: A student-teacher method for unsupervised concept
+        drift detection. Machine Learning, 112(11), 4351-4378.
+    .. [#lukats2025] Lukats, D., Zielinski, O., Hahn, A., and Stahl, F.
+        (2025). A benchmark and survey of fully unsupervised concept drift
+        detectors on real-world data streams. International Journal of Data
+        Science and Analytics, 19(1), 1-31.
     """
 
     REQUIRES_FIT: bool = True
@@ -107,9 +152,9 @@ class BaseDataDriftDetector(BaseDriftDetector):
         :param alpha: Significance level. For p-value tests, drift is
             declared when the (corrected) p-value falls below ``alpha``.
         :param correction: Multiple-testing correction for univariate
-            tests across features. ``"bonferroni"`` divides ``alpha``
-            by the number of features; ``"none"`` uses ``alpha``
-            directly. Ignored for multivariate tests.
+            tests across features. ``"bonferroni"`` (default) divides
+            ``alpha`` by the number of features; ``"none"`` uses
+            ``alpha`` directly. Ignored for multivariate tests.
         :param auto_fit_samples: If set, the first *auto_fit_samples*
             observations are used as the reference (auto-fit mode).
             No explicit :meth:`fit` call is needed; :meth:`add_element`
@@ -130,6 +175,7 @@ class BaseDataDriftDetector(BaseDriftDetector):
                 raise ValueError("auto_fit_samples must be a positive integer")
 
         super().__init__()
+        self.in_warning_zone = False
         self._X_ref: Optional[np.ndarray] = None
         self._n_features: Optional[int] = None
         self._feature_names: Optional[List[str]] = None
@@ -202,7 +248,8 @@ class BaseDataDriftDetector(BaseDriftDetector):
         This detector has :attr:`REQUIRES_FIT` set to ``True``. Call
         :meth:`fit` before :meth:`add_element` or :meth:`compare`, unless
         ``auto_fit_samples`` was set so :meth:`add_element` can collect
-        the reference.
+        the reference. Calling :meth:`fit` again replaces the reference
+        (a sliding reference window).
 
         :param X: Reference data, shape ``(n_samples,)`` or
             ``(n_samples, n_features)``. May also be a pandas DataFrame,

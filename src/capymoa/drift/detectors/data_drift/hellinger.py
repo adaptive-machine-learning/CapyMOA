@@ -112,4 +112,5 @@ class Hellinger(BaseDataDriftDetector):
             "num_bins": self._num_bins,
             "threshold": self._threshold,
             "correction": self._correction,
+            "auto_fit_samples": self._auto_fit_samples,
         }

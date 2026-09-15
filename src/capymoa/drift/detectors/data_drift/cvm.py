@@ -75,5 +75,6 @@ class CramerVonMises(BaseDataDriftDetector):
             "window_size": self._window_size,
             "alpha": self._alpha,
             "correction": self._correction,
+            "auto_fit_samples": self._auto_fit_samples,
             "method": self._method,
         }
