@@ -116,7 +116,7 @@ class RSHash(AnomalyDetector):
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
-    >>> learner = RSHash(schema)
+    >>> learner = RSHash(schema, s=256)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -125,7 +125,7 @@ class RSHash(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.50
+    AUC: 0.78
     """
 
     def __init__(
