@@ -5,7 +5,7 @@ from typing import Any, Dict, Literal, Optional
 
 import numpy as np
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 _SQRT2 = np.sqrt(2.0)
 
@@ -28,7 +28,7 @@ class Hellinger(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import Hellinger
+    >>> from capymoa.drift.detectors import Hellinger
     >>> rng = np.random.default_rng(42)
     >>> detector = Hellinger(window_size=50, num_bins=20, threshold=0.1)
     >>> detector.fit(rng.normal(0, 1, size=(200, 2)))
@@ -73,7 +73,9 @@ class Hellinger(BaseDataDriftDetector):
         if not 0.0 < threshold <= 1.0:
             raise ValueError("threshold must be in (0, 1]")
         super().__init__(
-            window_size, alpha=0.05, correction=correction,
+            window_size,
+            alpha=0.05,
+            correction=correction,
             auto_fit_samples=auto_fit_samples,
         )
         self._num_bins = num_bins

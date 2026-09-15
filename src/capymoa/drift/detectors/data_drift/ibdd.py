@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
 class IBDD(BaseDataDriftDetector):
@@ -23,7 +23,7 @@ class IBDD(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import IBDD
+    >>> from capymoa.drift.detectors import IBDD
     >>> rng = np.random.default_rng(42)
     >>> detector = IBDD(window_size=50, n_permutations=50)
     >>> detector.fit(rng.normal(0, 1, size=(200, 2)))
@@ -66,7 +66,9 @@ class IBDD(BaseDataDriftDetector):
         if n_permutations < 1:
             raise ValueError("n_permutations must be at least 1")
         super().__init__(
-            window_size, alpha=alpha, correction="none",
+            window_size,
+            alpha=alpha,
+            correction="none",
             auto_fit_samples=auto_fit_samples,
         )
         self._n_permutations = n_permutations

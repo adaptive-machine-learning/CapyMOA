@@ -6,7 +6,7 @@ import numpy as np
 from scipy import stats
 from scipy.special import betaln
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
 def _normalize(data: np.ndarray) -> np.ndarray:
@@ -55,11 +55,7 @@ def _polya_tree_test(
             + betaln(alpha + n2_l, alpha + n2_r)
         )
         contribution = num - den
-        return (
-            contribution
-            + _recurse(level + 1, p_left)
-            + _recurse(level + 1, p_right)
-        )
+        return contribution + _recurse(level + 1, p_left) + _recurse(level + 1, p_right)
 
     return _recurse(0, "")
 
@@ -97,7 +93,7 @@ class BNDM(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import BNDM
+    >>> from capymoa.drift.detectors import BNDM
     >>> rng = np.random.default_rng(42)
     >>> detector = BNDM(window_size=100, threshold=0.5)
     >>> detector.fit(rng.normal(0, 1, size=(200, 2)))
@@ -144,7 +140,9 @@ class BNDM(BaseDataDriftDetector):
         if max_depth < 1:
             raise ValueError("max_depth must be at least 1")
         super().__init__(
-            window_size, alpha=0.05, correction=correction,
+            window_size,
+            alpha=0.05,
+            correction=correction,
             auto_fit_samples=auto_fit_samples,
         )
         self._const = const
@@ -161,7 +159,10 @@ class BNDM(BaseDataDriftDetector):
         test_norm = normalized[len(x_ref) :]
 
         log_odds = _polya_tree_test(
-            ref_norm, test_norm, self._const, self._max_depth,
+            ref_norm,
+            test_norm,
+            self._const,
+            self._max_depth,
         )
         similarity = 1.0 / (1.0 + np.exp(-log_odds))
 

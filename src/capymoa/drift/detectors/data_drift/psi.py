@@ -5,7 +5,7 @@ from typing import Any, Dict, Literal, Optional
 
 import numpy as np
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
 class PSI(BaseDataDriftDetector):
@@ -28,7 +28,7 @@ class PSI(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import PSI
+    >>> from capymoa.drift.detectors import PSI
     >>> rng = np.random.default_rng(42)
     >>> detector = PSI(window_size=50, num_bins=20)
     >>> detector.fit(rng.normal(0, 1, size=(200, 2)))
@@ -72,7 +72,9 @@ class PSI(BaseDataDriftDetector):
         if threshold <= 0:
             raise ValueError("threshold must be positive")
         super().__init__(
-            window_size, alpha=0.05, correction=correction,
+            window_size,
+            alpha=0.05,
+            correction=correction,
             auto_fit_samples=auto_fit_samples,
         )
         self._num_bins = num_bins
@@ -94,9 +96,7 @@ class PSI(BaseDataDriftDetector):
         ref_pct[ref_pct == 0] = sys.float_info.min
         test_pct[test_pct == 0] = sys.float_info.min
 
-        psi_value = float(
-            np.sum((test_pct - ref_pct) * np.log(test_pct / ref_pct))
-        )
+        psi_value = float(np.sum((test_pct - ref_pct) * np.log(test_pct / ref_pct)))
         return DataDriftResult(
             is_drift=psi_value > self._threshold,
             statistic=psi_value,

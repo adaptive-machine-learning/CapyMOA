@@ -5,7 +5,7 @@ from typing import Any, Dict, Literal, Optional
 import numpy as np
 from scipy.stats import wasserstein_distance
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
 class Wasserstein(BaseDataDriftDetector):
@@ -27,7 +27,7 @@ class Wasserstein(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import Wasserstein
+    >>> from capymoa.drift.detectors import Wasserstein
     >>> rng = np.random.default_rng(42)
     >>> detector = Wasserstein(window_size=50, threshold=0.5)
     >>> detector.fit(rng.normal(0, 1, size=(200, 2)))
@@ -66,7 +66,9 @@ class Wasserstein(BaseDataDriftDetector):
         if threshold <= 0:
             raise ValueError("threshold must be positive")
         super().__init__(
-            window_size, alpha=0.05, correction=correction,
+            window_size,
+            alpha=0.05,
+            correction=correction,
             auto_fit_samples=auto_fit_samples,
         )
         self._threshold = threshold

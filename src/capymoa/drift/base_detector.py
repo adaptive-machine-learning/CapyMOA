@@ -10,6 +10,11 @@ from typing_extensions import override
 class BaseDriftDetector(ABC):
     """Drift Detector"""
 
+    REQUIRES_FIT: bool = False
+    """If ``True``, this detector needs a reference distribution before
+    it can detect change. Concept drift detectors leave this as
+    ``False`` and only use :meth:`add_element`."""
+
     def __init__(self):
         super().__init__()
 

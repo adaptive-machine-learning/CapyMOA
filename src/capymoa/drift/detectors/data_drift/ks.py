@@ -5,7 +5,7 @@ from typing import Any, Dict, Literal, Optional
 import numpy as np
 from scipy.stats import ks_2samp
 
-from capymoa.drift.detectors.data_drift.base import BaseDataDriftDetector, DataDriftResult
+from .base import BaseDataDriftDetector, DataDriftResult
 
 
 class KolmogorovSmirnov(BaseDataDriftDetector):
@@ -21,7 +21,7 @@ class KolmogorovSmirnov(BaseDataDriftDetector):
     --------
 
     >>> import numpy as np
-    >>> from capymoa.drift.detectors.data_drift import KolmogorovSmirnov
+    >>> from capymoa.drift.detectors import KolmogorovSmirnov
     >>> rng = np.random.default_rng(42)
     >>> detector = KolmogorovSmirnov(window_size=50)
     >>> detector.fit(rng.normal(0, 1, size=(200, 2)))
