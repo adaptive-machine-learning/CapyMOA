@@ -43,6 +43,7 @@ extensions = [
     "sphinxcontrib.programoutput",
     "myst_parser",
     "sphinx_llm.txt",
+    "matplotlib.sphinxext.plot_directive",  # https://matplotlib.org/stable/api/sphinxext_plot_directive_api.html
 ]
 
 nitpick_ignore_regex = [
@@ -128,6 +129,12 @@ notebooks = Path("../notebooks")
 notebook_doc_source = Path("notebooks")
 if not notebook_doc_source.exists():
     os.symlink(notebooks, notebook_doc_source)
+
+# -- Options for Matplotlib Sphinx Plot Directive ----------------------------
+plot_include_source = True
+plot_html_show_source_link = False
+plot_html_show_formats = False
+plot_formats = ["png"]
 
 # -- Options for InterSphinx -------------------------------------------------
 # See: https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html

@@ -23,10 +23,10 @@ class HalfSpaceTrees(MOAAnomalyDetector):
 
     Example:
 
-    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import HalfSpaceTrees
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
-    >>> stream = ElectricityTiny()
+    >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = HalfSpaceTrees(schema)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
@@ -37,7 +37,7 @@ class HalfSpaceTrees(MOAAnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.56
+    AUC: 0.74
 
     """
 

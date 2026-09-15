@@ -168,9 +168,9 @@ cython_debug/
 # IDE
 .vscode
 
-# 
+#
 # MOABridge
-# 
+#
 src/capymoa/jar/moa.jar
 data
 notebooks/*.png
@@ -196,3 +196,5 @@ notebooks/.ipynb_checkpoints
 *.pdf
 .DS_Store
 nohup.out
+
+.claude

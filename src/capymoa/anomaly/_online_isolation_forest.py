@@ -43,10 +43,10 @@ class OnlineIsolationForest(AnomalyDetector):
 
     Example:
 
-    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import OnlineIsolationForest
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
-    >>> stream = ElectricityTiny()
+    >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = OnlineIsolationForest(schema=schema, window_size=100)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
@@ -57,7 +57,7 @@ class OnlineIsolationForest(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.42
+    AUC: 0.75
 
     """
 

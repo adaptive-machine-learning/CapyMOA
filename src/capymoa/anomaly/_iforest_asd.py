@@ -150,10 +150,10 @@ class IForestASD(AnomalyDetector):
     volumes, 46(20), 12-17.`
 
     Example:
-    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import IForestASD
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
-    >>> stream = ElectricityTiny()
+    >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = IForestASD(schema, window_size=256, n_trees=100,
     ...                      sample_size=64, random_state=42)
@@ -165,7 +165,7 @@ class IForestASD(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.61
+    AUC: 0.96
 
     TODO: implement concept drift method
     """

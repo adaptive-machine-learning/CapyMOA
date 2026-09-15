@@ -62,10 +62,10 @@ class Loda(AnomalyDetector):
     """Loda: Lightweight on-line detector of anomalies
     We implement a streaming version of Loda that updates the histograms after every window of instances.
 
-    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import Loda
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
-    >>> stream = ElectricityTiny()
+    >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = Loda(schema, n_projections=10, window_size=100, random_state=42)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
@@ -76,7 +76,7 @@ class Loda(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.65
+    AUC: 0.86
 
     Reference:
         Pevný, T. (2016). Loda: Lightweight on-line detector of anomalies. Machine Learning, 102(2), 275-304.

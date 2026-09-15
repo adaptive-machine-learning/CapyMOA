@@ -19,10 +19,10 @@ class Autoencoder(AnomalyDetector):
 
     Example:
 
-    >>> from capymoa.datasets import ElectricityTiny
+    >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import Autoencoder
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
-    >>> stream = ElectricityTiny()
+    >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = Autoencoder(schema=schema)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
@@ -33,7 +33,7 @@ class Autoencoder(AnomalyDetector):
     ...     learner.train(instance)
     >>> auc = evaluator.auc()
     >>> print(f"AUC: {auc:.2f}")
-    AUC: 0.42
+    AUC: 0.85
 
     """
 
