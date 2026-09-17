@@ -1,0 +1,4 @@
+# Pairs every `*/*.py` notebook with a generated `*/*.ipynb` sibling, so
+# `jupytext --sync` (see `sync_notebooks_to_ipynb` in tasks.py) knows which
+# `.ipynb` to update from each `.py` source of truth.
+formats = "ipynb,py:percent"

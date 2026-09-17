@@ -6,7 +6,7 @@
 * Run doctests with `uv run pytest -q --doctest-modules src`.
 * Run unit tests with `uv run pytest -q tests`.
     * `pytest.mark.torch` - requires PyTorch to be installed.
-* Run notebook tests with `uv run pytest -q --nbmake notebooks`.
+* Check notebooks execute with `uv run invoke docs.nb`.
 * Build documentation with `uv run invoke docs`.
 * Clean documentation with `uv run invoke docs.clean`.
 * MUST run formatter `uv run invoke fmt` before committing code.
@@ -35,4 +35,3 @@
 * If it is possible to cut a word out, you SHOULD cut it out.
 * SHOULD avoid complex sentence structures. 
 * Consider using commas or parenthesis over em-dash or removing the clause entirely.
-

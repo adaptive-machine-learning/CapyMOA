@@ -3,13 +3,34 @@
 # Each line maps a domain of src/capymoa to its maintainer.
 # See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
-/src/capymoa/anomaly/   @justinuliu
-/src/capymoa/automl/    @hmgomes
-/src/capymoa/classifier/ @hmgomes
-/src/capymoa/cluster/   @cassales
-/src/capymoa/drift/     @vcerqueira
-/src/capymoa/feature/   @hmgomes
-/src/capymoa/ocl/       @tachyonicClock @nuwangunasekara
-/src/capymoa/uncertainty/  @YibinSun
-/src/capymoa/regressor/ @YibinSun @nuwangunasekara
-/src/capymoa/ssl/       @tachyonicClock
+/src/capymoa/classifier/  @hmgomes
+/notebooks/01_classifier/ @hmgomes
+
+/src/capymoa/drift/       @vcerqueira
+/notebooks/02_drift/      @vcerqueira
+
+/src/capymoa/regressor/   @YibinSun @nuwangunasekara
+/notebooks/03_regressor/  @YibinSun @nuwangunasekara
+
+/src/capymoa/cluster/     @cassales
+/notebooks/04_clusterer/  @cassales
+
+/src/capymoa/anomaly/     @justinuliu
+/notebooks/05_anomaly/    @justinuliu
+
+/src/capymoa/ocl/         @tachyonicClock @nuwangunasekara
+/notebooks/06_ocl/        @tachyonicClock @nuwangunasekara
+
+/src/capymoa/ssl/         @tachyonicClock
+/notebooks/07_ssl/        @tachyonicClock
+
+/src/capymoa/automl/      @hmgomes
+/notebooks/08_automl/     @hmgomes
+
+/src/capymoa/uncertainty/ @YibinSun
+/notebooks/09_uncertainty/ @YibinSun
+
+/src/capymoa/feature/     @hmgomes
+/notebooks/10_feature/    @hmgomes
+
+/notebooks/11_common/     @tachyonicClock @hmgomes

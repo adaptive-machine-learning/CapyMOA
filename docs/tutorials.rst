@@ -1,40 +1,13 @@
 .. _tutorials:
 
-Tutorials
-=========
-These tutorials will show you how to get started with the CapyMOA library.
+User Guide
+==========
 
+..  toctree::
+    :glob:
+    :maxdepth: 2
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Tutorials:
-
-   notebooks/00_getting_started.ipynb
-   notebooks/01_evaluation.ipynb
-   notebooks/02_sklearn.ipynb
-   notebooks/03_pytorch.ipynb
-   notebooks/04_drift_streams.ipynb
-   notebooks/05_new_learner.ipynb
-   notebooks/06_advanced_API.ipynb
-   notebooks/07_pipelines.ipynb
-   notebooks/08_prediction_interval.ipynb
-   notebooks/09_automl.ipynb
-   notebooks/10_ocl.ipynb
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Extra Tutorials:
-
-   notebooks/SSL_example.ipynb
-   notebooks/anomaly_detection.ipynb
-   notebooks/drift_detection.ipynb
-   notebooks/data_drift_detection.ipynb
-   notebooks/optimizing_detectors.ipynb
-   notebooks/parallel_ensembles.ipynb
-   notebooks/save_and_load_model.ipynb
-   notebooks/clustering.ipynb
-   notebooks/feature_importance.ipynb
-   notebooks/ocl_event_system.ipynb
+    notebooks/*/index
 
 Talks
 =====

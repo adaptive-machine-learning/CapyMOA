@@ -90,6 +90,9 @@ dev=[
     "commitizen~=3.24",
     "invoke~=3.0",
     "jupyter~=1.1",
+    # Notebooks are stored as Jupytext `py:percent` scripts (see `notebooks/*/*.py`);
+    # `invoke docs.nb` uses this to regenerate the `.ipynb` files nbmake needs.
+    "jupytext~=1.16",
     "nbmake~=1.5",
     "pytest-cov~=7.0",
     "pytest-subtests~=0.15",
@@ -105,9 +108,10 @@ dev=[
 ]
 
 doc=[
-    "myst-parser",                 # Parses markdown files
-    "nbsphinx",                    # Sphinx extension to include Jupyter notebooks
-    "pydata-sphinx-theme",         # Theme for the documentation
+    "jupytext~=1.16",              # Reads the notebooks' `py:percent` source format
+    "myst-nb",                     # Sphinx extension: parses MyST + Jupytext notebooks
+    "pydata-sphinx-theme",         # Theme for the documentation; has built-in sphinx-copybutton styling
+    "sphinx-copybutton",           # Adds a copy button to code blocks
     "sphinx-llm",                  # Generates llms.txt/markdown pages for LLM consumption
     "sphinx_design",               # Sphinx extension for design elements
     "sphinx==8.1.3",               # Documentation generator
@@ -169,6 +173,9 @@ path = "src/capymoa/__about__.py"
 # Defines the directories included in the wheel package
 packages = ["src/capymoa", "src/moa-stubs", "src/com-stubs"]
 artifacts = ["src/capymoa/jar/moa.jar", "src/capymoa/jar/Home.class"]
+# _nbmock.py only exists to support running the docs notebooks in CI/local
+# dev; it has no use at runtime and shouldn't ship to end users.
+exclude = ["src/capymoa/_nbmock.py"]
 
 # src/moa-stubs and src/com-stubs are included in the git ignore file
 # that hatch inherits. To include them anyway we need to set ignore-vcs to true.
@@ -253,6 +260,13 @@ upload_to_vcs_release = true
 # Configuration for the formatter
 [tool.ruff]
 target-version = "py311"
+extend-exclude = [
+    # Notebooks stored as Jupytext `py:percent` scripts. They rely on the
+    # Jupyter/IPython runtime (e.g. the `display()` builtin, top-level
+    # expression auto-printing) rather than being run as plain scripts, so
+    # linting/formatting them as such produces false positives.
+    "notebooks",
+]
 
 [tool.ruff.lint]
 ignore = [
@@ -271,7 +285,7 @@ exclude_also = [
 
 [tool.coverage.run]
 omit = [
-    # omit pytorch-generated files in /tmp 
+    # omit pytorch-generated files in /tmp
     # https://stackoverflow.com/a/79415891
     "/tmp/*"
-] 
+]

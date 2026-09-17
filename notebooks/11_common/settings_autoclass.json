@@ -1,0 +1,49 @@
+{
+
+  "windowSize" :  1000,
+  "ensembleSize" : 10,
+  "newConfigurations" : 10,
+  "keepCurrentModel" : true,
+  "lambda" : 0.05,
+  "preventAlgorithmDeath" : true,
+  "keepGlobalIncumbent" : true,
+  "keepAlgorithmIncumbents" : true,
+  "keepInitialConfigurations" : true,
+  "useTestEnsemble" : true,
+  "resetProbability" : 0.01,
+  "numberOfCores" : 1,
+  "performanceMeasureMaximisation": true,
+
+  "algorithms": [
+    {
+      "algorithm": "moa.classifiers.lazy.kNN",
+      "parameters": [
+        {"parameter": "k", "type":"integer", "value":10, "range":[2,30]}
+      ]
+    }
+  ,
+    {
+      "algorithm": "moa.classifiers.trees.HoeffdingTree",
+      "parameters": [
+        {"parameter": "g", "type":"integer", "value":200, "range":[10, 200]},
+       {"parameter": "c", "type":"float", "value":0.01, "range":[0, 1]}
+      ]
+    }
+  ,
+    {
+      "algorithm": "moa.classifiers.lazy.kNNwithPAWandADWIN",
+      "parameters": [
+        {"parameter": "k", "type":"integer", "value":10, "range":[2,30]}
+      ]
+    }
+    ,
+    {
+      "algorithm": "moa.classifiers.trees.HoeffdingAdaptiveTree",
+      "parameters": [
+        {"parameter": "g", "type":"integer", "value":200, "range":[10, 200]},
+        {"parameter": "c", "type":"float", "value":0.01, "range":[0, 1]}
+      ]
+    }
+
+  ]
+}

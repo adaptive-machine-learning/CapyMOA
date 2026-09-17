@@ -7,6 +7,8 @@ For example, to build the project, you can run `invoke build`.
 """
 
 import os
+import shutil
+import sys
 from os import environ
 from pathlib import Path
 from subprocess import run
@@ -19,6 +21,7 @@ from invoke.exceptions import UnexpectedExit
 
 IS_CI = environ.get("CI", "false").lower() == "true"
 COVERAGE_DEFAULT = False
+WINDOWS = sys.platform == "win32"
 
 # Scales the pytest/doctest/notebook timeouts below. Release CI runs on
 # Windows/macOS runners that are noticeably slower than the Linux runner the
@@ -29,6 +32,8 @@ COVERAGE_DEFAULT = False
 PYTEST_TIMEOUT_FACTOR = float(environ.get("PYTEST_TIMEOUT_FACTOR", "1"))
 PYTEST_TIMEOUT = int(90 * PYTEST_TIMEOUT_FACTOR)
 NOTEBOOK_FAST_TIMEOUT = int(60 * 3 * PYTEST_TIMEOUT_FACTOR)
+NOTEBOOK_SLOW_TIMEOUT = int(60 * 30 * PYTEST_TIMEOUT_FACTOR)
+NOTEBOOKS_DIR = Path("notebooks")
 
 
 def python_exe(profile: str | None = None) -> str:
@@ -52,6 +57,21 @@ def divider(text: str):
     print(text.center(88, "-"))
 
 
+def remove_path(path: Path) -> bool:
+    """Delete a file or a directory tree.
+
+    Replaces `rm -r`, which is unavailable on Windows. Returns `True` if
+    something was deleted and `False` if the path did not exist.
+    """
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+    elif path.exists() or path.is_symlink():
+        path.unlink()
+    else:
+        return False
+    return True
+
+
 def all_exist(
     files: list[str] | None = None, directories: list[str] | None = None
 ) -> bool:
@@ -69,9 +89,23 @@ def all_exist(
     return True
 
 
-@task()
-def docs_build(ctx: Context, ignore_warnings: bool = False):
+def _notebooks_missing_ipynb(notebooks_dir: Path) -> list[Path]:
+    """`.py` notebooks that don't have a matching, already-executed `.ipynb`."""
+    return [
+        py_file
+        for py_file in sorted(notebooks_dir.glob("*/*.py"))
+        if not py_file.with_suffix(".ipynb").exists()
+    ]
+
+
+@task(help={"ignore_warnings": "Do not treat Sphinx warnings as errors."})
+def docs_build(
+    ctx: Context,
+    ignore_warnings: bool = False,
+):
     """Build the documentation using Sphinx."""
+    sync_notebooks_to_ipynb(NOTEBOOKS_DIR)
+
     cmd = []
     cmd += ["python", "-m", "sphinx", "build"]
     cmd += ["--color"]  # color output
@@ -88,7 +122,9 @@ def docs_build(ctx: Context, ignore_warnings: bool = False):
         ctx.run(" ".join(cmd), echo=True)
         print("-" * 80)
         print("Documentation is built and available at:")
-        print(f"  file://{doc_dir.resolve()}/index.html")
+        # `as_uri()` produces a valid URL on every platform, including the
+        # `file:///C:/...` form Windows browsers expect.
+        print(f"  {(doc_dir.resolve() / 'index.html').as_uri()}")
         print("You can copy and paste this URL into your browser.")
     except UnexpectedExit as err:
         print("-" * 80)
@@ -104,11 +140,58 @@ def docs_build(ctx: Context, ignore_warnings: bool = False):
         raise SystemExit(err.result.return_code)
 
 
+@task(
+    help={
+        "slow": (
+            "Execute notebooks against their full-size datasets, with a "
+            "generous timeout (used for release docs). By default notebooks "
+            "are executed fast, against mocked/tiny datasets (NB_FAST=true), "
+            "which is what PR docs use."
+        ),
+        "parallel": "Run the notebooks in parallel.",
+    }
+)
+def docs_notebooks(ctx: Context, slow: bool = False, parallel: bool = False):
+    """Execute notebooks and bake their outputs into their `.ipynb` files.
+
+    This is a distinct step from `invoke docs.build`, so that a notebook
+    execution failure and a Sphinx build failure show up as separate CI
+    steps. Uses nbmake's `--overwrite` flag to write real outputs directly
+    into the generated `.ipynb` files (rather than a separate cache), so
+    they stay easy to open and inspect in Jupyter/VS Code.
+    """
+    sync_notebooks_to_ipynb(NOTEBOOKS_DIR)
+
+    env = {
+        # Consumed by `capymoa._nbmock.is_nb_fast()` in the notebooks themselves.
+        "NB_FAST": "false" if slow else "true",
+        "CAPYMOA_DATASETS_DIR": os.environ.get("CAPYMOA_DATASETS_DIR", "./data"),
+    }
+    timeout = NOTEBOOK_SLOW_TIMEOUT if slow else NOTEBOOK_FAST_TIMEOUT
+
+    cmd = [
+        "python -m pytest --nbmake --overwrite",
+        "-x",  # Stop after the first failure
+        f"--nbmake-timeout={timeout}",
+        # Disable the global per-test pytest-timeout (see pyproject.toml):
+        # it wraps the whole notebook run and would kill legitimately long
+        # --slow notebooks; --nbmake-timeout above is the right timeout here.
+        "--timeout=0",
+        "notebooks",
+        "--durations=5",  # Show the duration of each notebook
+    ]
+    cmd += ["-n=auto"] if parallel else []
+    ctx.run(" ".join(cmd), echo=True, env=env)
+
+
 @task
 def docs_clean(ctx: Context):
     """Remove the built documentation."""
-    ctx.run("rm -r docs/_build")
-    ctx.run("rm docs/api/modules/*")
+    if remove_path(Path("docs/_build")):
+        print("Removed docs/_build")
+    for path in sorted(Path("docs/api/modules").glob("*")):
+        remove_path(path)
+        print(f"Removed {path}")
 
 
 @task
@@ -119,7 +202,7 @@ def download_moa(ctx: Context):
     if not moa_path.exists():
         moa_path.parent.mkdir(parents=True, exist_ok=True)
         print(f"Downloading moa.jar from : {url}")
-        wget.download(url, out=moa_path.resolve().as_posix())
+        wget.download(url, out=str(moa_path.resolve()))
     else:
         print("Nothing todo: `moa.jar` already exists.")
 
@@ -135,7 +218,7 @@ def build_stubs(ctx: Context):
     """
     moa_path = Path(ctx["moa_path"])
     assert moa_path.exists() and moa_path.is_file()
-    class_path = moa_path.resolve().as_posix()
+    class_path = str(moa_path.resolve())
 
     if all_exist(
         directories=[
@@ -146,37 +229,39 @@ def build_stubs(ctx: Context):
     ):
         print("Nothing todo: Java stubs already exist.")
         return
-
-    run(
-        [
-            "python",
-            "-m",
-            "stubgenj",
-            f"--classpath={class_path}",
-            "--output-dir=src",
-            # Options
-            "--convert-strings",
-            "--no-jpackage-stubs",
-            # Names of the packages to generate stubs for
-            "moa",
-            "com.yahoo.labs.samoa",
-            "com.github.javacliparser",
-        ],
-        check=True,
-        env={
-            # Set JAVA_HOME to ensure stubgenj can find Java.
-            "JAVA_HOME": get_java_home(ctx).as_posix(),
-            **environ,
-        },
-    )
+    cmd = [
+        # `sys.executable` is the interpreter running this task, so the
+        # stubs are built with the active environment even where `python`
+        # is not on `PATH`. No shell is involved, so a path containing
+        # spaces (common on Windows) needs no quoting.
+        sys.executable,
+        "-m",
+        "stubgenj",
+        f"--classpath={class_path}",
+        "--output-dir=src",
+        # Options
+        "--convert-strings",
+        "--no-jpackage-stubs",
+        # Names of the packages to generate stubs for
+        "moa",
+        "com.yahoo.labs.samoa",
+        "com.github.javacliparser",
+    ]
+    # stubgenj has a unreliable java resolution strategy
+    environ.setdefault("JAVA_HOME", str(get_java_home(ctx)))
+    run(cmd, check=True, env=environ)
 
 
 @task
 def clean_stubs(ctx: Context):
     """Remove the Java stubs."""
-    ctx.run(
-        "rm -r src/moa-stubs src/com-stubs || echo 'Nothing to do: Java stubs do not exist.'"
-    )
+    removed = False
+    for path in [Path("src/moa-stubs"), Path("src/com-stubs")]:
+        if remove_path(path):
+            removed = True
+            print(f"Removed {path}")
+    if not removed:
+        print("Nothing to do: Java stubs do not exist.")
 
 
 @task(pre=[clean_stubs])
@@ -200,7 +285,9 @@ def refresh_moa(ctx: Context):
     2. Download the moa.jar file `invoke build.download-moa`.
     3. Build the Java stubs. `invoke build.java-stubs`
     """
-    ctx.run("python -c 'import capymoa; capymoa.about()'")
+    # Double quotes, because `cmd.exe` does not treat single quotes as
+    # quoting characters and would pass them through to Python.
+    ctx.run('python -c "import capymoa; capymoa.about()"')
 
 
 @task(pre=[clean_stubs, clean_moa])
@@ -208,76 +295,64 @@ def clean(ctx: Context):
     """Clean all build artifacts."""
 
 
+def sync_notebooks_to_ipynb(notebooks_dir: Path) -> None:
+    """Bring the `.ipynb` files nbmake and Jupyter need up to date.
+
+    The notebooks are stored as Jupytext `py:percent` scripts (see
+    ``notebooks/*/*.py``), which is the source of truth committed to git. The
+    generated `.ipynb` siblings are build artifacts (gitignored): nbmake only
+    collects `.ipynb` files, and Jupyter needs one to open a kernel.
+
+    Uses `jupytext --sync` where the newer file overwrite the older one.
+    """
+    for py_file in sorted(notebooks_dir.glob("*/*.py")):
+        run(["jupytext", "--sync", str(py_file)], check=True)
+
+
+@task
+def clean_notebooks(ctx: Context):
+    """Remove generated notebook artifacts (`.ipynb` files, execution side-effects)."""
+    # Note: some `.gif`/`.png` files under `notebooks/*/` are committed
+    # documentation assets, not generated artifacts -- don't glob those
+    # extensions here.
+    patterns = [
+        "*/*.ipynb",
+        "*/__pycache__",
+        "*/*.pdf",
+        "*/hs_err_pid*.log",
+        "*/runs",
+        "*/.ipynb_checkpoints",
+        "*/data",
+    ]
+    for pattern in patterns:
+        for path in sorted(NOTEBOOKS_DIR.glob(pattern)):
+            if remove_path(path):
+                print(f"Removed {path}")
+
+
 @task(
     help={
-        "parallel": "Run the notebooks in parallel.",
-        "overwrite": (
-            "Overwrite the notebooks with the executed output. Requires ``--slow``."
-        ),
         "slow": (
             "Run the notebooks in slow mode by setting the environment variable "
             "`NB_FAST` to `false`."
         ),
-        "no_skip": "Do not skip any notebooks.",
+        "parallel": "Run the notebooks in parallel.",
     }
 )
-def notebooks(
-    ctx: Context,
-    parallel: bool = False,
-    overwrite: bool = False,
-    k_pattern: str | None = None,
-    slow: bool = False,
-    no_skip: bool = False,
-):
-    """Run the notebooks and check for errors.
+def notebooks(ctx: Context, slow: bool = False, parallel: bool = False):
+    """Deprecated: use `invoke docs.nb` instead.
 
-    Uses nbmake https://github.com/treebeardtech/nbmake to execute the notebooks
-    and check for errors.
-
-    Note that nbmake does not support code coverage.
-
-    The `--overwrite` flag can be used to overwrite the notebooks with the
-    executed output.
+    Used to run the notebooks through nbmake directly; now delegates to
+    `docs.nb`, which does the same thing (bakes real outputs into each
+    notebook's `.ipynb` file via `nbmake --overwrite`), so there's a single
+    code path for "execute the notebooks" instead of two.
     """
-    assert not (not slow and overwrite), "You cannot use `--overwrite` with `--fast`."
-    env = {"COVERAGE_FILE": ".coverage.notebooks"}
-
-    # Set the environment variable to run the notebooks in fast mode.
-    if not slow:
-        environ["NB_FAST"] = "true"
-        # Per-cell timeout. Windows CI runners are several times slower than
-        # Linux/macOS, so keep some headroom over local fast-mode timings.
-        timeout = NOTEBOOK_FAST_TIMEOUT
-    else:
-        timeout = -1
-
-    skip_notebooks = ctx["test_skip_notebooks"]
-    if skip_notebooks is None or no_skip:
-        skip_notebooks = []
-    print(f"Skipping notebooks: {skip_notebooks}")
-
-    cmd = [
-        "python -m pytest --nbmake",
-        "-x",  # Stop after the first failure
-        f"--nbmake-timeout={timeout}",
-        # Disable the global per-test pytest-timeout (see pyproject.toml):
-        # it wraps the whole notebook run and would kill legitimately long
-        # --slow notebooks; --nbmake-timeout above is the right timeout here.
-        "--timeout=0",
-        "notebooks",
-        "--durations=5",  # Show the duration of each notebook
-    ]
-    cmd += ["-n=auto"] if parallel else []  # Should we run in parallel?
-    # Overwrite the notebooks with the executed output
-    cmd += ["--overwrite"] if overwrite else []
-
-    if len(skip_notebooks) > 0:
-        cmd += ["--deselect " + nb for nb in skip_notebooks]  # Skip some notebooks
-
-    if k_pattern:
-        cmd += [f"-k {k_pattern}"]
-
-    ctx.run(" ".join(cmd), echo=True, env=env)
+    print(
+        "warning: `invoke test.nb` is deprecated, use `invoke docs.nb` "
+        "instead. It executes the same notebooks; `test.nb` will be removed "
+        "in a future release.",
+    )
+    docs_notebooks(ctx, slow=slow, parallel=parallel)
 
 
 @task(
@@ -300,7 +375,6 @@ def pytest(
 
         invoke test.pytest -- tests/test_classifiers.py -k "HoeffdingTree"
     """
-    env = {"COVERAGE_FILE": environ.get("COVERAGE_FILE", ".coverage.pytest")}
     cmd = [
         python_exe(profile),
         "-m pytest",
@@ -311,7 +385,8 @@ def pytest(
     cmd += ["--cov"] if coverage else []
     cmd += ["-n=auto"] if parallel else []
     cmd += [ctx.remainder]
-    ctx.run(" ".join(cmd), echo=True, env=env)
+    environ.setdefault("COVERAGE_FILE", ".coverage.pytest")
+    ctx.run(" ".join(cmd), echo=True, env=environ)
 
 
 @task(
@@ -334,7 +409,6 @@ def doctest(
 
         invoke test.doctest -- src/capymoa/classifier/_hoeffding_tree.py
     """
-    env = {"COVERAGE_FILE": environ.get("COVERAGE_FILE", ".coverage.doctest")}
     cmd = [
         python_exe(profile),
         "-m pytest",
@@ -347,7 +421,8 @@ def doctest(
     cmd += ["--cov"] if coverage else []
     cmd += ["-n=auto"] if parallel else []
     cmd += [ctx.remainder]  # Add any additional arguments passed to the task
-    ctx.run(" ".join(cmd), echo=True, env=env)
+    environ.setdefault("COVERAGE_FILE", ".coverage.doctest")
+    ctx.run(" ".join(cmd), echo=True, env=environ)
 
 
 @task(aliases=["cov-combine"])
@@ -361,7 +436,7 @@ def coverage_combine(ctx: Context):
     with -- doesn't have the second run's coverage data silently overwrite
     the first's.
     """
-    covfiles = sorted(str(p) for p in Path(".").glob(".coverage.*"))
+    covfiles = sorted(p.as_posix() for p in Path(".").glob(".coverage.*"))
     if covfiles:
         ctx.run(" ".join(["python -m coverage combine --keep", *covfiles]), echo=True)
 
@@ -376,7 +451,8 @@ def coverage_report(ctx: Context):
 def coverage_clean(ctx: Context):
     """Clean coverage data."""
     ctx.run("python -m coverage erase", echo=True)
-    ctx.run("rm -rf htmlcov", echo=True)
+    if remove_path(Path("htmlcov")):
+        print("Removed htmlcov")
 
 
 @task
@@ -387,7 +463,7 @@ def all_tests(ctx: Context, parallel: bool = True, coverage: bool = COVERAGE_DEF
     divider("test.doctest")
     doctest(ctx, parallel, coverage)
     divider("test.notebooks")
-    notebooks(ctx, parallel)
+    notebooks(ctx, slow=False, parallel=parallel)
     if coverage:
         divider("test.cov-report")
         coverage_combine(ctx)
@@ -404,7 +480,9 @@ def commit(ctx: Context):
     ctx.run("python -m ruff check")
     print("Running Format Checks ...")
     ctx.run("python -m ruff format --check")
-    ctx.run("python -m commitizen commit", pty=True)
+    # Commitizen's prompt needs a TTY, but Windows has no pty. Invoke falls
+    # back automatically, so ask for one only where it exists.
+    ctx.run("python -m commitizen commit", pty=not WINDOWS)
 
 
 @task
@@ -422,6 +500,7 @@ def format(ctx: Context):
 
 docs = Collection("docs")
 docs.add_task(docs_build, "build", default=True)
+docs.add_task(docs_notebooks, "nb")
 docs.add_task(docs_clean, "clean")
 
 build = Collection("build")
@@ -433,16 +512,25 @@ build.add_task(clean)
 
 test = Collection("test")
 test.add_task(all_tests, "all", default=True)
-test.add_task(notebooks, "nb")
+test.add_task(docs_notebooks, "nb")
 test.add_task(pytest, "pytest")
 test.add_task(doctest, "doctest")
 test.add_task(coverage_combine)
 test.add_task(coverage_clean)
 test.add_task(coverage_report)
 
+# Aggregates clean tasks from the other collections under one namespace,
+# alongside `clean.nb` (there's no equivalent elsewhere). `docs.clean` and
+# `build.clean` keep working as-is; this is purely additive.
+clean_ns = Collection("clean")
+clean_ns.add_task(clean_notebooks, "nb")
+clean_ns.add_task(docs_clean, "docs")
+clean_ns.add_task(clean, "build")
+
 ns = Collection()
 ns.add_collection(docs)
 ns.add_collection(build)
+ns.add_collection(clean_ns)
 ns.add_collection(test)
 ns.add_task(commit)
 ns.add_task(refresh_moa)

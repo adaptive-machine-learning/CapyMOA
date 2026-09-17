@@ -22,3 +22,12 @@ RUN python -m pip install --no-cache-dir uv && \
 ENV CAPYMOA_DATASETS_DIR=${HOME}/data
 COPY  --chown=${NB_UID} data ${HOME}/sample/data
 COPY  --chown=${NB_UID} notebooks ${HOME}/sample/notebooks
+
+# The notebooks are stored in the repo as Jupytext `py:percent` scripts
+# (notebooks/*/*.py), not `.ipynb`, so they stay diffable in code review. The
+# base-notebook image doesn't have the Jupytext Jupyter extension enabled, so
+# convert them to `.ipynb` here and drop the `.py` sources -- users opening
+# this image should see plain, double-clickable notebooks, not scripts.
+RUN python -m pip install --no-cache-dir jupytext && \
+    find ${HOME}/sample/notebooks -mindepth 2 -maxdepth 2 -name "*.py" \
+        -exec jupytext --to notebook {} \; -delete

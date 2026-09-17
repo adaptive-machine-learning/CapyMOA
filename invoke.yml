@@ -6,9 +6,3 @@ moa_path: "src/capymoa/jar/moa.jar"
 # present in the link. This ensures  the file is downloaded directly instead
 # of going to the dropbox page
 moa_url: "https://www.dropbox.com/scl/fi/mlafxwhhym97rrdy7y6ur/260907_moa.jar?rlkey=57nzpynr6l21gm6w111msbu8x&st=ob0ipe5m&dl=1"
-
-# What notebooks to skip when running them as tests.
-# YOU SHOULD NOT SKIP NOTEBOOKS!
-# Your notebook will eventually break and we need to know when it does.
-test_skip_notebooks: null
-#    - notebooks/anomaly_detection.ipynb

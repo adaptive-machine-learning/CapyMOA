@@ -19,15 +19,15 @@ Modules for different research domains in online and data stream machine learnin
     :recursive:
 
     capymoa.classifier
-    capymoa.regressor
-    capymoa.ocl
     capymoa.drift
-    capymoa.anomaly
-    capymoa.automl
+    capymoa.regressor
     capymoa.cluster
-    capymoa.feature
-    capymoa.uncertainty
+    capymoa.anomaly
+    capymoa.ocl
     capymoa.ssl
+    capymoa.automl
+    capymoa.uncertainty
+    capymoa.feature
 
 CapyMOA Core
 ------------
