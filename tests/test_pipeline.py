@@ -6,15 +6,22 @@ without checking output. See adaptive-machine-learning/backlog#87 and #154.
 """
 
 import pytest
+from jpype import JException
 from moa.streams.filters import (
     AddNoiseFilter,
     HashingTrickFilter,
     NormalisationFilter,
+    RandomProjectionFilter,
+    RBFFilter,
+    ReLUFilter,
+    RemoveDiscreteAttributeFilter,
+    ReplacingMissingValuesFilter,
+    StandardisationFilter,
 )
 
 from capymoa.anomaly import HalfSpaceTrees
 from capymoa.classifier import OnlineBagging
-from capymoa.datasets import ElectricityTiny, FriedTiny
+from capymoa.datasets import CovtypeTiny, ElectricityTiny, FriedTiny
 from capymoa.drift.detectors import ADWIN
 from capymoa.evaluation import ClassificationEvaluator, prequential_evaluation
 from capymoa.regressor import AdaptiveRandomForestRegressor
@@ -352,3 +359,245 @@ def test_transformer_pipeline_matches_equivalent_manual_loop():
     results = prequential_evaluation(stream_b, pipeline, optimise=False)
 
     assert results["cumulative"].accuracy() == pytest.approx(expected)
+
+
+# ============================================================================
+# Exhaustive transformer coverage
+#
+# CapyMOA has few transformers, so the inventory below is the complete list of
+# `moa.streams.filters` reachable through `MOATransformer`, surveyed against
+# ElectricityTiny, CovtypeTiny and FriedTiny on 2026-09-17.
+# ============================================================================
+
+#: Filters that rewrite values but keep the attribute set.
+FEATURE_PRESERVING_FILTERS = [
+    AddNoiseFilter,
+    NormalisationFilter,
+    StandardisationFilter,
+    ReplacingMissingValuesFilter,
+]
+
+#: Filters that change the attribute set. The hashing trick is the only one
+#: reachable today -- SelectAttributesFilter would be the natural second, but it
+#: is not a `moa.streams.filters.StreamFilter` and FilteredQueueStream rejects it.
+FEATURE_CHANGING_FILTERS = [(HashingTrickFilter, "-d 3", 3)]
+
+#: Filters that raise inside MOA before producing anything. Verified identical on
+#: `upstream/main`, so this is pre-existing breakage rather than a regression.
+BROKEN_FILTERS = [
+    (RemoveDiscreteAttributeFilter, None),
+    (RBFFilter, "-h 3"),
+    (ReLUFilter, "-h 50"),
+    (RandomProjectionFilter, "-d 3"),
+]
+
+STREAMS = [ElectricityTiny, CovtypeTiny, FriedTiny]
+
+
+def _ids(items):
+    return [getattr(i, "__name__", str(i)) for i in items]
+
+
+@pytest.mark.parametrize("stream_cls", STREAMS, ids=_ids(STREAMS))
+@pytest.mark.parametrize(
+    "filter_cls", FEATURE_PRESERVING_FILTERS, ids=_ids(FEATURE_PRESERVING_FILTERS)
+)
+def test_transformer_reports_the_shape_it_actually_emits(filter_cls, stream_cls):
+    """The invariant this change exists to enforce, over every usable filter.
+
+    Whatever a transformer reports as its output schema must match the number of
+    features the instances it emits actually carry. A mismatch here is the silent
+    corruption described in backlog#154.
+    """
+    stream = stream_cls()
+    transformer = MOATransformer(schema=stream.get_schema(), moa_filter=filter_cls())
+    transformed = transformer.transform_instance(stream.next_instance())
+
+    assert transformer.get_schema().get_num_attributes() == len(transformed.x)
+
+
+@pytest.mark.parametrize("stream_cls", STREAMS, ids=_ids(STREAMS))
+@pytest.mark.parametrize(
+    "filter_cls", FEATURE_PRESERVING_FILTERS, ids=_ids(FEATURE_PRESERVING_FILTERS)
+)
+def test_feature_preserving_filters_stay_compatible(filter_cls, stream_cls):
+    """These rewrite values only, so a learner built on the input still fits."""
+    stream = stream_cls()
+    in_schema = stream.get_schema()
+    transformer = MOATransformer(schema=in_schema, moa_filter=filter_cls())
+    transformer.transform_instance(stream.next_instance())
+
+    assert transformer.get_schema().is_compatible_with(in_schema)
+    assert transformer.get_schema().describe_difference(in_schema) == []
+
+
+@pytest.mark.parametrize("stream_cls", STREAMS, ids=_ids(STREAMS))
+@pytest.mark.parametrize("filter_cls,cli,expected", FEATURE_CHANGING_FILTERS)
+def test_feature_changing_filter_reports_its_new_shape(
+    filter_cls, cli, expected, stream_cls
+):
+    """A filter that resizes the feature set must report the new size, not the old."""
+    stream = stream_cls()
+    in_schema = stream.get_schema()
+    transformer = MOATransformer(schema=in_schema, moa_filter=filter_cls(), CLI=cli)
+    transformed = transformer.transform_instance(stream.next_instance())
+
+    assert len(transformed.x) == expected
+    assert transformer.get_schema().get_num_attributes() == expected
+    assert transformer.get_input_schema() is in_schema
+    assert not transformer.get_schema().is_compatible_with(in_schema)
+
+
+@pytest.mark.parametrize(
+    "filter_cls,cli", BROKEN_FILTERS, ids=_ids([f for f, _ in BROKEN_FILTERS])
+)
+def test_filters_moa_cannot_run_in_a_pipeline(filter_cls, cli, elec):
+    """Document the filters that fail inside MOA, so the inventory stays honest.
+
+    These raise identically on `upstream/main`, with or without explicit options.
+    If one starts working -- after a `moa.jar` refresh, say -- this test fails:
+    move it into FEATURE_PRESERVING_FILTERS or FEATURE_CHANGING_FILTERS above so
+    the exhaustive tests start covering it.
+
+    Note where the failure lands. `RemoveDiscreteAttributeFilter` constructs and
+    "transforms" without complaint; the instance it returns simply carries no
+    header, so it raises when `x` is read. `Instance.x` is lazy, so a test that
+    stops at transform_instance() sees nothing wrong.
+    """
+    with pytest.raises(JException):
+        transformer = MOATransformer(
+            schema=elec.get_schema(), moa_filter=filter_cls(), CLI=cli
+        )
+        transformed = transformer.transform_instance(elec.next_instance())
+        _ = transformed.x
+
+
+# ============================================================================
+# Mismatched schemas must be refused, with an error that says why
+# ============================================================================
+
+MISMATCHED_PAIRS = [
+    (ElectricityTiny, CovtypeTiny),
+    (ElectricityTiny, FriedTiny),
+    (CovtypeTiny, ElectricityTiny),
+    (CovtypeTiny, FriedTiny),
+    (FriedTiny, ElectricityTiny),
+]
+
+
+@pytest.mark.parametrize(
+    "pipeline_stream,learner_stream",
+    MISMATCHED_PAIRS,
+    ids=[f"{a.__name__}->{b.__name__}" for a, b in MISMATCHED_PAIRS],
+)
+def test_rejects_an_element_built_on_a_different_stream(
+    pipeline_stream, learner_stream
+):
+    """Joining two streams that do not match must fail loudly at wiring time."""
+    pipeline = BasePipeline(schema=pipeline_stream().get_schema())
+    foreign = MOATransformer(
+        schema=learner_stream().get_schema(), moa_filter=NormalisationFilter()
+    )
+    with pytest.raises(ValueError, match="different schema"):
+        pipeline.add_transformer(foreign)
+
+
+def test_error_names_the_attribute_count_mismatch(elec):
+    pipeline = BasePipeline(schema=elec.get_schema())
+    foreign = MOATransformer(
+        schema=CovtypeTiny().get_schema(), moa_filter=NormalisationFilter()
+    )
+    with pytest.raises(ValueError) as excinfo:
+        pipeline.add_transformer(foreign)
+
+    message = str(excinfo.value)
+    assert "number of attributes" in message
+    assert "54" in message and "6" in message
+    assert "class labels" in message
+
+
+def test_error_names_the_task_mismatch(elec):
+    """Classification and regression schemas must never be silently interchanged."""
+    pipeline = BasePipeline(schema=elec.get_schema())
+    regression = MOATransformer(
+        schema=FriedTiny().get_schema(), moa_filter=NormalisationFilter()
+    )
+    with pytest.raises(ValueError, match="task: regression != classification"):
+        pipeline.add_transformer(regression)
+
+
+def test_rejects_a_learner_that_ignores_a_feature_reducing_transformer(elec):
+    """The motivating case: the transformer emits 3 features, the learner expects 6."""
+    pipeline = ClassifierPipeline().add_transformer(_hasher(elec.get_schema(), 3))
+    pipeline.pass_forward(elec.next_instance())
+
+    with pytest.raises(ValueError, match="different schema"):
+        pipeline.add_classifier(
+            OnlineBagging(schema=elec.get_schema(), ensemble_size=3)
+        )
+
+
+def test_reducing_transformer_is_not_detectable_before_the_first_instance(elec):
+    """A known limit, asserted so it is a decision rather than a surprise.
+
+    MOA publishes a filter's output header only once an instance has passed
+    through, so a pipeline assembled and never run cannot know the feature set
+    shrank, and the mismatched learner is accepted.
+    """
+    pipeline = ClassifierPipeline().add_transformer(_hasher(elec.get_schema(), 3))
+    pipeline.add_classifier(OnlineBagging(schema=elec.get_schema(), ensemble_size=3))
+    assert len(pipeline.elements) == 2
+
+
+def test_rejects_chaining_transformers_from_different_streams(elec):
+    first = _normaliser(elec.get_schema())
+    second = MOATransformer(
+        schema=FriedTiny().get_schema(), moa_filter=AddNoiseFilter()
+    )
+    pipeline = BasePipeline().add_transformer(first)
+
+    with pytest.raises(ValueError, match="different schema"):
+        pipeline.add_transformer(second)
+
+
+def test_rejects_a_mismatched_nested_pipeline(elec):
+    inner = BasePipeline().add_transformer(_normaliser(elec.get_schema()))
+    outer = BasePipeline().add_transformer(
+        MOATransformer(
+            schema=FriedTiny().get_schema(), moa_filter=NormalisationFilter()
+        )
+    )
+    with pytest.raises(ValueError, match="different schema"):
+        outer.add_pipeline_element(inner)
+
+
+@pytest.mark.parametrize(
+    "pipeline_stream,learner_stream",
+    MISMATCHED_PAIRS,
+    ids=[f"{a.__name__}->{b.__name__}" for a, b in MISMATCHED_PAIRS],
+)
+def test_validation_disabled_accepts_every_mismatch(pipeline_stream, learner_stream):
+    """The escape hatch must work for all of them, not just the easy ones."""
+    pipeline = BasePipeline(
+        schema=pipeline_stream().get_schema(), validate_schema=False
+    )
+    pipeline.add_transformer(
+        MOATransformer(
+            schema=learner_stream().get_schema(), moa_filter=NormalisationFilter()
+        )
+    )
+    assert len(pipeline.elements) == 1
+
+
+@pytest.mark.parametrize("stream_cls", STREAMS, ids=_ids(STREAMS))
+def test_matching_wiring_is_never_rejected(stream_cls):
+    """No false positives: a correctly wired pipeline must build without complaint."""
+    stream = stream_cls()
+    transformer = MOATransformer(
+        schema=stream.get_schema(), moa_filter=NormalisationFilter()
+    )
+    pipeline = BasePipeline().add_transformer(transformer)
+    pipeline.add_transformer(
+        MOATransformer(schema=transformer.get_schema(), moa_filter=AddNoiseFilter())
+    )
+    assert len(pipeline.elements) == 2
