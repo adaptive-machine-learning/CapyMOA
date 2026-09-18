@@ -17,6 +17,7 @@ from capymoa.core import (
 )
 from capymoa.drift.base_detector import BaseDriftDetector
 
+from .._stream import Schema
 from .transformer import Transformer
 
 
@@ -34,6 +35,23 @@ class PipelineElement(Protocol):
         self, instance: Instance, prediction=None
     ) -> tuple[Instance, Any]:
         raise NotImplementedError
+
+    def get_schema(self) -> Schema | None:
+        """Return the schema of instances leaving this element.
+
+        Returns ``None`` when the element neither knows nor alters the schema --
+        a drift detector, for instance. The default is ``None`` so that existing
+        :class:`PipelineElement` implementations keep working unchanged.
+        """
+        return None
+
+    def get_input_schema(self) -> Schema | None:
+        """Return the schema of instances this element expects to receive.
+
+        Defaults to :meth:`get_schema`, which is correct for every element that
+        does not alter the attribute set.
+        """
+        return self.get_schema()
 
     @abstractmethod
     def __str__(self):
@@ -99,6 +117,10 @@ class ClassifierPipelineElement(PipelineElement):
         """
         return instance, self.learner.predict(instance)
 
+    def get_schema(self) -> Schema | None:
+        """Return the schema the wrapped classifier expects; learners do not alter it."""
+        return getattr(self.learner, "schema", None)
+
     def __str__(self):
         return f"PE({self.learner!s})"
 
@@ -162,6 +184,10 @@ class RegressorPipelineElement(PipelineElement):
         """
         return instance, self.learner.predict(instance)
 
+    def get_schema(self) -> Schema | None:
+        """Return the schema the wrapped regressor expects; learners do not alter it."""
+        return getattr(self.learner, "schema", None)
+
     def __str__(self):
         return f"PE({self.learner!s})"
 
@@ -223,6 +249,14 @@ class TransformerPipelineElement(PipelineElement):
 
         """
         return self.transformer.transform_instance(instance), prediction
+
+    def get_schema(self) -> Schema | None:
+        """Return the schema of instances leaving the wrapped transformer."""
+        return self.transformer.get_schema()
+
+    def get_input_schema(self) -> Schema | None:
+        """Return the schema the wrapped transformer expects to receive."""
+        return self.transformer.get_input_schema()
 
     def __str__(self):
         return f"PE({self.transformer!s})"
@@ -312,7 +346,13 @@ class BasePipeline(PipelineElement):
     The base class for other types of pipelines. Supports transformers and drift detectors.
     """
 
-    def __init__(self, pipeline_elements: list[PipelineElement] | None = None):
+    def __init__(
+        self,
+        pipeline_elements: list[PipelineElement] | None = None,
+        schema: Schema | None = None,
+        random_seed: int = 1,
+        validate_schema: bool = True,
+    ):
         """__init__
 
         Initializes the base pipeline with a list of pipeline elements.
@@ -321,10 +361,92 @@ class BasePipeline(PipelineElement):
         ----------
         pipeline_elements: List[PipelineElement]
             The elements the pipeline consists of
+        schema: Optional[Schema]
+            The schema of instances entering the pipeline. Normally left unset,
+            in which case it is taken from the first element that knows one.
+        random_seed: int
+            Seed reported to satisfy the learner interface. The pipeline does
+            not draw from it; its elements carry their own seeds.
+        validate_schema: bool
+            If True, adding an element whose schema is incompatible with the
+            schema leaving the pipeline raises a ValueError.
 
         """
-        self.elements: list[PipelineElement] = (
-            [] if pipeline_elements is None else pipeline_elements
+        self._input_schema = schema
+        self.random_seed = random_seed
+        self.validate_schema = validate_schema
+        # Added one at a time so that elements passed here are checked against
+        # each other exactly as elements appended later are.
+        self.elements: list[PipelineElement] = []
+        for element in pipeline_elements or []:
+            self.add_pipeline_element(element)
+
+    @property
+    def schema(self) -> Schema | None:
+        """The schema of instances the pipeline consumes.
+
+        This is the *input* schema, because that is what
+        :class:`capymoa.base.Classifier` and :class:`capymoa.base.Regressor`
+        mean by ``schema``: the instances handed to ``train`` and ``predict``.
+        What the pipeline emits downstream may differ, and is reported by
+        :meth:`get_schema`.
+
+        Defined as a property so that it keeps up with elements added after
+        construction.
+        """
+        return self.get_input_schema()
+
+    @schema.setter
+    def schema(self, value: Schema | None) -> None:
+        self._input_schema = value
+
+    def get_input_schema(self) -> Schema | None:
+        """Return the schema of instances entering the pipeline.
+
+        This is the schema of the first element that knows one, unless it was
+        given explicitly at construction.
+        """
+        if self._input_schema is not None:
+            return self._input_schema
+        for element in self.elements:
+            schema = element.get_input_schema()
+            if schema is not None:
+                return schema
+        return None
+
+    def get_schema(self) -> Schema | None:
+        """Return the schema of instances leaving the pipeline.
+
+        This is the schema of the last element that knows one, so a pipeline
+        nested inside another reports what its own last element produces. Falls
+        back to the input schema when no element alters it, and is ``None`` for
+        an empty pipeline with no declared schema.
+        """
+        for element in reversed(self.elements):
+            schema = element.get_schema()
+            if schema is not None:
+                return schema
+        return self._input_schema
+
+    def _check_schema_compatibility(self, element: PipelineElement) -> None:
+        """Raise if ``element`` cannot consume what the pipeline currently emits.
+
+        Silently accepts the case where either side does not know its schema --
+        an unknown schema is not evidence of a mismatch.
+        """
+        if not self.validate_schema:
+            return
+        outgoing = self.get_schema()
+        incoming = element.get_input_schema()
+        if outgoing is None or incoming is None:
+            return
+        if incoming.is_compatible_with(outgoing):
+            return
+        differences = "; ".join(incoming.describe_difference(outgoing))
+        raise ValueError(
+            f"Cannot add {element} to the pipeline: it expects a different "
+            f"schema than the pipeline produces ({differences}). Pass "
+            "validate_schema=False to the pipeline to skip this check."
         )
 
     def add_pipeline_element(self, element: PipelineElement):
@@ -342,7 +464,14 @@ class BasePipeline(PipelineElement):
         BasePipeline
             self
 
+        Raises
+        ------
+        ValueError
+            If the element's schema is incompatible with the schema currently
+            leaving the pipeline and ``validate_schema`` is enabled.
+
         """
+        self._check_schema_compatibility(element)
         self.elements.append(element)
         return self
 
@@ -365,8 +494,7 @@ class BasePipeline(PipelineElement):
         assert isinstance(transformer, Transformer), (
             "Please provide a Transformer object"
         )
-        self.elements.append(TransformerPipelineElement(transformer))
-        return self
+        return self.add_pipeline_element(TransformerPipelineElement(transformer))
 
     def add_drift_detector(
         self, drift_detector: BaseDriftDetector, get_drift_detector_input_func: Callable
@@ -391,10 +519,9 @@ class BasePipeline(PipelineElement):
 
         """
         assert isinstance(drift_detector, BaseDriftDetector)
-        self.elements.append(
+        return self.add_pipeline_element(
             DriftDetectorPipelineElement(drift_detector, get_drift_detector_input_func)
         )
-        return self
 
     def pass_forward(self, instance: Instance) -> Instance:
         """pass_forward
@@ -447,11 +574,7 @@ class BasePipeline(PipelineElement):
         return inst, pred
 
     def __str__(self):
-        s = ""
-        for i, element in enumerate(self.elements):
-            s += str(element)
-            s += " | "
-        return s
+        return " | ".join(str(element) for element in self.elements)
 
 
 class ClassifierPipeline(BasePipeline, Classifier):
@@ -476,8 +599,7 @@ class ClassifierPipeline(BasePipeline, Classifier):
 
         """
         assert isinstance(classifier, Classifier), "Please provide a classifier object"
-        self.elements.append(ClassifierPipelineElement(classifier))
-        return self
+        return self.add_pipeline_element(ClassifierPipelineElement(classifier))
 
     def train(self, instance: LabeledInstance):
         """train
@@ -540,8 +662,7 @@ class RegressorPipeline(BasePipeline, Regressor):
 
         """
         assert isinstance(regressor, Regressor), "Please provide a regressor object"
-        self.elements.append(RegressorPipelineElement(regressor))
-        return self
+        return self.add_pipeline_element(RegressorPipelineElement(regressor))
 
     def train(self, instance: RegressionInstance):
         """train
