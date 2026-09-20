@@ -4,6 +4,7 @@ from .abcd import ABCD
 from .adwin import ADWIN
 from .cusum import CUSUM
 from .ddm import DDM
+from .eddm import EDDM
 from .ewma_chart import EWMAChart
 from .geometric_ma import GeometricMovingAverage
 from .hddm_a import HDDMAverage
@@ -20,6 +21,7 @@ __all__ = [
     "ADWIN",
     "CUSUM",
     "DDM",
+    "EDDM",
     "OPTWIN",
     "RDDM",
     "SEED",
