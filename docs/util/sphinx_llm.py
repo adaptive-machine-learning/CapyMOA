@@ -4,6 +4,8 @@ from pathlib import Path
 from docutils import nodes as docutils_nodes
 from nbsphinx import CodeAreaNode, FancyOutputNode
 from sphinx.application import Sphinx
+from sphinx_design.icons import fontawesome
+from sphinx_design.shared import PassthroughTextElement
 from sphinx_markdown_builder.translator import MarkdownTranslator
 
 _MARKDOWN_IMAGE_RE = re.compile(r"(!\[[^\]]*\]\()([^)\s]+)(\))")
@@ -83,3 +85,49 @@ def fix_nbsphinx(app: Sphinx) -> None:
 
     MarkdownTranslator.visit_raw = visit_raw
     MarkdownTranslator.depart_raw = _passthrough
+
+
+def fix_unsupported_markdown_nodes(app: Sphinx) -> None:
+    """Teach sphinx-llm's Markdown builder about nodes it doesn't recognise.
+
+    ``sphinx_design`` only registers visitors for the html/latex/text/man/texinfo
+    builders (see ``sphinx_design.extension.setup_extension``), and
+    ``sphinx_markdown_builder`` has no support for docutils' citation or figure
+    caption nodes. Without visitors, sphinx_markdown_builder's ``unknown_visit``
+    logs a warning and drops the whole subtree, silently losing card titles,
+    icons, citation text (and its anchor, breaking the citation reference link),
+    and figure captions.
+    """
+
+    def _noop(self, node):
+        pass
+
+    # Card/link titles and `:fas:`/`:fab:` icons: nothing sensible to render as
+    # Markdown, so just skip over them like the text/man/texinfo builders do.
+    app.add_node(
+        PassthroughTextElement,
+        markdown=(_noop, _noop),
+        override=True,
+    )
+    app.add_node(fontawesome, markdown=(_noop, _noop), override=True)
+
+    # Citations (`.. [key] ...`) are structurally the same as footnotes, which
+    # MarkdownTranslator already supports.
+    def visit_citation(self, node):
+        self.visit_footnote(node)
+
+    def depart_citation(self, node):
+        self.depart_footnote(node)
+
+    MarkdownTranslator.visit_citation = visit_citation
+    MarkdownTranslator.depart_citation = depart_citation
+
+    # Figure captions have no dedicated visitor; render them like a paragraph.
+    def visit_caption(self, node):
+        self.visit_paragraph(node)
+
+    def depart_caption(self, node):
+        self.depart_paragraph(node)
+
+    MarkdownTranslator.visit_caption = visit_caption
+    MarkdownTranslator.depart_caption = depart_caption
