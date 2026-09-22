@@ -81,8 +81,10 @@ before CapyMOA can be used:
 Java
 ~~~~
 
-CapyMOA requires a Java runtime. You can check if Java is installed by running
-the following command in your terminal:
+CapyMOA requires Java 9 or later (Java 8 and earlier are not supported by
+CapyMOA's underlying JPype library). We recommend a current LTS release such
+as Java 17 or 21. You can check your Java version by running the following
+command in your terminal:
 
 .. code:: bash
 
