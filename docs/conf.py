@@ -12,7 +12,11 @@ from pathlib import Path
 
 from capymoa.__about__ import __version__
 from docs.util.github_link import make_linkcode_resolve
-from docs.util.sphinx_llm import fix_markdown_image, fix_nbsphinx
+from docs.util.sphinx_llm import (
+    fix_markdown_image,
+    fix_nbsphinx,
+    fix_unsupported_markdown_nodes,
+)
 
 # Any subprocesses created during document building should use the same python environment
 os.environ["PYTHONEXECUTABLE"] = sys.executable
@@ -229,3 +233,4 @@ def setup(app):
     # Patches for sphinx_llm extension.
     fix_nbsphinx(app)
     fix_markdown_image(app)
+    fix_unsupported_markdown_nodes(app)
