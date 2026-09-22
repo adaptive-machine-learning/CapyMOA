@@ -104,7 +104,11 @@ def _start_jpype():
     # Some versions of Java require this flag to allow access to parts of java.lang.System
     # https://stackoverflow.com/q/79725728
     args.append("--enable-native-access=ALL-UNNAMED")
-    jpype.startJVM(jpype.getDefaultJVMPath(), *args)
+    # ignoreUnrecognized: on unsupported JVMs (e.g. Java 8), the flag above causes
+    # JVM creation to fail with an opaque error before JPype's own clear
+    # "Java version too old" check ever runs. Ignoring unrecognized options lets
+    # that check surface instead. https://github.com/jpype-project/jpype/issues/1306
+    jpype.startJVM(jpype.getDefaultJVMPath(), *args, ignoreUnrecognized=True)
 
     # The JVM automatically shutdown with python, no need to explicitly call the shutdown method
     # https://jpype.readthedocs.io/en/latest/userguide.html#shutdownjvm
