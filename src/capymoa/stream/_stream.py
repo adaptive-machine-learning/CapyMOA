@@ -75,7 +75,7 @@ class Schema:
         # Internally, we store the number of attributes + the class/target.
         # This is because MOA methods expect the numAttributes to also account for the class/target.
         self._regression = not self._moa_header.outputAttribute(1).isNominal()
-        self._shape = (self.get_num_numeric_attributes(),)
+        self._shape = (self.get_num_attributes(),)
         self._label_values: Sequence[str] | None = None
         self._label_index_map: dict[str, int] | None = None
 
@@ -201,7 +201,7 @@ class Schema:
     @shape.setter
     def shape(self, value: Sequence[int]):
         """Set the shape of the input ``x`` instances."""
-        n_attr = self.get_num_numeric_attributes()
+        n_attr = self.get_num_attributes()
         # ensure the product of the shape matches the number of attributes
         if np.prod(value) != n_attr:
             raise ValueError(
