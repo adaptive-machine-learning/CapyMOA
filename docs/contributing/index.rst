@@ -10,6 +10,7 @@ This part of the documentation is for developers and contributors.
    docs
    git
    update_moa
+   java_interop
    code_review
    profiling
 
