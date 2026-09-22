@@ -50,6 +50,7 @@ extensions = [
     "sphinx_design",
     "sphinxcontrib.programoutput",
     "sphinx_llm.txt",
+    "sphinx_reredirects",
     "matplotlib.sphinxext.plot_directive",  # https://matplotlib.org/stable/api/sphinxext_plot_directive_api.html
 ]
 
@@ -159,6 +160,34 @@ notebooks = Path("../notebooks")
 notebook_doc_source = Path("notebooks")
 if not notebook_doc_source.exists():
     os.symlink(notebooks, notebook_doc_source)
+
+# Redirects for the notebooks that moved into domain subfolders when the
+# `notebooks/` layout was reorganized (PR #420). `00_getting_started` and
+# `01_evaluation` covered both classification and regression before that
+# split into per-domain notebooks; the old URL redirects to the classifier
+# variant.
+redirects = {
+    "notebooks/00_getting_started": "/notebooks/01_classifier/00_getting_started.html",
+    "notebooks/01_evaluation": "/notebooks/01_classifier/01_evaluation.html",
+    "notebooks/02_sklearn": "/notebooks/11_common/01_sklearn.html",
+    "notebooks/03_pytorch": "/notebooks/11_common/02_pytorch.html",
+    "notebooks/04_drift_streams": "/notebooks/02_drift/02_drift_streams.html",
+    "notebooks/05_new_learner": "/notebooks/01_classifier/02_new_learner.html",
+    "notebooks/06_advanced_API": "/notebooks/11_common/03_advanced_API.html",
+    "notebooks/07_pipelines": "/notebooks/11_common/04_pipelines.html",
+    "notebooks/08_prediction_interval": "/notebooks/09_uncertainty/01_prediction_interval.html",
+    "notebooks/09_automl": "/notebooks/08_automl/01_automl.html",
+    "notebooks/10_ocl": "/notebooks/06_ocl/01_ocl.html",
+    "notebooks/SSL_example": "/notebooks/07_ssl/01_ssl_example.html",
+    "notebooks/anomaly_detection": "/notebooks/05_anomaly/01_anomaly_detection.html",
+    "notebooks/drift_detection": "/notebooks/02_drift/01_drift_detection.html",
+    "notebooks/optimizing_detectors": "/notebooks/02_drift/03_optimizing_detectors.html",
+    "notebooks/parallel_ensembles": "/notebooks/01_classifier/03_parallel_ensembles.html",
+    "notebooks/save_and_load_model": "/notebooks/11_common/05_save_and_load_model.html",
+    "notebooks/clustering": "/notebooks/04_clusterer/01_clustering.html",
+    "notebooks/feature_importance": "/notebooks/10_feature/01_feature_importance.html",
+    "notebooks/ocl_event_system": "/notebooks/06_ocl/02_ocl_event_system.html",
+}
 
 # -- Options for Matplotlib Sphinx Plot Directive ----------------------------
 plot_include_source = True
