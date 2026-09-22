@@ -1,18 +1,12 @@
 # Implement a method in Java and use it in Python
 
-CapyMOA uses [JPype](https://jpype.readthedocs.io/) to call into the Java
-library [MOA](https://moa.cms.waikato.ac.nz/). If you're adding a new
-learner backed by a MOA Java class, you'll usually want to write and test
-the Java side first, before writing the permanent Python wrapper described
-in the [FAQ](faq.md#what-does-a-learner-implement).
-
-This guide walks through getting a Java class onto the classpath so you can
-call it from Python, using a small worked example: `AlwaysPositive`, a
-trivial `moa.classifiers.Classifier` that always predicts one class. See
-MOA's own [Introduction to the API of
+This guide walks through getting a Java class onto the classpath so you can call it from Python, using a small worked example: `AlwaysPositive`, a trivial`moa.classifiers.Classifier` that always predicts one class.
+For a full
+walkthrough of `AbstractClassifier` and the methods implemented below
+(`trainOnInstanceImpl`, `getVotesForInstance`, and so on), see MOA's
+[Introduction to the API of
 MOA](https://moa.cms.waikato.ac.nz/tutorial-2-introduction-to-the-api-of-moa/)
-tutorial for a full walkthrough of `AbstractClassifier` and the methods
-implemented below (`trainOnInstanceImpl`, `getVotesForInstance`, and so on).
+tutorial.
 
 ```java
 package example;
@@ -75,8 +69,7 @@ public class AlwaysPositive extends AbstractClassifier implements Classifier {
 `targetClassOption` uses MOA's options system
 (`com.github.javacliparser`), the same mechanism every built-in MOA
 learner uses for configurable parameters. Its short flag, `'c'`, becomes
-the `-c` argument in a MOA CLI string, set from Python in "Wrap it in
-Python and run it" below.
+the `-c` argument in a MOA CLI string.
 
 There are two ways to get a class like this onto CapyMOA's classpath:
 build all of MOA, or add just this one class to the classpath. Prefer
@@ -132,9 +125,13 @@ rebuild MOA.
          example/AlwaysPositive.java
    ```
 
+   If you use an IDE, you can add a java archive as a dependency through the correct dialogue:
+   [InteliJ](https://stackoverflow.com/a/1051705),
+   [Eclipse](https://stackoverflow.com/a/5144449),
+   [VS Code](https://stackoverflow.com/q/50232557).
+
    The source file must live at `example/AlwaysPositive.java`, matching its
-   `package example;` declaration. `javac` requires this layout, one
-   directory rather than a full reverse-domain path.
+   `package example;` declaration.
 
 2. Add the compiled output directory to the standard `CLASSPATH`
    environment variable, then run Python as usual:
@@ -149,9 +146,9 @@ rebuild MOA.
    ```
 
 ````{note}
-Prefer not to set an environment variable? Call `jpype.addClassPath()`
-before `import capymoa` instead. CapyMOA starts the JVM on its first
-import, so the call has to come first:
+If you prefer not to set an environment variable, call
+`jpype.addClassPath()` before `import capymoa` instead. CapyMOA starts the
+JVM on its first import, so the call has to come first:
 
 ```python
 import jpype
@@ -164,10 +161,9 @@ from example import AlwaysPositive
 
 ## Wrap it in Python and run it
 
-Once your Java class is importable, wrap it like any other MOA-backed
-learner: subclass `capymoa.base.MOAClassifier` and pass the Java class as
-`moa_learner`. Set options like `targetClassOption` with a MOA CLI string
-passed as `CLI`. See
+Once your Java class is importable, subclass `capymoa.base.MOAClassifier`
+and pass the Java class as `moa_learner`. Set options like
+`targetClassOption` with a MOA CLI string passed as `CLI`. See
 {py:class}`capymoa.classifier.StochasticGradientTree` for a classifier that
 configures several options this way.
 

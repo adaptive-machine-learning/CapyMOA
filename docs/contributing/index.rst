@@ -9,8 +9,7 @@ This part of the documentation is for developers and contributors.
    tests
    docs
    git
-   update_moa
-   java_interop
+   moa/index
    code_review
    profiling
 
