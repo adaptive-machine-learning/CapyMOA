@@ -15,7 +15,7 @@ tutorial for a full walkthrough of `AbstractClassifier` and the methods
 implemented below (`trainOnInstanceImpl`, `getVotesForInstance`, and so on).
 
 ```java
-package org.capymoa.example;
+package example;
 
 import com.github.javacliparser.IntOption;
 import com.yahoo.labs.samoa.instances.Instance;
@@ -129,12 +129,12 @@ rebuild MOA.
    mkdir -p /tmp/myclasses
    javac -cp src/capymoa/jar/moa.jar \
          -d /tmp/myclasses \
-         org/capymoa/example/AlwaysPositive.java
+         example/AlwaysPositive.java
    ```
 
-   The source file must live at `org/capymoa/example/AlwaysPositive.java`,
-   matching its `package org.capymoa.example;` declaration. `javac`
-   requires this layout.
+   The source file must live at `example/AlwaysPositive.java`, matching its
+   `package example;` declaration. `javac` requires this layout, one
+   directory rather than a full reverse-domain path.
 
 2. Add the compiled output directory to the standard `CLASSPATH`
    environment variable, then run Python as usual:
@@ -143,7 +143,7 @@ rebuild MOA.
    export CLASSPATH=/tmp/myclasses
    python -c "
    import capymoa
-   from org.capymoa.example import AlwaysPositive
+   from example import AlwaysPositive
    print(AlwaysPositive)
    "
    ```
@@ -158,7 +158,7 @@ import jpype
 
 jpype.addClassPath("/tmp/myclasses")
 import capymoa  # must come after addClassPath
-from org.capymoa.example import AlwaysPositive
+from example import AlwaysPositive
 ```
 ````
 
