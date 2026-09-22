@@ -8,11 +8,8 @@ in the [FAQ](faq.md#what-does-a-learner-implement).
 
 This guide walks through getting a Java class onto the classpath so you can
 call it from Python, using a small worked example: `AlwaysPositive`, a
-trivial `moa.classifiers.Classifier` that always predicts class index 0.
-It's compiled against a real MOA interface
-(`moa.classifiers.AbstractClassifier`), so the compile and classpath steps
-below are the ones you'll actually hit with a real classifier. See MOA's
-own [Introduction to the API of
+trivial `moa.classifiers.Classifier` that always predicts one class. See
+MOA's own [Introduction to the API of
 MOA](https://moa.cms.waikato.ac.nz/tutorial-2-introduction-to-the-api-of-moa/)
 tutorial for a full walkthrough of `AbstractClassifier` and the methods
 implemented below (`trainOnInstanceImpl`, `getVotesForInstance`, and so on).
@@ -75,49 +72,21 @@ public class AlwaysPositive extends AbstractClassifier implements Classifier {
 }
 ```
 
-`targetClassOption` uses MOA's own options system
+`targetClassOption` uses MOA's options system
 (`com.github.javacliparser`), the same mechanism every built-in MOA
-learner uses to expose configurable parameters. Its short flag, `'c'`,
-becomes the `-c` argument in a MOA CLI string. Section "Wrap it in Python
-and run it" below sets this option from Python.
+learner uses for configurable parameters. Its short flag, `'c'`, becomes
+the `-c` argument in a MOA CLI string, set from Python in "Wrap it in
+Python and run it" below.
 
 There are two ways to get a class like this onto CapyMOA's classpath:
 build all of MOA, or add just this one class to the classpath. Prefer
 building MOA if you plan to upstream your change into the MOA project. Use
-the classpath approach if you want something lighter weight for prototypes
-or standalone research.
-
-## Background: how CapyMOA loads MOA
-
-`import capymoa` starts the JVM as the very first thing it does
-(`src/capymoa/__init__.py`), before any other submodule is imported. That
-startup, in `src/capymoa/_prepare_jpype.py::_start_jpype()`, does the
-following:
-
-1. Resolves the MOA jar via `capymoa_moa_jar()` (`src/capymoa/env.py`): the
-   bundled `src/capymoa/jar/moa.jar` by default, or the `CAPYMOA_MOA_JAR`
-   environment variable if it's set.
-2. Adds that jar to the classpath with `jpype.addClassPath(moa_jar)`.
-3. Starts the JVM with `jpype.startJVM(...)`, without passing an explicit
-   `classpath` argument. JPype then builds the classpath itself from every
-   path added with `jpype.addClassPath()`, plus the standard `CLASSPATH`
-   environment variable.
-
-It skips all of this if `jpype.isJVMStarted()` is already `True`.
-
-Two details matter for adding your own class:
-
-* CapyMOA never overrides the classpath explicitly, so the `CLASSPATH`
-  environment variable reaches the JVM untouched. Approach 2 uses this.
-* CapyMOA skips its own setup once the JVM is running, so
-  `jpype.addClassPath()` calls made before `import capymoa` also reach the
-  JVM. This is a fallback for when you can't set an environment variable.
+the classpath approach for prototypes or standalone research.
 
 ## Approach 1: build the whole MOA project
 
 Use this when your Java change spans multiple classes, touches MOA's own
-build, or you want a fully faithful test that matches what a real release
-would do.
+build, or you want the most faithful test.
 
 1. Add `AlwaysPositive.java` to your MOA source checkout, following its
    existing package layout (for example, alongside
@@ -131,8 +100,8 @@ would do.
    python -c "import capymoa; capymoa.about()"
    ```
 
-   `capymoa.about()` prints the resolved `CAPYMOA_MOA_JAR` path and a
-   hash of the jar, so you can confirm CapyMOA picked up your build:
+   `capymoa.about()` prints the resolved `CAPYMOA_MOA_JAR` path and a hash
+   of the jar, so you can confirm CapyMOA picked up your build:
 
    ```console
    $ python -c "import capymoa; capymoa.about()"
@@ -151,7 +120,7 @@ so CapyMOA goes back to using the bundled jar.
 ## Approach 2: put a single class on the classpath
 
 Use this when you're iterating on one new Java class and don't want to
-rebuild MOA at all.
+rebuild MOA.
 
 1. Compile your class, linking against the bundled `moa.jar` so that
    `AbstractClassifier` resolves:
@@ -179,35 +148,28 @@ rebuild MOA at all.
    "
    ```
 
-   CapyMOA never passes an explicit `classpath` argument to
-   `jpype.startJVM()`, so JPype falls back to its own default: every path
-   added with `jpype.addClassPath()`, plus the `CLASSPATH` environment
-   variable. Setting `CLASSPATH` is enough. There's no extra setup code,
-   and import order doesn't matter.
+````{note}
+Prefer not to set an environment variable? Call `jpype.addClassPath()`
+before `import capymoa` instead. CapyMOA starts the JVM on its first
+import, so the call has to come first:
 
-   If you'd rather not set an environment variable,
-   `jpype.addClassPath()` works too, but only if called before
-   `import capymoa`. Importing any part of the `capymoa` package starts
-   the JVM immediately, and JPype cannot extend the classpath once the
-   JVM is running:
+```python
+import jpype
 
-   ```python
-   import jpype
-
-   jpype.addClassPath("/tmp/myclasses")
-   import capymoa  # must come after addClassPath
-   from org.capymoa.example import AlwaysPositive
-   ```
+jpype.addClassPath("/tmp/myclasses")
+import capymoa  # must come after addClassPath
+from org.capymoa.example import AlwaysPositive
+```
+````
 
 ## Wrap it in Python and run it
 
-Once your Java class is importable, wrap it the same way any other
-MOA-backed learner is wrapped: subclass `capymoa.base.MOAClassifier` and
-pass the Java class as `moa_learner`. Pass a MOA CLI string through the
-`CLI` argument to set options like `targetClassOption`; CapyMOA forwards it
-to `moa_learner.getOptions().setViaCLIString(CLI)`. See
-{py:class}`capymoa.classifier.StochasticGradientTree` for a real classifier
-that configures several options this way.
+Once your Java class is importable, wrap it like any other MOA-backed
+learner: subclass `capymoa.base.MOAClassifier` and pass the Java class as
+`moa_learner`. Set options like `targetClassOption` with a MOA CLI string
+passed as `CLI`. See
+{py:class}`capymoa.classifier.StochasticGradientTree` for a classifier that
+configures several options this way.
 
 ```python
 from capymoa.base import MOAClassifier
