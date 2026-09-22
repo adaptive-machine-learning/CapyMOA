@@ -128,3 +128,19 @@ def fix_unsupported_markdown_nodes(app: Sphinx) -> None:
 
     MarkdownTranslator.visit_caption = visit_caption
     MarkdownTranslator.depart_caption = depart_caption
+
+    # Generic `{admonition}` directives (e.g. the "See also" boxes in the
+    # notebook index pages) produce a plain docutils `admonition` node with an
+    # explicit `title` child, unlike `note`/`warning`/etc., which
+    # sphinx_markdown_builder already renders as "#### NOTE" boxes and have no
+    # title child of their own. There's no visitor for the generic node at
+    # all, so descend into it like a plain container: the title child renders
+    # as a heading and the body renders as normal Markdown.
+    def visit_admonition(self, node):
+        pass
+
+    def depart_admonition(self, node):
+        pass
+
+    MarkdownTranslator.visit_admonition = visit_admonition
+    MarkdownTranslator.depart_admonition = depart_admonition
