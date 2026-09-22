@@ -86,6 +86,7 @@ def check_attributes(numeric_attributes, nominal_attributes, num_attributes, sch
     assert schema.get_num_nominal_attributes() == len(nominal_attributes)
     assert schema.get_num_numeric_attributes() == len(numeric_attributes)
     assert schema.get_numeric_attributes() == numeric_attributes
+    assert schema.shape == (num_attributes,)
 
 
 FEATURES = ["num1", "num2", "cat1", "cat2"]
