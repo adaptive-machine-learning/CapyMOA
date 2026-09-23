@@ -73,12 +73,16 @@ class MOATransformer(Transformer):
                     "explicitly. Filters that alter the attribute set only "
                     "publish a header once an instance has passed through them."
                 )
-
-        # Attempt to learn the post-filter schema up front. Filters that only
-        # rewrite values (normalisation, added noise) publish a header
-        # immediately; filters that change the attribute set publish one only
-        # after the first instance, so this is retried in transform_instance.
-        self._output_schema = self._derive_filter_schema()
+            # Just derived above, and nothing has changed the filter's state
+            # since -- reuse it instead of asking the filter again.
+            self._output_schema = self.schema
+        else:
+            # Attempt to learn the post-filter schema up front. Filters that
+            # only rewrite values (normalisation, added noise) publish a
+            # header immediately; filters that change the attribute set
+            # publish one only after the first instance, so this is retried
+            # in transform_instance.
+            self._output_schema = self._derive_filter_schema()
 
         queue = FilteredQueueStream()
         self.filtered_stream = MOAStream(

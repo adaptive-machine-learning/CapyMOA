@@ -183,24 +183,6 @@ class Schema:
         self._assert_classification()
         return 0 <= y_index < self.get_num_classes()
 
-    def _structure(self) -> tuple:
-        """Return the parts of the schema a learner actually depends on.
-
-        Deliberately excludes :attr:`dataset_name`: two streams describing the
-        same attributes are interchangeable for a learner even when their ARFF
-        relation names differ, which is the normal case downstream of a filter.
-        """
-        return (
-            self.get_num_attributes(),
-            tuple(self.get_numeric_attributes()),
-            tuple(
-                (name, tuple(values))
-                for name, values in self.get_nominal_attributes().items()
-            ),
-            self.is_regression(),
-            tuple(self.get_label_values()) if self.is_classification() else (),
-        )
-
     def describe_difference(self, other: "Schema") -> list[str]:
         """Describe how this schema differs from ``other``.
 
@@ -264,7 +246,7 @@ class Schema:
         ... )
         False
         """
-        return self._structure() == other._structure()
+        return not self.describe_difference(other)
 
     @property
     def dataset_name(self) -> str:

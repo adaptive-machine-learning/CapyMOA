@@ -398,6 +398,22 @@ class BasePipeline(PipelineElement):
 
     @schema.setter
     def schema(self, value: Schema | None) -> None:
+        """Set the schema of instances entering the pipeline.
+
+        Validated against the first element the same way :meth:`add_pipeline_element`
+        validates a new element against what the pipeline currently emits --
+        otherwise this setter would be an unchecked back door around the
+        compatibility check ``add_pipeline_element`` enforces.
+        """
+        if self.validate_schema and value is not None and self.elements:
+            incoming = self.elements[0].get_input_schema()
+            if incoming is not None and not incoming.is_compatible_with(value):
+                differences = "; ".join(incoming.describe_difference(value))
+                raise ValueError(
+                    f"Cannot set schema on the pipeline: {self.elements[0]} "
+                    f"expects a different schema ({differences}). Pass "
+                    "validate_schema=False to the pipeline to skip this check."
+                )
         self._input_schema = value
 
     def get_input_schema(self) -> Schema | None:

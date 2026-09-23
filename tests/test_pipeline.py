@@ -482,6 +482,7 @@ MISMATCHED_PAIRS = [
     (CovtypeTiny, ElectricityTiny),
     (CovtypeTiny, FriedTiny),
     (FriedTiny, ElectricityTiny),
+    (FriedTiny, CovtypeTiny),
 ]
 
 
