@@ -111,9 +111,9 @@ jobs:
             github_token: ${{ secrets.GITHUB_TOKEN }}
 
   # Packages this release's built docs and attaches them to the GitHub Release as a
-  # download-able asset. The `website` job later reconstructs the full versioned site
-  # by downloading every past release's docs asset -- this is the only place a given
-  # version's docs are ever stored, so it must run before `website`.
+  # download-able asset. This is the only place a version's docs are stored, so this
+  # job must run before `website`, which reconstructs the full versioned site by
+  # downloading every past release's docs asset.
   publish_docs_asset:
     name: Publish Docs Asset
     if: needs.release_pypi.outputs.released == 'true'
@@ -167,9 +167,9 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/jupyter-capymoa:latest
           build-args: CAPYMOA_VERSION=${{ needs.release_pypi.outputs.tag }}
 
-  # Rebuilds the full versioned site from scratch on every release: GitHub Releases is
+  # Rebuilds the full versioned site from scratch on every release. GitHub Releases is
   # the only source of truth for "which versions have docs" (no gh-pages branch, no
-  # separate versions file to go stale) -- every release with a docs-*.tar.gz asset is
+  # separate versions file to go stale). Every release with a docs-*.tar.gz asset is
   # downloaded and extracted into its own /vX.Y.Z/ folder, the newest is also copied to
   # the site root, and the result is deployed via the same upload-pages-artifact /
   # deploy-pages actions used before this change.
@@ -194,42 +194,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
-          gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 \
-            --json tagName,isDraft,assets \
-            --jq '.[] | select(.isDraft == false) | select([.assets[].name] | any(test("^docs-.*\\.tar\\.gz$"))) | .tagName' \
-            > tags.txt
+          python3 docs/release_scripts/list_doc_versions.py \
+            --repo "$GITHUB_REPOSITORY" --output tags.txt
           cat tags.txt
 
       - name: Download and assemble versioned docs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
-          mkdir -p publish
-          first=true
-          while IFS= read -r tag; do
-            [ -z "$tag" ] && continue
-            mkdir -p "publish/$tag" "tmp-$tag"
-            gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
-              -p 'docs-*.tar.gz' -D "tmp-$tag" --clobber
-            tar -xzf "tmp-$tag"/docs-*.tar.gz -C "publish/$tag"
-            if [ "$first" = true ]; then
-              cp -r "publish/$tag/." publish/
-              first=false
-            fi
-          done < tags.txt
+          python3 docs/release_scripts/assemble_versioned_docs.py \
+            --repo "$GITHUB_REPOSITORY" --tags-file tags.txt --publish-dir publish
 
       - name: Generate switcher.json
         run: |
-          set -euo pipefail
-          args=()
-          while IFS= read -r tag; do
-            [ -z "$tag" ] && continue
-            args+=(--tag "$tag")
-          done < tags.txt
-          python3 docs/util/build_switcher.py "${args[@]}" \
-            --base-url https://capymoa.org --output publish/switcher.json
+          python3 docs/release_scripts/build_switcher.py \
+            --tags-file tags.txt --base-url https://capymoa.org \
+            --output publish/switcher.json
           cat publish/switcher.json
 
       - name: Upload artifact

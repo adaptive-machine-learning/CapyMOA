@@ -40,36 +40,36 @@ Versioned Releases
 
 Every tagged release of CapyMOA publishes its documentation at
 ``capymoa.org/vX.Y.Z/``. The root of the site, ``capymoa.org/``, always mirrors the
-most recently released version. Older versions remain available via the version
+most recently released version. Older versions stay available through the version
 switcher in the top navigation bar.
 
-This is handled by the ``Release`` GitHub Actions workflow
-(``.github/workflows/release.yml``) -- contributors do not need to do anything to
-trigger it:
+The ``Release`` GitHub Actions workflow (``.github/workflows/release.yml``) handles
+this. Contributors do not need to do anything to trigger it:
 
 #. The ``documentation`` job builds the docs with ``invoke docs.build``.
 #. The ``publish_docs_asset`` job packages that build into ``docs-vX.Y.Z.tar.gz`` and
    attaches it to the GitHub Release for that tag, alongside the PyPI distribution
    files.
-#. The ``website`` job lists every GitHub Release that has a docs asset attached,
-   downloads and extracts each one into its own ``/vX.Y.Z/`` folder, copies the newest
-   into the site root, regenerates ``switcher.json``
-   (``docs/util/build_switcher.py``), and deploys the result.
+#. The ``website`` job runs three scripts in ``docs/release_scripts/``:
 
-GitHub Releases -- not a ``gh-pages`` branch -- are the only place a version's docs are
-stored. This keeps the docs history out of the ``capymoa`` repository entirely, so
-``git clone`` stays unaffected no matter how many versions accumulate over the
-project's lifetime.
+   * ``list_doc_versions.py`` lists every GitHub Release that has a docs asset.
+   * ``assemble_versioned_docs.py`` downloads each release's docs asset and extracts
+     it into its own ``/vX.Y.Z/`` folder, copying the newest into the site root.
+   * ``build_switcher.py`` writes ``switcher.json`` for the version switcher.
 
-Docs are **never rebuilt** once published for a given version -- if you spot an error
-in a past version's docs, it will only be fixed in the next release's docs, not
+   The job then deploys the result.
+
+GitHub Releases are the only place a version's docs are stored. There is no
+``gh-pages`` branch, so ``git clone`` of the ``capymoa`` repository stays unaffected
+no matter how many versions accumulate.
+
+Docs are **never rebuilt** once published for a given version. If you spot an error
+in a past version's docs, it is only fixed in the next release's docs, not
 retroactively.
 
-.. note::
-
-    Docs published to Pull Request previews (see "Pull Request Artifact" above) are
-    **not** versioned and are **not** part of ``capymoa.org`` -- versioning only
-    applies to tagged releases handled by the ``Release`` workflow.
+Docs published to Pull Request previews (see "Pull Request Artifact" above) are
+**not** versioned and are **not** part of ``capymoa.org``. Versioning only applies to
+tagged releases handled by the ``Release`` workflow.
 
 Docstrings
 ----------

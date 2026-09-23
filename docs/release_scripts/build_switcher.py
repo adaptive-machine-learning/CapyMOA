@@ -4,15 +4,15 @@ https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/version-dropdown
 
 Takes the list of released doc versions, newest first, and the site's base URL, and
 writes the JSON manifest the theme's version-switcher dropdown fetches at page-load
-time. Called from the ``website`` job in ``.github/workflows/release.yml``, which
-enumerates GitHub releases that have a docs asset attached (newest first, matching
-GitHub's default release ordering) and passes them here -- this script does no
-sorting or GitHub API calls of its own.
+time. The tag list comes from list_doc_versions.py; this script does no sorting or
+GitHub API calls of its own.
 """
 
 import argparse
 import json
 from pathlib import Path
+
+from _common import read_tags
 
 
 def build_switcher(tags: list[str], base_url: str) -> list[dict[str, object]]:
@@ -34,12 +34,11 @@ def build_switcher(tags: list[str], base_url: str) -> list[dict[str, object]]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--tag",
-        dest="tags",
-        action="append",
+        "--tags-file",
+        type=Path,
         required=True,
-        help="A released tag with docs (e.g. v0.14.0). Pass newest first; repeat for "
-        "each version. The first --tag is marked 'preferred' (stable).",
+        help="Path to a newline-separated list of released tags, newest first "
+        "(see list_doc_versions.py). The first tag is marked 'preferred' (stable).",
     )
     parser.add_argument(
         "--base-url",
@@ -54,7 +53,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    switcher = build_switcher(args.tags, args.base_url)
+    switcher = build_switcher(read_tags(args.tags_file), args.base_url)
     args.output.write_text(json.dumps(switcher, indent=2) + "\n")
 
 
