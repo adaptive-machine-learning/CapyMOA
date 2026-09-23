@@ -35,6 +35,42 @@ workflow.
 
     `Downloading Workflow Artifact <https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/downloading-workflow-artifacts>`_
 
+Versioned Releases
+-------------------
+
+Every tagged release of CapyMOA publishes its documentation at
+``capymoa.org/vX.Y.Z/``. The root of the site, ``capymoa.org/``, always mirrors the
+most recently released version. Older versions remain available via the version
+switcher in the top navigation bar.
+
+This is handled by the ``Release`` GitHub Actions workflow
+(``.github/workflows/release.yml``) -- contributors do not need to do anything to
+trigger it:
+
+#. The ``documentation`` job builds the docs with ``invoke docs.build``.
+#. The ``publish_docs_asset`` job packages that build into ``docs-vX.Y.Z.tar.gz`` and
+   attaches it to the GitHub Release for that tag, alongside the PyPI distribution
+   files.
+#. The ``website`` job lists every GitHub Release that has a docs asset attached,
+   downloads and extracts each one into its own ``/vX.Y.Z/`` folder, copies the newest
+   into the site root, regenerates ``switcher.json``
+   (``docs/util/build_switcher.py``), and deploys the result.
+
+GitHub Releases -- not a ``gh-pages`` branch -- are the only place a version's docs are
+stored. This keeps the docs history out of the ``capymoa`` repository entirely, so
+``git clone`` stays unaffected no matter how many versions accumulate over the
+project's lifetime.
+
+Docs are **never rebuilt** once published for a given version -- if you spot an error
+in a past version's docs, it will only be fixed in the next release's docs, not
+retroactively.
+
+.. note::
+
+    Docs published to Pull Request previews (see "Pull Request Artifact" above) are
+    **not** versioned and are **not** part of ``capymoa.org`` -- versioning only
+    applies to tagged releases handled by the ``Release`` workflow.
+
 Docstrings
 ----------
 

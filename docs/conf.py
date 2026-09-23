@@ -27,6 +27,11 @@ author = "Heitor Murilo Gomes, Anton Lee, Nuwan Gunasekara, Marco Heyden, Yibin 
 release = __version__
 html_title = f"{project}"
 
+# Must match one of the "version" fields in switcher.json for the version-switcher
+# dropdown to highlight the version being viewed. CI always builds from a `vX.Y.Z` tag,
+# which is exactly how docs/util/build_switcher.py names each entry.
+version_match = f"v{__version__}"
+
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
@@ -194,6 +199,17 @@ html_theme_options = {
         "sourcelink",
         "components/llm-page-actions.html",
     ],
+    "switcher": {
+        "json_url": "https://capymoa.org/switcher.json",
+        "version_match": version_match,
+    },
+    # pydata_sphinx_theme defaults navbar_end to ["theme-switcher", "navbar-icon-links"];
+    # it must be set explicitly here to add the version switcher without losing those.
+    "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
+    # Local/PR builds fetch switcher.json live from capymoa.org, which won't have an
+    # entry for an in-progress/unreleased version -- checking would fail every non-release
+    # build under -W (warnings-as-errors).
+    "check_switcher": False,
 }
 
 autodoc_skip_member_patterns = [

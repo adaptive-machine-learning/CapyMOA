@@ -60,8 +60,9 @@ jobs:
     - name: Build Documentation
       run: uv run invoke docs.build
     - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
+        name: docs-build
         path: docs/_build
 
   release_pypi:
@@ -109,6 +110,34 @@ jobs:
         with:
             github_token: ${{ secrets.GITHUB_TOKEN }}
 
+  # Packages this release's built docs and attaches them to the GitHub Release as a
+  # download-able asset. The `website` job later reconstructs the full versioned site
+  # by downloading every past release's docs asset -- this is the only place a given
+  # version's docs are ever stored, so it must run before `website`.
+  publish_docs_asset:
+    name: Publish Docs Asset
+    if: needs.release_pypi.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    needs: [documentation, release_pypi]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: docs-build
+          path: docs/_build
+
+      - name: Package documentation
+        run: tar -czf "docs-${{ needs.release_pypi.outputs.tag }}.tar.gz" -C docs/_build .
+
+      - name: Attach docs package to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          gh release upload "${{ needs.release_pypi.outputs.tag }}"
+          "docs-${{ needs.release_pypi.outputs.tag }}.tar.gz"
+          --repo "$GITHUB_REPOSITORY"
+
   release_docker:
     name: Release / Docker
     environment: release
@@ -138,17 +167,76 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/jupyter-capymoa:latest
           build-args: CAPYMOA_VERSION=${{ needs.release_pypi.outputs.tag }}
 
+  # Rebuilds the full versioned site from scratch on every release: GitHub Releases is
+  # the only source of truth for "which versions have docs" (no gh-pages branch, no
+  # separate versions file to go stale) -- every release with a docs-*.tar.gz asset is
+  # downloaded and extracted into its own /vX.Y.Z/ folder, the newest is also copied to
+  # the site root, and the result is deployed via the same upload-pages-artifact /
+  # deploy-pages actions used before this change.
   website:
     name: Website
+    if: needs.release_pypi.outputs.released == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     permissions:
+      contents: read
       pages: write
       id-token: write
     runs-on: ubuntu-latest
-    needs: [release_pypi, documentation]
+    # Must run after publish_docs_asset: the current release's docs asset needs to
+    # already be attached before we enumerate "every release with a docs asset" below.
+    needs: [release_pypi, publish_docs_asset]
     steps:
+      - uses: actions/checkout@v4
+
+      - name: List released doc versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 \
+            --json tagName,isDraft,assets \
+            --jq '.[] | select(.isDraft == false) | select([.assets[].name] | any(test("^docs-.*\\.tar\\.gz$"))) | .tagName' \
+            > tags.txt
+          cat tags.txt
+
+      - name: Download and assemble versioned docs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p publish
+          first=true
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            mkdir -p "publish/$tag" "tmp-$tag"
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+              -p 'docs-*.tar.gz' -D "tmp-$tag" --clobber
+            tar -xzf "tmp-$tag"/docs-*.tar.gz -C "publish/$tag"
+            if [ "$first" = true ]; then
+              cp -r "publish/$tag/." publish/
+              first=false
+            fi
+          done < tags.txt
+
+      - name: Generate switcher.json
+        run: |
+          set -euo pipefail
+          args=()
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            args+=(--tag "$tag")
+          done < tags.txt
+          python3 docs/util/build_switcher.py "${args[@]}" \
+            --base-url https://capymoa.org --output publish/switcher.json
+          cat publish/switcher.json
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
