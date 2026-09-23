@@ -135,7 +135,7 @@ class MOADriftDetector(BaseDriftDetector):
     @override
     def get_params(self) -> dict[str, Any]:
         options = list(self.moa_detector.getOptions().getOptionArray())
-        return {opt.getName(): opt.getValueAsCLIString() for opt in options}
+        return {str(opt.getName()): str(opt.getValueAsCLIString()) for opt in options}
 
     def cli_help(self) -> str:
         return str(self.moa_detector.getOptions().getHelpString())
