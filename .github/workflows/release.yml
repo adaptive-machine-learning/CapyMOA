@@ -194,22 +194,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python3 docs/release_scripts/list_doc_versions.py \
-            --repo "$GITHUB_REPOSITORY" --output tags.txt
+          python3 docs/release_scripts.py list-versions \
+            --repo "$GITHUB_REPOSITORY" --keep-current-line 5 --output tags.txt
           cat tags.txt
 
       - name: Download and assemble versioned docs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python3 docs/release_scripts/assemble_versioned_docs.py \
+          python3 docs/release_scripts.py assemble \
             --repo "$GITHUB_REPOSITORY" --tags-file tags.txt --publish-dir publish
 
       - name: Generate switcher.json
         run: |
-          python3 docs/release_scripts/build_switcher.py \
-            --tags-file tags.txt --base-url https://capymoa.org \
-            --output publish/switcher.json
+          python3 docs/release_scripts.py build-switcher \
+            --tags-file tags.txt --output publish/switcher.json
           cat publish/switcher.json
 
       - name: Upload artifact

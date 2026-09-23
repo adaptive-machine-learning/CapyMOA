@@ -50,18 +50,19 @@ this. Contributors do not need to do anything to trigger it:
 #. The ``publish_docs_asset`` job packages that build into ``docs-vX.Y.Z.tar.gz`` and
    attaches it to the GitHub Release for that tag, alongside the PyPI distribution
    files.
-#. The ``website`` job runs three scripts in ``docs/release_scripts/``:
+#. The ``website`` job runs three subcommands of ``docs/release_scripts.py``:
 
-   * ``list_doc_versions.py`` lists every GitHub Release that has a docs asset.
-   * ``assemble_versioned_docs.py`` downloads each release's docs asset and extracts
-     it into its own ``/vX.Y.Z/`` folder, copying the newest into the site root.
-   * ``build_switcher.py`` writes ``switcher.json`` for the version switcher.
+   * ``list-versions`` lists every GitHub Release that has a docs asset, then applies
+     the retention policy below.
+   * ``assemble`` downloads each kept release's docs asset and extracts it into its
+     own ``/vX.Y.Z/`` folder, copying the newest into the site root.
+   * ``build-switcher`` writes ``switcher.json`` for the version switcher.
 
    The job then deploys the result.
 
 GitHub Releases are the only place a version's docs are stored. There is no
 ``gh-pages`` branch, so ``git clone`` of the ``capymoa`` repository stays unaffected
-no matter how many versions accumulate.
+regardless of how many releases exist.
 
 Docs are **never rebuilt** once published for a given version. If you spot an error
 in a past version's docs, it is only fixed in the next release's docs, not
@@ -70,6 +71,22 @@ retroactively.
 Docs published to Pull Request previews (see "Pull Request Artifact" above) are
 **not** versioned and are **not** part of ``capymoa.org``. Versioning only applies to
 tagged releases handled by the ``Release`` workflow.
+
+Retention
+~~~~~~~~~
+
+Not every release stays live forever. ``list-versions`` groups releases by major
+version (the ``X`` in ``vX.Y.Z``) and keeps:
+
+* The last 5 releases of the current major version.
+* Only the latest release of every earlier major version.
+
+An older release that ages out of this window stops being part of the live site.
+Its docs archive (``docs-vX.Y.Z.tar.gz``) stays downloadable forever from that
+release's GitHub Releases page. Nothing is deleted, it is just no longer rebuilt.
+Visiting a pruned version's URL on ``capymoa.org`` shows a themed "page not found"
+page (``docs/404.rst``) with a link to the latest docs and to GitHub Releases for the
+archived download.
 
 Docstrings
 ----------
