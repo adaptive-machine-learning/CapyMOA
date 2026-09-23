@@ -138,26 +138,6 @@ class STUDD(BaseDriftDetector):
         return tmp_instance
 
     @override
-    def get_params(self):
-        """Get the parameters of the drift detector.
-
-        :returns: Dictionary containing the detector parameters, including min_n_instances and
-                 information about the student and detector.
-        :rtype: dict
-
-        """
-        params = self.detector.get_params()
-        params.update(
-            {
-                "min_n_instances": self.min_n_instances,
-                "student": str(self.student),
-                "detector_type": str(self.detector),
-            }
-        )
-
-        return params
-
-    @override
     def reset(self, clean_history: bool = False) -> None:
         """Reset the drift detector.
 

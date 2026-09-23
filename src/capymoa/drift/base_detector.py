@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Any
 
 from moa.classifiers.core.driftdetection import (
     AbstractChangeDetector as _AbstractChangeDetector,
 )
 from typing_extensions import override
 
+from capymoa.base._learner_params import LearnerParamsMixin
 
-class BaseDriftDetector(ABC):
+
+class BaseDriftDetector(LearnerParamsMixin, ABC):
     """Drift Detector"""
 
     def __init__(self):
@@ -19,10 +20,6 @@ class BaseDriftDetector(ABC):
         self.warning_index = []
         self.data = []
         self.idx = 0
-
-    @abstractmethod
-    def get_params(self) -> dict[str, Any]:
-        """Get the hyper-parameters of the drift detector."""
 
     def reset(self, clean_history: bool = False) -> None:
         """Reset the drift detector.
@@ -131,11 +128,6 @@ class MOADriftDetector(BaseDriftDetector):
             self.warning_index = []
             self.data = []
             self.idx = 0
-
-    @override
-    def get_params(self) -> dict[str, Any]:
-        options = list(self.moa_detector.getOptions().getOptionArray())
-        return {opt.getName(): opt.getValueAsCLIString() for opt in options}
 
     def cli_help(self) -> str:
         return str(self.moa_detector.getOptions().getHelpString())

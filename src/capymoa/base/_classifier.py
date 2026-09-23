@@ -4,11 +4,12 @@ import numpy as np
 from jpype import _jpype
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
+from capymoa.base._learner_params import LearnerParamsMixin
 from capymoa.core import Instance, LabeledInstance, LabelIndex, LabelProbabilities
 from capymoa.stream._stream import Schema
 
 
-class Classifier(ABC):
+class Classifier(LearnerParamsMixin, ABC):
     """Base class for classifiers.
 
     In machine learning, a classifier is a supervised learner that assigns a
@@ -18,7 +19,7 @@ class Classifier(ABC):
 
     random_seed: int
     """The random seed for reproducibility.
-    
+
     When implementing a classifier ensure random number generators are seeded.
     """
 

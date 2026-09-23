@@ -20,6 +20,11 @@ from capymoa.base._classifier import (
     MOAClassifier,
     SKClassifier,
 )
+from capymoa.base._learner_params import (
+    LearnerParamsMixin,
+    LearnerSpec,
+    learner_from_params,
+)
 from capymoa.base._regressor import MOARegressor, Regressor, SKRegressor
 from capymoa.base._ssl import (
     ClassifierSSL,
@@ -35,6 +40,8 @@ __all__ = [
     "ClassifierSSL",
     "Clusterer",
     "ClusteringResult",
+    "LearnerParamsMixin",
+    "LearnerSpec",
     "MOAAnomalyDetector",
     "MOAClassifier",
     "MOAClassifierSSL",
@@ -45,6 +52,7 @@ __all__ = [
     "Regressor",
     "SKClassifier",
     "SKRegressor",
+    "learner_from_params",
 ]
 
 #: Names that need PyTorch. Imported on first access so ``import capymoa`` stays
