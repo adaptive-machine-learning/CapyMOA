@@ -129,6 +129,11 @@ jobs:
     - uses: astral-sh/setup-uv@v6
       with:
         python-version: ${{ env.PYTHON_VERSION }}
+    - name: Cache Notebook Datasets
+      uses: actions/cache@v4
+      with:
+        path: data
+        key: "test-datasets"
     - name: Install Dependencies
       run: |
         sudo apt-get install -y pandoc
