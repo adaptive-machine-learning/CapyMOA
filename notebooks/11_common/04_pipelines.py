@@ -130,6 +130,122 @@ while elec_stream.has_more_instances():
 ob_evaluator.accuracy()
 
 # %% [markdown]
+# ## Schemas in pipelines
+#
+# A pipeline knows the shape of the data flowing through it, and checks that its elements agree.
+#
+# Two schemas matter, and they are not always the same one:
+#
+# * `get_input_schema()` -- what the pipeline **consumes**. This is also `pipeline.schema`, because that is what a `Classifier` or `Regressor` means by `schema`: the instances handed to `train` and `predict`.
+# * `get_schema()` -- what the pipeline **emits** to whatever comes next. A transformer may add, drop or rewrite attributes, in which case this differs from the input.
+
+# %% [markdown]
+# ### What a pipeline consumes and what it emits
+#
+# Normalisation rewrites values but keeps the attribute set, so here the two agree.
+
+# %%
+from moa.streams.filters import NormalisationFilter
+
+from capymoa.classifier import OnlineBagging
+from capymoa.datasets import ElectricityTiny
+from capymoa.stream.preprocessing import ClassifierPipeline, MOATransformer
+
+stream = ElectricityTiny()
+
+normaliser = MOATransformer(
+    schema=stream.get_schema(), moa_filter=NormalisationFilter()
+)
+pipeline = (
+    ClassifierPipeline()
+    .add_transformer(normaliser)
+    .add_classifier(OnlineBagging(schema=normaliser.get_schema(), ensemble_size=5))
+)
+
+print("consumes:", pipeline.get_input_schema().get_num_attributes(), "attributes")
+print("emits   :", pipeline.get_schema().get_num_attributes(), "attributes")
+print("pipeline.schema is the input schema:", pipeline.schema is stream.get_schema())
+
+# %% [markdown]
+# ### Transformers that change the feature set
+#
+# Some filters do change it. The hashing trick projects the features onto a space of the size you ask for, and the pipeline reports the new shape rather than the old one.
+
+# %%
+from moa.streams.filters import HashingTrickFilter
+
+stream = ElectricityTiny()
+
+# The hashing trick projects the features onto a smaller space.
+hasher = MOATransformer(
+    schema=stream.get_schema(), moa_filter=HashingTrickFilter(), CLI="-d 3"
+)
+transformed = hasher.transform_instance(stream.next_instance())
+
+print("in :", hasher.get_input_schema().get_num_attributes(), "attributes")
+print("out:", hasher.get_schema().get_num_attributes(), "attributes")
+print("the instance really does carry", len(transformed.x), "features")
+
+# %% [markdown]
+# ### Mismatched schemas are refused
+#
+# Wiring together two streams that do not match is a mistake worth catching at build time. The error names what differs.
+
+# %%
+from capymoa.datasets import FriedTiny
+
+stream = ElectricityTiny()
+pipeline = ClassifierPipeline().add_transformer(
+    MOATransformer(schema=stream.get_schema(), moa_filter=NormalisationFilter())
+)
+
+# FriedTiny is a regression stream with 10 attributes; Electricity is a
+# classification stream with 6. Joining them is a mistake, and saying so early
+# is more useful than a confusing failure thousands of instances later.
+try:
+    pipeline.add_transformer(
+        MOATransformer(
+            schema=FriedTiny().get_schema(), moa_filter=NormalisationFilter()
+        )
+    )
+except ValueError as error:
+    print(error)
+
+# %% [markdown]
+# The same check applies to a learner placed after a transformer that resized the features:
+
+# %%
+stream = ElectricityTiny()
+pipeline = ClassifierPipeline().add_transformer(hasher)
+
+# The pipeline now emits 3 features, so a learner built on the original 6 does
+# not fit. The check only fires once an instance has flowed, because MOA
+# publishes a filter's output header only after it has seen one.
+pipeline.pass_forward(stream.next_instance())
+
+try:
+    pipeline.add_classifier(OnlineBagging(schema=stream.get_schema(), ensemble_size=5))
+except ValueError as error:
+    print(error)
+
+# %% [markdown]
+# ### Turning the check off
+#
+# Pass `validate_schema=False` when you know better than the check -- for a custom `PipelineElement` whose schema CapyMOA cannot infer, say.
+
+# %%
+relaxed = ClassifierPipeline(validate_schema=False)
+relaxed.add_transformer(
+    MOATransformer(
+        schema=ElectricityTiny().get_schema(), moa_filter=NormalisationFilter()
+    )
+)
+relaxed.add_transformer(
+    MOATransformer(schema=FriedTiny().get_schema(), moa_filter=NormalisationFilter())
+)
+print("accepted", len(relaxed.elements), "elements with validation off")
+
+# %% [markdown]
 # ## Transforming instances using pipelines
 #
 # If we want to perform some preprocessing, such as normalisation or feature transformation, or a combination of both, we can chain multiple `Transformer`s within a pipeline. The most basic pipeline class `BasePipeline` already supports this.
