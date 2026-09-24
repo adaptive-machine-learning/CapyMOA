@@ -75,6 +75,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/jupyter_execute/
 
 # PyBuilder
 .pybuilder/
@@ -173,7 +174,10 @@ cython_debug/
 #
 src/capymoa/jar/moa.jar
 data
-notebooks/*.png
+notebooks/**/*.png
+# Notebooks are stored as Jupytext `py:percent` scripts (notebooks/*/*.py);
+# the .ipynb files are generated build artifacts (see `invoke test.nb`).
+notebooks/**/*.ipynb
 docs/notebooks
 *tfevents*
 

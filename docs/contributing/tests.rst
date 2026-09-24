@@ -114,20 +114,27 @@ Notebooks
 ---------
 
 We use `nbmake <https://github.com/treebeardtech/nbmake>`_ to test that all
-notebooks in the ``notebooks`` directory run without error. This ensures that
-the notebooks are always up-to-date and working correctly.
-
-You can run a notebook as a test with:
+notebooks in the ``notebooks`` directory run without error. The notebooks are
+stored as Jupytext ``py:percent`` scripts rather than ``.ipynb`` files (see
+:ref:`contributing-docs-notebooks`), and nbmake only understands ``.ipynb``,
+so ``invoke docs.nb`` regenerates a matching ``.ipynb`` file next to each
+``.py`` notebook, then runs nbmake with ``--overwrite`` so it writes the real
+outputs back into that ``.ipynb`` file -- the same file
+``invoke docs.build`` later renders:
 
 .. code-block:: bash
 
-    pytest --nbmake notebooks/my_notebook.ipynb
+    invoke docs.nb
 
     # Often the examples take too long to run regularly as tests. To speed up
     # testing some notebooks use the NB_FAST environment variable to run the
-    # notebook faster by using smaller datasets or fewer iterations. To run
-    # them in this mode use:
-    NB_FAST=true pytest --nbmake notebooks/my_notebook.ipynb
+    # notebook faster by using smaller datasets or fewer iterations. This is
+    # the default; use --slow to run the notebooks with their full-size
+    # datasets:
+    invoke docs.nb --slow
+
+``invoke test.nb`` is a deprecated alias for the same thing and will be
+removed in a future release.
 
 For more about ``NB_FAST`` read the :ref:`notebooks documentation
 <contributing-docs-notebooks>` in :doc:`docs`.

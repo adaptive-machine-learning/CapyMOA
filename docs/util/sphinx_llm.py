@@ -2,7 +2,6 @@ import re
 from pathlib import Path
 
 from docutils import nodes as docutils_nodes
-from nbsphinx import CodeAreaNode, FancyOutputNode
 from sphinx.application import Sphinx
 from sphinx_design.icons import fontawesome
 from sphinx_design.shared import PassthroughTextElement
@@ -64,24 +63,22 @@ def fix_markdown_image(app: Sphinx) -> None:
     app.connect("build-finished", _fix_markdown_image_links)
 
 
-def fix_nbsphinx(app: Sphinx) -> None:
-    """Fix sphinx_llm to render nbsphinx notebooks as markdown."""
+def fix_notebook_output_markdown(app: Sphinx) -> None:
+    """Fix sphinx_llm to render notebook cell outputs as markdown.
 
-    def _passthrough(self, node):
-        pass
+    myst-nb emits separate `.. raw:: html`, `.. raw:: latex`, and `.. raw:: text`
+    blocks for each cell output, one per builder. Every other translator only renders
+    the block matching its own format, but sphinx_markdown_builder renders raw nodes
+    unconditionally, so all three duplicates end up concatenated in the markdown
+    output. Patch it to skip the html/latex ones, keeping the plain-text one.
+    """
 
-    app.add_node(CodeAreaNode, markdown=(_passthrough, _passthrough), override=True)
-    app.add_node(FancyOutputNode, markdown=(_passthrough, _passthrough), override=True)
-
-    # nbsphinx emits separate `.. raw:: html`, `.. raw:: latex`, and `.. raw:: text`
-    # blocks for each cell output, one per builder. Every other translator only renders
-    # the block matching its own format, but sphinx_markdown_builder renders raw nodes
-    # unconditionally, so all three duplicates ended up concatenated in the markdown
-    # output once the CodeAreaNode/FancyOutputNode wrappers above stopped hiding them.
-    # Patch it to skip the html/latex ones, keeping the plain-text one.
     def visit_raw(self, node):
         if node.get("format") in ("html", "latex"):
             raise docutils_nodes.SkipNode
+
+    def _passthrough(self, node):
+        pass
 
     MarkdownTranslator.visit_raw = visit_raw
     MarkdownTranslator.depart_raw = _passthrough
@@ -131,3 +128,19 @@ def fix_unsupported_markdown_nodes(app: Sphinx) -> None:
 
     MarkdownTranslator.visit_caption = visit_caption
     MarkdownTranslator.depart_caption = depart_caption
+
+    # Generic `{admonition}` directives (e.g. the "See also" boxes in the
+    # notebook index pages) produce a plain docutils `admonition` node with an
+    # explicit `title` child, unlike `note`/`warning`/etc., which
+    # sphinx_markdown_builder already renders as "#### NOTE" boxes and have no
+    # title child of their own. There's no visitor for the generic node at
+    # all, so descend into it like a plain container: the title child renders
+    # as a heading and the body renders as normal Markdown.
+    def visit_admonition(self, node):
+        pass
+
+    def depart_admonition(self, node):
+        pass
+
+    MarkdownTranslator.visit_admonition = visit_admonition
+    MarkdownTranslator.depart_admonition = depart_admonition

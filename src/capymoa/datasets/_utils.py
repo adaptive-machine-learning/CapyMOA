@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from urllib.request import urlretrieve
 
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from capymoa.env import capymoa_datasets_dir
 

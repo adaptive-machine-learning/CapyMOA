@@ -1,7 +1,7 @@
 """Tests for pipelines, pipeline elements, and schema propagation through them.
 
 Before these, `src/capymoa/stream/preprocessing/` had no pytest coverage at all --
-the only thing exercising it was `notebooks/07_pipelines.ipynb`, which nbmake runs
+the only thing exercising it was `notebooks/common/pipelines.py`, which nbmake runs
 without checking output. See adaptive-machine-learning/backlog#87 and #154.
 """
 

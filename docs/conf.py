@@ -14,7 +14,7 @@ from capymoa.__about__ import __version__
 from docs.util.github_link import make_linkcode_resolve
 from docs.util.sphinx_llm import (
     fix_markdown_image,
-    fix_nbsphinx,
+    fix_notebook_output_markdown,
     fix_unsupported_markdown_nodes,
 )
 
@@ -35,7 +35,10 @@ html_title = f"{project}"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    "nbsphinx",
+    # Supersedes myst_parser: it registers the same MyST markdown parser for
+    # plain `.md` docs and additionally parses/executes the notebooks (see
+    # `nb_custom_formats` below).
+    "myst_nb",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.doctest",
@@ -43,10 +46,11 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.linkcode",
     "sphinx.ext.mathjax",
+    "sphinx_copybutton",
     "sphinx_design",
     "sphinxcontrib.programoutput",
-    "myst_parser",
     "sphinx_llm.txt",
+    "sphinx_reredirects",
     "matplotlib.sphinxext.plot_directive",  # https://matplotlib.org/stable/api/sphinxext_plot_directive_api.html
 ]
 
@@ -72,7 +76,16 @@ nitpick_ignore_regex = [
 ]
 
 # These warnings are usually false positives.
-suppress_warnings = ["myst.xref_missing"]
+suppress_warnings = [
+    "myst.xref_missing",
+    # The Jupytext `py:percent` source only carries `kernelspec` metadata (no
+    # `language_info`, which is populated by an actual kernel run), so
+    # MyST-NB highlights code cells with the plain "python" Pygments lexer.
+    # That lexer doesn't understand Jupyter's `!shell`/`%magic` syntax (e.g.
+    # `!uv pip install ...`); MyST-NB already degrades gracefully ("relaxed
+    # mode") when that happens, so the warning is just noise.
+    "misc.highlighting_failure",
+]
 
 toc_object_entries_show_parents = "hide"
 autosummary_ignore_module_all = False
@@ -90,7 +103,21 @@ autodoc_typehints_format = "short"
 autodoc_preserve_defaults = True
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    # Not documentation pages: this file and the helper modules it imports,
+    # but they'd otherwise match the `.py` notebook suffix registered by
+    # `nb_custom_formats` below and get built as (broken) notebook pages.
+    "conf.py",
+    "util",
+    # MyST-NB writes each notebook's executed `.ipynb` copy here (used for the
+    # rendered page's "download notebook" link), inside the source directory
+    # rather than under `_build`. Left unexcluded, Sphinx also picks these
+    # `.ipynb` copies up as extra source documents in their own right.
+    "jupyter_execute",
+]
 
 extlinks = {
     "wiki": ("https://en.wikipedia.org/wiki/%s", ""),
@@ -115,7 +142,7 @@ rst_epilog = f"""
 
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
-html_css_files = ["css/citation.css", "css/llm-page-actions.css"]
+html_css_files = ["css/citation.css", "css/llm-page-actions.css", "css/dataframe.css"]
 html_js_files = ["js/llm-page-actions.js"]
 html_show_sourcelink = False
 
@@ -134,11 +161,54 @@ notebook_doc_source = Path("notebooks")
 if not notebook_doc_source.exists():
     os.symlink(notebooks, notebook_doc_source)
 
+# Redirects for the notebooks that moved into domain subfolders when the
+# `notebooks/` layout was reorganized (PR #420). `getting_started` and
+# `evaluation` covered both classification and regression before that
+# split into per-domain notebooks; the old URL redirects to the classifier
+# variant.
+redirects = {
+    "notebooks/00_getting_started": "/notebooks/classifier/getting_started.html",
+    "notebooks/01_evaluation": "/notebooks/classifier/evaluation.html",
+    "notebooks/02_sklearn": "/notebooks/common/sklearn_models.html",
+    "notebooks/03_pytorch": "/notebooks/common/pytorch.html",
+    "notebooks/04_drift_streams": "/notebooks/drift/drift_streams.html",
+    "notebooks/05_new_learner": "/notebooks/classifier/new_learner.html",
+    "notebooks/06_advanced_API": "/notebooks/common/advanced_API.html",
+    "notebooks/07_pipelines": "/notebooks/common/pipelines.html",
+    "notebooks/08_prediction_interval": "/notebooks/uncertainty/prediction_interval.html",
+    "notebooks/09_automl": "/notebooks/automl/automl.html",
+    "notebooks/10_ocl": "/notebooks/ocl/ocl.html",
+    "notebooks/SSL_example": "/notebooks/ssl/ssl_example.html",
+    "notebooks/anomaly_detection": "/notebooks/anomaly/anomaly_detection.html",
+    "notebooks/drift_detection": "/notebooks/drift/drift_detection.html",
+    "notebooks/optimizing_detectors": "/notebooks/drift/optimizing_detectors.html",
+    "notebooks/parallel_ensembles": "/notebooks/classifier/parallel_ensembles.html",
+    "notebooks/save_and_load_model": "/notebooks/common/save_and_load_model.html",
+    "notebooks/clustering": "/notebooks/clusterer/clustering.html",
+    "notebooks/feature_importance": "/notebooks/feature/feature_importance.html",
+    "notebooks/ocl_event_system": "/notebooks/ocl/ocl_event_system.html",
+}
+
 # -- Options for Matplotlib Sphinx Plot Directive ----------------------------
 plot_include_source = True
 plot_html_show_source_link = False
 plot_html_show_formats = False
 plot_formats = ["png"]
+
+# -- Options for MyST-NB ------------------------------------------------------
+# https://myst-nb.readthedocs.io/en/latest/configuration.html
+
+# Sphinx never executes notebooks itself: that's a distinct step
+# (`invoke docs.nb`, using nbmake's `--overwrite` flag) so notebook
+# failures and Sphinx build failures show up separately. `docs.nb` bakes
+# real outputs directly into each notebook's generated `.ipynb` file; when
+# that file exists (checked out of the box for the plain `.py` source, or
+# generated by `docs.nb`), MyST-NB picks it over the `.py` source and
+# renders whatever outputs are stored in it, without executing anything.
+# Without `docs.nb` having run, there's no `.ipynb` file, so MyST-NB
+# falls back to the `.py` source and renders it without outputs -- fast,
+# and what you want when just iterating on non-notebook doc pages.
+nb_execution_mode = "off"
 
 # -- Options for InterSphinx -------------------------------------------------
 # See: https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
@@ -165,6 +235,15 @@ linkcode_resolve = make_linkcode_resolve(
         "{package}/{path}#L{lineno}"
     ),
 )
+
+""" Options for sphinx-copybutton --------------------------------------------
+Adds a "copy" button to code blocks, stripping prompts so the copied text is
+directly runnable.
+"""
+# Matches `>>> `/`... ` (doctests) and `$ ` (shell examples), each optionally
+# followed by output lines that get excluded via `copybutton_only_copy_prompt_lines`.
+copybutton_prompt_text = r">>> |\.\.\. |\$ "
+copybutton_prompt_is_regexp = True
 
 """ Options for the Theme ---------------------------------------------------
 """
@@ -233,6 +312,6 @@ def setup(app):
     app.connect("autodoc-skip-member", autodoc_skip_member)
 
     # Patches for sphinx_llm extension.
-    fix_nbsphinx(app)
+    fix_notebook_output_markdown(app)
     fix_markdown_image(app)
     fix_unsupported_markdown_nodes(app)

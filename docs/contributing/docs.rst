@@ -115,7 +115,7 @@ Here is an example of how to write a docstring for a classifier in CapyMOA:
             """
 
 For exemplars take a look at the docstrings in the
-:class:`~capymoa.classifier.AdaptiveRandomForestClassifier` or 
+:class:`~capymoa.classifier.AdaptiveRandomForestClassifier` or
 :class:`~capymoa.classifier.HoeffdingAdaptiveTree` classes.
 
 .. important::
@@ -170,7 +170,7 @@ streams [#gomes25]_.
 Cross Reference
 ~~~~~~~~~~~~~~~
 
-You can link to the documentation of a module, class, method, function, 
+You can link to the documentation of a module, class, method, function,
 attribute, or other programming constructs using the `sphinx cross-reference syntax <https://www.sphinx-doc.org/en/master/usage/referencing.html>`_.
 
 ..  list-table::
@@ -212,7 +212,7 @@ See Also
 ~~~~~~~~
 
 It can be handy to link to related documentation pages or external resources without
-explicitly referencing them in the text. This can be done using the 
+explicitly referencing them in the text. This can be done using the
 `sphinx seealso directive <https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-seealso>`_.
 
 ..  code-block:: rst
@@ -261,33 +261,92 @@ Inline equation: :math:`E = mc^2`.
 Notebooks
 ---------
 
-CapyMOA documentation includes Jupyter Notebooks for tutorials, and narrative
-style documentation. These notebooks are run as tests to ensure they are kept
-up-to-date. This document explains how to run, render and test notebooks.
+CapyMOA documentation includes notebooks for tutorials and narrative
+documentation. Notebooks are stored as `Jupytext <https://jupytext.org>`_
+``py:percent`` scripts (``notebooks/*/*.py``) (not ``.ipynb`` files). Jupytext
+reduces diff sizes, works better with agents, and keeps the CapyMOA repository
+smaller. (With ``.ipynb`` files, notebooks make up 90% of the repository size.)
 
-* To add a notebook to the documentation, add the notebook to the ``/notebooks``
-  directory and add the filename to the ``toctree`` in ``notebooks/index.rst``.
-* Please check the notebooks are being converted and included in the documentation
-  by building the documentation locally. See :doc:`/contributing/docs`.
-* The parser for markdown used by Jupyter Notebooks is different from the one
-  used by nbsphinx. This can lead to markdown rendering unexpectedly and you might
-  need to adjust the markdown in the notebooks to render correctly on the website.
+Execute and build documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    *   Bullet points should have a newline after the bullet point.
-      
-        ..  code-block:: markdown
+Executing notebooks and building the Sphinx HTML are two separate steps,
+to separate notebook and Sphinx errors:
 
-            * Bullet point 1
+1.  ``invoke docs.nb [--slow]``: executes `.py` notebooks and generates ``.ipynb``
+    with populated output cells. When ran with ``--slow`` the execution is run without
+    the ``NB_FAST`` environment variable enabling mock data. GitHub pull request actions
+    are tested in fast mode. GitHub releases are ran with ``--slow`` to generate the
+    full outputs.
 
-            * Bullet point 2
+2.  ``invoke docs.build``: compiles the documentation including all
+    executed notebooks.
+
+Jupytext
+~~~~~~~~
+
+Many IDEs, including VSCode and Jupyter Lab, support Jupytext's
+``py:percent`` format:
+
+.. code-block:: python
+
+    # %% [markdown]
+
+For example, to open a ``.py`` notebook directly in Jupyter, install the `Jupytext
+Jupyter extension <https://jupytext.readthedocs.io/en/latest/install.html>`_.
+The notebook then works like a classic ``.ipynb`` file.
+However, you might find it less convenient than a standard notebook.
+You can convert between the two formats as needed:
+
+..  code-block:: sh
+
+    # Convert ipynb to py:percent
+    jupytext --to py:percent notebook.ipynb
+
+    # Convert py:percent to ipynb
+    jupytext --to notebook notebook.py
+
+    # Sync both formats (keep both files updated together)
+    jupytext --set-formats ipynb,py:percent notebook.ipynb
+    jupytext --sync notebook.ipynb
+
+If you used ``uv`` for setup, prefix these commands with ``uv run jupytext
+...`` or ``uv run --with docs jupytext``.
+
+**Don't commit classic ``.ipynb`` notebooks to the repository.**
+
+To add a notebook to the documentation:
+
+1.  Add the ``.py`` script to the ``/notebooks`` directory, in the
+    appropriate domain subdirectory (for example, ``notebooks/classifier/``).
+    Add the notebook name to the ordered ``toctree`` in that directory's
+    ``index.md``. The index controls the tutorial order.
+
+2.  Write Markdown cells using `MyST Markdown
+    <https://myst-parser.readthedocs.io/>`_ syntax. This lets you use Sphinx
+    features such as cross-referencing, which weren't available with
+    ``.ipynb`` files:
+
+    * ``{doc}issuing/guide``
+    * ``[installation guide]({doc}`install`)``
+
+3.  To check the notebook runs without error, or to generate a matching
+    ``.ipynb`` file to open, run ``invoke docs.nb``. This regenerates an
+    ``.ipynb`` file alongside each ``.py`` file and executes it, writing the
+    outputs back into that ``.ipynb`` file.
+
+4.  Build the documentation locally to confirm your notebook converts and
+    displays correctly. See :doc:`/contributing/docs`.
+
 
 Slow Notebooks
 ~~~~~~~~~~~~~~
 
 Some notebooks may take a long time to run. Here's how we handle slow notebooks:
 
-* The ``NB_FAST`` environment variable is set to ``True`` when the notebooks should
-  be run quickly.
+* The ``NB_FAST`` environment variable is set to ``true`` when the notebooks
+  should be run quickly. ``invoke docs.nb`` sets it for you by default
+  (pass ``--slow`` to run against full-size datasets instead).
 
 * Add hidden cells that check ``NB_FAST`` and speed up the notebook by using
   smaller datasets or fewer iterations.
@@ -298,36 +357,49 @@ Some notebooks may take a long time to run. Here's how we handle slow notebooks:
 
     ..  code-block:: python
 
+        # %% tags=["remove-cell"]
         # This cell is hidden on capymoa.org. See docs/contributing/docs.rst
-        from util.nbmock import mock_datasets, is_nb_fast
+        from capymoa._nbmock import mock_datasets, is_nb_fast
         if is_nb_fast():
             mock_datasets()
+
+  ``capymoa._nbmock`` (``src/capymoa/_nbmock.py``) ships inside the
+  ``capymoa`` package itself rather than living alongside the notebooks, so it
+  is importable regardless of how a notebook is run: as a script, through
+  Jupyter, or via nbmake.
 
 .. _hide-cells:
 
 Hide Cells
 ~~~~~~~~~~
 
-You can remove a cell from being rendered on the website by adding the following
-to the cell's metadata:
+You can remove a cell from being rendered on the website by tagging it
+``remove-cell``, following the `MyST-NB cell tag conventions
+<https://myst-nb.readthedocs.io/en/latest/render/hiding.html>`_:
 
-..  code-block:: json
+..  code-block:: python
 
-    "metadata": {
-        "nbsphinx": "hidden"
-    }
+    # %% tags=["remove-cell"]
+    ...
 
-Testing or Overwriting Notebook Output
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Testing Notebooks
+~~~~~~~~~~~~~~~~~
 
-The ``tasks.py`` defines aliases for running the notebooks as tests or for
-overwriting the outputs of the notebooks. To run the notebooks as tests:
+The ``tasks.py`` defines a task for running the notebooks as tests:
 
 .. code-block:: bash
 
-    invoke test.nb # add --help for options
+    invoke docs.nb # add --help for options
 
-.. program-output:: python -m invoke test.nb --help
+.. program-output:: python -m invoke docs.nb --help
+
+Running notebooks (via ``docs.nb``) leaves generated ``.ipynb`` files and
+other side-effect files (plots, logs, TensorBoard ``runs/`` directories,
+etc.) scattered under ``notebooks/*/``. Clean these up with:
+
+.. code-block:: bash
+
+    invoke clean.nb
 
 Manual Documentation
 --------------------

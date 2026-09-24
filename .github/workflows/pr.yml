@@ -85,12 +85,6 @@ jobs:
         --extra dev --extra torch-cpu
         invoke test.doctest --coverage
 
-    - name: Check Notebooks
-      run: >-
-        uv --quiet run --exact
-        --extra dev --extra torch-cpu
-        invoke test.nb
-
     - name: Combine Test Coverages & Generate XML Report
       run: |
         uv run invoke test.cov-combine
@@ -128,16 +122,33 @@ jobs:
 
   documentation:
     name: "Documentation"
-    timeout-minutes: 20
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - uses: astral-sh/setup-uv@v6
       with:
         python-version: ${{ env.PYTHON_VERSION }}
+    - name: Cache Notebook Datasets
+      uses: actions/cache@v4
+      with:
+        path: data
+        key: "test-datasets"
     - name: Install Dependencies
       run: |
         sudo apt-get install -y pandoc
+
+    - name: Render Notebooks
+      # Executes notebooks fast, against mocked/tiny datasets, baking real
+      # outputs directly into their `.ipynb` files (via nbmake --overwrite),
+      # as a step separate from the Sphinx build below -- so a notebook
+      # failure here is easy to tell apart from a Sphinx build failure.
+      # This lets reviewers see real rendered notebook output in the doc
+      # artifact.
+      run: >-
+        uv --quiet run --exact
+        --extra dev --extra doc --extra torch-cpu
+        invoke docs.nb
 
     - name: Build Documentation
       run: >-

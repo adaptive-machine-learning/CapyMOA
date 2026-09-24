@@ -1,0 +1,16 @@
+/* Style pandas DataFrame HTML output so wide/long tables fit comfortably. */
+table.dataframe {
+    margin: 1rem 0;
+    font-size: var(--pst-font-size-milli);
+}
+
+table.dataframe th,
+table.dataframe td {
+    padding: 0.3rem 0.6rem;
+}
+
+/* Allow wide tables to scroll horizontally instead of overflowing the page. */
+.output_area:has(table.dataframe),
+div.cell_output:has(table.dataframe) {
+    overflow-x: auto;
+}
