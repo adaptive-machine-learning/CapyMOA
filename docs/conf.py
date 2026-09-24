@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 from capymoa.__about__ import __version__
+from docs.release_scripts import site_base_url
 from docs.util.github_link import make_linkcode_resolve
 from docs.util.sphinx_llm import (
     fix_markdown_image,
@@ -25,11 +26,22 @@ discord_link = "https://discord.gg/spd2gQJGAb"
 contact_email = "heitor.gomes@vuw.ac.nz"
 capymoa_github = "https://github.com/adaptive-machine-learning/CapyMOA"
 
+# Read from pyproject.toml's [project.urls] Documentation, so the domain has one
+# authoritative source instead of being hardcoded separately here and in
+# docs/release_scripts.py's build-switcher subcommand.
+SITE_BASE_URL = site_base_url()
+
 project = "CapyMOA"
 copyright = "2026 CapyMOA Developers"
 author = "Heitor Murilo Gomes, Anton Lee, Nuwan Gunasekara, Marco Heyden, Yibin Sun, Guilherme Weigert Cassales"
 release = __version__
 html_title = f"{project}"
+
+# Must match one of the "version" fields in switcher.json for the version-switcher
+# dropdown to highlight the version being viewed. CI always builds from a `vX.Y.Z` tag,
+# which is exactly how docs/release_scripts.py's build-switcher subcommand names each
+# entry.
+version_match = f"v{__version__}"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -135,6 +147,8 @@ rst_epilog = f"""
 .. _Discord: {discord_link}
 .. _Email: mailto:{contact_email}
 .. _CapyMOA GitHub: {capymoa_github}
+.. _CapyMOA Releases: {capymoa_github}/releases
+.. _CapyMOA Docs: {SITE_BASE_URL}/
 """
 
 # -- Options for HTML output -------------------------------------------------
@@ -286,6 +300,17 @@ html_theme_options = {
         "sourcelink",
         "components/llm-page-actions.html",
     ],
+    "switcher": {
+        "json_url": f"{SITE_BASE_URL}/switcher.json",
+        "version_match": version_match,
+    },
+    # pydata_sphinx_theme defaults navbar_end to ["theme-switcher", "navbar-icon-links"];
+    # it must be set explicitly here to add the version switcher without losing those.
+    "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
+    # Local/PR builds fetch switcher.json live from capymoa.org, which won't have an
+    # entry for an in-progress/unreleased version -- checking would fail every non-release
+    # build under -W (warnings-as-errors).
+    "check_switcher": False,
 }
 
 autodoc_skip_member_patterns = [

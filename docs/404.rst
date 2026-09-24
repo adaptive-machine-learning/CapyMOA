@@ -1,0 +1,11 @@
+:orphan:
+
+Page Not Found
+==============
+
+This page does not exist. This can happen when a version's documentation is no
+longer part of the live site.
+
+* Go to the `CapyMOA Docs`_ for the latest documentation.
+* Browse `CapyMOA Releases`_ to download an older version's documentation archive
+  (``docs-vX.Y.Z.tar.gz``).
