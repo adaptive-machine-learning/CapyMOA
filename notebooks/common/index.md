@@ -6,7 +6,7 @@ integrations, and model persistence.
 ```{toctree}
 :maxdepth: 1
 
-sklearn
+sklearn_models
 pytorch
 advanced_API
 pipelines
