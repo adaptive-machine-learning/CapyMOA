@@ -167,8 +167,8 @@ if not notebook_doc_source.exists():
 # split into per-domain notebooks; the old URL redirects to the classifier
 # variant.
 redirects = {
-    "notebooks/getting_started": "/notebooks/classifier/getting_started.html",
-    "notebooks/evaluation": "/notebooks/classifier/evaluation.html",
+    "notebooks/00_getting_started": "/notebooks/classifier/getting_started.html",
+    "notebooks/01_evaluation": "/notebooks/classifier/evaluation.html",
     "notebooks/02_sklearn": "/notebooks/common/sklearn_models.html",
     "notebooks/03_pytorch": "/notebooks/common/pytorch.html",
     "notebooks/04_drift_streams": "/notebooks/drift/drift_streams.html",
