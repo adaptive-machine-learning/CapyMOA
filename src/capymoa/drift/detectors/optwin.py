@@ -441,6 +441,20 @@ class OPTWIN(BaseDriftDetector):
         self.S_h = 0
         self.last_opt_cut = 0
 
+    def reset(self, clean_history: bool = False) -> None:
+        """Reset the detector state.
+
+        Clears the sliding window, running statistics, and per-drift bookkeeping
+        so that replaying the same input reproduces the as-constructed flag
+        trace. Hyper-parameters and the pre-computed optimal-cut tables are
+        preserved (they are data-independent).
+
+        :param clean_history: Whether to reset detection history, defaults to False
+        """
+        super().reset(clean_history)
+        self._empty_window()
+        self.drift_type = []
+
     def _drift_reaction(self, drift_type: str) -> None:
         """Reaction to a detected drift.
 

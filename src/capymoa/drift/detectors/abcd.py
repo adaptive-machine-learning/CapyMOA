@@ -234,6 +234,37 @@ class ABCD(BaseDriftDetector):
             self._new_data = self.window.data_new()
             self.window.reset()  # forget outdated data
 
+    def reset(self, clean_history: bool = False) -> None:
+        """Reset the detector state.
+
+        Clears the adaptive window, the reconstruction model, and all
+        bookkeeping so that replaying the same input reproduces the
+        as-constructed flag trace. Hyper-parameters (including
+        ``model_id``) are preserved; the reconstruction model is re-trained
+        lazily from the next ``n_min`` elements, exactly as on construction.
+
+        :param clean_history: Whether to reset detection history, defaults to False
+        """
+        super().reset(clean_history)
+        self.window = AdaptiveWindow(
+            delta_drift=self.delta_drift,
+            delta_warn=self.delta_warn,
+            split_type=self.split_type,
+            max_size=self.max_size,
+            bonferroni=self.bonferroni,
+            n_splits=self.num_splits,
+            abs_max=self.maximum_absolute_value,
+        )
+        self.model = None
+        self._new_data = None
+        self.last_change_point = None
+        self.last_detection_point = None
+        self.last_training_point = None
+        self._last_loss = np.nan
+        self.drift_dimensions = None
+        self._severity = np.nan
+        self.delay = 0
+
     def loss(self):
         return self._last_loss
 
