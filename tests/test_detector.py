@@ -196,3 +196,86 @@ def test_data_drift_warning_zone_is_bool(name, kwargs):
     """detected_warning() must return False (not None) for data drift detectors."""
     det = _make_detector(name, kwargs)
     assert det.detected_warning() is False
+
+
+# ---------------------------------------------------------------------------
+# Reset-then-replay contract: reset() must restore the detector to its
+# as-constructed state, so replaying the same input reproduces the same
+# flag trace. The MOA-backed detectors inherit a reset() that re-creates
+# the MOA object; the pure-Python detectors must clear their own state.
+# ---------------------------------------------------------------------------
+
+
+_RESET_REPLAY_DETECTORS = [
+    ("ABCD", {"model_id": "pca", "maximum_absolute_value": 0.2}),
+    ("ADWIN", {}),
+    ("CUSUM", {}),
+    ("DDM", {}),
+    ("EDDM", {}),
+    ("EWMAChart", {}),
+    ("GeometricMovingAverage", {}),
+    ("HDDMAverage", {}),
+    ("HDDMWeighted", {}),
+    ("OPTWIN", {"w_length_max": 200}),
+    ("PageHinkley", {}),
+    ("RDDM", {}),
+    ("SEED", {}),
+    ("STEPD", {}),
+]
+
+
+def _replay_trace(detector, stream):
+    out = []
+    for x in stream:
+        detector.add_element(float(x))
+        out.append(
+            (bool(detector.detected_change()), bool(detector.detected_warning()))
+        )
+    return out
+
+
+@pytest.mark.parametrize(
+    "name,kwargs", _RESET_REPLAY_DETECTORS, ids=[n for n, _ in _RESET_REPLAY_DETECTORS]
+)
+def test_reset_then_replay_reproduces_trace(name, kwargs):
+    """reset() followed by the same input must reproduce the same trace."""
+    rng = np.random.default_rng(1234)
+    stream = np.concatenate([rng.normal(0, 1, 600), rng.normal(3, 1, 600)]).astype(
+        np.float64
+    )
+
+    detector = getattr(detectors, name)(**kwargs)
+    first = _replay_trace(detector, stream)
+    detector.reset()
+    second = _replay_trace(detector, stream)
+
+    assert first == second, (
+        f"{name}: replay after reset() diverges from the first pass "
+        f"(first difference at index "
+        f"{next(i for i, (a, b) in enumerate(zip(first, second)) if a != b)}) - "
+        "reset() left stale detector state behind"
+    )
+
+
+@pytest.mark.parametrize(
+    "name,kwargs", _RESET_REPLAY_DETECTORS, ids=[n for n, _ in _RESET_REPLAY_DETECTORS]
+)
+def test_repeated_reset_replay_is_stable(name, kwargs):
+    """Replay traces must be identical across successive reset() calls."""
+    rng = np.random.default_rng(1234)
+    stream = rng.normal(0, 1, 300).astype(np.float64)
+
+    detector = getattr(detectors, name)(**kwargs)
+    first_pass = _replay_trace(detector, stream)
+    detector.reset()
+    second_pass = _replay_trace(detector, stream)
+    detector.reset()
+    third_pass = _replay_trace(detector, stream)
+
+    assert second_pass == third_pass, (
+        f"{name}: replay after a second reset() differs from the replay "
+        "after the first - state survives reset() and accumulates"
+    )
+    assert first_pass == second_pass, (
+        f"{name}: replay after reset() differs from the as-constructed trace"
+    )
