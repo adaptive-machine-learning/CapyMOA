@@ -114,6 +114,7 @@ XC2 = np.delete(DATA, 3, axis=1)
 YC2 = DATA[:, 3]
 ARFF = RESOURCES / "stream_test.arff"
 CSV = RESOURCES / "stream_test.csv"
+SPARSE_ARFF = RESOURCES / "stream_test_sparse.arff"
 
 
 def _is_numpy_or_torch_stream(stream) -> bool:
@@ -1000,6 +1001,41 @@ def test_stream_classification(
         instance = stream.next_instance()
         check_instance(instance, X[i], Y[i])
         i += 1
+
+
+def test_arff_stream_sparse_instances():
+    """ARFFStream should read sparse-row ARFF files the same as dense-row ones.
+
+    ``stream_test_sparse.arff`` uses sparse ``{idx val, ...}`` rows that omit
+    attributes at their default value (0 / first nominal category), so MOA hands
+    CapyMOA a ``SparseInstance``-backed instance instead of a `DenseInstance`-backed
+    one. It intentionally has no missing values: MOA's ARFF loader does not support
+    `?` inside sparse row syntax.
+    """
+    # Same values as stream_test_sparse.arff, decoded: num1, num2, cat1, cat2.
+    SPARSE_DATA = np.array(
+        [
+            [-1.10, -1.00, 0.00, 0.00],
+            [0.10, 1.00, 1.00, 1.00],
+            [1.10, 0.00, 2.00, 0.00],
+            [0.00, 0.00, 0.00, 0.00],
+        ]
+    )
+    stream = ARFFStream(SPARSE_ARFF, class_index=-1)
+    X = np.delete(SPARSE_DATA, 3, axis=1)
+    Y = SPARSE_DATA[:, 3].astype(int)
+
+    saw_genuinely_sparse_instance = False
+    for i, instance in enumerate(stream):
+        check_instance(instance, X[i], Y[i])
+        instance_data = instance.java_instance.getData()
+        if instance_data.numValues() < instance_data.numAttributes():
+            saw_genuinely_sparse_instance = True
+
+    assert saw_genuinely_sparse_instance, (
+        "fixture stopped exercising real sparse storage; MOA's ArffLoader only "
+        "keeps SparseInstanceData when a row omits some attribute indices"
+    )
 
 
 @pytest.mark.parametrize(
