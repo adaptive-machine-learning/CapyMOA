@@ -8,6 +8,11 @@ from scipy.stats import anderson_ksamp
 
 from .base import BaseDataDriftDetector, DataDriftResult
 
+# scipy.stats.anderson_ksamp floors p-values at this value. With Bonferroni
+# correction, once alpha / n_features falls at or below this floor, no
+# p-value can ever be small enough to declare drift.
+_PVALUE_FLOOR = 0.001
+
 
 class AndersonDarling(BaseDataDriftDetector):
     """Anderson-Darling K-Sample Test
@@ -21,7 +26,10 @@ class AndersonDarling(BaseDataDriftDetector):
 
     .. note::
         p-values are bounded between 0.001 and 0.25 by
-        :func:`scipy.stats.anderson_ksamp`.
+        :func:`scipy.stats.anderson_ksamp`. With ``correction="bonferroni"``,
+        :meth:`fit` raises :class:`ValueError` if ``alpha / n_features``
+        falls at or below the 0.001 floor, since drift could then never be
+        declared regardless of the data.
 
     Example:
     --------
@@ -63,6 +71,17 @@ class AndersonDarling(BaseDataDriftDetector):
         super().__init__(window_size, alpha, correction, auto_fit_samples)
 
     def _fit(self, X: np.ndarray) -> None:
+        n_features = X.shape[1]
+        if self._correction == "bonferroni":
+            effective_alpha = self._alpha / n_features
+            if effective_alpha <= _PVALUE_FLOOR:
+                raise ValueError(
+                    f"alpha / n_features = {effective_alpha} is at or below "
+                    f"scipy.stats.anderson_ksamp's p-value floor "
+                    f"({_PVALUE_FLOOR}); drift could never be detected with "
+                    "this configuration. Use correction='none', increase "
+                    "alpha, or reduce the number of features."
+                )
         self._X_ref = X
 
     def _test(self, x_ref: np.ndarray, x_test: np.ndarray) -> DataDriftResult:
@@ -71,7 +90,12 @@ class AndersonDarling(BaseDataDriftDetector):
             # is expected behaviour, not a coding error.
             warnings.filterwarnings("ignore", message="p-value floored")
             warnings.filterwarnings("ignore", message="p-value capped")
-            result = anderson_ksamp([x_ref, x_test], variant="midrank")
+            try:
+                # `variant` replaces the older `midrank` boolean parameter
+                # in newer SciPy; older SciPy only accepts `midrank`.
+                result = anderson_ksamp([x_ref, x_test], variant="midrank")
+            except TypeError:
+                result = anderson_ksamp([x_ref, x_test], midrank=True)
         return DataDriftResult(
             is_drift=False,
             statistic=result.statistic,
