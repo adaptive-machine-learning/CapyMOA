@@ -91,13 +91,13 @@ def test_different_seeds_change_stochastic_predictions(learner_cls):
 # KNNRegressor, StochasticGradientTree.
 # ---------------------------------------------------------------------------
 
-from capymoa.datasets import Fried  # noqa: E402
-from capymoa.regressor import (  # noqa: E402
-    AdaptiveRandomForestRegressor,
+from capymoa.datasets import Fried
+from capymoa.regressor import (
     ARFFIMTDD,
     FIMTDD,
     ORTO,
     SOKNL,
+    AdaptiveRandomForestRegressor,
     StreamingGradientBoostedRegression,
 )
 
