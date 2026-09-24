@@ -183,6 +183,71 @@ class Schema:
         self._assert_classification()
         return 0 <= y_index < self.get_num_classes()
 
+    def describe_difference(self, other: "Schema") -> list[str]:
+        """Describe how this schema differs from ``other``.
+
+        :param other: The schema to compare against.
+        :return: A list of human-readable differences, empty if the two schemas
+            are compatible.
+
+        >>> from capymoa.datasets import ElectricityTiny, FriedTiny
+        >>> ElectricityTiny().get_schema().describe_difference(
+        ...     ElectricityTiny().get_schema()
+        ... )
+        []
+        >>> for line in ElectricityTiny().get_schema().describe_difference(
+        ...     FriedTiny().get_schema()
+        ... ):
+        ...     print(line)
+        number of attributes: 6 != 10
+        numeric attribute names differ
+        task: classification != regression
+        """
+        differences = []
+        if self.get_num_attributes() != other.get_num_attributes():
+            differences.append(
+                f"number of attributes: {self.get_num_attributes()} "
+                f"!= {other.get_num_attributes()}"
+            )
+        if tuple(self.get_numeric_attributes()) != tuple(
+            other.get_numeric_attributes()
+        ):
+            differences.append("numeric attribute names differ")
+        if self.get_nominal_attributes() != other.get_nominal_attributes():
+            differences.append("nominal attributes or their values differ")
+        if self.is_regression() != other.is_regression():
+            this = "regression" if self.is_regression() else "classification"
+            that = "regression" if other.is_regression() else "classification"
+            differences.append(f"task: {this} != {that}")
+        elif self.is_classification() and tuple(self.get_label_values()) != tuple(
+            other.get_label_values()
+        ):
+            differences.append(
+                f"class labels: {list(self.get_label_values())} "
+                f"!= {list(other.get_label_values())}"
+            )
+        return differences
+
+    def is_compatible_with(self, other: "Schema") -> bool:
+        """Return True if instances of ``other`` can be consumed where this schema is expected.
+
+        Compares attribute structure and target, ignoring the dataset name. Use
+        :meth:`describe_difference` to find out *what* differs.
+
+        :param other: The schema to compare against.
+
+        >>> from capymoa.datasets import ElectricityTiny, FriedTiny
+        >>> ElectricityTiny().get_schema().is_compatible_with(
+        ...     ElectricityTiny().get_schema()
+        ... )
+        True
+        >>> ElectricityTiny().get_schema().is_compatible_with(
+        ...     FriedTiny().get_schema()
+        ... )
+        False
+        """
+        return not self.describe_difference(other)
+
     @property
     def dataset_name(self) -> str:
         """Returns the name of the dataset."""
