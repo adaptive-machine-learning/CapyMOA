@@ -142,7 +142,7 @@ rst_epilog = f"""
 
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
-html_css_files = ["css/citation.css", "css/llm-page-actions.css"]
+html_css_files = ["css/citation.css", "css/llm-page-actions.css", "css/dataframe.css"]
 html_js_files = ["js/llm-page-actions.js"]
 html_show_sourcelink = False
 

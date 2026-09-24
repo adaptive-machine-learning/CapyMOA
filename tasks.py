@@ -166,6 +166,9 @@ def docs_notebooks(ctx: Context, slow: bool = False, parallel: bool = False):
         # Consumed by `capymoa._nbmock.is_nb_fast()` in the notebooks themselves.
         "NB_FAST": "false" if slow else "true",
         "CAPYMOA_DATASETS_DIR": os.environ.get("CAPYMOA_DATASETS_DIR", "./data"),
+        # Applies `tools/ipython_profile/profile_default/startup/` to every
+        # notebook kernel (e.g. rounded pandas display precision).
+        "IPYTHONDIR": str(Path("tools/ipython_profile").resolve()),
     }
     timeout = NOTEBOOK_SLOW_TIMEOUT if slow else NOTEBOOK_FAST_TIMEOUT
 
