@@ -3,10 +3,9 @@
 Learn how to automatically select and tune models for data streams.
 
 ```{toctree}
-:glob:
 :maxdepth: 1
 
-*
+automl
 ```
 
 ```{admonition} See also

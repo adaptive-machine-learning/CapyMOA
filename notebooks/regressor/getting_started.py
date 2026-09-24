@@ -37,7 +37,7 @@ if is_nb_fast():
 # %% [markdown]
 # ## Regression
 #
-# * Regression algorithms have APIs very similar to classification algorithms. We can use the same high-level evaluation and visualisation functions for regression and classification, such as `prequential_evaluation` and `plot_windowed_results` (see notebooks/01_classifier for an introduction to these functions).
+# * Regression algorithms have APIs very similar to classification algorithms. We can use the same high-level evaluation and visualisation functions for regression and classification, such as `prequential_evaluation` and `plot_windowed_results` (see notebooks/classifier for an introduction to these functions).
 # * Similar to classification, we can also use MOA objects through a generic API.
 
 # %%

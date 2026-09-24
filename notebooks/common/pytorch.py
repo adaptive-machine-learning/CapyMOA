@@ -21,7 +21,7 @@
 #     * How a simple PyTorch model can be used in a CapyMOA `Instance` loop.
 #     * How to define a PyTorch CapyMOA Classifier based on CapyMOA `Classifier` framework and how to use it with `prequential_evaluation()`.
 #     * How to use a PyTorch dataset with a CapyMOA classifier.
-# * `Exploring Advanced Features` (notebooks/11_common/03_advanced_API.py) includes an example using TensorBoard and a `PyTorchClassifier`.
+# * `Exploring Advanced Features` (notebooks/common/advanced_API.py) includes an example using TensorBoard and a `PyTorchClassifier`.
 #  
 # ---
 #

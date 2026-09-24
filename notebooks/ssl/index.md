@@ -3,10 +3,9 @@
 Learn how to learn from data streams where only some instances are labelled.
 
 ```{toctree}
-:glob:
 :maxdepth: 1
 
-*
+ssl_example
 ```
 
 ```{admonition} See also

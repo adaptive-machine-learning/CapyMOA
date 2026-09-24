@@ -318,9 +318,9 @@ If you used ``uv`` for setup, prefix these commands with ``uv run jupytext
 To add a notebook to the documentation:
 
 1.  Add the ``.py`` script to the ``/notebooks`` directory, in the
-    appropriate domain subdirectory (for example, ``notebooks/01_classifier/``).
-    CapyMOA adds files in this directory to the tutorials section
-    automatically, in alphanumeric order.
+    appropriate domain subdirectory (for example, ``notebooks/classifier/``).
+    Add the notebook name to the ordered ``toctree`` in that directory's
+    ``index.md``. The index controls the tutorial order.
 
 2.  Write Markdown cells using `MyST Markdown
     <https://myst-parser.readthedocs.io/>`_ syntax. This lets you use Sphinx

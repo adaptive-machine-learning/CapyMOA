@@ -3,10 +3,9 @@
 Learn how to identify anomalous instances in data streams as they arrive.
 
 ```{toctree}
-:glob:
 :maxdepth: 1
 
-*
+anomaly_detection
 ```
 
 ```{admonition} See also

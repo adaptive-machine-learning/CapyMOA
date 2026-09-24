@@ -119,10 +119,13 @@ from capymoa.drift import detectors
 
 results = {}
 for detector_name in detectors.__all__:
+    detector_cls = getattr(detectors, detector_name)
+    if getattr(detector_cls, "REQUIRES_FIT", True):
+        continue
     if detector_name == "STUDD":
         continue
 
-    d = getattr(detectors, detector_name)()
+    d = detector_cls()
     for i in range(len(data_stream)):
         d.add_element(float(data_stream[i]))
         d.detected_change()
@@ -204,13 +207,13 @@ pd.DataFrame(rows)
 # %% [markdown]
 # ### Building a stream with known drift points
 #
-# To evaluate a multivariate detector we need multivariate data whose drift locations we know. We can build exactly that with the `DriftStream` API from [Simulating concept drifts with the DriftStream API](https://capymoa.org/notebooks/02_drift/02_drift_streams.html).
+# To evaluate a multivariate detector we need multivariate data whose drift locations we know. We can build exactly that with the `DriftStream` API from [Simulating concept drifts with the DriftStream API](https://capymoa.org/notebooks/drift/drift_streams.html).
 #
 # `RandomRBFGenerator` places a fixed number of centroids in feature space, then produces each instance by picking a centroid and adding Gaussian noise. Its `model_random_seed` is what decides where those centroids land, so `rbf(1)`, `rbf(99)` and `rbf(7)` are three different *layouts* of centroids, and therefore three genuinely different input distributions. The `instance_random_seed` only controls which centroid is drawn each time, so on its own it would give us more samples of the same distribution rather than a new concept.
 #
 # This is the same recipe the ABCD paper uses to build its synthetic RBF stream, where changes are created by incrementing the generator seed so that the centroids move.
 #
-# Note that we use `AbruptDrift` and the _Position API_ for drift generation (See more about simulating drifts on [Simulating concept drifts with the DriftStream API](https://capymoa.org/notebooks/02_drift/02_drift_streams.html)). Because we placed the drifts ourselves, the ground truth is exact, so the result feeds straight into `EvaluateDriftDetector`.
+# Note that we use `AbruptDrift` and the _Position API_ for drift generation (See more about simulating drifts on [Simulating concept drifts with the DriftStream API](https://capymoa.org/notebooks/drift/drift_streams.html)). Because we placed the drifts ourselves, the ground truth is exact, so the result feeds straight into `EvaluateDriftDetector`.
 
 # %%
 from capymoa.drift.detectors import ABCD

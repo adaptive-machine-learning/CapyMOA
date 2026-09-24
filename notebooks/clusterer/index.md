@@ -3,10 +3,9 @@
 Learn how to group data streams into clusters that evolve as new instances arrive.
 
 ```{toctree}
-:glob:
 :maxdepth: 1
 
-*
+clustering
 ```
 
 ```{admonition} See also

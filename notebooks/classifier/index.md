@@ -3,10 +3,12 @@
 Learn how to classify data streams incrementally, one instance at a time.
 
 ```{toctree}
-:glob:
 :maxdepth: 1
 
-*
+getting_started
+evaluation
+new_learner
+parallel_ensembles
 ```
 
 ```{admonition} See also

@@ -3,10 +3,9 @@
 Learn how to estimate feature importance for data streams as they evolve.
 
 ```{toctree}
-:glob:
 :maxdepth: 1
 
-*
+feature_importance
 ```
 
 ```{admonition} See also

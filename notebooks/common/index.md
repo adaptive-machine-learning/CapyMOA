@@ -4,10 +4,13 @@ Learn how to use CapyMOA's cross-domain building blocks: pipelines, third-party
 integrations, and model persistence.
 
 ```{toctree}
-:glob:
 :maxdepth: 1
 
-*
+sklearn
+pytorch
+advanced_API
+pipelines
+save_and_load_model
 ```
 
 ```{admonition} See also

@@ -3,10 +3,12 @@
 Learn how to detect concept and data drift in data streams as they evolve over time.
 
 ```{toctree}
-:glob:
 :maxdepth: 1
 
-*
+drift_detection
+drift_streams
+optimizing_detectors
+data_drift_detection
 ```
 
 ```{admonition} See also

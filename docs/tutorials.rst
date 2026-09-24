@@ -4,10 +4,19 @@ User Guide
 ==========
 
 ..  toctree::
-    :glob:
     :maxdepth: 2
 
-    notebooks/*/index
+    notebooks/classifier/index
+    notebooks/drift/index
+    notebooks/regressor/index
+    notebooks/clusterer/index
+    notebooks/anomaly/index
+    notebooks/ocl/index
+    notebooks/ssl/index
+    notebooks/automl/index
+    notebooks/uncertainty/index
+    notebooks/feature/index
+    notebooks/common/index
 
 Talks
 =====

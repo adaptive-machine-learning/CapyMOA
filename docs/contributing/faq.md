@@ -1,5 +1,10 @@
 # FAQ
 
+## How do I add a tutorial notebook?
+Add the Jupytext `.py` notebook to the appropriate directory under
+`notebooks/`, then add its filename to that directory's `index.md` to place it
+in the ordered tutorial list.
+
 ## Where does my new learner go?
 You should add your new learner to the appropriate directory:
 - Classifiers go in `src/capymoa/classifier`.

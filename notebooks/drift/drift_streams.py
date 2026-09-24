@@ -22,7 +22,7 @@
 # * We delve into the two ways of defining a DriftStream:
 #     * **DriftStream Position**: **`drift position` + `drift width`**.
 #     * **DriftStream Range**: **`concept num_instances` + `drift num_instances`**.
-# * Other examples can be found in [Exploring Advanced Features](https://capymoa.org/notebooks/11_common/03_advanced_API.html), such as configuring and manipulating MOA streams directly.
+# * Other examples can be found in [Exploring Advanced Features](https://capymoa.org/notebooks/common/advanced_API.html), such as configuring and manipulating MOA streams directly.
 # * Also, [**Tutorial**: Drift Detection](https://capymoa.org/notebooks/drift_detection.html) complements this tutorial by demonstrating the drift detection API and the various algorithms implemented in capymoa. 
 #
 # ---
@@ -391,7 +391,7 @@ print("counts with progress**3       :", stream_custom.get_concept_counts())
 #
 # Concepts often return: a weekday pattern, a seasonal effect, a fault mode that reappears. `RecurrentConceptDriftStream` builds a stream that cycles through a list of concepts rather than passing through each one once.
 #
-# The stream it produces is an ordinary `DriftStream`, so everything above applies: the drift metadata, `describe()`, and conversion to MOA. An example of the MOA side is in [Exploring Advanced Features](https://capymoa.org/notebooks/11_common/03_advanced_API.html), in the section on creating a synthetic stream with concept drifts from MOA.
+# The stream it produces is an ordinary `DriftStream`, so everything above applies: the drift metadata, `describe()`, and conversion to MOA. An example of the MOA side is in [Exploring Advanced Features](https://capymoa.org/notebooks/common/advanced_API.html), in the section on creating a synthetic stream with concept drifts from MOA.
 #
 # **Reference:**
 #
@@ -501,4 +501,4 @@ plot_windowed_results(results_stream_with_drifts_OB, metric="accuracy")
 # * `to_moa_stream()` converts a `DriftStream` into the equivalent nested MOA `ConceptDriftStream`, when every concept is MOA-backed.
 # * A `DriftStream` can also be defined *from* a MOA CLI instead of a list of concepts.
 #
-# Both are shown in [Exploring Advanced Features](https://capymoa.org/notebooks/11_common/03_advanced_API.html), in the section on creating a synthetic stream with concept drifts from MOA, alongside the raw MOA syntax for the same streams.
+# Both are shown in [Exploring Advanced Features](https://capymoa.org/notebooks/common/advanced_API.html), in the section on creating a synthetic stream with concept drifts from MOA, alongside the raw MOA syntax for the same streams.

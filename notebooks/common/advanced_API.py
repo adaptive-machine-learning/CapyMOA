@@ -22,8 +22,8 @@
 # * Examples on how to use any MOA classifier or regressor from CapyMOA.
 # * An example of how preprocessing (from MOA) can be used.
 # * Comparing a sklearn model to a MOA model.
-# * A variation of `Creating a new classifier in CapyMOA` (notebooks/01_classifier/02_new_learner.py) which uses MOA learners, thus accessing MOA (Java) objects directly.
-# * How to log experiments using TensorBoard alongside the PyTorch API. This extends `Using PyTorch with CapyMOA` (notebooks/11_common/02_pytorch.py).
+# * A variation of `Creating a new classifier in CapyMOA` (notebooks/classifier/new_learner.py) which uses MOA learners, thus accessing MOA (Java) objects directly.
+# * How to log experiments using TensorBoard alongside the PyTorch API. This extends `Using PyTorch with CapyMOA` (notebooks/common/pytorch.py).
 # * Creating a synthetic stream with concept drifts using the MOA CLI directly.
 # * An example utilising a multi-threaded ensemble.
 #
@@ -164,7 +164,7 @@ plot_windowed_results(results["sk_sgd"], results["moa_ht"], metric="accuracy")
 # %% [markdown]
 # ## Creating Python learners with MOA Objects
 #
-# * This follows the example from `02_new_learner` which shows how to create a custom online bagging implementation.
+# * This follows the example from `new_learner` which shows how to create a custom online bagging implementation.
 # * Here we also create an online bagging implementation, but the `base_learner` is a MOA class instead.
 
 # %%
@@ -282,7 +282,7 @@ print(f"Accuracy: {results_NEW_OB.cumulative.accuracy()}")
 # %% [markdown]
 # ### PyTorchClassifier
 #
-# * We define `PyTorchClassifier` and `NeuralNetwork` classes similarly to those from `Using PyTorch with CapyMOA` (notebooks/11_common/02_pytorch.py).
+# * We define `PyTorchClassifier` and `NeuralNetwork` classes similarly to those from `Using PyTorch with CapyMOA` (notebooks/common/pytorch.py).
 
 # %%
 import torch
@@ -509,7 +509,7 @@ plot_windowed_results(results_sea1drift_OB, metric="accuracy")
 # `DriftStream` behaves when defined from a MOA CLI rather than a list of concepts,
 # and how a recurrent stream looks on the MOA side.
 #
-# CapyMOA's own `DriftStream` API is covered in [Simulating concept drifts](https://capymoa.org/notebooks/02_drift/02_drift_streams.html). It composes
+# CapyMOA's own `DriftStream` API is covered in [Simulating concept drifts](https://capymoa.org/notebooks/drift/drift_streams.html). It composes
 # concepts in Python, so a concept can be any `Stream` -- including `NumpyStream`,
 # `CSVStream` and others MOA cannot represent.
 

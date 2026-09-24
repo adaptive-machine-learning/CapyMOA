@@ -4,33 +4,33 @@
 # See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 /src/capymoa/classifier/  @hmgomes
-/notebooks/01_classifier/ @hmgomes
+/notebooks/classifier/ @hmgomes
 
 /src/capymoa/drift/       @vcerqueira
-/notebooks/02_drift/      @vcerqueira
+/notebooks/drift/      @vcerqueira
 
 /src/capymoa/regressor/   @YibinSun @nuwangunasekara
-/notebooks/03_regressor/  @YibinSun @nuwangunasekara
+/notebooks/regressor/  @YibinSun @nuwangunasekara
 
 /src/capymoa/cluster/     @cassales
-/notebooks/04_clusterer/  @cassales
+/notebooks/clusterer/  @cassales
 
 /src/capymoa/anomaly/     @justinuliu
-/notebooks/05_anomaly/    @justinuliu
+/notebooks/anomaly/    @justinuliu
 
 /src/capymoa/ocl/         @tachyonicClock @nuwangunasekara
-/notebooks/06_ocl/        @tachyonicClock @nuwangunasekara
+/notebooks/ocl/        @tachyonicClock @nuwangunasekara
 
 /src/capymoa/ssl/         @tachyonicClock
-/notebooks/07_ssl/        @tachyonicClock
+/notebooks/ssl/        @tachyonicClock
 
 /src/capymoa/automl/      @hmgomes
-/notebooks/08_automl/     @hmgomes
+/notebooks/automl/     @hmgomes
 
 /src/capymoa/uncertainty/ @YibinSun
-/notebooks/09_uncertainty/ @YibinSun
+/notebooks/uncertainty/ @YibinSun
 
 /src/capymoa/feature/     @hmgomes
-/notebooks/10_feature/    @hmgomes
+/notebooks/feature/    @hmgomes
 
-/notebooks/11_common/     @tachyonicClock @hmgomes
+/notebooks/common/     @tachyonicClock @hmgomes

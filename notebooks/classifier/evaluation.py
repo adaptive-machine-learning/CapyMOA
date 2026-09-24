@@ -24,7 +24,7 @@
 #
 # * **Supervised Learning**
 #     * We clarify important information concerning the usage of **classifiers** and their predictions.
-#     * For the equivalent walkthrough using regressors, see notebooks/03_regressor/01_evaluation.py.
+#     * For the equivalent walkthrough using regressors, see notebooks/regressor/evaluation.py.
 #  
 # ---
 #

@@ -19,7 +19,7 @@
 # This notebook further explores **high-level evaluation functions** as applied to **regressors**.
 #
 # * **High-level evaluation functions**
-#     * We use `prequential_evaluation()` and `prequential_evaluation_multiple_learners()`, the same functions introduced for classification (see notebooks/01_classifier/01_evaluation.py), and show how they apply to regression with only minor differences.
+#     * We use `prequential_evaluation()` and `prequential_evaluation_multiple_learners()`, the same functions introduced for classification (see notebooks/classifier/evaluation.py), and show how they apply to regression with only minor differences.
 #     * We also show how to plot **predictions vs. ground truth** over time, which is particularly useful for regression tasks.
 #  
 # ---

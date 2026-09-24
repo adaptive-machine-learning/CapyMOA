@@ -3,10 +3,9 @@
 Learn how to quantify predictive uncertainty for data streams.
 
 ```{toctree}
-:glob:
 :maxdepth: 1
 
-*
+prediction_interval
 ```
 
 ```{admonition} See also

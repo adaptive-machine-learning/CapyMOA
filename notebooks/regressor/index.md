@@ -3,10 +3,10 @@
 Learn how to predict continuous targets from data streams incrementally.
 
 ```{toctree}
-:glob:
 :maxdepth: 1
 
-*
+getting_started
+evaluation
 ```
 
 ```{admonition} See also

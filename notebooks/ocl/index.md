@@ -3,10 +3,10 @@
 Learn how to train models continually on streams without forgetting past tasks.
 
 ```{toctree}
-:glob:
 :maxdepth: 1
 
-*
+ocl
+ocl_event_system
 ```
 
 ```{admonition} See also

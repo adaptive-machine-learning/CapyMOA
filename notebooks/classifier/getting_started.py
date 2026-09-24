@@ -81,7 +81,7 @@ print(ob_evaluator.accuracy())
 # * In this example, we use the `prequential_evaluation` function, which provides us with both the cumulative and the windowed metrics! 
 #
 # * Some remarks:
-#     * If you want to know more about other **high-level evaluation functions**, **evaluators**, or which **metrics** are available, check the **01_evaluation** notebook (notebooks/01_classifier/01_evaluation.py).
+#     * If you want to know more about other **high-level evaluation functions**, **evaluators**, or which **metrics** are available, check the **evaluation** notebook (notebooks/classifier/evaluation.py).
 #     * The **results** from evaluation functions such as **prequential_evaluation** follow a standard and are discussed thoroughly in the **Evaluation documentation** at http://www.capymoa.org.
 #     * Sometimes authors refer to the **cumulative** metrics as **test-then-train** metrics, such as **test-then-train accuracy** (or TTT accuracy for short). They all refer to the same concept.
 #     * Shouldn't we recreate the stream object `elec_stream`? No, `prequential_evaluation()`, by default, will automatically `restart()` streams when they are reused.
@@ -152,7 +152,7 @@ plot_windowed_results(
 #
 # * One of the most challenging and defining aspects of data streams is the phenomenon known as **concept drifts**.
 # * In CapyMOA, we designed the simplest and most complete API for simulating, visualising and assessing concept drifts.
-# * In the example below, we focus on a simple way of simulating and visualising a drifting stream. There is a tutorial focusing entirely on how concept drift can be simulated, detected and assessed in a separate notebook (See notebooks/02_drift: `Simulating Concept Drifts with the DriftStream API`).
+# * In the example below, we focus on a simple way of simulating and visualising a drifting stream. There is a tutorial focusing entirely on how concept drift can be simulated, detected and assessed in a separate notebook (See notebooks/drift: `Simulating Concept Drifts with the DriftStream API`).
 
 # %% [markdown]
 # ### Plotting drift detection results
