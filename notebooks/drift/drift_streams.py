@@ -129,6 +129,7 @@ plot_windowed_results(results_ht, metric="accuracy")
 
 # %%
 from capymoa.classifier import OnlineBagging
+import matplotlib.pyplot as plt
 from capymoa.stream.drift import AbruptDrift, DriftStream, GradualDrift
 from capymoa.stream.generator import SEA
 
@@ -208,21 +209,15 @@ stream_by_position = DriftStream(
     ]
 )
 
-print("range   :", [str(d) for d in stream_by_range.get_drifts()])
-print("position:", [str(d) for d in stream_by_position.get_drifts()])
-print(
-    "identical drifts:",
-    [str(d) for d in stream_by_range.get_drifts()]
-    == [str(d) for d in stream_by_position.get_drifts()],
-)
-
-for name, stream in (("range", stream_by_range), ("position", stream_by_position)):
+for name, title, stream in (
+    ("range", "DriftStream range", stream_by_range),
+    ("position", "DriftStream position", stream_by_position),
+):
     learner = OnlineBagging(schema=stream.get_schema(), ensemble_size=10)
     results = prequential_evaluation(
         stream=stream, learner=learner, window_size=100, max_instances=15000
     )
-    print(f"\n{name} form:")
-    plot_windowed_results(results, metric="accuracy")
+    plot_windowed_results(results, metric="accuracy", plot_title=title)
 
 # %% [markdown]
 # ### What a length does and does not guarantee
