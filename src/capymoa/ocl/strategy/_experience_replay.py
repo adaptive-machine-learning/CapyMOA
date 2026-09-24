@@ -32,7 +32,7 @@ class ExperienceReplay(BatchClassifier, Handler):
     ...     scenario.test_loaders(32),
     ... )
     >>> print(f"{results.accuracy_final*100:.1f}%")
-    32.5%
+    28.5%
 
     .. [#f0] `Rolnick, D., Ahuja, A., Schwarz, J., Lillicrap, T., & Wayne, G. (2019).
               Experience replay for continual learning. Advances in neural information

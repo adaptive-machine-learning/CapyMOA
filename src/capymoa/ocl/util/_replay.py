@@ -23,7 +23,7 @@ class ReplayBuffer(ABC, nn.Module):
         :return: Tuple of (x, y) where x is a Tensor of shape (n, features) and y is a
             Tensor of shape (n,) with class labels
         """
-        indices = torch.randint(0, self.count, (n,))
+        indices = torch.randint(0, self.count, (n,), generator=self._rng)
         return self._buffer_x[indices], self._buffer_y[indices]
 
     def array(self) -> tuple[Tensor, Tensor]:

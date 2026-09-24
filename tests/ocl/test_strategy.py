@@ -107,7 +107,7 @@ TEST_CASES: list[Case] = [
     # as misses.
     Case("HoeffdingTree", HoeffdingTree, Result(69.50, 45.50, 56.3), batch_size=1),
     Case("HoeffdingTree", HoeffdingTree, Result(69.50, 45.70, 51.0), batch_size=32),
-    Case("RAR", _new_rar, Result(44.50, 28.20, 8.20)),
+    Case("RAR", _new_rar, Result(47.50, 29.20, 8.10)),
     Case(
         "Finetune",
         partial(Finetune, model=Perceptron),
@@ -135,7 +135,10 @@ TEST_CASES: list[Case] = [
     Case(
         "GDumb",
         lambda schema: GDumb(schema, Perceptron(schema), 2, 32, 200),
-        Result(40.5, 26.6, 0.0),
+        # Changed from (40.5, 26.6, 0.0) when the offline fit's DataLoader
+        # shuffle became seed-controlled instead of drawing from the global
+        # torch RNG; the new values are fully deterministic.
+        Result(37.5, 27.0, 0.0),
     ),
     Case(
         "EWC",
