@@ -80,8 +80,6 @@ Data drift
      - Feature vector (numeric)
    * - :class:`KolmogorovSmirnov`
      - Feature vector (numeric)
-   * - :class:`MeanDriftDetector`
-     - Feature vector (numeric)
    * - :class:`MMD`
      - Feature vector (numeric)
    * - :class:`PSI`
@@ -108,7 +106,6 @@ from .data_drift import (
     JensenShannon,
     KLDivergence,
     KolmogorovSmirnov,
-    MeanDriftDetector,
     Wasserstein,
 )
 from .ddm import DDM
@@ -153,7 +150,6 @@ __all__ = [
     "JensenShannon",
     "KLDivergence",
     "KolmogorovSmirnov",
-    "MeanDriftDetector",
     "PageHinkley",
     "Wasserstein",
 ]

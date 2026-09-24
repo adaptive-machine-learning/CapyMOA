@@ -17,7 +17,6 @@ from .hellinger import Hellinger
 from .js import JensenShannon
 from .kl import KLDivergence
 from .ks import KolmogorovSmirnov
-from .mean_drift import MeanDriftDetector
 from .mmd import MMD
 from .psi import PSI
 from .wasserstein import Wasserstein
@@ -37,6 +36,5 @@ __all__ = [
     "JensenShannon",
     "KLDivergence",
     "KolmogorovSmirnov",
-    "MeanDriftDetector",
     "Wasserstein",
 ]

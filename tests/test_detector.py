@@ -126,7 +126,6 @@ _DATA_DRIFT_DETECTORS = [
     ("JensenShannon", {"window_size": 30, "num_bins": 5, "threshold": 0.4}),
     ("KLDivergence", {"window_size": 30, "num_bins": 5, "threshold": 0.3}),
     ("KolmogorovSmirnov", {"window_size": 30}),
-    ("MeanDriftDetector", {"window_size": 30, "n_permutations": 20, "seed": 0}),
     ("MMD", {"window_size": 30, "n_permutations": 20, "sigma": 1.0}),
     ("PSI", {"window_size": 30, "num_bins": 5, "threshold": 0.3}),
     ("Wasserstein", {"window_size": 30, "threshold": 0.3}),
