@@ -41,7 +41,7 @@ class D3(BaseDataDriftDetector):
     Reference:
     ----------
 
-    Gözüak, Ö., Büyükçakir, A., Bonab, H., and Can, F. "Unsupervised
+    Gözüaçık, Ö., Büyükçakir, A., Bonab, H., and Can, F. "Unsupervised
     concept drift detection with a discriminative classifier." Proceedings
     of the 28th ACM International Conference on Information and Knowledge
     Management (2019). ACM.

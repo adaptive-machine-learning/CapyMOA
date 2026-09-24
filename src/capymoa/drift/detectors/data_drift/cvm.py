@@ -37,6 +37,10 @@ class CramerVonMises(BaseDataDriftDetector):
     Cramér, Harald. "On the composition of elementary errors."
     Scandinavian Actuarial Journal 1928.1 (1928): 13-74.
 
+    Anderson, Theodore W. "On the distribution of the two-sample Cramér-von
+    Mises criterion." The Annals of Mathematical Statistics 33.3 (1962):
+    1148-1159.
+
     """
 
     IS_UNIVARIATE = True
