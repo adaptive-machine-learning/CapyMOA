@@ -48,8 +48,8 @@ class RAR(BatchClassifier, Handler):
     ...     scenario.train_loaders(32),
     ...     scenario.test_loaders(32),
     ... )
->>> print(f"{results.accuracy_final*100:.1f}%")
-39.5%
+    >>> print(f"{results.accuracy_final*100:.1f}%")
+    39.5%
 
     Usually more complex augmentations are used such as random crops and
     rotations.
