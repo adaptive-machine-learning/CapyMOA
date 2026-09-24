@@ -21,7 +21,11 @@ class PSI(BaseDataDriftDetector):
     - PSI >= 0.2 -- significant change.
 
     Drift is declared when PSI exceeds ``threshold`` (default 0.2).
-    Applied per feature, with Bonferroni correction by default.
+    Applied independently to each feature using the configured
+    threshold. Overall drift is reported when any feature flags drift.
+    This detector does not return p-values, and the ``correction``
+    parameter has no effect on its drift decisions. No Bonferroni
+    correction is applied.
 
     Example:
     --------
@@ -62,7 +66,10 @@ class PSI(BaseDataDriftDetector):
             estimation.
         :param threshold: PSI above which drift is declared (per
             feature). Default is 0.2 (significant change).
-        :param correction: Multiple-testing correction across features.
+        :param correction: Accepted for interface consistency with other
+            detectors, but has no effect: this detector does not produce
+            p-values, so no multiple-testing correction is applied to its
+            drift decisions.
         :param auto_fit_samples: Number of initial samples for auto-fit.
         :raises ValueError: If *num_bins* < 1 or *threshold* <= 0.
         """

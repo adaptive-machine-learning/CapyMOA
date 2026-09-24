@@ -22,7 +22,11 @@ class Hellinger(BaseDataDriftDetector):
     ``H = sqrt(1 - BC)`` where ``BC = sum(sqrt(p * q))``.
 
     Drift is declared when the distance exceeds ``threshold``.
-    Applied per feature, with Bonferroni correction by default.
+    Applied independently to each feature using the configured
+    threshold. Overall drift is reported when any feature flags drift.
+    This detector does not return p-values, and the ``correction``
+    parameter has no effect on its drift decisions. No Bonferroni
+    correction is applied.
 
     Example:
     --------
@@ -63,7 +67,10 @@ class Hellinger(BaseDataDriftDetector):
             estimation.
         :param threshold: Distance above which drift is declared
             (per feature). Must be in ``(0, 1]``.
-        :param correction: Multiple-testing correction across features.
+        :param correction: Accepted for interface consistency with other
+            detectors, but has no effect: this detector does not produce
+            p-values, so no multiple-testing correction is applied to its
+            drift decisions.
         :param auto_fit_samples: Number of initial samples for auto-fit.
         :raises ValueError: If *num_bins* < 1 or *threshold* not in
             ``(0, 1]``.

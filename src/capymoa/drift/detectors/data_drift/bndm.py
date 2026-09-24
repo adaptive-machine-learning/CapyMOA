@@ -82,8 +82,12 @@ class BNDM(BaseDataDriftDetector):
     partitioned recursively using normal-distribution percentiles,
     and the partitions are compared using the Beta function.
 
-    Because the Pólya tree test is univariate, it is applied per
-    feature with Bonferroni correction by default.
+    Because the Pólya tree test is univariate, it is applied
+    independently to each feature using the configured ``threshold``.
+    Overall drift is reported when any feature flags drift. This
+    detector does not return p-values, and the ``correction`` parameter
+    has no effect on its drift decisions. No Bonferroni correction is
+    applied.
 
     .. note::
         Data is normalized internally (mean-centered, scaled by IQR).
@@ -130,7 +134,10 @@ class BNDM(BaseDataDriftDetector):
         :param threshold: Similarity below which drift is declared
             (per feature). Must be in ``(0, 1)``.
         :param max_depth: Maximum depth of the Pólya tree recursion.
-        :param correction: Multiple-testing correction across features.
+        :param correction: Accepted for interface consistency with other
+            detectors, but has no effect: this detector does not produce
+            p-values, so no multiple-testing correction is applied to its
+            drift decisions.
         :param auto_fit_samples: Number of initial samples for auto-fit.
         :raises ValueError: If *threshold* not in ``(0, 1)`` or
             *max_depth* < 1.

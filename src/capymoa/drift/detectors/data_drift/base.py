@@ -69,12 +69,16 @@ class DataDriftResult:
     ``feature_p_values``, and ``feature_is_drift`` map feature index
     to that feature's value. The top-level ``statistic`` and
     ``p_value`` are aggregates (max statistic, min p-value).
-    ``is_drift`` is the overall decision after multiple-testing
-    correction.
+    ``is_drift`` is the overall decision: for tests that produce
+    p-values, after multiple-testing correction; for distance-based
+    tests (no p-value), the per-feature decisions are combined without
+    correction (see :meth:`BaseDataDriftDetector._test`).
     """
 
     is_drift: bool
-    """Overall drift decision (any feature, after correction)."""
+    """Overall drift decision (any feature). After correction for
+    p-value tests; uncorrected for distance-based tests without
+    p-values."""
     statistic: float
     """Aggregate test statistic (max across features for univariate)."""
     p_value: float | None = None
@@ -108,8 +112,12 @@ class BaseDataDriftDetector(BaseDriftDetector):
     * :meth:`get_params` -- return detector hyper-parameters.
 
     The base class handles the sliding test window, feature-wise looping for
-    univariate tests, Bonferroni correction [#rabanser2019]_, and detection
-    bookkeeping.
+    univariate tests, and detection bookkeeping. For univariate tests that
+    produce p-values, it also applies Bonferroni correction
+    [#rabanser2019]_ across features. Univariate tests that compare a
+    distance or score to a fixed threshold instead (no p-value) supply
+    their own per-feature decisions directly; ``correction`` has no effect
+    on those.
 
     By default the reference window is fixed after :meth:`fit` (or after
     auto-fit) [#cerqueira2023]_ [#lukats2025]_. Call :meth:`fit` again
@@ -153,9 +161,12 @@ class BaseDataDriftDetector(BaseDriftDetector):
         :param alpha: Significance level. For p-value tests, drift is
             declared when the (corrected) p-value falls below ``alpha``.
         :param correction: Multiple-testing correction for univariate
-            tests across features. ``"bonferroni"`` (default) divides
-            ``alpha`` by the number of features; ``"none"`` uses
-            ``alpha`` directly. Ignored for multivariate tests.
+            tests that produce p-values, across features. ``"bonferroni"``
+            (default) divides ``alpha`` by the number of features;
+            ``"none"`` uses ``alpha`` directly. Ignored for multivariate
+            tests, and for univariate tests that compare a distance or
+            score to a fixed ``threshold`` instead of a p-value (those
+            supply their own per-feature decisions, uncorrected).
         :param auto_fit_samples: If set, the first *auto_fit_samples*
             observations are used as the reference (auto-fit mode).
             No explicit :meth:`fit` call is needed; :meth:`add_element`
@@ -458,15 +469,23 @@ class BaseDataDriftDetector(BaseDriftDetector):
         When ``IS_UNIVARIATE = True`` this receives **one feature** at a
         time: both arrays are 1-D with shapes ``(n_ref,)`` and
         ``(n_test,)``. The subclass should set ``statistic`` and
-        ``p_value`` (if available) on the returned result. The
-        ``is_drift`` flag on the per-feature result is ignored (the base
-        class applies the correction). Example::
+        ``p_value`` (if available) on the returned result.
+
+        If ``p_value`` is set, the base class applies the configured
+        ``correction`` and ignores the per-feature ``is_drift`` flag.
+        Example::
 
             def _test(self, x_ref, x_test):
                 stat, p = scipy.stats.ks_2samp(x_ref, x_test)
                 return DataDriftResult(
                     is_drift=False, statistic=stat, p_value=p
                 )
+
+        If ``p_value`` is left ``None`` (distance- or score-based tests),
+        the base class uses the per-feature ``is_drift`` flag directly and
+        ``correction`` has no effect -- the subclass is responsible for its
+        own per-feature decision (e.g. comparing a distance to a
+        threshold).
 
         When ``IS_UNIVARIATE = False`` this receives **all features**:
         both arrays are 2-D with shapes ``(n_ref, n_features)`` and

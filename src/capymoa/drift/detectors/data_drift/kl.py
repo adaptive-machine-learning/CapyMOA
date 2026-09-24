@@ -18,7 +18,10 @@ class KLDivergence(BaseDataDriftDetector):
     KL divergence is *not* symmetric: ``KL(P || Q) != KL(Q || P)``.
     For a symmetric alternative see :class:`JensenShannon`.
 
-    Applied per feature, with Bonferroni correction by default.
+    Applied independently to each feature using the configured threshold.
+    Overall drift is reported when any feature flags drift. This detector
+    does not return p-values, and the ``correction`` parameter has no
+    effect on its drift decisions. No Bonferroni correction is applied.
 
     Example:
     --------
@@ -57,10 +60,11 @@ class KLDivergence(BaseDataDriftDetector):
         :param num_bins: Number of histogram bins for probability
             estimation.
         :param threshold: Divergence above which drift is declared
-            (per feature, before correction).
-        :param correction: Multiple-testing correction across features.
-            Ignored for the divergence comparison itself (which uses
-            ``threshold``), but used to label per-feature results.
+            (per feature).
+        :param correction: Accepted for interface consistency with other
+            detectors, but has no effect: this detector does not produce
+            p-values, so no multiple-testing correction is applied to its
+            drift decisions.
         :param auto_fit_samples: Number of initial samples for auto-fit.
         :raises ValueError: If *num_bins* < 1 or *threshold* <= 0.
         """

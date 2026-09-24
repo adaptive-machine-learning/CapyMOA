@@ -16,7 +16,11 @@ class EnergyDistance(BaseDataDriftDetector):
     require a kernel choice.
 
     Drift is declared when the distance exceeds ``threshold``.
-    Applied per feature, with Bonferroni correction by default.
+    Applied independently to each feature using the configured
+    threshold. Overall drift is reported when any feature flags drift.
+    This detector does not return p-values, and the ``correction``
+    parameter has no effect on its drift decisions. No Bonferroni
+    correction is applied.
 
     .. note::
         The distance is scale-dependent. Choose ``threshold`` based on
@@ -58,7 +62,10 @@ class EnergyDistance(BaseDataDriftDetector):
         :param window_size: Number of observations in the sliding window.
         :param threshold: Distance above which drift is declared
             (per feature).
-        :param correction: Multiple-testing correction across features.
+        :param correction: Accepted for interface consistency with other
+            detectors, but has no effect: this detector does not produce
+            p-values, so no multiple-testing correction is applied to its
+            drift decisions.
         :param auto_fit_samples: Number of initial samples for auto-fit.
         :raises ValueError: If *threshold* <= 0.
         """
