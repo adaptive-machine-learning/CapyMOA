@@ -84,10 +84,15 @@ class MMD(BaseDataDriftDetector):
             significance test. Higher values give more accurate p-values
             at the cost of computation. Must be at least 1.
         :param auto_fit_samples: Number of initial samples for auto-fit.
-        :raises ValueError: If *n_permutations* < 1.
+        :raises ValueError: If *n_permutations* < 1 or *window_size* < 2.
         """
         if n_permutations < 1:
             raise ValueError("n_permutations must be at least 1")
+        if window_size < 2:
+            raise ValueError(
+                "window_size must be at least 2: the unbiased MMD^2 "
+                "estimator is undefined for windows of size 1"
+            )
         super().__init__(
             window_size,
             alpha=alpha,
@@ -103,10 +108,20 @@ class MMD(BaseDataDriftDetector):
         self._K_ref: np.ndarray | None = None
 
     def _fit(self, X: np.ndarray) -> None:
+        if X.shape[0] < 2:
+            raise ValueError(
+                "Reference data must have at least 2 samples: the "
+                "unbiased MMD^2 estimator is undefined for a single sample"
+            )
         self._X_ref = X
         self._K_ref = self._kernel(X, X)
 
     def _test(self, X_ref: np.ndarray, X_test: np.ndarray) -> DataDriftResult:
+        if X_test.shape[0] < 2:
+            raise ValueError(
+                "Test window must have at least 2 samples: the unbiased "
+                "MMD^2 estimator is undefined for a single sample"
+            )
         # Reuse the cached reference kernel when possible.
         K_XX = self._K_ref if self._K_ref is not None else self._kernel(X_ref, X_ref)
         K_YY = self._kernel(X_test, X_test)
