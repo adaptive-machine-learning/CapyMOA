@@ -44,6 +44,7 @@ class GDumb(BatchClassifier, Handler):
         self.fit_device = torch.device(device)
 
         self.original_state_dict = model.state_dict()
+        self._seed = seed
         self.coreset = GreedySampler(
             capacity, schema.get_num_attributes(), torch.Generator().manual_seed(seed)
         )
@@ -67,7 +68,12 @@ class GDumb(BatchClassifier, Handler):
         self.model.train()
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
-        loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        # Derive the shuffling generator from the seed so the offline fit is
+        # reproducible independently of the global torch RNG state.
+        generator = torch.Generator().manual_seed(self._seed)
+        loader = DataLoader(
+            dataset, batch_size=self.batch_size, shuffle=True, generator=generator
+        )
 
         for epoch in range(self.epochs):
             for batch_x, batch_y in loader:
