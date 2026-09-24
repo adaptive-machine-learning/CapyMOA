@@ -14,10 +14,10 @@ from .cvm import CramerVonMises
 from .d3 import D3
 from .energy_distance import EnergyDistance
 from .hellinger import Hellinger
-from .ibdd import IBDD
 from .js import JensenShannon
 from .kl import KLDivergence
 from .ks import KolmogorovSmirnov
+from .mean_drift import MeanDriftDetector
 from .mmd import MMD
 from .psi import PSI
 from .wasserstein import Wasserstein
@@ -25,7 +25,6 @@ from .wasserstein import Wasserstein
 __all__ = [
     "BNDM",
     "D3",
-    "IBDD",
     "MMD",
     "PSI",
     "AndersonDarling",
@@ -38,5 +37,6 @@ __all__ = [
     "JensenShannon",
     "KLDivergence",
     "KolmogorovSmirnov",
+    "MeanDriftDetector",
     "Wasserstein",
 ]

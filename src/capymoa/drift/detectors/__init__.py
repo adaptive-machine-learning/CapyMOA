@@ -74,13 +74,13 @@ Data drift
      - Feature vector (numeric)
    * - :class:`Hellinger`
      - Feature vector (numeric)
-   * - :class:`IBDD`
-     - Feature vector (numeric)
    * - :class:`JensenShannon`
      - Feature vector (numeric)
    * - :class:`KLDivergence`
      - Feature vector (numeric)
    * - :class:`KolmogorovSmirnov`
+     - Feature vector (numeric)
+   * - :class:`MeanDriftDetector`
      - Feature vector (numeric)
    * - :class:`MMD`
      - Feature vector (numeric)
@@ -96,7 +96,6 @@ from .cusum import CUSUM
 from .data_drift import (
     BNDM,
     D3,
-    IBDD,
     MMD,
     PSI,
     AndersonDarling,
@@ -109,6 +108,7 @@ from .data_drift import (
     JensenShannon,
     KLDivergence,
     KolmogorovSmirnov,
+    MeanDriftDetector,
     Wasserstein,
 )
 from .ddm import DDM
@@ -132,7 +132,6 @@ __all__ = [
     "D3",
     "DDM",
     "EDDM",
-    "IBDD",
     "MMD",
     "OPTWIN",
     "PSI",
@@ -154,6 +153,7 @@ __all__ = [
     "JensenShannon",
     "KLDivergence",
     "KolmogorovSmirnov",
+    "MeanDriftDetector",
     "PageHinkley",
     "Wasserstein",
 ]
