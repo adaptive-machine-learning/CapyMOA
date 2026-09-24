@@ -2,11 +2,12 @@ from abc import ABC, abstractmethod
 
 from sklearn.base import RegressorMixin as _SKRegressorMixin
 
+from capymoa.base._learner_params import LearnerParamsMixin
 from capymoa.core import Instance, RegressionInstance, TargetValue
 from capymoa.stream._stream import Schema
 
 
-class Regressor(ABC):
+class Regressor(LearnerParamsMixin, ABC):
     def __init__(self, schema=None, random_seed=1):
         self.random_seed = random_seed
         self.schema = schema

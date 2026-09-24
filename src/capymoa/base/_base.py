@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from jpype import _jpype
 from moa.core import Utils
 
+from capymoa.base._learner_params import LearnerParamsMixin
 from capymoa.base._regressor import MOARegressor, Regressor
 from capymoa.core import Instance, LabelIndex
 from capymoa.stream._stream import Schema
@@ -38,7 +39,7 @@ class MOAPredictionIntervalLearner(MOARegressor, PredictionIntervalLearner):
             return prediction_PI
 
 
-class AnomalyDetector(ABC):
+class AnomalyDetector(LearnerParamsMixin, ABC):
     """
     Abstract base class for anomaly detector.
 
@@ -149,7 +150,7 @@ class ClusteringResult:
         return f"Centers: {self._centers}, Weights: {self._weights}, Radii: {self._radii}, IDs: {self._ids}"
 
 
-class Clusterer(ABC):
+class Clusterer(LearnerParamsMixin, ABC):
     def __init__(self, schema: Schema, random_seed=1):
         self.random_seed = random_seed
         self.schema = schema

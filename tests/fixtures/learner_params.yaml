@@ -1,0 +1,17 @@
+# Example learner specs driving construction from an external config file,
+# in the same shape produced by `learner.get_params()` and consumed by
+# `capymoa.base.learner_from_params`.
+- learner: capymoa.classifier.HoeffdingTree
+  params:
+    grace_period: 50
+    confidence: 0.01
+    leaf_prediction: NaiveBayesAdaptive
+
+- learner: capymoa.classifier.OnlineBagging
+  params:
+    ensemble_size: 7
+    base_learner:
+      learner: capymoa.classifier.HoeffdingTree
+      params:
+        grace_period: 33
+        confidence: 0.05

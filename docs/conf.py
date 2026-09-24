@@ -316,15 +316,18 @@ html_theme_options = {
 autodoc_skip_member_patterns = [
     # Inheriting from torch.nn.Module creates issues so we skip them.
     r"torch\.nn\.modules\..*",
+    # TypedDict inherits these dict methods, which are not useful API members.
+    r"builtins\.dict\..*",
 ]
 
 
 def autodoc_skip_member(app, obj_type, name, obj, skip, options) -> bool | None:
     if skip:
         return None
-    if not hasattr(obj, "__module__") or not hasattr(obj, "__qualname__"):
+    if not hasattr(obj, "__qualname__"):
         return None
-    fqn = f"{obj.__module__}.{obj.__qualname__}"
+    module = getattr(obj, "__module__", None) or "builtins"
+    fqn = f"{module}.{obj.__qualname__}"
 
     for pattern in autodoc_skip_member_patterns:
         if re.match(pattern, fqn):
