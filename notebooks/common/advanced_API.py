@@ -23,7 +23,7 @@
 # * An example of how preprocessing (from MOA) can be used.
 # * Comparing a sklearn model to a MOA model.
 # * A variation of `Creating a new classifier in CapyMOA` (notebooks/classifier/new_learner.py) which uses MOA learners, thus accessing MOA (Java) objects directly.
-# * How to log experiments using TensorBoard alongside the PyTorch API. This extends `Using PyTorch with CapyMOA` (notebooks/common/pytorch.py).
+# * How to log experiments using TensorBoard alongside the PyTorch API. This extends `Using PyTorch with CapyMOA` (notebooks/common/pytorch_integration.py).
 # * Creating a synthetic stream with concept drifts using the MOA CLI directly.
 # * An example utilising a multi-threaded ensemble.
 #
@@ -282,7 +282,7 @@ print(f"Accuracy: {results_NEW_OB.cumulative.accuracy()}")
 # %% [markdown]
 # ### PyTorchClassifier
 #
-# * We define `PyTorchClassifier` and `NeuralNetwork` classes similarly to those from `Using PyTorch with CapyMOA` (notebooks/common/pytorch.py).
+# * We define `PyTorchClassifier` and `NeuralNetwork` classes similarly to those from `Using PyTorch with CapyMOA` (notebooks/common/pytorch_integration.py).
 
 # %%
 import torch

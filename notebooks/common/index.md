@@ -7,7 +7,7 @@ integrations, and model persistence.
 :maxdepth: 1
 
 sklearn_models
-pytorch
+pytorch_integration
 advanced_API
 pipelines
 save_and_load_model

@@ -184,7 +184,7 @@ redirects = {
     "notebooks/00_getting_started": "/notebooks/classifier/getting_started.html",
     "notebooks/01_evaluation": "/notebooks/classifier/evaluation.html",
     "notebooks/02_sklearn": "/notebooks/common/sklearn_models.html",
-    "notebooks/03_pytorch": "/notebooks/common/pytorch.html",
+    "notebooks/03_pytorch": "/notebooks/common/pytorch_integration.html",
     "notebooks/04_drift_streams": "/notebooks/drift/drift_streams.html",
     "notebooks/05_new_learner": "/notebooks/classifier/new_learner.html",
     "notebooks/06_advanced_API": "/notebooks/common/advanced_API.html",
