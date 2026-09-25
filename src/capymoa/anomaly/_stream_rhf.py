@@ -51,10 +51,17 @@ def compute_kurtosis(data):
     return kurtosis_values
 
 
-def choose_split_attribute(kurt_values, random_seed):
-    np.random.seed(int(random_seed))  # Ensure seed is an integer
+def choose_split_attribute(kurt_values, random_seed, rng=None):
+    """Pick a split attribute, weighted by kurtosis.
+
+    Uses a node-local generator seeded from the node's seed. The legacy
+    implementation reseeded the process-global numpy generator here on every
+    call, rewriting the random sequence of anything else sharing the process.
+    """
+    if rng is None:
+        rng = np.random.RandomState(random_seed)
     Ks = np.sum(kurt_values)
-    r = np.random.uniform(0, Ks)
+    r = rng.uniform(0, Ks)
     cumulative = 0
     for idx, k_value in enumerate(kurt_values):
         cumulative += k_value
@@ -70,10 +77,9 @@ def RHT_build(data, height, max_height, seed_array, node_id=1):
         return node
 
     kurt_values = compute_kurtosis(data)
-    attribute = choose_split_attribute(kurt_values, node.seed)
-    split_value = np.random.uniform(
-        np.min(data[:, attribute]), np.max(data[:, attribute])
-    )
+    rng = np.random.RandomState(node.seed)
+    attribute = choose_split_attribute(kurt_values, node.seed, rng=rng)
+    split_value = rng.uniform(np.min(data[:, attribute]), np.max(data[:, attribute]))
 
     node.attribute = attribute
     node.value = split_value
