@@ -30,17 +30,28 @@ class EpsilonGreedy:
         :class:`~capymoa.automl.BanditClassifier`
     """
 
-    def __init__(self, epsilon: float = 0.1, burn_in: int = 100):
+    def __init__(
+        self, epsilon: float = 0.1, burn_in: int = 100, rng: random.Random | None = None
+    ):
         """Construct a new Epsilon-Greedy policy.
 
         :param epsilon: Probability of exploring a random model (default: ``0.1``).
         :param burn_in: Number of initial rounds dedicated to exploration (default: ``100``).
+        :param rng: Random generator used for exploration. Defaults to a new
+            ``random.Random`` instance; pass a seeded instance to make the
+            exploration reproducible.
         """
         self.epsilon = epsilon
         """Probability of exploring a random model."""
 
         self.burn_in = burn_in
         """Number of initial rounds where all models are explored to collect initial statistics."""
+
+        self.rng = rng
+        """Random generator used for exploration draws; lazily created from
+        system entropy on first use if not provided. ``BanditClassifier``
+        seeds this from its ``random_seed`` when the caller did not supply
+        one."""
 
         self.n_arms = 0
         """Number of available models (arms)."""
@@ -75,8 +86,10 @@ class EpsilonGreedy:
             return available_arms
 
         # With probability epsilon, explore a random arm
-        if random.random() < self.epsilon:
-            return [random.choice(available_arms)]
+        if self.rng is None:
+            self.rng = random.Random()
+        if self.rng.random() < self.epsilon:
+            return [self.rng.choice(available_arms)]
 
         # Otherwise, exploit the best arm
         best_arm = max(
@@ -163,6 +176,10 @@ class BanditClassifier(Classifier):
         # Initialize policy if not provided
         if self.policy is None:
             self.policy = EpsilonGreedy(epsilon=0.1, burn_in=100)
+        # Exploration must be reproducible under the classifier's seed unless
+        # the caller supplied their own generator for the policy.
+        if getattr(self.policy, "rng", None) is None:
+            self.policy.rng = random.Random(self.random_seed)
 
         # Initialize models based on configuration
         self._initialize_models()
