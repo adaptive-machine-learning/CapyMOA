@@ -221,8 +221,10 @@ class MOAClusterer(Clusterer):
     Attributes:
     - schema: The schema representing the instances. Defaults to None.
     - CLI: The command-line interface (CLI) configuration for the MOA learner.
-    - random_seed: The random seed for reproducibility. Defaults to 1.
     - moa_learner: The MOA learner object or class identifier.
+
+    Note: the wrapped MOA clusterers currently declare ``isRandomizable() == false``,
+    so no random seed is accepted or consumed.
     """
 
     def __init__(self, moa_learner, schema=None, CLI=None):
@@ -235,8 +237,6 @@ class MOAClusterer(Clusterer):
             else:  # this is not a Java object, thus it certainly isn't a MOA learner
                 raise TypeError("Invalid MOA clusterer provided.")
         self.moa_learner = moa_learner
-
-        # self.moa_learner.setRandomSeed(self.random_seed)
 
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())
