@@ -533,10 +533,9 @@ class RobustRandomCutForest(AnomalyDetector):
         super().__init__(schema, random_state)
         self.tree_size = tree_size
         self.n_trees = n_trees
-        if random_state is not None:
-            self.rng = random.Random(random_state)
-        else:
-            self.rng = random.Random()
+        # AnomalyDetector normalizes None to the default seed, so this is
+        # never an entropy-seeded Random.
+        self.rng = random.Random(self.random_seed)
         self._trees: list[RCTree] = [
             RCTree(
                 X=None,

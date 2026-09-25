@@ -447,7 +447,7 @@ class StreamingIsolationForest(AnomalyDetector):
         :param seed: Random seed for reproducibility.
         """
 
-        super().__init__(schema=schema, random_seed=seed if seed is not None else 1)
+        super().__init__(schema=schema, random_seed=seed)
         self.n_trees = n_trees
         self._trees = []
         self.window_size = window_size

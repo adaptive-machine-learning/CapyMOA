@@ -45,11 +45,13 @@ class AnomalyDetector(LearnerParamsMixin, ABC):
 
     Attributes:
     - schema: The schema representing the instances. Defaults to None.
-    - random_seed: The random seed for reproducibility. Defaults to 1.
+    - random_seed: The random seed for reproducibility. Defaults to 1;
+      passing None also selects the default seed of 1, so detectors are
+      reproducible by default instead of being seeded from system entropy.
     """
 
     def __init__(self, schema: Schema, random_seed=1):
-        self.random_seed = random_seed
+        self.random_seed = 1 if random_seed is None else random_seed
         self.schema = schema
         if self.schema is None:
             raise ValueError("Schema must be initialised")

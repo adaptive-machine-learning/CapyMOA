@@ -19,6 +19,7 @@ import pytest
 from capymoa.anomaly import (
     AdaptiveIsolationForest,
     HalfSpaceTrees,
+    IForestASD,
     OnlineIsolationForest,
     RobustRandomCutForest,
     StreamingIsolationForest,
@@ -34,6 +35,19 @@ CASES = [
     (lambda **kw: StreamingIsolationForest(window_size=64, n_trees=10, **kw), 64),
     (lambda **kw: AdaptiveIsolationForest(window_size=64, n_trees=10, **kw), 64),
     (lambda **kw: RobustRandomCutForest(tree_size=64, n_trees=10, **kw), 64),
+    (
+        lambda **kw: RobustRandomCutForest(
+            tree_size=64, n_trees=10, random_state=None, **kw
+        ),
+        64,
+    ),
+    (lambda **kw: IForestASD(window_size=64, n_trees=4, sample_size=16, **kw), 64),
+    (
+        lambda **kw: IForestASD(
+            window_size=64, n_trees=4, sample_size=16, random_state=None, **kw
+        ),
+        64,
+    ),
 ]
 
 
@@ -60,6 +74,9 @@ def _score_trace(make, skip):
         "StreamingIsolationForest",
         "AdaptiveIsolationForest",
         "RobustRandomCutForest",
+        "RobustRandomCutForest-None",
+        "IForestASD",
+        "IForestASD-None",
     ],
 )
 def test_default_seed_is_reproducible(make, skip):

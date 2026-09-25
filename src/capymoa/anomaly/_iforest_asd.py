@@ -187,14 +187,13 @@ class IForestASD(AnomalyDetector):
         :param height_limit: The maximum height of the isolation trees. If None, it will be set to ceil(log2(sample_size)).
         :param random_state: The seed for the random number generator.
         """
-        super().__init__(
-            schema=schema, random_seed=random_state if random_state is not None else 1
-        )
+        super().__init__(schema=schema, random_seed=random_state)
         self.window_size = window_size
         self.n_trees = n_trees
         self.sample_size = sample_size
         self.height_limit = height_limit
-        self.random_state = random_state
+        # Normalized by AnomalyDetector: never None, so no entropy seeding.
+        self.random_state = self.random_seed
         self.instances = []
         self._trees: list[IsolationTree] = []
         self.id_counter = count(start=0)
