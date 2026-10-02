@@ -493,7 +493,7 @@ pipeline = (
     .add_transformer(add_noise_transformer)
     .add_classifier(ob_learner)
     .add_drift_detector(
-        drift_detector, get_drift_detector_input_func=prediction_is_correct()
+        drift_detector, prediction_is_correct()
     )
 )
 
@@ -550,7 +550,7 @@ drift_detector = ADWIN()
 pipeline = (
     ClassifierPipeline()
     .add_transformer(normalisation_transformer)
-    .add_drift_detector(drift_detector, get_drift_detector_input_func=feature_value(0))
+    .add_drift_detector(drift_detector, feature_value(0))
     .add_transformer(add_noise_transformer)
     .add_classifier(ob_learner)
 )
@@ -576,7 +576,6 @@ ob_evaluator.accuracy()
 # The following example is based on section 4.1 and shows how one can plug together multiple pipelines.
 
 # %%
-from capymoa.core import LabeledInstance, LabelIndex
 from capymoa.drift.detectors import ADWIN
 
 elec_stream = Electricity()
@@ -596,14 +595,6 @@ ob_learner = OnlineBagging(schema=add_noise_transformer.get_schema(), ensemble_s
 drift_detector = ADWIN()
 
 
-# Define a function that prepares the input of the drift detector
-def label_equals_prediction(
-    instance: LabeledInstance, prediction: LabelIndex
-) -> LabelIndex:
-    label = instance.y_index
-    return int(label == prediction)
-
-
 # Creating and populating the transformation pipeline
 trafo_pipeline = (
     BasePipeline()
@@ -616,7 +607,7 @@ prediction_pipeline = ClassifierPipeline().add_classifier(ob_learner)
 
 # Creating and populating the drift detection pipeline
 drift_pipeline = BasePipeline().add_drift_detector(
-    drift_detector, get_drift_detector_input_func=label_equals_prediction
+    drift_detector, prediction_is_correct()
 )
 
 # Since pipelines themselves are pipeline elements, we can pass them to the initializer of an overall pipeline object

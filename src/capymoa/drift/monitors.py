@@ -121,11 +121,14 @@ def absolute_error(
 
     The regression counterpart of :func:`prediction_is_correct`.
 
-    A ``None`` prediction contributes ``0.0``. Note the direction of that
-    choice: zero error looks like a perfect prediction, so it biases the
-    detector *away* from reporting drift. The warning described in
-    :func:`prediction_is_correct` is what guards against a monitor that only
-    ever sees ``None``.
+    A ``None`` prediction contributes ``0.0``, matching what
+    ``RegressionEvaluator`` already does with an abstention. Note the direction
+    of that choice: zero error looks like a perfect prediction, so it biases the
+    detector *away* from reporting drift. CapyMOA has no single policy for
+    scoring abstentions yet -- four parts of the library handle them
+    differently -- so this follows the existing convention rather than inventing
+    a fifth. The warning described in :func:`prediction_is_correct` is what
+    guards against a monitor that only ever sees ``None``.
 
     :param warn_after: Consecutive ``None`` predictions tolerated before warning.
     :return: A callable taking ``(instance, prediction)``.

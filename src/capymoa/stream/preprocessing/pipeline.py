@@ -513,20 +513,30 @@ class BasePipeline(PipelineElement):
         return self.add_pipeline_element(TransformerPipelineElement(transformer))
 
     def add_drift_detector(
-        self, drift_detector: BaseDriftDetector, get_drift_detector_input_func: Callable
+        self,
+        drift_detector: BaseDriftDetector,
+        prepare_drift_detector_input_func: Callable,
     ):
         """add_drift_detector
 
         Adds a drift detector to the end of the current pipeline
 
+        .. note::
+            This parameter was called ``get_drift_detector_input_func`` in
+            earlier releases. It now matches the name
+            :class:`DriftDetectorPipelineElement` has always used for the same
+            argument, since the two disagreeing was a trap. Passing the old
+            keyword raises ``TypeError``; pass it positionally, or rename it.
+
         Parameters
         ----------
         drift_detector: BaseDriftDetector
             The drift_detector to add
-        get_drift_detector_input_func: Callable
+        prepare_drift_detector_input_func: Callable
             The function that prepares the input of the drift detector.
             The function signature should start with the instance and the prediction.
-            E.g., prediction_is_correct(instance, pred). The output of that function gets passed to the drift detector
+            E.g., prediction_is_correct(instance, pred). The output of that function gets passed to the drift detector.
+            :mod:`capymoa.drift.monitors` supplies the common ones.
 
         Returns
         -------
@@ -536,7 +546,9 @@ class BasePipeline(PipelineElement):
         """
         assert isinstance(drift_detector, BaseDriftDetector)
         return self.add_pipeline_element(
-            DriftDetectorPipelineElement(drift_detector, get_drift_detector_input_func)
+            DriftDetectorPipelineElement(
+                drift_detector, prepare_drift_detector_input_func
+            )
         )
 
     def pass_forward(self, instance: Instance) -> Instance:
