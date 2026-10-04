@@ -223,8 +223,8 @@ class MOAClusterer(Clusterer):
     - CLI: The command-line interface (CLI) configuration for the MOA learner.
     - moa_learner: The MOA learner object or class identifier.
 
-    Note: the wrapped MOA clusterers currently declare ``isRandomizable() == false``,
-    so no random seed is accepted or consumed.
+    Note: none of the wrapped MOA clusterers consume a random seed, so no
+    ``random_seed`` is accepted.
     """
 
     def __init__(self, moa_learner, schema=None, CLI=None):
