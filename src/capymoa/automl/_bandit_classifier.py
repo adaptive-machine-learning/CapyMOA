@@ -53,6 +53,13 @@ class EpsilonGreedy:
         seeds this from its ``random_seed`` when the caller did not supply
         one."""
 
+        self._seeded_by_classifier = False
+        # True only while ``self.rng`` is a generator that a
+        # ``BanditClassifier`` installed from its ``random_seed``. It lets a
+        # later classifier tell a generator it owns from one the caller
+        # supplied, so a reused policy is re-seeded while a caller's own
+        # generator is never overwritten.
+
         self.n_arms = 0
         """Number of available models (arms)."""
 
@@ -176,10 +183,17 @@ class BanditClassifier(Classifier):
         # Initialize policy if not provided
         if self.policy is None:
             self.policy = EpsilonGreedy(epsilon=0.1, burn_in=100)
-        # Exploration must be reproducible under the classifier's seed unless
-        # the caller supplied their own generator for the policy.
-        if getattr(self.policy, "rng", None) is None:
+        # Exploration must be reproducible under the classifier's seed. Seed a
+        # policy that has no generator, and re-seed one whose generator an
+        # earlier classifier installed: ``initialize()`` below resets the
+        # policy's statistics, so a generator left over from an earlier run
+        # would carry stale exploration draws into this one. A generator the
+        # caller supplied is never overwritten.
+        if getattr(self.policy, "rng", None) is None or getattr(
+            self.policy, "_seeded_by_classifier", False
+        ):
             self.policy.rng = random.Random(self.random_seed)
+            self.policy._seeded_by_classifier = True
 
         # Initialize models based on configuration
         self._initialize_models()
