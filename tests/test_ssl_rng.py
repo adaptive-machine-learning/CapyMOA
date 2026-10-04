@@ -20,12 +20,17 @@ from itertools import islice
 import numpy as np
 import pytest
 
+# Must be assigned before any torch import: when `-m` excludes the marker,
+# markskip() raises Skipped at this line and the rest of the module never runs.
+# A bare `pytest.markskip("torch")` call marks nothing, because its return value
+# is discarded -- which left this module inert in both CI legs.
+pytestmark = pytest.markskip("torch")
+
 from capymoa.stream.generator import SEA
 
 
 def _train_osnn(seed: int, n_instances: int = 30):
     """Train an OSNN on a fixed data stream and return its final linear-layer weights."""
-    pytest.markskip("torch")
     import torch
 
     from capymoa.ssl import OSNN
@@ -50,7 +55,6 @@ def _train_osnn(seed: int, n_instances: int = 30):
 
 def test_constructing_osnn_leaves_the_numpy_rng_untouched():
     """Regression: OSNN.__init__ reseeded numpy.random even though the module never uses it."""
-    pytest.markskip("torch")
     from capymoa.ssl import OSNN
 
     np.random.seed(99)
@@ -68,7 +72,6 @@ def test_constructing_osnn_leaves_the_numpy_rng_untouched():
 
 def test_osnn_is_still_reproducible():
     """The removed reseed was doing no work, so reproducibility must be unchanged."""
-    pytest.markskip("torch")
     import torch
 
     first = _train_osnn(seed=7)

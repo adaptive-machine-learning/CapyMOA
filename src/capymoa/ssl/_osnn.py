@@ -286,8 +286,8 @@ class OSNN(ClassifierSSL):
         self.optim_steps = optim_steps
         self.loss_f = def_loss(model=self.Network)
 
-        # Set seeds. numpy is not used anywhere in this module, so reseeding numpy's global
-        # generator here would only disturb the calling program.
+        # Set seeds. numpy's global random generator is never used in this module,
+        # so reseeding it here would only disturb the calling program.
         random.seed(seed)
         torch.manual_seed(seed)
 
