@@ -41,17 +41,14 @@ jobs:
       - name: Doctest
         run: uv run invoke test.doctest
 
-      - name: Notebooks
-        run: uv run invoke docs.nb
-
-  documentation:
-    name: Documentation
-    # docs.nb executes the notebooks against their full-size datasets,
-    # which takes much longer than the PR build's fast/mocked render.
+  notebook_render:
+    name: Render Notebooks
+    if: github.ref == 'refs/heads/main'
     timeout-minutes: 90
     runs-on: ubuntu-latest
+    needs: [test]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: astral-sh/setup-uv@v6
       with:
         python-version: "3.11"
@@ -60,25 +57,23 @@ jobs:
         sudo apt-get install -y pandoc
         uv sync --extra dev --extra doc --extra torch-cpu
     - name: Render Notebooks
-      # Executes notebooks, baking real outputs directly into their
-      # `.ipynb` files (via nbmake --overwrite), as a step separate from
-      # the Sphinx build below, so a notebook failure is easy to tell apart
-      # from a Sphinx build failure.
+      # Render before semantic-release so this expensive step does not depend
+      # on the release tag. The generated notebooks are passed to the tagged
+      # documentation build as an artifact below.
       run: uv run invoke docs.nb --slow
-    - name: Build Documentation
-      run: uv run invoke docs.build
-    - name: Upload artifact
+    - name: Upload rendered notebooks
       uses: actions/upload-artifact@v4
       with:
-        name: docs-build
-        path: docs/_build
+        name: rendered-notebooks
+        path: notebooks/**/*.ipynb
+
 
   release_pypi:
     name: Release / PyPi
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency: release
-    needs: [test, documentation]
+    needs: [test, notebook_render]
     permissions:
       id-token: write
       contents: write
@@ -117,6 +112,37 @@ jobs:
         if: steps.release.outputs.released == 'true'
         with:
             github_token: ${{ secrets.GITHUB_TOKEN }}
+
+
+  documentation:
+    name: Documentation
+    if: needs.release_pypi.outputs.released == 'true'
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+    needs: [release_pypi]
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.release_pypi.outputs.tag }}
+    - uses: astral-sh/setup-uv@v6
+      with:
+        python-version: "3.11"
+    - name: Install Dependencies
+      run: |
+        sudo apt-get install -y pandoc
+        uv sync --extra dev --extra doc --extra torch-cpu
+    - name: Download rendered notebooks
+      uses: actions/download-artifact@v4
+      with:
+        name: rendered-notebooks
+        path: notebooks
+    - name: Build Documentation
+      run: uv run invoke docs.build --ignore-warnings
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: docs-build
+        path: docs/_build
 
   # Packages this release's built docs and attaches them to the GitHub Release as a
   # download-able asset. This is the only place a version's docs are stored, so this
@@ -175,12 +201,12 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/jupyter-capymoa:latest
           build-args: CAPYMOA_VERSION=${{ needs.release_pypi.outputs.tag }}
 
-  # Rebuilds the full versioned site from scratch on every release. GitHub Releases is
-  # the only source of truth for "which versions have docs" (no gh-pages branch, no
-  # separate versions file to go stale). Every release with a docs-*.tar.gz asset is
-  # downloaded and extracted into its own /vX.Y.Z/ folder, the newest is also copied to
-  # the site root, and the result is deployed via the same upload-pages-artifact /
-  # deploy-pages actions used before this change.
+  # Bundles the published documentation assets into the deployable versioned site.
+  # GitHub Releases is the only source of truth for which versions have docs (there
+  # is no gh-pages branch or separate versions file to go stale). Each retained
+  # docs-*.tar.gz asset is downloaded and extracted into its own /vX.Y.Z/ folder,
+  # the newest is also copied to the site root, and the result is deployed via the
+  # upload-pages-artifact / deploy-pages actions used before this change.
   website:
     name: Website
     if: needs.release_pypi.outputs.released == 'true'
