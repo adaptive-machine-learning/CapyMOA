@@ -20,8 +20,10 @@ from capymoa.anomaly import (
     AdaptiveIsolationForest,
     HalfSpaceTrees,
     IForestASD,
+    Loda,
     OnlineIsolationForest,
     RobustRandomCutForest,
+    RSHash,
     StreamingIsolationForest,
 )
 from capymoa.anomaly.datasets import TinyBlobs
@@ -48,6 +50,8 @@ CASES = [
         ),
         64,
     ),
+    (lambda **kw: Loda(n_projections=5, window_size=64, random_state=None, **kw), 64),
+    (lambda **kw: RSHash(m=5, s=64, w=2, p=1000, seed=None, **kw), 64),
 ]
 
 
@@ -77,6 +81,8 @@ def _score_trace(make, skip):
         "RobustRandomCutForest-None",
         "IForestASD",
         "IForestASD-None",
+        "Loda-None",
+        "RSHash-None",
     ],
 )
 def test_default_seed_is_reproducible(make, skip):

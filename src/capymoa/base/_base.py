@@ -83,8 +83,10 @@ class MOAAnomalyDetector(AnomalyDetector):
         self.CLI = CLI
         self.moa_learner = moa_learner
 
-        if random_seed is not None:
-            self.moa_learner.setRandomSeed(random_seed)
+        # Read the normalized seed, not the raw argument: AnomalyDetector
+        # resolves None first, so guarding on the parameter here skipped the
+        # call for every default-seeded MOA detector.
+        self.moa_learner.setRandomSeed(self.random_seed)
 
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())
