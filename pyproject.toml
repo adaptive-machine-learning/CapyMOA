@@ -1,7 +1,7 @@
 [build-system]
 # wget is used to download the MOA jar file
 # stubgenj is used to generate the Python stub files for the MOA classes
-requires = ["hatchling", "hatch-build-scripts", "wget", "stubgenj", "invoke"]
+requires = ["hatchling", "wget", "stubgenj", "invoke"]
 # Build system: https://hatch.pypa.io
 # The main reason I chose hatch is its support for plugins allowing us to
 # download the MOA jar file before the build starts.
@@ -191,13 +191,10 @@ artifacts = ["src/capymoa/jar/moa.jar", "src/capymoa/jar/Home.class"]
 # that hatch inherits. To include them anyway we need to set ignore-vcs to true.
 ignore-vcs = true
 
-[[tool.hatch.build.hooks.build-scripts.scripts]]
-# Ensures that the MOA jar file is downloaded before the build starts.
-commands = [
-    "python -m invoke build.download-moa",
-    "python -m invoke build.stubs"
-]
-artifacts = []
+[tool.hatch.build.hooks.custom]
+# Ensures that the MOA jar file is downloaded and the Java stubs are
+# generated before the build starts. See hatch_build.py.
+path = "tools/hatch_build.py"
 
 [tool.semantic_release]
 assets = []
