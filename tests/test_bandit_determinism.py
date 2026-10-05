@@ -17,13 +17,68 @@ from capymoa.datasets import ElectricityTiny
 N_STEPS = 250
 
 
+class SlottedPolicy:
+    """A duck-typed policy that uses ``__slots__``.
+
+    It mirrors :class:`EpsilonGreedy`'s selection rule and holds its state in
+    slots, so it can only be given the attributes named in ``__slots__``.
+    ``BanditClassifier`` must be able to seed it without asking for anything
+    more than ``rng``.
+    """
+
+    __slots__ = (
+        "arm_counts",
+        "arm_rewards",
+        "burn_in",
+        "epsilon",
+        "n_arms",
+        "rng",
+        "total_pulls",
+    )
+
+    def __init__(self, epsilon=0.1, burn_in=50, rng=None):
+        self.epsilon = epsilon
+        self.burn_in = burn_in
+        self.rng = rng
+        self.n_arms = 0
+        self.arm_rewards = []
+        self.arm_counts = []
+        self.total_pulls = 0
+
+    def initialize(self, n_arms):
+        self.n_arms = n_arms
+        self.arm_rewards = [0.0] * n_arms
+        self.arm_counts = [0] * n_arms
+        self.total_pulls = 0
+
+    def pull(self, available_arms):
+        if self.total_pulls < self.burn_in:
+            return available_arms
+        if self.rng is None:
+            self.rng = random.Random()
+        if self.rng.random() < self.epsilon:
+            return [self.rng.choice(available_arms)]
+        return [self.get_best_arm_idx(available_arms)]
+
+    def update(self, arm, reward):
+        self.arm_rewards[arm] += reward
+        self.arm_counts[arm] += 1
+        self.total_pulls += 1
+
+    def get_best_arm_idx(self, available_arms):
+        return max(
+            available_arms,
+            key=lambda arm: self.arm_rewards[arm] / max(1, self.arm_counts[arm]),
+        )
+
+
 def _schema():
     stream = ElectricityTiny()
     stream.restart()
     return stream.get_schema()
 
 
-def _build(policy: EpsilonGreedy, random_seed: int) -> BanditClassifier:
+def _build(policy: EpsilonGreedy | SlottedPolicy, random_seed: int):
     return BanditClassifier(
         schema=_schema(),
         random_seed=random_seed,
@@ -32,7 +87,7 @@ def _build(policy: EpsilonGreedy, random_seed: int) -> BanditClassifier:
     )
 
 
-def _train(policy: EpsilonGreedy, random_seed: int) -> tuple:
+def _train(policy: EpsilonGreedy | SlottedPolicy, random_seed: int) -> tuple:
     """Train a BanditClassifier on ``policy``; return comparable policy state.
 
     ``policy`` is used as given, so the same policy object can be handed to
@@ -134,4 +189,61 @@ def test_caller_supplied_generator_is_never_overwritten():
     assert _build(policy=policy, random_seed=42).policy.rng is caller_rng, (
         "BanditClassifier replaced the caller's generator when the policy "
         "was reused - re-seeding must not reach a generator it does not own"
+    )
+
+
+def test_slots_policy_is_seeded_without_a_second_attribute():
+    """A policy that uses ``__slots__`` must still be seedable.
+
+    Seeding used to record on the policy which generator it installed. That
+    added an attribute a ``__slots__`` policy cannot hold, so building a
+    classifier over one raised ``AttributeError`` where the write to ``rng``
+    alone had worked. ``rng`` must stay the only attribute a policy is asked
+    to hold, and a reused policy must still be re-seeded.
+    """
+    # What each seed yields with a policy of its own.
+    baseline_seed_1 = _train(policy=SlottedPolicy(), random_seed=1)
+    baseline_seed_42 = _train(policy=SlottedPolicy(), random_seed=42)
+
+    shared = SlottedPolicy()
+    first = _train(policy=shared, random_seed=1)
+    second = _train(policy=shared, random_seed=1)
+    third = _train(policy=shared, random_seed=42)
+
+    assert first == baseline_seed_1, (
+        f"a fresh __slots__ policy did not follow its own random_seed "
+        f"(counts {first[0]} vs {baseline_seed_1[0]})"
+    )
+    assert second == baseline_seed_1, (
+        f"the second classifier on a reused __slots__ policy did not "
+        f"reproduce random_seed=1 (counts {second[0]} vs "
+        f"{baseline_seed_1[0]}) - keeping the generator off the policy also "
+        "has to keep re-seeding it, or a policy that cannot hold the marker "
+        "silently keeps the generator from the first run"
+    )
+    assert third == baseline_seed_42, (
+        f"the third classifier on a reused __slots__ policy did not follow "
+        f"its own random_seed=42 (counts {third[0]} vs {baseline_seed_42[0]})"
+    )
+
+
+def test_generator_replaced_after_a_run_is_treated_as_the_callers():
+    """A generator the caller installs later is the caller's from then on.
+
+    The marker has to describe the generator that is actually in place. One
+    kept on the policy goes stale as soon as the caller swaps the generator,
+    and the next classifier then overwrites a generator it never installed.
+    """
+    caller_rng = random.Random(999)
+    policy = EpsilonGreedy(epsilon=0.1, burn_in=50)
+    # A first classifier installs a generator of its own.
+    _build(policy=policy, random_seed=1)
+    assert policy.rng is not caller_rng
+
+    policy.rng = caller_rng
+
+    assert _build(policy=policy, random_seed=42).policy.rng is caller_rng, (
+        "BanditClassifier overwrote a generator the caller installed after an "
+        "earlier run - the marker it reads no longer describes this "
+        "generator"
     )

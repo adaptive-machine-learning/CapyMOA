@@ -13,6 +13,17 @@ from capymoa.evaluation import ClassificationEvaluator
 from capymoa.stream import Schema
 
 
+class _ClassifierSeededRandom(random.Random):
+    """A generator a ``BanditClassifier`` installed from its ``random_seed``.
+
+    The mark rides on the generator instead of on the policy, because the
+    generator is the thing whose origin is in question. A policy then needs
+    no attribute of its own to take part in the re-seed protocol, so a policy
+    that uses ``__slots__`` keeps working, and a caller who puts their own
+    generator in place drops the mark along with the generator we installed.
+    """
+
+
 class EpsilonGreedy:
     """Epsilon-Greedy bandit policy for model selection.
 
@@ -50,15 +61,9 @@ class EpsilonGreedy:
         self.rng = rng
         """Random generator used for exploration draws; lazily created from
         system entropy on first use if not provided. ``BanditClassifier``
-        seeds this from its ``random_seed`` when the caller did not supply
-        one."""
-
-        self._seeded_by_classifier = False
-        # True only while ``self.rng`` is a generator that a
-        # ``BanditClassifier`` installed from its ``random_seed``. It lets a
-        # later classifier tell a generator it owns from one the caller
-        # supplied, so a reused policy is re-seeded while a caller's own
-        # generator is never overwritten.
+        seeds this from its ``random_seed`` when there is no generator, and
+        re-seeds one that an earlier classifier installed. A generator the
+        caller supplied is left as it is."""
 
         self.n_arms = 0
         """Number of available models (arms)."""
@@ -184,16 +189,16 @@ class BanditClassifier(Classifier):
         if self.policy is None:
             self.policy = EpsilonGreedy(epsilon=0.1, burn_in=100)
         # Exploration must be reproducible under the classifier's seed. Seed a
-        # policy that has no generator, and re-seed one whose generator an
+        # policy that has no generator, and re-seed one holding a generator an
         # earlier classifier installed: ``initialize()`` below resets the
         # policy's statistics, so a generator left over from an earlier run
-        # would carry stale exploration draws into this one. A generator the
-        # caller supplied is never overwritten.
-        if getattr(self.policy, "rng", None) is None or getattr(
-            self.policy, "_seeded_by_classifier", False
-        ):
-            self.policy.rng = random.Random(self.random_seed)
-            self.policy._seeded_by_classifier = True
+        # would carry stale exploration draws into this one. The mark that
+        # tells the two cases apart sits on the generator itself, so a
+        # generator the caller supplied is never overwritten, and ``rng`` is
+        # the only attribute this ever writes on a policy.
+        policy_rng = getattr(self.policy, "rng", None)
+        if policy_rng is None or isinstance(policy_rng, _ClassifierSeededRandom):
+            self.policy.rng = _ClassifierSeededRandom(self.random_seed)
 
         # Initialize models based on configuration
         self._initialize_models()
