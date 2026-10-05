@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.5
+#       jupytext_version: 1.19.6
 #   kernelspec:
 #     display_name: .venv
 #     language: python
@@ -72,12 +72,19 @@ plot_windowed_results(kNN_results, ARF_results, metric="rmse")
 # ### Evaluating a single stream using multiple learners
 #
 # * `prequential_evaluation_multiple_learners` also works for multiple regressors; the example below shows how it can be used.
+# * We include simple baselines for comparison: {py:class}`~capymoa.regressor.NoChange`
+#   predicts the previous target, {py:class}`~capymoa.regressor.TargetMean` predicts the
+#   running mean, and {py:class}`~capymoa.regressor.FadingTargetMean` tracks a fading mean.
 
 # %%
 from capymoa.evaluation import prequential_evaluation_multiple_learners
+from capymoa.regressor import FadingTargetMean, NoChange, TargetMean
 
 # Define the learners + an alias (dictionary key)
 learners = {
+    "NoChange": NoChange(schema=stream.get_schema()),
+    "TargetMean": TargetMean(schema=stream.get_schema()),
+    "FadingTargetMean": FadingTargetMean(schema=stream.get_schema()),
     "kNNReg_k5": KNNRegressor(schema=stream.get_schema(), k=5),
     "kNNReg_k2": KNNRegressor(schema=stream.get_schema(), k=2),
     "kNNReg_k5_median": KNNRegressor(schema=stream.get_schema(), CLI="-k 5 -m"),
@@ -99,6 +106,9 @@ for learner_id in learners:
 # Tip: invoking metrics_header() from an evaluator will show us all the metrics available,
 # e.g. results['kNNReg_k5']['cumulative'].metrics_header()
 plot_windowed_results(
+    results["NoChange"],
+    results["TargetMean"],
+    results["FadingTargetMean"],
     results["kNNReg_k5"],
     results["kNNReg_k2"],
     results["kNNReg_k5_median"],
@@ -107,6 +117,9 @@ plot_windowed_results(
 )
 
 plot_windowed_results(
+    results["NoChange"],
+    results["TargetMean"],
+    results["FadingTargetMean"],
     results["kNNReg_k5"],
     results["kNNReg_k2"],
     results["kNNReg_k5_median"],
