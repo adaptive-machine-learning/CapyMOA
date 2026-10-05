@@ -72,6 +72,18 @@ class SlottedPolicy:
         )
 
 
+class CountingRandom(random.Random):
+    """A caller's own generator, wrapped to count the draws it serves."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.draws = 0
+
+    def random(self, *args, **kwargs):
+        self.draws += 1
+        return super().random(*args, **kwargs)
+
+
 def _schema():
     stream = ElectricityTiny()
     stream.restart()
@@ -189,6 +201,44 @@ def test_caller_supplied_generator_is_never_overwritten():
     assert _build(policy=policy, random_seed=42).policy.rng is caller_rng, (
         "BanditClassifier replaced the caller's generator when the policy "
         "was reused - re-seeding must not reach a generator it does not own"
+    )
+
+
+def test_callers_own_random_subclass_is_never_overwritten():
+    """A caller generator that subclasses ``random.Random`` is also the caller's.
+
+    Wrapping ``random.Random`` to log or count the exploration draws is an
+    ordinary thing for a caller to do, so the subclass is the case most at
+    risk. Telling a generator we installed from one we did not is done by
+    asking what the generator *is*: only a generator the classifier built
+    itself is its to replace. Anything else the caller put there stays, so
+    the test cannot be satisfied by treating every ``random.Random`` as ours.
+
+    The draw count also shows the generator is left in place and still in
+    use, not merely still referenced.
+    """
+    caller_rng = CountingRandom(7)
+    policy = EpsilonGreedy(epsilon=0.1, burn_in=50, rng=caller_rng)
+
+    assert _build(policy=policy, random_seed=1).policy.rng is caller_rng, (
+        "BanditClassifier replaced a generator the caller supplied that "
+        "subclasses random.Random"
+    )
+    assert _build(policy=policy, random_seed=42).policy.rng is caller_rng, (
+        "BanditClassifier replaced the caller's own generator subclass when "
+        "the policy was reused - only a generator the classifier installed "
+        "may be replaced"
+    )
+    assert caller_rng.draws == 0, (
+        f"constructing a classifier drew from the caller's generator "
+        f"({caller_rng.draws} draws)"
+    )
+
+    _train(policy=policy, random_seed=1)
+
+    assert caller_rng.draws > 0, (
+        "the policy stopped drawing from the caller's generator subclass - "
+        "it was replaced by one seeded from the classifier's random_seed"
     )
 
 
