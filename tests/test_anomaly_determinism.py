@@ -50,7 +50,9 @@ CASES = [
         ),
         64,
     ),
+    (lambda **kw: Loda(n_projections=5, window_size=64, **kw), 64),
     (lambda **kw: Loda(n_projections=5, window_size=64, random_state=None, **kw), 64),
+    (lambda **kw: RSHash(m=5, s=64, w=2, p=1000, **kw), 64),
     (lambda **kw: RSHash(m=5, s=64, w=2, p=1000, seed=None, **kw), 64),
 ]
 
@@ -81,7 +83,9 @@ def _score_trace(make, skip):
         "RobustRandomCutForest-None",
         "IForestASD",
         "IForestASD-None",
+        "Loda",
         "Loda-None",
+        "RSHash",
         "RSHash-None",
     ],
 )
