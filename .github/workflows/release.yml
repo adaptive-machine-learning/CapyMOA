@@ -68,12 +68,16 @@ jobs:
         path: notebooks/**/*.ipynb
 
 
+  colab:
+    name: Colab
+    uses: ./.github/workflows/colab.yml
+
   release_pypi:
     name: Release / PyPi
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency: release
-    needs: [test, notebook_render]
+    needs: [test, notebook_render, colab]
     permissions:
       id-token: write
       contents: write

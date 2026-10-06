@@ -22,7 +22,7 @@ def env():
 
 def test_bad_infer_java_home(env):
     """Tests reporting errors when java cannot be found."""
-    del env["JAVA_HOME"]
+    env.pop("JAVA_HOME", None)
     env["PATH"] = ""
     assert "JAVA_HOME" not in env
     result = subprocess.run(CMD_ABOUT, capture_output=True, env=env, check=False)
