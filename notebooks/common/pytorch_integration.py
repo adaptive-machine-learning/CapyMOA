@@ -296,8 +296,6 @@ print(f"Accuracy: {evaluator.cumulative.accuracy()}")
 # **Observation**: *Using a learner like Online Bagging without any feature extraction is not going to yield meaningful performance*
 
 # %% tags=["remove-output"]
-# The download progress bar is noisy on capymoa.org: each refresh lands as
-# its own output line instead of overwriting in place. See docs/contributing/docs.rst.
 from torchvision import datasets
 from torchvision.transforms import ToTensor
 
