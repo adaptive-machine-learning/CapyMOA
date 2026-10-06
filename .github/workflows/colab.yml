@@ -6,28 +6,16 @@ on:
   pull_request:
     paths:
       - ".github/workflows/colab.yml"
-      - ".github/scripts/colab_test.sh"
-      - "pyproject.toml"
+      - ".github/scripts/colab.sh"
 
 jobs:
   colab:
     name: Google Colab (cpu-runtime, plain pip)
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    container:
+      image: us-docker.pkg.dev/colab-images/public/cpu-runtime
     steps:
       - uses: actions/checkout@v4
-
-      - name: Free disk space
-        # The Colab image is several GB.
-        run: sudo rm -rf /usr/local/lib/android /opt/ghc /usr/share/dotnet
-
-      - name: Pull Colab image
-        run: docker pull us-docker.pkg.dev/colab-images/public/cpu-runtime
-
       - name: Install and test CapyMOA in Colab image
-        # `docker run` rather than a job-level `container:`, which would make
-        # the runner inject its own tooling into the Colab environment.
-        run: >-
-          docker run --rm --user root -v "$PWD:/src" -w /src
-          us-docker.pkg.dev/colab-images/public/cpu-runtime
-          bash .github/scripts/colab_test.sh
+        run: bash .github/scripts/colab.sh
