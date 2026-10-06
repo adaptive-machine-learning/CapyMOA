@@ -55,6 +55,13 @@ class PrequentialResults:
         raise KeyError(f"Key {key} not found")
 
     def __getattr__(self, attribute):
+        # Python calls __getattr__ for every attribute that is not set, which
+        # includes the __setstate__ probe that pickle makes before __init__ has
+        # run. Reading self.cumulative would then ask for an attribute that is
+        # missing, land back in this method, and recurse until the stack limit.
+        # Stop when the cumulative evaluator is not there.
+        if "cumulative" not in self.__dict__:
+            raise AttributeError(f"Attribute {attribute} not found")
         # Check if the attribute exists in the cumulative object
         if hasattr(self.cumulative, attribute):
             return getattr(self.cumulative, attribute)

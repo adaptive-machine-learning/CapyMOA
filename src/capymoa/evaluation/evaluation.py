@@ -251,6 +251,13 @@ class ClassificationEvaluator:
 
     # This allows access to metrics that are generated dynamically like recall_0, f1_score_3, ...
     def __getattr__(self, metric):
+        # Python calls __getattr__ for every attribute that is not set, which
+        # includes the __setstate__ probe that pickle makes before __init__ has
+        # run. Reading self.moa_basic_evaluator would then ask for an attribute
+        # that is missing, land back in this method, and recurse until the
+        # stack limit. Stop when the evaluator is not there.
+        if "moa_basic_evaluator" not in self.__dict__:
+            raise AttributeError(metric)
         if metric in self.metrics_header():
             index = self.metrics_header().index(metric)
 
@@ -258,7 +265,7 @@ class ClassificationEvaluator:
                 return float(self.metrics()[index])
 
             return metric_value
-        return None
+        raise AttributeError(metric)
 
     def accuracy(self):
         index = self.metrics_header().index("accuracy")
@@ -722,13 +729,16 @@ class ClassificationWindowedEvaluator(ClassificationEvaluator):
 
     # This allows access to metrics that are generated dynamically like recall_0, f1_score_3, ...
     def __getattr__(self, metric):
+        # See ClassificationEvaluator.__getattr__ for why this guard is needed.
+        if "moa_basic_evaluator" not in self.__dict__:
+            raise AttributeError(metric)
         if metric in self.metrics_header():
 
             def metric_value():
                 return self.metrics_per_window()[metric].tolist()
 
             return metric_value
-        return None
+        raise AttributeError(metric)
 
     def accuracy(self):
         return self.metrics_per_window()["accuracy"].tolist()
