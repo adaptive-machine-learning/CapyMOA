@@ -1,5 +1,6 @@
 import math
 import sys
+import zlib
 
 import numpy as np
 
@@ -31,7 +32,13 @@ class RSHashCountMinSketch:
 
     def _indices(self, x: np.ndarray) -> list[int]:
         payload = x.tobytes()
-        return [hash((key, payload)) % self.p for key in self.hash_keys]
+        # crc32 seeds its register with the table key, so the key (and with it
+        # the detector seed) still picks the slot, but unlike hash() the result
+        # is identical in every process regardless of PYTHONHASHSEED.
+        return [
+            zlib.crc32(payload, (key ^ (key >> 32)) & 0xFFFFFFFF) % self.p
+            for key in self.hash_keys
+        ]
 
     def add(self, x: np.ndarray) -> None:
         for k, i in enumerate(self._indices(x)):
