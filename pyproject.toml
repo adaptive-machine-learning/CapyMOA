@@ -1,7 +1,7 @@
 [build-system]
 # wget is used to download the MOA jar file
 # stubgenj is used to generate the Python stub files for the MOA classes
-requires = ["hatchling", "hatch-build-scripts", "wget", "stubgenj", "invoke"]
+requires = ["hatchling", "wget", "stubgenj", "invoke"]
 # Build system: https://hatch.pypa.io
 # The main reason I chose hatch is its support for plugins allowing us to
 # download the MOA jar file before the build starts.
@@ -92,7 +92,7 @@ dev=[
     "jupyter~=1.1",
     # Notebooks are stored as Jupytext `py:percent` scripts (see `notebooks/*/*.py`);
     # `invoke docs.nb` uses this to regenerate the `.ipynb` files nbmake needs.
-    "jupytext~=1.16",
+    "jupytext==1.19.5",
     "nbmake~=1.5",
     "pytest-cov~=7.0",
     "pytest-subtests~=0.15",
@@ -108,15 +108,15 @@ dev=[
 ]
 
 doc=[
-    "jupytext~=1.16",              # Reads the notebooks' `py:percent` source format
-    "myst-nb",                     # Sphinx extension: parses MyST + Jupytext notebooks
-    "pydata-sphinx-theme",         # Theme for the documentation; has built-in sphinx-copybutton styling
-    "sphinx-copybutton",           # Adds a copy button to code blocks
-    "sphinx-llm",                  # Generates llms.txt/markdown pages for LLM consumption
-    "sphinx-reredirects",          # Generates redirect stubs for moved/renamed doc pages
-    "sphinx_design",               # Sphinx extension for design elements
-    "sphinx==8.1.3",               # Documentation generator
-    "sphinxcontrib-programoutput", # Output of commands in the documentation
+    "jupytext==1.19.5",            # Reads the notebooks' `py:percent` source format
+    "myst-nb~=1.4",                # Sphinx extension: parses MyST + Jupytext notebooks
+    "pydata-sphinx-theme~=0.19",   # Theme for the documentation; has built-in sphinx-copybutton styling
+    "sphinx-copybutton~=0.5",      # Adds a copy button to code blocks
+    "sphinx-llm~=1.1",             # Generates llms.txt/markdown pages for LLM consumption
+    "sphinx-reredirects~=1.1",     # Generates redirect stubs for moved/renamed doc pages
+    "sphinx_design~=0.7",          # Sphinx extension for design elements
+    "sphinx~=8.1",                 # Documentation generator
+    "sphinxcontrib-programoutput~=0.20", # Output of commands in the documentation
 ]
 
 [project.urls]
@@ -191,13 +191,10 @@ artifacts = ["src/capymoa/jar/moa.jar", "src/capymoa/jar/Home.class"]
 # that hatch inherits. To include them anyway we need to set ignore-vcs to true.
 ignore-vcs = true
 
-[[tool.hatch.build.hooks.build-scripts.scripts]]
-# Ensures that the MOA jar file is downloaded before the build starts.
-commands = [
-    "python -m invoke build.download-moa",
-    "python -m invoke build.stubs"
-]
-artifacts = []
+[tool.hatch.build.hooks.custom]
+# Ensures that the MOA jar file is downloaded and the Java stubs are
+# generated before the build starts. See hatch_build.py.
+path = "tools/hatch_build.py"
 
 [tool.semantic_release]
 assets = []

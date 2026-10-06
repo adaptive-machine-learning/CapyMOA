@@ -18,6 +18,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 import tarfile
 import tomllib
 from pathlib import Path
@@ -41,10 +42,19 @@ def write_tags(path: Path, tags: list[str]) -> None:
 
 
 def run_gh(*args: str, capture_output: bool = False) -> subprocess.CompletedProcess:
-    """Run `gh <args...>`, raising if it fails."""
-    return subprocess.run(
-        ["gh", *args], check=True, capture_output=capture_output, text=True
-    )
+    """Run `gh <args...>`, raising if it fails.
+
+    Captures stderr even when capture_output is False, so a failure prints
+    gh's actual error message instead of just a bare CalledProcessError.
+    """
+    try:
+        return subprocess.run(
+            ["gh", *args], check=True, capture_output=capture_output, text=True
+        )
+    except subprocess.CalledProcessError as e:
+        if e.stderr:
+            print(e.stderr, file=sys.stderr)
+        raise
 
 
 def gh_json(*args: str) -> object:
@@ -112,17 +122,22 @@ def filter_doc_releases(releases: list[dict]) -> list[str]:
 
 
 def fetch_releases(repo: str) -> list[dict]:
-    """Fetch all releases from GitHub, in whatever order the gh CLI returns them."""
-    return gh_json(
-        "release",
-        "list",
-        "--repo",
-        repo,
-        "--limit",
-        "1000",
-        "--json",
-        "tagName,isDraft,isPrerelease,assets",
-    )
+    """Fetch all releases from GitHub, in whatever order the gh CLI returns them.
+
+    Uses `gh api` rather than `gh release list --json assets`: the latter's
+    --json flag doesn't support an `assets` field (only `gh release view`
+    does), so it can't tell which releases have a docs asset attached.
+    """
+    raw = gh_json("api", f"repos/{repo}/releases", "--paginate")
+    return [
+        {
+            "tagName": release["tag_name"],
+            "isDraft": release["draft"],
+            "isPrerelease": release["prerelease"],
+            "assets": [{"name": asset["name"]} for asset in release["assets"]],
+        }
+        for release in raw
+    ]
 
 
 def _cmd_list_versions(args: argparse.Namespace) -> None:
