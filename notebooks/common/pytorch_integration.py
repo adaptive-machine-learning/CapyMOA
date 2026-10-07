@@ -295,18 +295,20 @@ print(f"Accuracy: {evaluator.cumulative.accuracy()}")
 #
 # **Observation**: *Using a learner like Online Bagging without any feature extraction is not going to yield meaningful performance*
 
-# %%
+# %% tags=["remove-output"]
 from torchvision import datasets
 from torchvision.transforms import ToTensor
 
+pytorch_dataset = datasets.FashionMNIST(
+    root="data", train=True, download=True, transform=ToTensor()
+)
+
+# %%
 from capymoa.classifier import OnlineBagging
 from capymoa.evaluation import prequential_evaluation
 from capymoa.evaluation.visualization import plot_windowed_results
 from capymoa.stream import TorchStream
 
-pytorch_dataset = datasets.FashionMNIST(
-    root="data", train=True, download=True, transform=ToTensor()
-)
 pytorch_stream = TorchStream.from_classification(
     dataset=pytorch_dataset, num_classes=10
 )
