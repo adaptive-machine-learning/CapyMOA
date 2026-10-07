@@ -76,6 +76,13 @@ class Case:
     """Batch size used by `test_accuracy`/`test_optimise`, for learners that
     support mini-batches (e.g. `Finetune`)."""
 
+    accuracy_abs_tolerance: float | None = None
+    """Absolute tolerance for the `test_accuracy` comparisons. Use this for
+    learners whose training involves long chains of floating-point updates
+    (e.g. per-instance SGD) where a sub-ULP difference between platforms/BLAS
+    builds can compound and flip a single prediction. Leave unset (exact
+    comparison) for everything else."""
+
     def new_learner(self, schema: Schema, random_seed: int = RANDOM_SEED) -> Classifier:
         spec = LearnerSpec(learner=self.learner, params=self.params)
         return learner_from_params(spec, schema, random_seed=random_seed)
@@ -137,11 +144,12 @@ class TestClassifier:
         # Check accuracy.
         accuracy = results.cumulative.accuracy()  # type: ignore
         win_accuracy = results.windowed.accuracy()[-1]  # type: ignore
-        assert accuracy == pytest.approx(case.accuracy), (
+        abs_tol = case.accuracy_abs_tolerance
+        assert accuracy == pytest.approx(case.accuracy, abs=abs_tol), (
             "Unexpected cumulative accuracy, "
             f"expected {case.accuracy} but got {accuracy}."
         )
-        assert win_accuracy == pytest.approx(case.win_accuracy), (
+        assert win_accuracy == pytest.approx(case.win_accuracy, abs=abs_tol), (
             "Unexpected windowed accuracy, "
             f"expected {case.win_accuracy} but got {win_accuracy}."
         )

@@ -246,6 +246,10 @@
 
   accuracy: 89.15
   win_accuracy: 78.0
+  # ShrubsClassifier trains via per-instance SGD over many batches; a sub-ULP
+  # floating-point difference between platforms/BLAS builds can compound over
+  # the run and flip a single prediction, shifting accuracy slightly.
+  accuracy_abs_tolerance: 1.0
 
 - id: Finetune
   learner: capymoa.classifier.Finetune
