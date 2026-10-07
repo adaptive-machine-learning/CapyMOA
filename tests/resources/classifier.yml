@@ -1,0 +1,273 @@
+- id: OnlineBagging
+  learner: capymoa.classifier.OnlineBagging
+  params: {}
+
+  accuracy: 85.0
+  win_accuracy: 92.0
+
+- id: "AdaptiveRandomForestClassifier"
+  learner: "capymoa.classifier.AdaptiveRandomForestClassifier"
+  params: {}
+
+  accuracy: 89.0
+  win_accuracy: 91.0
+
+- id: HoeffdingTree
+  learner: capymoa.classifier.HoeffdingTree
+  params: {}
+
+  accuracy: 82.65
+  win_accuracy: 83.0
+  # Deterministic: the default split and leaf prediction logic uses no randomness.
+  always_deterministic: true
+
+- id: LAST
+  learner: capymoa.classifier.LAST
+  params: {}
+
+  accuracy: 83.95
+  win_accuracy: 91.0
+  always_deterministic: true
+
+- id: EFDT
+  learner: capymoa.classifier.EFDT
+  params: {}
+
+  accuracy: 82.70
+  win_accuracy: 82.0
+  always_deterministic: true
+
+# The original case had this skip reason:
+# https://github.com/adaptive-machine-learning/backlog/issues/59
+- id: EFDT-1
+  learner: capymoa.classifier.EFDT
+  params:
+    grace_period: 10
+    split_criterion: GiniSplitCriterion
+    leaf_prediction: NaiveBayes
+
+  accuracy: 87.8
+  win_accuracy: 85.0
+
+  cli_string: (trees.EFDT -R 200 -m 33554433 -g 10 -s GiniSplitCriterion -c
+    0.001 -z -p -l NB)
+  always_deterministic: true
+
+- id: PLASTIC
+  learner: capymoa.classifier.PLASTIC
+  params: {}
+
+  accuracy: 83.25
+  win_accuracy: 83.0
+  always_deterministic: true
+
+- id: StochasticGradientTree
+  learner: capymoa.classifier.StochasticGradientTree
+  params: {}
+
+  accuracy: 63.35
+  win_accuracy: 80.0
+  always_deterministic: true
+
+- id: NaiveBayes
+  learner: capymoa.classifier.NaiveBayes
+  params: {}
+
+  accuracy: 84.0
+  win_accuracy: 91.0
+  always_deterministic: true
+
+- id: KNN
+  learner: capymoa.classifier.KNN
+  params: {}
+
+  accuracy: 81.6
+  win_accuracy: 74.0
+  always_deterministic: true
+
+- id: PassiveAggressiveClassifier
+  learner: capymoa.classifier.PassiveAggressiveClassifier
+  params: {}
+
+  accuracy: 84.7
+  win_accuracy: 81.0
+  always_deterministic: true
+
+# When loss="log_loss", predict_proba works.
+- id: SGDClassifier
+  learner: capymoa.classifier.SGDClassifier
+  params:
+    loss: log_loss
+
+  accuracy: 85.75
+  win_accuracy: 82.0
+  always_deterministic: true
+
+- id: StreamingGradientBoostedTrees
+  learner: capymoa.classifier.StreamingGradientBoostedTrees
+  params: {}
+
+  accuracy: 89.60
+  win_accuracy: 86.0
+
+- id: OzaBoost
+  learner: capymoa.classifier.OzaBoost
+  params: {}
+
+  accuracy: 89.8
+  win_accuracy: 87.0
+
+- id: MajorityClass
+  learner: capymoa.classifier.MajorityClass
+  params: {}
+
+  accuracy: 60.2
+  win_accuracy: 66.0
+  always_deterministic: true
+
+- id: NoChange
+  learner: capymoa.classifier.NoChange
+  params: {}
+
+  accuracy: 85.95
+  win_accuracy: 81.0
+  always_deterministic: true
+
+  # NOTE: NoChange's behaviour here this is arguably wrong, but has a legacy in MOA.
+  predicts_before_training: "NoChange predicts 0 before training."
+
+- id: OnlineSmoothBoost
+  learner: capymoa.classifier.OnlineSmoothBoost
+  params: {}
+
+  accuracy: 87.85
+  win_accuracy: 90.0
+  always_deterministic: true
+
+- id: StreamingRandomPatches
+  learner: capymoa.classifier.StreamingRandomPatches
+  params: {}
+
+  accuracy: 90.55
+  win_accuracy: 89.0
+  # TODO: This issue must be fixed in MOA. It cannot be fixed in Python.
+  skip_test_save_then_load: "The MOA inner class
+    StreamingRandomPatches$StreamingRandomPatchesClassifier does not implement
+    java.io.Serializable. As a result, save_model()/load_model() fails with
+    NotSerializableException. The class must implement Serializable, then the jar must
+    be rebuilt."
+
+- id: HoeffdingAdaptiveTree
+  learner: capymoa.classifier.HoeffdingAdaptiveTree
+  params: {}
+
+  accuracy: 84.15
+  win_accuracy: 92.0
+  # Deterministic: uses the same split logic as HoeffdingTree.
+  always_deterministic: true
+
+- id: SAMkNN
+  learner: capymoa.classifier.SAMkNN
+  params: {}
+
+  accuracy: 82.65
+  win_accuracy: 82.0
+  # Deterministic: nearest-neighbour search uses no randomness.
+  always_deterministic: true
+  # TODO: This issue is in the MOA SAMkNN implementation.
+  skip_test_predict: "Repeated calls to SAMkNN predict()/predict_proba()
+    without a train() call can return different results. On the same
+    untrained instance, predict() returns a class, predict_proba() returns
+    None, and a third call also returns None. The MOA
+    getVotesForInstance() call may change internal state."
+  skip_test_optimise: "SAMkNN's fast (optimise=True) and slow
+    (optimise=False) loops give different accuracy: 82.65% and 82.5% on
+    ElectricityTiny. This may have the same cause as the state change
+    described in skip_test_predict."
+
+- id: DynamicWeightedMajority
+  learner: capymoa.classifier.DynamicWeightedMajority
+  params: {}
+
+  accuracy: 84.05
+  win_accuracy: 89.0
+  always_deterministic: true
+
+  # NOTE: NoChange's behaviour here this is arguably wrong, but has a legacy in MOA.
+  predicts_before_training: "DynamicWeightedMajority has a default prediction of 0."
+
+- id: CSMOTE
+  learner: capymoa.classifier.CSMOTE
+  params: {}
+
+  accuracy: 80.75
+  win_accuracy: 64.0
+  # TODO: This issue must be fixed in MOA. It cannot be fixed in Python. CSMOTE
+  # instances with the same random_seed diverge after SMOTE starts oversampling. This
+  # first happens at instance 92 in a RandomTreeGenerator(num_classes=10) stream. It
+  # happens only when multiple CSMOTE instances are trained at the same time in one JVM,
+  # as in test_determinism, which creates l1_a, l1_b, and l2 before training them in
+  # turn. If identical instances are built and trained one after another, their results
+  # match for more than 150 instances. This also happens with default params and with
+  # disable_drift_detection=True, so min_size_allowed and drift timing are not the
+  # cause. HoeffdingTree, CSMOTE's base learner, does not show this issue when instances
+  # are trained in turn. The cause may be shared random state or a shared buffer in
+  # CSMOTE's MOA code. This project only includes a built moa.jar, not the Java source,
+  # so the Python wrapper cannot fix it.
+  skip_test_determinism: "CSMOTE instances with the same random_seed
+    diverge after SMOTE starts when multiple instances are trained at the same time in
+    one JVM. This needs work in the MOA CSMOTE code."
+
+- id: LeveragingBagging
+  learner: capymoa.classifier.LeveragingBagging
+  params: {}
+
+  accuracy: 86.7
+  win_accuracy: 91.0
+
+- id: OnlineAdwinBagging
+  learner: capymoa.classifier.OnlineAdwinBagging
+  params: {}
+
+  accuracy: 85.25
+  win_accuracy: 92.0
+
+- id: WeightedkNN
+  learner: capymoa.classifier.WeightedkNN
+  params: {}
+
+  accuracy: 78.15
+  win_accuracy: 70.0
+  always_deterministic: true
+
+- id: ShrubsClassifier
+  learner: capymoa.classifier.ShrubsClassifier
+  params: {}
+
+  accuracy: 89.15
+  win_accuracy: 78.0
+
+- id: Finetune
+  learner: capymoa.classifier.Finetune
+  params:
+    model: Perceptron
+    optimizer: Adam
+    optimizer_params:
+      lr: 0.01
+
+  needs_torch: true
+  # A randomly-initialised NN's forward pass is a genuine, well-formed prediction which
+  # is essentially an abstention.
+  predicts_before_training: true
+  batch_size: 32
+
+  accuracy: 57.4
+  win_accuracy: 66.0
+
+- id: DynamicEnsembleMemberSelection
+  learner: capymoa.classifier.DynamicEnsembleMemberSelection
+  params: {}
+
+  accuracy: 92.5
+  win_accuracy: 84.0
+  skip_test_save_then_load: "MOA's StreamingRandomPatchesClassifier is not serializable"

@@ -26,7 +26,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     >>> classifier = ShrubsClassifier(stream.get_schema())
     >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative'].accuracy():.1f}")
-    85.5
+    85.9
 
     .. [#0] `Shrub Ensembles for Online Classification Sebastian Buschjäger, Sibylle
              Hess, and Katharina Morik In Proceedings of the Thirty-Sixth AAAI
@@ -38,6 +38,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     def __init__(
         self,
         schema: Schema,
+        random_seed: int = 1,
         loss: Literal["mse", "ce", "h2"] = "ce",
         step_size: float | Literal["adaptive"] = "adaptive",
         ensemble_regularizer: Literal["hard-L0", "L0", "L1", "none"] = "hard-L0",
@@ -53,6 +54,8 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     ):
         """Initializes the ShrubEnsemble classifier with the given parameters.
 
+        :param random_seed: The random seed used to build the default decision
+            tree if ``sk_dt`` is not given.
         :param loss: The loss function to be used. Supported values are ``"mse"``,
             ``"ce"``, and ``"h2"``.
         :param step_size: The step size (i.e. learning rate of SGD) for updating
@@ -106,7 +109,10 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
         """
         if sk_dt is None:
             sk_dt = DecisionTreeClassifier(
-                splitter="best", criterion="gini", max_depth=None, random_state=1234
+                splitter="best",
+                criterion="gini",
+                max_depth=None,
+                random_state=random_seed,
             )
         Classifier.__init__(self, schema, sk_dt.random_state)
         _ShrubEnsembles.__init__(
