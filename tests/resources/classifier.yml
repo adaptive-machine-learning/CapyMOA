@@ -133,7 +133,7 @@
   win_accuracy: 81.0
   always_deterministic: true
 
-  # NOTE: NoChange's behaviour here this is arguably wrong, but has a legacy in MOA.
+  # NOTE: Predicting 0 before training is arguably wrong, but it's legacy MOA behaviour.
   predicts_before_training: "NoChange predicts 0 before training."
 
 - id: OnlineSmoothBoost
@@ -193,7 +193,7 @@
   win_accuracy: 89.0
   always_deterministic: true
 
-  # NOTE: NoChange's behaviour here this is arguably wrong, but has a legacy in MOA.
+  # NOTE: Defaulting to 0 before training is arguably wrong, but it's legacy MOA behaviour.
   predicts_before_training: "DynamicWeightedMajority has a default prediction of 0."
 
 - id: CSMOTE
@@ -202,18 +202,10 @@
 
   accuracy: 80.75
   win_accuracy: 64.0
-  # TODO: This issue must be fixed in MOA. It cannot be fixed in Python. CSMOTE
-  # instances with the same random_seed diverge after SMOTE starts oversampling. This
-  # first happens at instance 92 in a RandomTreeGenerator(num_classes=10) stream. It
-  # happens only when multiple CSMOTE instances are trained at the same time in one JVM,
-  # as in test_determinism, which creates l1_a, l1_b, and l2 before training them in
-  # turn. If identical instances are built and trained one after another, their results
-  # match for more than 150 instances. This also happens with default params and with
-  # disable_drift_detection=True, so min_size_allowed and drift timing are not the
-  # cause. HoeffdingTree, CSMOTE's base learner, does not show this issue when instances
-  # are trained in turn. The cause may be shared random state or a shared buffer in
-  # CSMOTE's MOA code. This project only includes a built moa.jar, not the Java source,
-  # so the Python wrapper cannot fix it.
+  # TODO: MOA bug, not fixable from Python. Same-seed CSMOTE instances diverge
+  # once oversampling starts, but only when trained concurrently in one JVM
+  # (as in test_determinism), not when trained one after another. Likely
+  # shared state in MOA's CSMOTE code.
   skip_test_determinism: "CSMOTE instances with the same random_seed
     diverge after SMOTE starts when multiple instances are trained at the same time in
     one JVM. This needs work in the MOA CSMOTE code."
@@ -246,9 +238,8 @@
 
   accuracy: 89.15
   win_accuracy: 78.0
-  # ShrubsClassifier trains via per-instance SGD over many batches; a sub-ULP
-  # floating-point difference between platforms/BLAS builds can compound over
-  # the run and flip a single prediction, shifting accuracy slightly.
+  # Trains via per-instance SGD; sub-ULP FP differences across platforms can
+  # compound and flip a prediction, shifting accuracy slightly.
   accuracy_abs_tolerance: 1.0
 
 - id: Finetune
@@ -260,8 +251,7 @@
       lr: 0.01
 
   needs_torch: true
-  # A randomly-initialised NN's forward pass is a genuine, well-formed prediction which
-  # is essentially an abstention.
+  # A randomly-initialised NN's forward pass is a genuine prediction, not an abstention.
   predicts_before_training: true
   batch_size: 32
 
