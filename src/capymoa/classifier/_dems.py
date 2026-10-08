@@ -15,12 +15,12 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
 
     >>> from capymoa.classifier import DynamicEnsembleMemberSelection
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
     >>> classifier = DynamicEnsembleMemberSelection(stream.get_schema())
-    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
-    >>> print(f"{results.accuracy():.1f}")
+    >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
+    >>> print(f"{results['accuracy']:.1f}")
     90.6
 
     .. [#0] `Dynamic Ensemble Member Selection for Data Stream Classification.

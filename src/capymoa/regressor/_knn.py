@@ -18,12 +18,12 @@ class KNNRegressor(MOARegressor):
 
     >>> from capymoa.datasets import Fried
         >>> from capymoa.regressor import KNNRegressor
-        >>> from capymoa.evaluation import prequential_evaluation
+        >>> from capymoa.regressor import evaluate_regressor
     >>> stream = Fried()
     >>> schema = stream.get_schema()
     >>> learner = KNNRegressor(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].rmse()
+    >>> results = evaluate_regressor(stream, learner, max_instances=1000)
+    >>> results["rmse"]
     2.9811398077838542
     """
 

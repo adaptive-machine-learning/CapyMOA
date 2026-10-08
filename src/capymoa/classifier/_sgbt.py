@@ -19,20 +19,20 @@ class StreamingGradientBoostedTrees(MOAClassifier):
 
     >>> from capymoa.classifier import StreamingGradientBoostedTrees
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
     >>> classifier = StreamingGradientBoostedTrees(stream.get_schema())
-    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
-    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
+    >>> print(f"{results['accuracy']:.1f}")
     86.3
     >>> learner = StreamingGradientBoostedTrees(
     ...     stream.get_schema(),
     ...     base_learner='meta.AdaptiveRandomForestRegressor -s 10',
     ...     boosting_iterations=10
     ... )
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    >>> results = evaluate_classifier(stream, learner, max_instances=1000)
+    >>> print(f"{results['accuracy']:.1f}")
     86.8
 
     .. [#0] `Gradient boosted trees for evolving data streams. Nuwan Gunasekara,

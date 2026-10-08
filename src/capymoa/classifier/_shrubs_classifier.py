@@ -20,13 +20,13 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
 
     >>> from capymoa.classifier import ShrubsClassifier
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
     >>> classifier = ShrubsClassifier(stream.get_schema())
-    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
-    >>> print(f"{results['cumulative'].accuracy():.0f}")
-    86
+    >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
+    >>> print(f"{results['accuracy']:.1f}")
+    85.5
 
     .. [#0] `Shrub Ensembles for Online Classification Sebastian Buschjäger, Sibylle
              Hess, and Katharina Morik In Proceedings of the Thirty-Sixth AAAI

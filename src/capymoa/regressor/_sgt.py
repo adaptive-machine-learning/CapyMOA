@@ -21,12 +21,12 @@ class StochasticGradientTree(MOARegressor):
 
     >>> from capymoa.regressor import StochasticGradientTree
     >>> from capymoa.datasets import Fried
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.regressor import evaluate_regressor
     >>>
     >>> stream = Fried()
     >>> learner = StochasticGradientTree(stream.get_schema())
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> round(results["cumulative"].rmse(), 2)
+    >>> results = evaluate_regressor(stream, learner, max_instances=1000)
+    >>> round(results["rmse"], 2)
     15.49
 
     .. [#f1] Gouk, Henry, Bernhard Pfahringer, and Eibe Frank. "Stochastic Gradient

@@ -33,12 +33,12 @@ class PassiveAggressiveRegressor(SKRegressor):
 
     >>> from capymoa.datasets import Fried
     >>> from capymoa.regressor import PassiveAggressiveRegressor
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.regressor import evaluate_regressor
     >>> stream = Fried()
     >>> schema = stream.get_schema()
     >>> learner = PassiveAggressiveRegressor(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].rmse()
+    >>> results = evaluate_regressor(stream, learner, max_instances=1000)
+    >>> results["rmse"]
     3.700...
     """
 

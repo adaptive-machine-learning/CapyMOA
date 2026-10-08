@@ -21,12 +21,12 @@ class HoeffdingAdaptiveTree(HoeffdingTree):
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import HoeffdingAdaptiveTree
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.classifier import evaluate_classifier
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
     >>> learner = HoeffdingAdaptiveTree(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
+    >>> results = evaluate_classifier(stream, learner, max_instances=1000)
+    >>> results["accuracy"]
     84.1
 
     ..  [#bifet2009] Bifet, A. and Gavalda, R., 2009. Adaptive learning from

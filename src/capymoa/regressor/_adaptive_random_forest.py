@@ -38,12 +38,12 @@ class AdaptiveRandomForestRegressor(MOARegressor):
 
     >>> from capymoa.datasets import FriedTiny
     >>> from capymoa.regressor import AdaptiveRandomForestRegressor
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.regressor import evaluate_regressor
     >>> stream = FriedTiny()
     >>> schema = stream.get_schema()
     >>> learner = AdaptiveRandomForestRegressor(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].rmse()
+    >>> results = evaluate_regressor(stream, learner, max_instances=1000)
+    >>> results["rmse"]
     4.146151270393789
     """
 

@@ -22,7 +22,7 @@ class BatchRegressor(Regressor, Batch, ABC):
 
     Supported by:
 
-    - :func:`capymoa.evaluation.prequential_evaluation`
+    - :func:`capymoa.regressor.evaluate_regressor`
 
     Evaluators that support batch classifiers will call the :func:`batch_train`
     and :func:`batch_predict` methods instead of :func:`train` and
@@ -30,7 +30,7 @@ class BatchRegressor(Regressor, Batch, ABC):
 
     >>> from capymoa.base import BatchRegressor
     >>> from capymoa.datasets import FriedTiny
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.regressor import evaluate_regressor
     >>>
     >>> batch_size = 500
     >>> class MyBatchRegressor(BatchRegressor):
@@ -44,7 +44,7 @@ class BatchRegressor(Regressor, Batch, ABC):
     ...
     >>> stream = FriedTiny()
     >>> learner = MyBatchRegressor(stream.get_schema())
-    >>> _ = prequential_evaluation(
+    >>> _ = evaluate_regressor(
     ...     stream,
     ...     learner,
     ...     batch_size=batch_size,

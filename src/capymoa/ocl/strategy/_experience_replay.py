@@ -20,18 +20,18 @@ class ExperienceReplay(BatchClassifier, Handler):
     >>> from capymoa.classifier import Finetune
     >>> from capymoa.ocl.strategy import ExperienceReplay
     >>> from capymoa.ocl.datasets import TinySplitMNIST
-    >>> from capymoa.ocl.evaluation import ocl_train_eval_loop
+    >>> from capymoa.ocl import evaluate_ocl
     >>> import torch
     >>> _ = torch.manual_seed(0)
     >>> scenario = TinySplitMNIST()
     >>> model = Perceptron(scenario.schema)
     >>> learner = ExperienceReplay(Finetune(scenario.schema, model))
-    >>> results = ocl_train_eval_loop(
+    >>> results = evaluate_ocl(
     ...     learner,
     ...     scenario.train_loaders(32),
     ...     scenario.test_loaders(32),
     ... )
-    >>> print(f"{results.accuracy_final*100:.1f}%")
+    >>> print(f"{results['accuracy_final']*100:.1f}%")
     28.5%
 
     .. [#f0] `Rolnick, D., Ahuja, A., Schwarz, J., Lillicrap, T., & Wayne, G. (2019).

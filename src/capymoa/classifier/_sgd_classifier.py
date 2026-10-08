@@ -18,12 +18,12 @@ class SGDClassifier(SKClassifier):
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import PassiveAggressiveClassifier
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.classifier import evaluate_classifier
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
     >>> learner = SGDClassifier(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
+    >>> results = evaluate_classifier(stream, learner, max_instances=1000)
+    >>> results["accuracy"]
     84.2
     """
 

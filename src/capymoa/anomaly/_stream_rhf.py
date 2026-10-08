@@ -276,7 +276,7 @@ class StreamRHF(AnomalyDetector):
 
     >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import StreamRHF
-    >>> from capymoa.evaluation import AnomalyDetectionEvaluator
+    >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = StreamRHF(schema=schema, num_trees=5, max_height=3)

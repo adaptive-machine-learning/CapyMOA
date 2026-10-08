@@ -113,7 +113,7 @@ class RSHash(AnomalyDetector):
     Example:
     >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import RSHash
-    >>> from capymoa.evaluation import AnomalyDetectionEvaluator
+    >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = RSHash(schema, s=256)
