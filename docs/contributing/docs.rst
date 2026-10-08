@@ -125,12 +125,11 @@ Here is an example of how to write a docstring for a classifier in CapyMOA:
         simple, deterministic, and fast.
 
         >>> from capymoa.datasets import ElectricityTiny
-        >>> from capymoa.classifier import ExampleClassifier
-        >>> from capymoa.evaluation import prequential_evaluation
+        >>> from capymoa.classifier import ExampleClassifier, evaluate_classifier
         >>> stream = ElectricityTiny()
         >>> learner = ExampleClassifier(stream.get_schema())
-        >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-        >>> results["cumulative"].accuracy()
+        >>> results = evaluate_classifier(stream, learner, max_instances=1000)
+        >>> results["accuracy"]
         87.9
 
         You may include a see also section with links to related classes or
@@ -139,7 +138,7 @@ Here is an example of how to write a docstring for a classifier in CapyMOA:
 
         .. seealso::
 
-            :func:`capymoa.evaluation.prequential_evaluation`
+            :func:`capymoa.classifier.evaluate_classifier`
 
         .. [#example25] Example, A., Author, B., & Researcher, C. (2025). Example Classifier.
         """

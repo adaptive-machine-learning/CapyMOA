@@ -34,8 +34,7 @@ including CPU-only PyTorch and dev dependencies.
 
 ```python
 from capymoa.datasets import Electricity
-from capymoa.classifier import HoeffdingTree
-from capymoa.evaluation import prequential_evaluation
+from capymoa.classifier import HoeffdingTree, evaluate_classifier
 
 # 1. Load a streaming dataset
 stream = Electricity()
@@ -44,10 +43,10 @@ stream = Electricity()
 model = HoeffdingTree(stream.get_schema())
 
 # 3. Run with test-then-train evaluation
-results = prequential_evaluation(stream, model)
+results = evaluate_classifier(stream, model)
 
 # 4. Success!
-print(f"Accuracy: {results.accuracy():.2f}%")
+print(f"Accuracy: {results['accuracy']:.2f}%")
 ```
 
 Next, we recommend the [Tutorials](https://capymoa.org/tutorials).

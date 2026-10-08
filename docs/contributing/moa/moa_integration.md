@@ -170,7 +170,7 @@ configures several options this way.
 ```python
 from capymoa.base import MOAClassifier
 from capymoa.datasets import ElectricityTiny
-from capymoa.evaluation import prequential_evaluation
+from capymoa.classifier import evaluate_classifier
 
 
 class AlwaysPositiveClassifier(MOAClassifier):
@@ -184,8 +184,8 @@ class AlwaysPositiveClassifier(MOAClassifier):
 
 stream = ElectricityTiny()
 learner = AlwaysPositiveClassifier(stream.get_schema(), target_class=1)
-results = prequential_evaluation(stream, learner, max_instances=1000)
-print(results["cumulative"].accuracy())
+results = evaluate_classifier(stream, learner, max_instances=1000)
+print(results["accuracy"])
 ```
 
 From here, follow the [FAQ](faq.md) for where the permanent wrapper file
