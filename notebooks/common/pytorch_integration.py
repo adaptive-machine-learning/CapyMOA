@@ -19,7 +19,7 @@
 # * It contains examples showing:
 #     * How to define a PyTorch Network to be used with CapyMOA.
 #     * How a simple PyTorch model can be used in a CapyMOA `Instance` loop.
-#     * How to define a PyTorch CapyMOA Classifier based on CapyMOA `Classifier` framework and how to use it with `prequential_evaluation()`.
+#     * How to define a PyTorch CapyMOA Classifier based on CapyMOA `Classifier` framework and how to use it with `evaluate_classifier()`.
 #     * How to use a PyTorch dataset with a CapyMOA classifier.
 # * `Exploring Advanced Features` (notebooks/common/advanced_API.py) includes an example using TensorBoard and a `PyTorchClassifier`.
 #  
@@ -91,7 +91,7 @@ class NeuralNetwork(nn.Module):
 
 # %%
 from capymoa.datasets import ElectricityTiny
-from capymoa.evaluation import ClassificationEvaluator
+from capymoa.classifier.evaluate import ClassificationEvaluator
 
 elec_stream = ElectricityTiny()
 
@@ -146,7 +146,7 @@ print(f"Accuracy at {i} : {evaluator.accuracy()}")
 
 # %% [markdown]
 # ## PyTorchClassifier
-# * Defining a `PyTorchClassifier` using the CapyMOA API makes it **compatible** with CapyMOA functions like `prequential_evaluation()` without losing the **flexibility** of specifying the `architecture` and the `training` method.
+# * Defining a `PyTorchClassifier` using the CapyMOA API makes it **compatible** with CapyMOA functions like `evaluate_classifier()` without losing the **flexibility** of specifying the `architecture` and the `training` method.
 # * The model is initialised after receiving the first instance.
 # * `PyTorchClassifier` is based on the `capymoa.base` `Classifier` abstract class.
 #
@@ -254,7 +254,7 @@ class PyTorchClassifier(Classifier):
 
 
 # %% [markdown] jupyter={"outputs_hidden": false}
-# ### Using PyTorchClassifier + prequential_evaluation
+# ### Using PyTorchClassifier + evaluate_classifier
 #
 # * We can access information about the stream through the `schema` directly, from the example below: 
 # ```python
@@ -265,7 +265,7 @@ class PyTorchClassifier(Classifier):
 # ```
 
 # %%
-from capymoa.evaluation import prequential_evaluation
+from capymoa.classifier import evaluate_classifier
 
 ## Opening a file as a stream
 elec_stream = ElectricityTiny()
@@ -279,14 +279,14 @@ simple_pyTorch_classifier = PyTorchClassifier(
     ).to(device),
 )
 
-evaluator = prequential_evaluation(
+evaluator = evaluate_classifier(
     stream=elec_stream,
     learner=simple_pyTorch_classifier,
     window_size=4500,
     optimise=False,
 )
 
-print(f"Accuracy: {evaluator.cumulative.accuracy()}")
+print(f"Accuracy: {evaluator['accuracy']}")
 
 # %% [markdown] jupyter={"outputs_hidden": false}
 # ## How to use a PyTorch dataset with a CapyMOA classifier
@@ -305,8 +305,8 @@ pytorch_dataset = datasets.FashionMNIST(
 
 # %%
 from capymoa.classifier import OnlineBagging
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 from capymoa.stream import TorchStream
 
 pytorch_stream = TorchStream.from_classification(
@@ -316,10 +316,12 @@ pytorch_stream = TorchStream.from_classification(
 # Creating a learner
 ob_learner = OnlineBagging(schema=pytorch_stream.get_schema(), ensemble_size=5)
 
-results_ob_learner = prequential_evaluation(
+results_ob_learner = evaluate_classifier(
     stream=pytorch_stream, learner=ob_learner, window_size=100, max_instances=1000
 )
 
-print(f"Accuracy: {results_ob_learner.cumulative.accuracy()}")
-display(results_ob_learner.windowed.metrics_per_window())
+print(f"Accuracy: {results_ob_learner['accuracy']}")
+import pandas as pd
+
+display(pd.DataFrame(results_ob_learner["windowed"]))
 plot_windowed_results(results_ob_learner, metric="accuracy")

@@ -50,14 +50,14 @@ dispatcher.notify(MyEvent(42))
 # %%
 from capymoa.classifier import NoChange
 from capymoa.ocl.datasets import TinySplitMNIST
-from capymoa.ocl.evaluation import ocl_train_eval_loop
+from capymoa.ocl import evaluate_ocl
 
 dispatcher = Dispatcher()
 # Subscribe to all events by using None as the event type
 dispatcher.subscribe(None, print_event_type)
 
 scenario = TinySplitMNIST()
-_ = ocl_train_eval_loop(
+_ = evaluate_ocl(
     NoChange(scenario.schema),
     train_streams=scenario.train_loaders(64)[:1],
     test_streams=scenario.test_loaders(64)[:1],
@@ -106,12 +106,12 @@ class PerceptronTI(BatchClassifier, Handler):
 
 
 learner = PerceptronTI(scenario.schema, n_tasks=5)
-results = ocl_train_eval_loop(
+results = evaluate_ocl(
     learner,  # If the learner is a Handler, it will be automatically subscribed.
     train_streams=scenario.train_loaders(32),
     test_streams=scenario.test_loaders(32),
 )
-print(f"Accuracy {results.accuracy_seen_avg * 100:.2f}")
+print(f"Accuracy {results['accuracy_seen_avg'] * 100:.2f}")
 
 # %% [markdown]
 # If you use a custom train-test loop with a `Classifier` that is also a `Handler` you

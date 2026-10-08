@@ -57,8 +57,8 @@ from capymoa.classifier import (
     StreamingRandomPatches,
 )
 from capymoa.datasets import Electricity
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 from capymoa.stream.drift import AbruptDrift, DriftStream, GradualDrift
 from capymoa.stream.generator import SEA
 
@@ -82,8 +82,8 @@ drift_stream = DriftStream(
 # %%
 def print_summary(label: str, results):
     print(
-        f"{label.ljust(10)} Cumulative accuracy = {results.accuracy():.2f}, "
-        f"wall-clock time: {results.wallclock():.3f}"
+        f"{label.ljust(10)} Cumulative accuracy = {results['accuracy']:.2f}, "
+        f"wall-clock time: {results['wallclock']:.3f}"
     )
 
 
@@ -98,15 +98,15 @@ def stream_learning_model_selection(model_list, window_size, max_instances):
     best_accuracy = 0  # The best accuracy score
     all_results = {}
     for model in model_list:
-        results = prequential_evaluation(
+        results = evaluate_classifier(
             stream=stream,
             learner=model,
             window_size=window_size,
             max_instances=max_instances,
         )
         all_results[model] = results
-        if results.cumulative.accuracy() > best_accuracy:
-            best_accuracy = results.cumulative.accuracy()
+        if results["accuracy"] > best_accuracy:
+            best_accuracy = results["accuracy"]
             model_b = model
 
     print_summary(f"Best ({model_b})", all_results[model_b])
@@ -153,7 +153,7 @@ autoclass = AutoClass(
     configuration_json="./settings_autoclass.json",
     base_classifiers=[KNN, HoeffdingAdaptiveTree, HoeffdingTree],
 )
-results_autoclass = prequential_evaluation(
+results_autoclass = evaluate_classifier(
     stream=stream,
     learner=autoclass,
     window_size=window_size,
@@ -170,16 +170,16 @@ hat = HoeffdingAdaptiveTree(schema)
 knn = KNN(schema)
 nb = NaiveBayes(schema)
 
-results_ht = prequential_evaluation(
+results_ht = evaluate_classifier(
     stream, ht, window_size=window_size, max_instances=max_instances
 )
-results_hat = prequential_evaluation(
+results_hat = evaluate_classifier(
     stream, hat, window_size=window_size, max_instances=max_instances
 )
-results_knn = prequential_evaluation(
+results_knn = evaluate_classifier(
     stream, knn, window_size=window_size, max_instances=max_instances
 )
-results_nb = prequential_evaluation(
+results_nb = evaluate_classifier(
     stream, nb, window_size=window_size, max_instances=max_instances
 )
 
@@ -203,7 +203,7 @@ plot_windowed_results(
 
 # %%
 from capymoa.automl import AutoClass
-from capymoa.evaluation import prequential_evaluation
+from capymoa.classifier import evaluate_classifier
 
 max_instances = 40000
 window_size = 4000
@@ -218,19 +218,19 @@ autoclass = AutoClass(
     base_classifiers=[KNN, HoeffdingAdaptiveTree, HoeffdingTree],
 )
 
-results_ht = prequential_evaluation(
+results_ht = evaluate_classifier(
     drift_stream, ht, window_size=window_size, max_instances=max_instances
 )
-results_hat = prequential_evaluation(
+results_hat = evaluate_classifier(
     drift_stream, hat, window_size=window_size, max_instances=max_instances
 )
-results_knn = prequential_evaluation(
+results_knn = evaluate_classifier(
     drift_stream, knn, window_size=window_size, max_instances=max_instances
 )
-results_nb = prequential_evaluation(
+results_nb = evaluate_classifier(
     drift_stream, nb, window_size=window_size, max_instances=max_instances
 )
-results_autoclass = prequential_evaluation(
+results_autoclass = evaluate_classifier(
     drift_stream, autoclass, window_size=window_size, max_instances=max_instances
 )
 
@@ -334,19 +334,19 @@ def test_successive_halving_and_bandit(
     default_ht = HoeffdingTree(schema=schema)
 
     print("\nRunning prequential evaluation...")
-    results_shc_ht = prequential_evaluation(
+    results_shc_ht = evaluate_classifier(
         stream=stream,
         learner=shc_ht,
         window_size=window_size,
         max_instances=max_instances,
     )
-    results_bandit_ht = prequential_evaluation(
+    results_bandit_ht = evaluate_classifier(
         stream=stream,
         learner=bandit_ht,
         window_size=window_size,
         max_instances=max_instances,
     )
-    results_default_ht = prequential_evaluation(
+    results_default_ht = evaluate_classifier(
         stream=stream,
         learner=default_ht,
         window_size=window_size,
@@ -356,21 +356,21 @@ def test_successive_halving_and_bandit(
     # Print results
     print("\nEvaluation Results:")
     print(
-        f"[SuccessiveHalving with {len(ht_models)} HT configs] Accuracy = {results_shc_ht.accuracy():.3f}, "
-        f"Time: {results_shc_ht.wallclock():.3f}s"
+        f"[SuccessiveHalving with {len(ht_models)} HT configs] Accuracy = {results_shc_ht['accuracy']:.3f}, "
+        f"Time: {results_shc_ht['wallclock']:.3f}s"
     )
     print(
-        f"[BanditClassifier with {len(ht_models)} HT configs] Accuracy = {results_bandit_ht.accuracy():.3f}, "
-        f"Time: {results_bandit_ht.wallclock():.3f}s"
+        f"[BanditClassifier with {len(ht_models)} HT configs] Accuracy = {results_bandit_ht['accuracy']:.3f}, "
+        f"Time: {results_bandit_ht['wallclock']:.3f}s"
     )
     print(
-        f"[Default HoeffdingTree] Accuracy = {results_default_ht.accuracy():.3f}, "
-        f"Time: {results_default_ht.wallclock():.3f}s"
+        f"[Default HoeffdingTree] Accuracy = {results_default_ht['accuracy']:.3f}, "
+        f"Time: {results_default_ht['wallclock']:.3f}s"
     )
 
     # Calculate improvements
-    improvement_shc = results_shc_ht.accuracy() - results_default_ht.accuracy()
-    improvement_bandit = results_bandit_ht.accuracy() - results_default_ht.accuracy()
+    improvement_shc = results_shc_ht["accuracy"] - results_default_ht["accuracy"]
+    improvement_bandit = results_bandit_ht["accuracy"] - results_default_ht["accuracy"]
     print("Improvement over default parameters:")
     print(f"SuccessiveHalving: {improvement_shc:.2f}% absolute")
     print(f"BanditClassifier: {improvement_bandit:.2f}% absolute")
@@ -476,7 +476,7 @@ def autoclass(stream, max_instances, window_size, budget):
         ],
     )
 
-    results_autoclass_enhanced = prequential_evaluation(
+    results_autoclass_enhanced = evaluate_classifier(
         stream=stream,
         learner=autoclass_enhanced,
         window_size=window_size,
@@ -501,7 +501,7 @@ def successive_halving(stream, max_instances, window_size):
             verbose=True,
         )
 
-    results_shc = prequential_evaluation(
+    results_shc = evaluate_classifier(
         stream=stream,
         learner=shc_direct,
         window_size=window_size,
@@ -524,7 +524,7 @@ def bandit_classifier(stream, max_instances, window_size, bandit_eps):
         verbose=True,
     )
 
-    results_bandit = prequential_evaluation(
+    results_bandit = evaluate_classifier(
         stream=stream,
         learner=bandit_clf,
         window_size=window_size,
@@ -561,37 +561,37 @@ def test_autoclass_vs_successive_halving_and_bandit(
 
     # Evaluate default models
     print("\nEvaluating default models...")
-    results_ht = prequential_evaluation(
+    results_ht = evaluate_classifier(
         stream=stream,
         learner=default_ht,
         window_size=window_size,
         max_instances=max_instances,
     )
-    results_knn = prequential_evaluation(
+    results_knn = evaluate_classifier(
         stream=stream,
         learner=default_knn,
         window_size=window_size,
         max_instances=max_instances,
     )
-    results_arf = prequential_evaluation(
+    results_arf = evaluate_classifier(
         stream=stream,
         learner=default_arf,
         window_size=window_size,
         max_instances=max_instances,
     )
-    results_hat = prequential_evaluation(
+    results_hat = evaluate_classifier(
         stream=stream,
         learner=default_hat,
         window_size=window_size,
         max_instances=max_instances,
     )
-    results_lb = prequential_evaluation(
+    results_lb = evaluate_classifier(
         stream=stream,
         learner=default_lb,
         window_size=window_size,
         max_instances=max_instances,
     )
-    results_srp = prequential_evaluation(
+    results_srp = evaluate_classifier(
         stream=stream,
         learner=default_srp,
         window_size=window_size,
@@ -601,40 +601,40 @@ def test_autoclass_vs_successive_halving_and_bandit(
     # Print results
     print("\nEvaluation Results:")
     print(
-        f"[Enhanced AutoClass] Accuracy = {results_autoclass_enhanced.accuracy():.3f}, "
-        f"Time: {results_autoclass_enhanced.wallclock():.3f}s"
+        f"[Enhanced AutoClass] Accuracy = {results_autoclass_enhanced['accuracy']:.3f}, "
+        f"Time: {results_autoclass_enhanced['wallclock']:.3f}s"
     )
     print(
-        f"[SuccessiveHalving] Accuracy = {results_shc.accuracy():.3f}, "
-        f"Time: {results_shc.wallclock():.3f}s"
+        f"[SuccessiveHalving] Accuracy = {results_shc['accuracy']:.3f}, "
+        f"Time: {results_shc['wallclock']:.3f}s"
     )
     print(
-        f"[BanditClassifier] Accuracy = {results_bandit.accuracy():.3f}, "
-        f"Time: {results_bandit.wallclock():.3f}s"
+        f"[BanditClassifier] Accuracy = {results_bandit['accuracy']:.3f}, "
+        f"Time: {results_bandit['wallclock']:.3f}s"
     )
     print(
-        f"[Default HoeffdingTree] Accuracy = {results_ht.accuracy():.3f}, "
-        f"Time: {results_ht.wallclock():.3f}s"
+        f"[Default HoeffdingTree] Accuracy = {results_ht['accuracy']:.3f}, "
+        f"Time: {results_ht['wallclock']:.3f}s"
     )
     print(
-        f"[Default KNN] Accuracy = {results_knn.accuracy():.3f}, "
-        f"Time: {results_knn.wallclock():.3f}s"
+        f"[Default KNN] Accuracy = {results_knn['accuracy']:.3f}, "
+        f"Time: {results_knn['wallclock']:.3f}s"
     )
     print(
-        f"[Default AdaptiveRandomForest] Accuracy = {results_arf.accuracy():.3f}, "
-        f"Time: {results_arf.wallclock():.3f}s"
+        f"[Default AdaptiveRandomForest] Accuracy = {results_arf['accuracy']:.3f}, "
+        f"Time: {results_arf['wallclock']:.3f}s"
     )
     print(
-        f"[Default HoeffdingAdaptiveTree] Accuracy = {results_hat.accuracy():.3f}, "
-        f"Time: {results_hat.wallclock():.3f}s"
+        f"[Default HoeffdingAdaptiveTree] Accuracy = {results_hat['accuracy']:.3f}, "
+        f"Time: {results_hat['wallclock']:.3f}s"
     )
     print(
-        f"[Default LeveragingBagging] Accuracy = {results_lb.accuracy():.3f}, "
-        f"Time: {results_lb.wallclock():.3f}s"
+        f"[Default LeveragingBagging] Accuracy = {results_lb['accuracy']:.3f}, "
+        f"Time: {results_lb['wallclock']:.3f}s"
     )
     print(
-        f"[Default StreamingRandomPatches] Accuracy = {results_srp.accuracy():.3f}, "
-        f"Time: {results_srp.wallclock():.3f}s"
+        f"[Default StreamingRandomPatches] Accuracy = {results_srp['accuracy']:.3f}, "
+        f"Time: {results_srp['wallclock']:.3f}s"
     )
 
     # Plot results

@@ -68,7 +68,7 @@ mve_inline = MVE(
 # * There are currently two types of prediction interval evaluators implemented: basic (cumulative) and windowed.
 
 # %%
-from capymoa.evaluation.evaluation import (
+from capymoa.uncertainty.evaluate import (
     PredictionIntervalEvaluator,
     PredictionIntervalWindowedEvaluator,
 )
@@ -111,7 +111,7 @@ print(
 # * Prediction interval tasks also can be wrapped into prequential evaluation in CapyMOA.
 
 # %%
-from capymoa.evaluation import prequential_evaluation
+from capymoa.uncertainty import evaluate_prediction_interval
 from capymoa.uncertainty import AdaPI
 
 # restart stream
@@ -124,26 +124,26 @@ adapi_learner = AdaPI(
     schema=fried_stream.get_schema(), base_learner=regressive_learner, limit=0.001
 )
 # gather results
-mve_results = prequential_evaluation(
+mve_results = evaluate_prediction_interval(
     stream=fried_stream, learner=mve_learner, window_size=1000
 )
-adapi_results = prequential_evaluation(
+adapi_results = evaluate_prediction_interval(
     stream=fried_stream, learner=adapi_learner, window_size=1000
 )
 
 # show overall results
 print(
-    f"MVE coverage: {mve_results.cumulative.coverage()}, NMPIW: {mve_results.cumulative.nmpiw()}"
+    f"MVE coverage: {mve_results['coverage']}, NMPIW: {mve_results['nmpiw']}"
 )
 print(
-    f"AdaPI coverage: {adapi_results.cumulative.coverage()}, NMPIW: {adapi_results.cumulative.nmpiw()}"
+    f"AdaPI coverage: {adapi_results['coverage']}, NMPIW: {adapi_results['nmpiw']}"
 )
 
 # %% [markdown]
 # ## Plots are also supported
 
 # %%
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.evaluation.plot import plot_windowed_results
 
 # plot over time comparison
 plot_windowed_results(mve_results, adapi_results, metric="coverage")
@@ -166,25 +166,22 @@ plot_windowed_results(mve_results, adapi_results, metric="nmpiw")
 # * The colors can be adjusted by the `colors` parameter in the function as a list.
 # * `start` and `end` parameters can be used to specify the range of the plot.
 # * The `ground truth` and `predictions` can be omitted by setting the `plot_truth` and `plot_predictions` parameters to `False`.
-#
-# **We have to set `optimise` to `False` to avoid subscribing problems**.
 
 # %%
 new_mve_learner = MVE(
     schema=fried_stream.get_schema(),
     base_learner=SOKNL(schema=fried_stream.get_schema(), ensemble_size=10),
 )
-new_mve_results = prequential_evaluation(
+new_mve_results = evaluate_prediction_interval(
     stream=fried_stream,
     learner=new_mve_learner,
     window_size=1000,
-    optimise=False,
     store_predictions=True,
     store_y=True,
 )
 
 # %%
-from capymoa.evaluation.visualization import plot_prediction_interval
+from capymoa.uncertainty.plot import plot_prediction_interval
 
 plot_prediction_interval(new_mve_results, start=300, end=500, colors=["coral"])
 
@@ -201,11 +198,10 @@ new_adapi_learner = AdaPI(
     base_learner=SOKNL(schema=fried_stream.get_schema(), ensemble_size=10),
     limit=0.001,
 )
-new_adapi_results = prequential_evaluation(
+new_adapi_results = evaluate_prediction_interval(
     stream=fried_stream,
     learner=new_adapi_learner,
     window_size=1000,
-    optimise=False,
     store_predictions=True,
     store_y=True,
 )

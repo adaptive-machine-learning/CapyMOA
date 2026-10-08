@@ -53,7 +53,7 @@ from sklearn.model_selection import ParameterSampler  # for random search
 from capymoa.classifier import HoeffdingTree
 from capymoa.drift.detectors import SEED
 from capymoa.drift.eval_detector import EvaluateDriftDetector
-from capymoa.evaluation import prequential_evaluation
+from capymoa.classifier import evaluate_classifier
 from capymoa.stream.drift import AbruptDrift, Concept, DriftStream
 from capymoa.stream.generator import (
     SEA,
@@ -147,15 +147,15 @@ for name, stream in streams.items():
 def build_error_signal(stream, max_instances):
     """Run a Hoeffding Tree on `stream` and return a binary error signal."""
     learner = HoeffdingTree(schema=stream.get_schema())
-    results = prequential_evaluation(
+    results = evaluate_classifier(
         stream,
         learner,
         max_instances=max_instances,
         store_predictions=True,
         store_y=True,
     )
-    y_true = results.ground_truth_y()
-    y_pred = results.predictions()
+    y_true = results["y_true"]
+    y_pred = results["y_pred"]
     errors = (y_true != y_pred).astype(float)
     return errors
 
