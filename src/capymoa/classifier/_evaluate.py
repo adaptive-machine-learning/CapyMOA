@@ -117,20 +117,20 @@ def evaluate_classifiers(
     if not schema.is_classification():
         raise ValueError("The stream is not a classification stream.")
 
-    runs = {
-        n: _Run(
-            one,
-            ClassificationEvaluator(schema=schema),
-            None
-            if window_size is None
-            else ClassificationWindowedEvaluator(
+    runs = {}
+    for name, learner in learners.items():
+        windowed = None
+        if window_size is not None:
+            windowed = ClassificationWindowedEvaluator(
                 schema=schema, window_size=window_size
-            ),
+            )
+        runs[name] = _Run(
+            learner,
+            ClassificationEvaluator(schema=schema),
+            windowed,
             store_y=store_y,
             store_predictions=store_predictions,
         )
-        for n, one in learners.items()
-    }
     outs = _prequential_loop(
         stream,
         runs,
