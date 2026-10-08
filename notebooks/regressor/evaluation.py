@@ -71,10 +71,10 @@ plot_windowed_results(kNN_results, ARF_results, metric="rmse")
 # %% [markdown]
 # ### Evaluating a single stream using multiple learners
 #
-# * `evaluate_regressors` evaluates multiple regressors (pass a dictionary of learners); the example below shows how it can be used.
+# * `evaluate_regressor` evaluates multiple regressors when you pass a dictionary of learners; the example below shows how it can be used.
 
 # %%
-from capymoa.regressor import evaluate_regressors
+from capymoa.regressor import evaluate_regressor
 
 # Define the learners + an alias (dictionary key)
 learners = {
@@ -86,7 +86,7 @@ learners = {
     ),
 }
 
-results = evaluate_regressors(stream, learners)
+results = evaluate_regressor(stream, learners)
 
 print("Cumulative results for each learner:")
 for learner_id in learners:

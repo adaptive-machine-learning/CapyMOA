@@ -7,7 +7,7 @@ and adapt their predictions as the underlying target function drifts.
 
 from ._adaptive_random_forest import AdaptiveRandomForestRegressor
 from ._arffimtdd import ARFFIMTDD
-from ._evaluate import evaluate_regressor, evaluate_regressors
+from ._evaluate import evaluate_regressor
 from ._fading_target_mean import FadingTargetMean
 from ._fimtdd import FIMTDD
 from ._knn import KNNRegressor
@@ -42,5 +42,4 @@ __all__ = [
     "StreamingGradientBoostedRegression",
     "TargetMean",
     "evaluate_regressor",
-    "evaluate_regressors",
 ]

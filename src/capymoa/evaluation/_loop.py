@@ -304,24 +304,6 @@ def _prequential_loop_fast(
     )
 
 
-def _require_mapping(learners, singular: str) -> dict[str, Any]:
-    """Check ``learners`` is a mapping of names to learners."""
-    if not isinstance(learners, Mapping):
-        raise TypeError(
-            f"`learners` must map names to learners, got {type(learners).__name__}. "
-            f"Use `{singular}` for a single learner."
-        )
-    if not learners:
-        raise ValueError("No learners to evaluate.")
-    return dict(learners)
-
-
-def _require_single(learner, plural: str) -> None:
-    """Check ``learner`` is one learner and not a mapping of them."""
-    if isinstance(learner, Mapping):
-        raise TypeError(f"Got a mapping of learners. Use `{plural}` for many learners.")
-
-
 def _run_info(
     name: str,
     stream: "Stream | str",

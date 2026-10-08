@@ -13,7 +13,6 @@ from capymoa.classifier import (
     NaiveBayes,
     NoChange,
     evaluate_classifier,
-    evaluate_classifiers,
 )
 from capymoa.classifier.evaluate import (
     ClassificationEvaluator,
@@ -57,7 +56,7 @@ def test_evaluate_classifier():
     )
 
 
-def test_evaluate_classifiers():
+def test_evaluate_classifier_mapping():
     """One pass over the stream gives the same results as one pass per learner."""
     stream = SEA(function=1)
     learners = {
@@ -65,7 +64,7 @@ def test_evaluate_classifiers():
         "ht": HoeffdingTree(schema=stream.get_schema()),
     }
 
-    together = evaluate_classifiers(stream, learners, max_instances=100)
+    together = evaluate_classifier(stream, learners, max_instances=100)
     assert list(together) == ["nb", "ht"]
     assert together["nb"]["learner"] == "nb"
     # Evaluated together, the stream has been read once.
@@ -133,15 +132,24 @@ def test_prequential_evaluation_dispatches_on_learner_type():
         prequential_evaluation(classification, object(), max_instances=50)
 
 
-def test_single_and_many_learners_are_not_mixed_up():
+def test_learner_or_mapping():
+    """One learner gives one result. A mapping gives a dict of results by name."""
     stream = ElectricityTiny()
-    learner = NaiveBayes(stream.get_schema())
-    with pytest.raises(TypeError, match="evaluate_classifiers"):
-        evaluate_classifier(stream, {"nb": learner})
-    with pytest.raises(TypeError, match="evaluate_classifier\\b"):
-        evaluate_classifiers(stream, learner)  # type: ignore[arg-type]
-    with pytest.raises(ValueError):
-        evaluate_classifiers(stream, {})
+    single = evaluate_classifier(
+        stream, NaiveBayes(stream.get_schema()), max_instances=100
+    )
+    assert "accuracy" in single
+
+    many = evaluate_classifier(
+        stream, {"nb": NaiveBayes(stream.get_schema())}, max_instances=100
+    )
+    assert isinstance(many, dict)
+    assert list(many) == ["nb"]
+    assert many["nb"]["learner"] == "nb"
+    assert "accuracy" in many["nb"]
+
+    with pytest.raises(ValueError, match="No learners to evaluate\\."):
+        evaluate_classifier(stream, {}, max_instances=100)
 
 
 def test_run_info():

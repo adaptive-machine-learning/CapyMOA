@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from typing import Any, overload
 
 from tqdm import tqdm
 
@@ -6,8 +7,6 @@ from capymoa.base import PredictionIntervalLearner
 from capymoa.evaluation._loop import (
     _LoopOutput,
     _prequential_loop,
-    _require_mapping,
-    _require_single,
     _Run,
     _run_info,
 )
@@ -36,27 +35,49 @@ def _results(
     )  # type: ignore[typeddict-item]
 
 
-def evaluate_prediction_intervals(
+@overload
+def evaluate_prediction_interval(
+    stream: Stream, learner: PredictionIntervalLearner, **kwargs: Any
+) -> PredictionIntervalResults: ...
+@overload
+def evaluate_prediction_interval(
+    stream: Stream, learner: Mapping[str, PredictionIntervalLearner], **kwargs: Any
+) -> dict[str, PredictionIntervalResults]: ...
+def evaluate_prediction_interval(
     stream: Stream,
-    learners: Mapping[str, PredictionIntervalLearner],
+    learner: PredictionIntervalLearner | Mapping[str, PredictionIntervalLearner],
     max_instances: int | None = None,
     window_size: int | None = 1000,
     store_predictions: bool = False,
     store_y: bool = False,
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
-) -> dict[str, PredictionIntervalResults]:
-    """Test-then-train many prediction interval learners on one pass over a stream.
+) -> PredictionIntervalResults | dict[str, PredictionIntervalResults]:
+    """Test-then-train a prediction interval learner, or many on one pass over a stream.
 
-    The learners get the same instances in turn, so the stream is read once.
-    The training and testing of the learners is interleaved, so ``wallclock``
-    and ``cpu_time`` are for the whole pass and are the same for all the
-    learners. Do not use them to compare the speed of learners.
+    Each instance is first used to test the learner, then to train it.
+
+    >>> from capymoa.uncertainty import MVE, evaluate_prediction_interval
+    >>> from capymoa.datasets import FriedTiny
+    >>> stream = FriedTiny()
+    >>> results = evaluate_prediction_interval(
+    ...     stream, MVE(stream.get_schema()), max_instances=1000
+    ... )
+    >>> print(f"{results['coverage']:.1f}")
+    97.8
+
+    Give a mapping of names to learners to get a dict of results by name. The
+    learners get the same instances in turn, so the stream is read once. This
+    is useful when reading the stream is slow. The learners are interleaved, so
+    ``wallclock`` and ``cpu_time`` are for the whole pass and are the same for
+    all the learners. Do not use them to compare the speed of learners.
 
     ``y_pred`` has one row per instance with the lower bound, the point
-    prediction and the upper bound.
+    prediction and the upper bound. There is no Java loop.
 
     :param stream: The stream to evaluate on. Restarted if ``restart_stream``.
+    :param learner: The learner to evaluate, or a mapping of names to learners.
+        The name is the ``learner`` key of each result.
     :param max_instances: Number of instances to evaluate. If ``None``, go on
         until the stream ends.
     :param window_size: Number of instances in a window of ``windowed``. If
@@ -66,24 +87,25 @@ def evaluate_prediction_intervals(
     :param restart_stream: If ``False``, continue from the current position in the
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
-    :param learners: The learners to evaluate, by name. The name is the ``learner``
-        key of the result.
-    :return: The results by name.
+    :return: The results, or a dict of results by name for a mapping.
     """
-    learners = _require_mapping(learners, "evaluate_prediction_interval")
+    many = isinstance(learner, Mapping)
+    if many and not learner:
+        raise ValueError("No learners to evaluate.")
     if restart_stream:
         stream.restart()
     schema = stream.get_schema()
     if not schema.is_regression():
         raise ValueError("The stream is not a regression stream.")
 
+    learners = dict(learner) if many else {str(learner): learner}
     runs = {}
-    for name, learner in learners.items():
+    for name, each in learners.items():
         windowed = None
         if window_size is not None:
             windowed = PredictionIntervalWindowedEvaluator(schema, window_size)
         runs[name] = _Run(
-            learner,
+            each,
             PredictionIntervalEvaluator(schema),
             windowed,
             store_y=store_y,
@@ -95,59 +117,8 @@ def evaluate_prediction_intervals(
         max_instances=max_instances,
         progress_bar=progress_bar,
     )
-    return {
+    results = {
         n: _results(n, stream, out, runs[n].cumulative, runs[n].windowed)
         for n, out in outs.items()
     }
-
-
-def evaluate_prediction_interval(
-    stream: Stream,
-    learner: PredictionIntervalLearner,
-    max_instances: int | None = None,
-    window_size: int | None = 1000,
-    store_predictions: bool = False,
-    store_y: bool = False,
-    restart_stream: bool = True,
-    progress_bar: bool | tqdm = False,
-) -> PredictionIntervalResults:
-    """Test-then-train a prediction interval learner on a stream.
-
-    >>> from capymoa.uncertainty import MVE, evaluate_prediction_interval
-    >>> from capymoa.datasets import FriedTiny
-    >>> stream = FriedTiny()
-    >>> results = evaluate_prediction_interval(
-    ...     stream, MVE(stream.get_schema()), max_instances=1000
-    ... )
-    >>> print(f"{results['coverage']:.1f}")
-    97.8
-
-    ``y_pred`` has one row per instance with the lower bound, the point
-    prediction and the upper bound. There is no Java loop. To compare learners
-    on one pass over the stream use :func:`evaluate_prediction_intervals`.
-
-    :param stream: The stream to evaluate on. Restarted if ``restart_stream``.
-    :param max_instances: Number of instances to evaluate. If ``None``, go on
-        until the stream ends.
-    :param window_size: Number of instances in a window of ``windowed``. If
-        ``None``, there are no windowed results.
-    :param store_predictions: Keep the predictions in ``y_pred``.
-    :param store_y: Keep the ground truth in ``y_true``.
-    :param restart_stream: If ``False``, continue from the current position in the
-        stream.
-    :param progress_bar: Enable, disable, or give a progress bar.
-    :param learner: The learner to evaluate.
-    :return: The results.
-    """
-    _require_single(learner, "evaluate_prediction_intervals")
-    name = str(learner)
-    return evaluate_prediction_intervals(
-        stream,
-        {name: learner},
-        max_instances=max_instances,
-        window_size=window_size,
-        store_predictions=store_predictions,
-        store_y=store_y,
-        restart_stream=restart_stream,
-        progress_bar=progress_bar,
-    )[name]
+    return results if many else next(iter(results.values()))

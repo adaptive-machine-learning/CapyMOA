@@ -5,11 +5,11 @@ Every research domain defines its own flat, typed result (see
 :class:`RunInfo`. A result is a plain :class:`dict`, so it can be pickled,
 compared and put in a :class:`pandas.DataFrame`.
 
->>> from capymoa.classifier import HoeffdingTree, NaiveBayes, evaluate_classifiers
+>>> from capymoa.classifier import HoeffdingTree, NaiveBayes, evaluate_classifier
 >>> from capymoa.datasets import ElectricityTiny
 >>> import pandas as pd
 >>> stream = ElectricityTiny()
->>> results = evaluate_classifiers(
+>>> results = evaluate_classifier(
 ...     stream,
 ...     {"ht": HoeffdingTree(stream.get_schema()), "nb": NaiveBayes(stream.get_schema())},
 ...     max_instances=1000,

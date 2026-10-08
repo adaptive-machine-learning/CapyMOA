@@ -10,7 +10,7 @@ from capymoa._optional import lazy_torch_attrs
 
 from . import datasets
 from ._adaptive_isolation_forest import AdaptiveIsolationForest
-from ._evaluate import evaluate_anomaly, evaluate_anomaly_detectors
+from ._evaluate import evaluate_anomaly
 from ._half_space_trees import HalfSpaceTrees
 from ._iforest_asd import IForestASD
 from ._loda import Loda
@@ -36,7 +36,6 @@ __all__ = [
     "StreamingIsolationForest",
     "datasets",
     "evaluate_anomaly",
-    "evaluate_anomaly_detectors",
 ]
 
 

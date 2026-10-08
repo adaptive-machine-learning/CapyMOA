@@ -19,7 +19,7 @@
 # This notebook further explores **high-level evaluation functions**, **data abstraction** and **classifiers**.
 #
 # * **High-level evaluation functions**
-#     * We show how to evaluate one learner with `evaluate_classifier()`, many learners in one pass over the stream with `evaluate_classifiers()`, and how to work with the results.
+#     * We show how to evaluate one learner with `evaluate_classifier()`, many learners in one pass over the stream by passing a dictionary to `evaluate_classifier()`, and how to work with the results.
 #     * We also discuss particularities about how these evaluation functions relate to how research has developed in the field, and how evaluation is commonly performed and presented.
 #
 # * **Supervised Learning**
@@ -107,7 +107,7 @@ print(
 # | semi-supervised | `capymoa.ssl.evaluate_ssl` | `SSLResults` |
 # | anomaly detection | `capymoa.anomaly.evaluate_anomaly` | `AnomalyResults` |
 #
-# Each function evaluates one learner. Its plural form (such as `evaluate_classifiers()`) takes a dictionary of learners and evaluates them all in one pass over the stream.
+# Each function evaluates one learner. Pass a dictionary of learners instead, and the function evaluates them all in one pass over the stream.
 #
 # If you do not know the domain of a learner in advance, use `capymoa.evaluation.prequential_evaluation()`. It checks the type of the learner and calls the matching function from the table.
 #
@@ -177,7 +177,7 @@ plot_windowed_results(results_ht, metric="accuracy")
 # %% [markdown]
 # ### Evaluating a single stream using multiple learners
 #
-# `evaluate_classifiers()` further encapsulates experiments by executing multiple learners on a single stream. Pass a dictionary of names to learners.
+# Passing a dictionary of names to learners to `evaluate_classifier()` further encapsulates experiments by executing multiple learners on a single stream.
 #
 # * This behaves as if we invoked `evaluate_classifier()` multiple times (without the Java loop), but internally it only iterates through the stream once. This is useful if we are faced with a situation where accessing each instance of the stream is costly, then this will be more convenient than just invoking `evaluate_classifier()` multiple times.
 #
@@ -188,7 +188,7 @@ plot_windowed_results(results_ht, metric="accuracy")
 # %%
 from capymoa.classifier import AdaptiveRandomForestClassifier, OnlineBagging
 from capymoa.datasets import Electricity
-from capymoa.classifier import evaluate_classifiers
+from capymoa.classifier import evaluate_classifier
 from capymoa.evaluation.plot import plot_windowed_results
 
 stream = Electricity()
@@ -199,7 +199,7 @@ learners = {
     "ARF": AdaptiveRandomForestClassifier(schema=stream.get_schema(), ensemble_size=10),
 }
 
-results = evaluate_classifiers(stream, learners, window_size=4500)
+results = evaluate_classifier(stream, learners, window_size=4500)
 
 print(
     f"OB final accuracy = {results['OB']['accuracy']} and ARF final accuracy = {results['ARF']['accuracy']}"

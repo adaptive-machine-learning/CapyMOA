@@ -1,6 +1,7 @@
 import math
 import re
 from collections.abc import Mapping
+from typing import Any, overload
 
 import numpy as np
 from tqdm import tqdm
@@ -15,8 +16,6 @@ from capymoa.evaluation._loop import (
     _LoopOutput,
     _prequential_loop,
     _prequential_loop_fast,
-    _require_mapping,
-    _require_single,
     _Run,
     _run_info,
     _use_java_loop,
@@ -65,88 +64,17 @@ def _classifier_results(
     return results
 
 
-def evaluate_classifiers(
-    stream: Stream,
-    learners: Mapping[str, Classifier],
-    max_instances: int | None = None,
-    window_size: int | None = 1000,
-    store_predictions: bool = False,
-    store_y: bool = False,
-    restart_stream: bool = True,
-    progress_bar: bool | tqdm = False,
-    batch_size: int = 1,
-) -> dict[str, ClassifierResults]:
-    """Test-then-train many classifiers on one pass over a stream.
-
-    The learners get the same instances in turn, so the stream is read once.
-    This is useful when reading the stream is slow. It does not use the Java
-    loop. The training and testing of the learners is interleaved, so
-    ``wallclock`` and ``cpu_time`` are for the whole pass and are the same for
-    all the learners. Do not use them to compare the speed of learners.
-
-    >>> from capymoa.classifier import HoeffdingTree, NaiveBayes, evaluate_classifiers
-    >>> from capymoa.datasets import ElectricityTiny
-    >>> stream = ElectricityTiny()
-    >>> learners = {
-    ...     "ht": HoeffdingTree(stream.get_schema()),
-    ...     "nb": NaiveBayes(stream.get_schema()),
-    ... }
-    >>> results = evaluate_classifiers(stream, learners, max_instances=1000)
-    >>> print(f"{results['ht']['accuracy']:.1f} {results['nb']['accuracy']:.1f}")
-    84.4 84.8
-
-    :param stream: The stream to evaluate on. Restarted if ``restart_stream``.
-    :param max_instances: Number of instances to evaluate. If ``None``, go on
-        until the stream ends.
-    :param window_size: Number of instances in a window of ``windowed``. If
-        ``None``, there are no windowed results.
-    :param store_predictions: Keep the predictions in ``y_pred``.
-    :param store_y: Keep the ground truth in ``y_true``.
-    :param restart_stream: If ``False``, continue from the current position in the
-        stream.
-    :param progress_bar: Enable, disable, or give a progress bar.
-    :param learners: The learners to evaluate, by name. The name is the ``learner``
-        key of the result.
-    :param batch_size: Instances per mini-batch, for batch learners.
-    :return: The results by name.
-    """
-    learners = _require_mapping(learners, "evaluate_classifier")
-    if restart_stream:
-        stream.restart()
-    schema = stream.get_schema()
-    if not schema.is_classification():
-        raise ValueError("The stream is not a classification stream.")
-
-    runs = {}
-    for name, learner in learners.items():
-        windowed = None
-        if window_size is not None:
-            windowed = ClassificationWindowedEvaluator(
-                schema=schema, window_size=window_size
-            )
-        runs[name] = _Run(
-            learner,
-            ClassificationEvaluator(schema=schema),
-            windowed,
-            store_y=store_y,
-            store_predictions=store_predictions,
-        )
-    outs = _prequential_loop(
-        stream,
-        runs,
-        max_instances=max_instances,
-        progress_bar=progress_bar,
-        batch_size=batch_size,
-    )
-    return {
-        n: _classifier_results(n, stream, out, runs[n].cumulative, runs[n].windowed)
-        for n, out in outs.items()
-    }
-
-
+@overload
+def evaluate_classifier(
+    stream: Stream, learner: Classifier, **kwargs: Any
+) -> ClassifierResults: ...
+@overload
+def evaluate_classifier(
+    stream: Stream, learner: Mapping[str, Classifier], **kwargs: Any
+) -> dict[str, ClassifierResults]: ...
 def evaluate_classifier(
     stream: Stream,
-    learner: Classifier,
+    learner: Classifier | Mapping[str, Classifier],
     max_instances: int | None = None,
     window_size: int | None = 1000,
     store_predictions: bool = False,
@@ -155,8 +83,8 @@ def evaluate_classifier(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
-) -> ClassifierResults:
-    """Test-then-train a classifier on a stream (prequential evaluation).
+) -> ClassifierResults | dict[str, ClassifierResults]:
+    """Test-then-train a classifier, or many on one pass over a stream.
 
     Each instance is first used to test the learner, then to train it.
 
@@ -169,33 +97,50 @@ def evaluate_classifier(
     >>> print(f"{results['accuracy']:.1f}")
     84.4
 
-    To compare learners on one pass over the stream use
-    :func:`evaluate_classifiers`.
+    Give a mapping of names to learners to get a dict of results by name. The
+    learners get the same instances in turn, so the stream is read once. This
+    is useful when reading the stream is slow. A mapping does not use the Java
+    loop. The learners are interleaved, so ``wallclock`` and ``cpu_time`` are
+    for the whole pass and are the same for all the learners. Do not use them
+    to compare the speed of learners.
+
+    >>> from capymoa.classifier import NaiveBayes
+    >>> learners = {
+    ...     "ht": HoeffdingTree(stream.get_schema()),
+    ...     "nb": NaiveBayes(stream.get_schema()),
+    ... }
+    >>> results = evaluate_classifier(stream, learners, max_instances=1000)
+    >>> print(f"{results['ht']['accuracy']:.1f} {results['nb']['accuracy']:.1f}")
+    84.4 84.8
 
     :param stream: The stream to evaluate on. Restarted if ``restart_stream``.
+    :param learner: The learner to evaluate, or a mapping of names to learners.
+        The name is the ``learner`` key of each result.
     :param max_instances: Number of instances to evaluate. If ``None``, go on
         until the stream ends.
     :param window_size: Number of instances in a window of ``windowed``. If
         ``None``, there are no windowed results.
     :param store_predictions: Keep the predictions in ``y_pred``.
     :param store_y: Keep the ground truth in ``y_true``.
+    :param optimise: Use the Java loop in MOA if the learner allows it. Needs a
+        ``window_size``. The Java loop has no progress bar. Only used for one
+        learner.
     :param restart_stream: If ``False``, continue from the current position in the
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
-    :param learner: The learner to evaluate.
-    :param optimise: Use the Java loop in MOA if the learner allows it. Needs a
-        ``window_size``. The Java loop has no progress bar.
     :param batch_size: Instances per mini-batch, for batch learners.
-    :return: The results.
+    :return: The results, or a dict of results by name for a mapping.
     """
-    _require_single(learner, "evaluate_classifiers")
+    many = isinstance(learner, Mapping)
+    if many and not learner:
+        raise ValueError("No learners to evaluate.")
     if restart_stream:
         stream.restart()
     schema = stream.get_schema()
     if not schema.is_classification():
         raise ValueError("The stream is not a classification stream.")
-    name = str(learner)
-    if _use_java_loop(
+
+    if not many and _use_java_loop(
         stream,
         learner,
         optimise=optimise,
@@ -210,15 +155,34 @@ def evaluate_classifier(
             store_predictions=store_predictions,
         )
         out = _prequential_loop_fast(stream, run, max_instances=max_instances)
-        return _classifier_results(name, stream, out, run.cumulative, run.windowed)
-    return evaluate_classifiers(
+        return _classifier_results(
+            str(learner), stream, out, run.cumulative, run.windowed
+        )
+
+    learners = dict(learner) if many else {str(learner): learner}
+    runs = {}
+    for name, each in learners.items():
+        windowed = None
+        if window_size is not None:
+            windowed = ClassificationWindowedEvaluator(
+                schema=schema, window_size=window_size
+            )
+        runs[name] = _Run(
+            each,
+            ClassificationEvaluator(schema=schema),
+            windowed,
+            store_y=store_y,
+            store_predictions=store_predictions,
+        )
+    outs = _prequential_loop(
         stream,
-        {name: learner},
+        runs,
         max_instances=max_instances,
-        window_size=window_size,
-        store_predictions=store_predictions,
-        store_y=store_y,
-        restart_stream=False,
         progress_bar=progress_bar,
         batch_size=batch_size,
-    )[name]
+    )
+    results = {
+        n: _classifier_results(n, stream, out, runs[n].cumulative, runs[n].windowed)
+        for n, out in outs.items()
+    }
+    return results if many else next(iter(results.values()))
