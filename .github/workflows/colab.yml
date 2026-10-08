@@ -1,0 +1,21 @@
+name: Colab
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/colab.yml"
+      - ".github/scripts/colab.sh"
+
+jobs:
+  colab:
+    name: Google Colab (cpu-runtime, plain pip)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    container:
+      image: us-docker.pkg.dev/colab-images/public/cpu-runtime
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install and test CapyMOA in Colab image
+        run: bash .github/scripts/colab.sh
