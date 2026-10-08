@@ -117,8 +117,8 @@ class CustomOnlineBagging(Classifier):
 # %%
 from capymoa.classifier import SGDClassifier
 from capymoa.datasets import Electricity
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 
 elec_stream = Electricity()
 
@@ -130,21 +130,21 @@ ob_sgd = CustomOnlineBagging(
     schema=elec_stream.get_schema(), ensemble_size=5, base_learner_class=SGDClassifier
 )
 
-results_ob_ht = prequential_evaluation(
+results_ob_ht = evaluate_classifier(
     stream=elec_stream, learner=ob_ht, window_size=4500
 )
 print(
-    f"CustomOnlineBagging(HT) accuracy: {results_ob_ht.cumulative.accuracy()}, wallclock: {results_ob_ht.wallclock()}"
+    f"CustomOnlineBagging(HT) accuracy: {results_ob_ht['accuracy']}, wallclock: {results_ob_ht['wallclock']}"
 )
-results_ob_sgd = prequential_evaluation(
+results_ob_sgd = evaluate_classifier(
     stream=elec_stream, learner=ob_ht, window_size=4500
 )
 print(
-    f"CustomOnlineBagging(SGD) accuracy: {results_ob_sgd.cumulative.accuracy()}, wallclock: {results_ob_sgd.wallclock()}"
+    f"CustomOnlineBagging(SGD) accuracy: {results_ob_sgd['accuracy']}, wallclock: {results_ob_sgd['wallclock']}"
 )
 
-results_ob_ht.learner = "OB(HT)"
-results_ob_sgd.learner = "OB(SGD)"
+results_ob_ht["learner"] = "OB(HT)"
+results_ob_sgd["learner"] = "OB(SGD)"
 plot_windowed_results(results_ob_ht, results_ob_sgd, metric="accuracy")
 
 # %% [markdown]
@@ -156,7 +156,7 @@ plot_windowed_results(results_ob_ht, results_ob_sgd, metric="accuracy")
 # %%time
 from capymoa.classifier import OnlineBagging
 from capymoa.datasets import RBFm_100k
-from capymoa.evaluation import ClassificationEvaluator
+from capymoa.classifier.evaluate import ClassificationEvaluator
 
 RBFm_100k_stream = RBFm_100k()
 

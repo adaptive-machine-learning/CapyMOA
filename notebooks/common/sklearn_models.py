@@ -42,7 +42,7 @@ if is_nb_fast():
 from sklearn import linear_model
 
 from capymoa.datasets import ElectricityTiny
-from capymoa.evaluation import ClassificationEvaluator
+from capymoa.classifier.evaluate import ClassificationEvaluator
 
 # Toy dataset with only 1000 instances
 elec_stream = ElectricityTiny()
@@ -80,7 +80,7 @@ ob_evaluator.accuracy()
 from sklearn import linear_model
 
 from capymoa.base import SKClassifier
-from capymoa.evaluation import ClassificationEvaluator
+from capymoa.classifier.evaluate import ClassificationEvaluator
 
 ## Opening a file as a stream
 elec_stream = ElectricityTiny()
@@ -103,11 +103,11 @@ while elec_stream.has_more_instances():
 sklearn_SGD_evaluator.accuracy()
 
 # %% [markdown]
-# ## Using prequential evaluation and SKClassifier
-# * Instead of an instance loop we may use the `prequential_evaluation()` function.
+# ## Using evaluate_classifier and SKClassifier
+# * Instead of an instance loop we may use the `evaluate_classifier()` function.
 
 # %%
-from capymoa.evaluation import prequential_evaluation
+from capymoa.classifier import evaluate_classifier
 
 elec_stream = ElectricityTiny()
 
@@ -115,11 +115,11 @@ sklearn_SGD = SKClassifier(
     schema=elec_stream.get_schema(), sklearner=linear_model.SGDClassifier()
 )
 
-results_sklearn_SGD = prequential_evaluation(
+results_sklearn_SGD = evaluate_classifier(
     stream=elec_stream, learner=sklearn_SGD, window_size=4500
 )
 
-results_sklearn_SGD.cumulative.accuracy()
+results_sklearn_SGD["accuracy"]
 
 # %% [markdown]
 # ## Further abstractions
@@ -137,15 +137,15 @@ results_sklearn_SGD.cumulative.accuracy()
 # %%time
 from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
 from capymoa.datasets import Electricity
-from capymoa.evaluation import prequential_evaluation_multiple_learners
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifiers
+from capymoa.evaluation.plot import plot_windowed_results
 
 stream = Electricity()
 
 sklearn_SGD = SGDClassifier(schema=stream.get_schema())
 sklearn_PA = PassiveAggressiveClassifier(schema=stream.get_schema())
 
-results = prequential_evaluation_multiple_learners(
+results = evaluate_classifiers(
     stream=stream, learners={"SGD": sklearn_SGD, "PA": sklearn_PA}, window_size=500
 )
 

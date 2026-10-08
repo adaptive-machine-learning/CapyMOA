@@ -45,8 +45,8 @@
 # %% tags=["remove-cell"]
 from capymoa.classifier import OnlineBagging
 from capymoa.datasets import Covtype
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 
 cover = Covtype()
 
@@ -85,21 +85,21 @@ print(ozabag_mb_parallel.cli_help())
 # ### Example comparing sequential and parallel
 
 # %%
-result_seq = prequential_evaluation(
+result_seq = evaluate_classifier(
     stream=cover,
     learner=ozabag_sequential,
     window_size=window_size,
     max_instances=max_instances,
 )
-result_par = prequential_evaluation(
+result_par = evaluate_classifier(
     stream=cover,
     learner=ozabag_mb_parallel,
     window_size=window_size,
     max_instances=max_instances,
 )
 
-result_seq.learner = "OnlineBagging(Seq)"
-result_par.learner = "OnlineBagging(Par)"
+result_seq["learner"] = "OnlineBagging(Seq)"
+result_par["learner"] = "OnlineBagging(Par)"
 
 # %% [markdown]
 # * Note that the mini-batch approach creates a divergence in the results for two reasons:
@@ -109,9 +109,9 @@ result_par.learner = "OnlineBagging(Par)"
 
 # %%
 # decoupling the running and plotting to allow more flexibility
-print(f"Cumulative accuracy = {result_seq['cumulative'].accuracy()}")
+print(f"Cumulative accuracy = {result_seq['accuracy']}")
 print(f"wallclock = {result_seq['wallclock']} seconds\n")
-print(f"Cumulative accuracy = {result_par['cumulative'].accuracy()}")
+print(f"Cumulative accuracy = {result_par['accuracy']}")
 print(f"wallclock = {result_par['wallclock']} seconds\n")
 plot_windowed_results(result_seq, result_par, metric="accuracy")
 
@@ -125,27 +125,27 @@ ozabag_sequential = OnlineBagging(schema=cover.schema, ensemble_size=100)
 ozabag_mb_parallel = OnlineBagging(
     schema=cover.schema, ensemble_size=100, minibatch_size=25, number_of_jobs=5
 )
-result_seq100 = prequential_evaluation(
+result_seq100 = evaluate_classifier(
     stream=cover,
     learner=ozabag_sequential,
     window_size=window_size,
     max_instances=max_instances,
 )
-result_par100 = prequential_evaluation(
+result_par100 = evaluate_classifier(
     stream=cover,
     learner=ozabag_mb_parallel,
     window_size=window_size,
     max_instances=max_instances,
 )
 
-result_seq100.learner = "OnlineBagging100(Seq)"
-result_par100.learner = "OnlineBagging100(Par)"
+result_seq100["learner"] = "OnlineBagging100(Seq)"
+result_par100["learner"] = "OnlineBagging100(Par)"
 
 # %%
 # decoupling the running and plotting to allow more flexibility
-print(f"Cumulative accuracy = {result_seq100['cumulative'].accuracy()}")
+print(f"Cumulative accuracy = {result_seq100['accuracy']}")
 print(f"wallclock = {result_seq100['wallclock']} seconds\n")
-print(f"Cumulative accuracy = {result_par100['cumulative'].accuracy()}")
+print(f"Cumulative accuracy = {result_par100['accuracy']}")
 print(f"wallclock = {result_par100['wallclock']} seconds\n")
 plot_windowed_results(result_seq100, result_par100, metric="accuracy")
 
@@ -161,15 +161,15 @@ mbSeq = OnlineBagging(schema=cover.get_schema(), ensemble_size=10, minibatch_siz
 incPar = OnlineBagging(
     schema=cover.get_schema(), ensemble_size=10, minibatch_size=1, number_of_jobs=5
 )
-result_mbSeq = prequential_evaluation(
+result_mbSeq = evaluate_classifier(
     stream=cover, learner=mbSeq, window_size=window_size, max_instances=max_instances
 )
-result_incPar = prequential_evaluation(
+result_incPar = evaluate_classifier(
     stream=cover, learner=incPar, window_size=window_size, max_instances=max_instances
 )
 
-result_mbSeq.learner = "OnlineBagging(mb_seq)"
-result_incPar.learner = "OnlineBagging(inc_par)"
+result_mbSeq["learner"] = "OnlineBagging(mb_seq)"
+result_incPar["learner"] = "OnlineBagging(inc_par)"
 
 # %% [markdown]
 # * Incremental Sequential differs from Incremental Parallel because of the random sequences.
@@ -179,16 +179,16 @@ result_incPar.learner = "OnlineBagging(inc_par)"
 # %%
 # decoupling the running and plotting to allow more flexibility
 print("Incremental Sequential ")
-print(f"Cumulative accuracy = {result_seq['cumulative'].accuracy()}")
+print(f"Cumulative accuracy = {result_seq['accuracy']}")
 print(f"wallclock = {result_seq['wallclock']} seconds\n")
 print("Mini-batch Parallel")
-print(f"Cumulative accuracy = {result_par['cumulative'].accuracy()}")
+print(f"Cumulative accuracy = {result_par['accuracy']}")
 print(f"wallclock = {result_par['wallclock']} seconds\n")
 print("Mini-batch Sequential")
-print(f"Cumulative accuracy = {result_mbSeq['cumulative'].accuracy()}")
+print(f"Cumulative accuracy = {result_mbSeq['accuracy']}")
 print(f"wallclock = {result_mbSeq['wallclock']} seconds\n")
 print("Incremental Parallel ")
-print(f"Cumulative accuracy = {result_incPar['cumulative'].accuracy()}")
+print(f"Cumulative accuracy = {result_incPar['accuracy']}")
 print(f"wallclock = {result_incPar['wallclock']} seconds\n")
 plot_windowed_results(
     result_seq, result_par, result_mbSeq, result_incPar, metric="accuracy"
@@ -214,22 +214,22 @@ ob_adwin = OnlineAdwinBagging(schema=cover.get_schema(), ensemble_size=30)
 lb = LeveragingBagging(schema=cover.get_schema(), ensemble_size=30)
 arf = AdaptiveRandomForestClassifier(schema=cover.get_schema(), ensemble_size=30)
 
-results_ob_adwin = prequential_evaluation(
+results_ob_adwin = evaluate_classifier(
     stream=cover, learner=ob_adwin, window_size=window_size, max_instances=max_instances
 )
-results_lb = prequential_evaluation(
+results_lb = evaluate_classifier(
     stream=cover, learner=lb, window_size=window_size, max_instances=max_instances
 )
-results_arf = prequential_evaluation(
+results_arf = evaluate_classifier(
     stream=cover, learner=arf, window_size=window_size, max_instances=max_instances
 )
 
 # %%
 print(
-    f"Accuracy {results_ob_adwin['learner']}: {results_ob_adwin['cumulative'].accuracy()}"
+    f"Accuracy {results_ob_adwin['learner']}: {results_ob_adwin['accuracy']}"
 )
-print(f"Accuracy {results_lb['learner']}: {results_lb['cumulative'].accuracy()}")
-print(f"Accuracy {results_arf['learner']}: {results_arf['cumulative'].accuracy()}")
+print(f"Accuracy {results_lb['learner']}: {results_lb['accuracy']}")
+print(f"Accuracy {results_arf['learner']}: {results_arf['accuracy']}")
 
 plot_windowed_results(results_ob_adwin, results_lb, results_arf, metric="accuracy")
 
@@ -253,40 +253,40 @@ ob_adwin_mb500 = OnlineAdwinBagging(
     schema=cover.get_schema(), ensemble_size=30, minibatch_size=500, number_of_jobs=5
 )
 
-results_ob_adwin_mb50 = prequential_evaluation(
+results_ob_adwin_mb50 = evaluate_classifier(
     stream=cover,
     learner=ob_adwin_mb50,
     window_size=window_size,
     max_instances=max_instances,
 )
-results_ob_adwin_mb100 = prequential_evaluation(
+results_ob_adwin_mb100 = evaluate_classifier(
     stream=cover,
     learner=ob_adwin_mb100,
     window_size=window_size,
     max_instances=max_instances,
 )
-results_ob_adwin_mb500 = prequential_evaluation(
+results_ob_adwin_mb500 = evaluate_classifier(
     stream=cover,
     learner=ob_adwin_mb500,
     window_size=window_size,
     max_instances=max_instances,
 )
 
-results_ob_adwin_mb50.learner = "Mini-batch size 50"
-results_ob_adwin_mb100.learner = "Mini-batch size 100"
-results_ob_adwin_mb500.learner = "Mini-batch size 500"
+results_ob_adwin_mb50["learner"] = "Mini-batch size 50"
+results_ob_adwin_mb100["learner"] = "Mini-batch size 100"
+results_ob_adwin_mb500["learner"] = "Mini-batch size 500"
 
 # %%
 print(
-    f"Accuracy {results_ob_adwin_mb50['experiment_id']}: {results_ob_adwin_mb50['cumulative'].accuracy()}"
+    f"Accuracy {results_ob_adwin_mb50['learner']}: {results_ob_adwin_mb50['accuracy']}"
 )
 print(f"wallclock = {results_ob_adwin_mb50['wallclock']} seconds\n")
 print(
-    f"Accuracy {results_ob_adwin_mb100['experiment_id']}: {results_ob_adwin_mb100['cumulative'].accuracy()}"
+    f"Accuracy {results_ob_adwin_mb100['learner']}: {results_ob_adwin_mb100['accuracy']}"
 )
 print(f"wallclock = {results_ob_adwin_mb100['wallclock']} seconds\n")
 print(
-    f"Accuracy {results_ob_adwin_mb500['experiment_id']}: {results_ob_adwin_mb500['cumulative'].accuracy()}"
+    f"Accuracy {results_ob_adwin_mb500['learner']}: {results_ob_adwin_mb500['accuracy']}"
 )
 print(f"wallclock = {results_ob_adwin_mb500['wallclock']} seconds\n")
 
