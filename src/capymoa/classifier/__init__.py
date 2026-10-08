@@ -19,6 +19,7 @@ from ._efdt import EFDT
 # alphabetize these the other way, reintroducing that circular import,
 # hence `isort: skip`.
 from ._hoeffding_tree import HoeffdingTree  # isort: skip
+from ._evaluate import evaluate_classifier, evaluate_classifiers
 from ._hoeffding_adaptive_tree import HoeffdingAdaptiveTree
 from ._knn import KNN
 from ._last import LAST
@@ -32,6 +33,7 @@ from ._online_smooth_boost import OnlineSmoothBoost
 from ._oza_boost import OzaBoost
 from ._passive_aggressive_classifier import PassiveAggressiveClassifier
 from ._plastic import PLASTIC
+from ._results import ClassifierResults, ClassifierWindows, PerClass
 from ._samknn import SAMkNN
 from ._sgbt import StreamingGradientBoostedTrees
 from ._sgd_classifier import SGDClassifier
@@ -47,6 +49,8 @@ __all__ = [
     "LAST",
     "PLASTIC",
     "AdaptiveRandomForestClassifier",
+    "ClassifierResults",
+    "ClassifierWindows",
     "DynamicEnsembleMemberSelection",
     "DynamicWeightedMajority",
     "Finetune",
@@ -61,6 +65,7 @@ __all__ = [
     "OnlineSmoothBoost",
     "OzaBoost",
     "PassiveAggressiveClassifier",
+    "PerClass",
     "SAMkNN",
     "SGDClassifier",
     "ShrubsClassifier",
@@ -68,6 +73,8 @@ __all__ = [
     "StreamingGradientBoostedTrees",
     "StreamingRandomPatches",
     "WeightedkNN",
+    "evaluate_classifier",
+    "evaluate_classifiers",
 ]
 
 

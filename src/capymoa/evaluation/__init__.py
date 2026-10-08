@@ -1,38 +1,21 @@
-"""Evaluation procedures and evaluators for CapyMOA learners.
+"""Shared parts of evaluation.
 
-This module provides prequential evaluation functions and evaluator classes for
-classification, regression, prediction interval, anomaly detection, and
-clustering tasks.
+Each research domain has its own results type and ``evaluate_*`` function, for
+example :func:`capymoa.classifier.evaluate_classifier`. This module holds what
+they share: :class:`RunInfo` (the base of every result) and
+:func:`prequential_evaluation`, which picks the ``evaluate_*`` function from the
+type of the learner.
 """
 
 from . import results
-from .evaluation import (
-    AnomalyDetectionEvaluator,
-    ClassificationEvaluator,
-    ClassificationWindowedEvaluator,
-    ClusteringEvaluator,
-    PredictionIntervalEvaluator,
-    PredictionIntervalWindowedEvaluator,
-    RegressionEvaluator,
-    RegressionWindowedEvaluator,
-    prequential_evaluation,
-    prequential_evaluation_anomaly,
-    prequential_evaluation_multiple_learners,
-    prequential_ssl_evaluation,
-)
+from ._loop import start_time_measuring, stop_time_measuring
+from ._prequential import prequential_evaluation
+from .results import RunInfo
 
 __all__ = [
-    "AnomalyDetectionEvaluator",
-    "ClassificationEvaluator",
-    "ClassificationWindowedEvaluator",
-    "ClusteringEvaluator",
-    "PredictionIntervalEvaluator",
-    "PredictionIntervalWindowedEvaluator",
-    "RegressionEvaluator",
-    "RegressionWindowedEvaluator",
+    "RunInfo",
     "prequential_evaluation",
-    "prequential_evaluation_anomaly",
-    "prequential_evaluation_multiple_learners",
-    "prequential_ssl_evaluation",
     "results",
+    "start_time_measuring",
+    "stop_time_measuring",
 ]

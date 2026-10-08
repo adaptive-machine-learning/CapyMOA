@@ -10,10 +10,12 @@ from capymoa._optional import lazy_torch_attrs
 
 from . import datasets
 from ._adaptive_isolation_forest import AdaptiveIsolationForest
+from ._evaluate import evaluate_anomaly, evaluate_anomaly_detectors
 from ._half_space_trees import HalfSpaceTrees
 from ._iforest_asd import IForestASD
 from ._loda import Loda
 from ._online_isolation_forest import OnlineIsolationForest
+from ._results import AnomalyResults, AnomalyWindows
 from ._robust_random_cut_forest import RobustRandomCutForest
 from ._rs_hash import RSHash
 from ._stream_rhf import StreamRHF
@@ -21,6 +23,8 @@ from ._streaming_isolation_forest import StreamingIsolationForest
 
 __all__ = [
     "AdaptiveIsolationForest",
+    "AnomalyResults",
+    "AnomalyWindows",
     "Autoencoder",
     "HalfSpaceTrees",
     "IForestASD",
@@ -31,6 +35,8 @@ __all__ = [
     "StreamRHF",
     "StreamingIsolationForest",
     "datasets",
+    "evaluate_anomaly",
+    "evaluate_anomaly_detectors",
 ]
 
 
