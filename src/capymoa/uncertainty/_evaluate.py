@@ -9,9 +9,8 @@ from capymoa.evaluation._loop import (
     _progress_label,
     _require_mapping,
     _require_single,
+    _Run,
     _run_info,
-    _supervised_step,
-    _windows,
 )
 from capymoa.stream import Stream
 from capymoa.uncertainty._results import PredictionIntervalResults
@@ -30,12 +29,10 @@ def _results(
     out: _LoopOutput,
     cumulative: PredictionIntervalEvaluator,
     windowed: PredictionIntervalWindowedEvaluator | None,
-    window_size: int | None,
 ) -> PredictionIntervalResults:
     metrics = cumulative.metrics_dict()
-    frame = _windows(windowed, [*_POINT, *_INTERVAL]) if windowed else None
     return PredictionIntervalResults(
-        **_run_info(name, stream, out, window_size, frame),
+        **_run_info(name, stream, out, windowed, [*_POINT, *_INTERVAL]),
         **{key: float(metrics[key]) for key in [*_POINT, *_INTERVAL]},
     )  # type: ignore[typeddict-item]
 
@@ -74,35 +71,35 @@ def evaluate_prediction_intervals(
         key of the result.
     :return: The results by name.
     """
-    runs = _require_mapping(learners, "evaluate_prediction_interval")
+    learners = _require_mapping(learners, "evaluate_prediction_interval")
     if restart_stream:
         stream.restart()
     schema = stream.get_schema()
     if not schema.is_regression():
         raise ValueError("The stream is not a regression stream.")
 
-    cumulative = {n: PredictionIntervalEvaluator(schema) for n in runs}
-    windowed = {
-        n: None
-        if window_size is None
-        else PredictionIntervalWindowedEvaluator(schema, window_size)
-        for n in runs
+    runs = {
+        n: _Run(
+            one,
+            PredictionIntervalEvaluator(schema),
+            None
+            if window_size is None
+            else PredictionIntervalWindowedEvaluator(schema, window_size),
+            store_y=store_y,
+            store_predictions=store_predictions,
+        )
+        for n, one in learners.items()
     }
     outs = _prequential_loop(
         stream,
-        {n: _supervised_step(one) for n, one in runs.items()},
-        cumulative,
-        windowed,
+        runs,
         max_instances=max_instances,
-        window_size=window_size,
-        store_y=store_y,
-        store_predictions=store_predictions,
         progress_bar=progress_bar,
-        progress_label=_progress_label("Eval", runs, stream),
+        progress_label=_progress_label("Eval", learners, stream),
     )
     return {
-        n: _results(n, stream, outs[n], cumulative[n], windowed[n], window_size)
-        for n in runs
+        n: _results(n, stream, out, runs[n].cumulative, runs[n].windowed)
+        for n, out in outs.items()
     }
 
 

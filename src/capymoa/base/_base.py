@@ -34,9 +34,9 @@ class MOAPredictionIntervalLearner(MOARegressor, PredictionIntervalLearner):
     def predict(self, instance):
         prediction_PI = self.moa_learner.getVotesForInstance(instance.java_instance)
         if len(prediction_PI) != 3:
-            return [0, 0, 0]
-        else:
-            return prediction_PI
+            return [0.0, 0.0, 0.0]
+        # A plain list, not a Java array, so results can be pickled.
+        return [float(v) for v in prediction_PI]
 
 
 class AnomalyDetector(LearnerParamsMixin, ABC):

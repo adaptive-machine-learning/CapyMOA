@@ -293,7 +293,7 @@ def test_store_y_and_store_predictions(
     if store_y is True:
         assert true_y is not None
         assert len(true_y) == n
-        assert isinstance(true_y, np.ndarray)
+        assert isinstance(true_y, list)
         assert_array_equal(true_y, expected_true_y)
     else:
         assert true_y is None, "ground truth should not be stored"
@@ -301,7 +301,7 @@ def test_store_y_and_store_predictions(
     if store_predictions is True:
         assert pred_y is not None
         assert len(pred_y) == n
-        assert isinstance(pred_y, np.ndarray) and pred_y.dtype == np.int64
+        assert isinstance(pred_y, list) and np.asarray(pred_y).dtype == np.int64
 
         # TODO: `evaluate_ssl` sometimes removes labels so we cannot
         # expect a match

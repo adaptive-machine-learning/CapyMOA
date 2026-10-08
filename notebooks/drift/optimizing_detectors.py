@@ -154,8 +154,8 @@ def build_error_signal(stream, max_instances):
         store_predictions=True,
         store_y=True,
     )
-    y_true = results["y_true"]
-    y_pred = results["y_pred"]
+    y_true = np.asarray(results["y_true"])
+    y_pred = np.asarray(results["y_pred"])
     errors = (y_true != y_pred).astype(float)
     return errors
 

@@ -21,7 +21,6 @@ from capymoa.evaluation import (
     RunInfo,
     prequential_evaluation,
 )
-from capymoa.evaluation._loop import _to_array
 from capymoa.regressor import FIMTDD, RegressorResults, evaluate_regressor
 from capymoa.ssl import SSLResults, evaluate_ssl
 from capymoa.stream.drift import (
@@ -157,7 +156,7 @@ def test_keys_and_types(evaluate, result_type, stored):
     assert ("y_true" in results) == stored
     assert ("y_pred" in results) == stored
     if stored:
-        assert isinstance(results["y_true"], np.ndarray)
+        assert isinstance(results["y_true"], list)
         assert len(results["y_true"]) == results["instances"] == 500
         assert len(results["y_pred"]) == 500
 
@@ -217,14 +216,6 @@ def test_recurrent_concepts():
         for c in stream.concept_info
     ]
     assert_is_result(results, ClassifierResults)
-
-
-def test_to_array_fills_missing_intervals():
-    array = _to_array([None, [1.0, 2.0, 3.0]])
-    assert array.shape == (2, 3)
-    assert np.isnan(array[0]).all()
-    np.testing.assert_array_equal(array[1], [1.0, 2.0, 3.0])
-    np.testing.assert_array_equal(_to_array([None, 1.0]), [np.nan, 1.0])
 
 
 @pytest.mark.parametrize("delay_length", [0, 10])

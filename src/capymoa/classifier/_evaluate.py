@@ -20,9 +20,8 @@ from capymoa.evaluation._loop import (
     _progress_label,
     _require_mapping,
     _require_single,
+    _Run,
     _run_info,
-    _supervised_step,
-    _windows,
 )
 from capymoa.stream import Schema, Stream
 
@@ -55,13 +54,11 @@ def _classifier_results(
     out: _LoopOutput,
     cumulative: ClassificationEvaluator,
     windowed: ClassificationWindowedEvaluator | None,
-    window_size: int | None,
 ) -> ClassifierResults:
     metrics = cumulative.metrics_dict()
     roc_auc = float(metrics["roc_auc"])
-    frame = _windows(windowed, [*_METRICS, "roc_auc"]) if windowed is not None else None
     results = ClassifierResults(
-        **_run_info(name, stream, out, window_size, frame),
+        **_run_info(name, stream, out, windowed, [*_METRICS, "roc_auc"]),
         **{key: float(metrics[key]) for key in _METRICS},
         per_class=_per_class(metrics, cumulative.schema),
     )  # type: ignore[typeddict-item]
@@ -115,40 +112,40 @@ def evaluate_classifiers(
     :param batch_size: Instances per mini-batch, for batch learners.
     :return: The results by name.
     """
-    runs = _require_mapping(learners, "evaluate_classifier")
+    learners = _require_mapping(learners, "evaluate_classifier")
     if restart_stream:
         stream.restart()
-    for one in runs.values():
+    for one in learners.values():
         _check_batch_size(one, batch_size)
     schema = stream.get_schema()
     if not schema.is_classification():
         raise ValueError("The stream is not a classification stream.")
 
-    cumulative = {n: ClassificationEvaluator(schema=schema) for n in runs}
-    windowed = {
-        n: None
-        if window_size is None
-        else ClassificationWindowedEvaluator(schema=schema, window_size=window_size)
-        for n in runs
+    runs = {
+        n: _Run(
+            one,
+            ClassificationEvaluator(schema=schema),
+            None
+            if window_size is None
+            else ClassificationWindowedEvaluator(
+                schema=schema, window_size=window_size
+            ),
+            store_y=store_y,
+            store_predictions=store_predictions,
+        )
+        for n, one in learners.items()
     }
     outs = _prequential_loop(
         stream,
-        {n: _supervised_step(one) for n, one in runs.items()},
-        cumulative,
-        windowed,
+        runs,
         max_instances=max_instances,
-        window_size=window_size,
-        store_y=store_y,
-        store_predictions=store_predictions,
         progress_bar=progress_bar,
-        progress_label=_progress_label("Eval", runs, stream),
+        progress_label=_progress_label("Eval", learners, stream),
         batch_size=batch_size,
     )
     return {
-        n: _classifier_results(
-            n, stream, outs[n], cumulative[n], windowed[n], window_size
-        )
-        for n in runs
+        n: _classifier_results(n, stream, out, runs[n].cumulative, runs[n].windowed)
+        for n, out in outs.items()
     }
 
 
@@ -205,21 +202,15 @@ def evaluate_classifier(
     name = str(learner)
     if window_size is not None and _is_fast_mode_compilable(stream, learner, optimise):
         _check_batch_size(learner, batch_size)
-        cumulative = ClassificationEvaluator(schema=schema)
-        windowed = ClassificationWindowedEvaluator(
-            schema=schema, window_size=window_size
-        )
-        out = _prequential_loop_fast(
-            stream,
+        run = _Run(
             learner,
-            cumulative,
-            windowed,
-            max_instances=max_instances,
-            window_size=window_size,
+            ClassificationEvaluator(schema=schema),
+            ClassificationWindowedEvaluator(schema=schema, window_size=window_size),
             store_y=store_y,
             store_predictions=store_predictions,
         )
-        return _classifier_results(name, stream, out, cumulative, windowed, window_size)
+        out = _prequential_loop_fast(stream, run, max_instances=max_instances)
+        return _classifier_results(name, stream, out, run.cumulative, run.windowed)
     return evaluate_classifiers(
         stream,
         {name: learner},
