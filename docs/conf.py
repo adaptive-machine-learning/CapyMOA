@@ -71,6 +71,7 @@ nitpick_ignore_regex = [
     ("py:class", r"abc\..*"),
     ("py:class", r"com\..*"),
     ("py:class", r"java\..*"),
+    ("py:class", r"matplotlib\..*"),
     ("py:class", r"moa\..*"),
     ("py:class", r"numpy\..*"),
     ("py:class", r"org\..*"),

@@ -16,7 +16,7 @@ import capymoa.datasets as capymoa_datasets
 from capymoa.datasets import download_unpacked
 from capymoa.datasets._source_list import SOURCE_LIST
 from capymoa.datasets._utils import infer_unpacked_path
-from capymoa.evaluation.evaluation import (
+from capymoa.evaluation import (
     prequential_evaluation,
     start_time_measuring,
     stop_time_measuring,
@@ -554,7 +554,7 @@ def capymoa_experiment(
             )
             chunk_results.append(result)
             processed_instances += chunk_size
-            total_correct += (result["cumulative"].accuracy() / 100.0) * chunk_size
+            total_correct += (result["accuracy"] / 100.0) * chunk_size
             total_wallclock += result["wallclock"]
             total_cpu_time += result["cpu_time"]
             if pulse_recorder is not None:
