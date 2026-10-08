@@ -304,20 +304,25 @@ def _prequential_loop_fast(
     )
 
 
-def _run_info(
+def _results_body(
     name: str,
     stream: "Stream | str",
     out: _LoopOutput,
+    cumulative,
     windowed,
-    columns: Sequence[str],
-) -> RunInfo:
-    """Run info of a stream, or of a stream known only by its name.
+    windows: type,
+) -> dict[str, Any]:
+    """Run info, then the metrics named by ``windows``.
 
-    Optional keys are left out when there is nothing to put in them.
+    The stream may be a name only. Optional keys are left out when there is
+    nothing to put in them.
 
+    :param cumulative: The evaluator over the whole stream.
     :param windowed: The windowed evaluator, or ``None`` if windows are off.
-    :param columns: The metric columns to put in ``windowed``.
+    :param windows: The ``*Windows`` TypedDict. Its keys, except ``instances``,
+        are the metrics to take from both evaluators.
     """
+    metrics = [key for key in windows.__annotations__ if key != "instances"]
     info = RunInfo(
         learner=name,
         stream=stream if isinstance(stream, str) else str(stream),
@@ -330,7 +335,7 @@ def _run_info(
         info["window_size"] = windowed.window_size
         info["windowed"] = {
             "instances": frame["instances"].to_numpy().astype(int),
-            **{c: frame[c].to_numpy(dtype=float) for c in columns},
+            **{key: frame[key].to_numpy(dtype=float) for key in metrics},
         }
     if out.y_true is not None:
         info["y_true"] = out.y_true
@@ -338,4 +343,5 @@ def _run_info(
         info["y_pred"] = out.y_pred
     if not isinstance(stream, str):
         info.update(_drift_info(stream))  # type: ignore[typeddict-item]
-    return info
+    values = cumulative.metrics_dict()
+    return {**info, **{key: float(values[key]) for key in metrics}}

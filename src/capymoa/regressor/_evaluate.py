@@ -8,15 +8,13 @@ from capymoa.evaluation._loop import (
     _LoopOutput,
     _prequential_loop,
     _prequential_loop_fast,
+    _results_body,
     _Run,
-    _run_info,
     _use_java_loop,
 )
-from capymoa.regressor._results import RegressorResults
+from capymoa.regressor._results import RegressorResults, RegressorWindows
 from capymoa.regressor.evaluate import RegressionEvaluator, RegressionWindowedEvaluator
 from capymoa.stream import Stream
-
-_METRICS = ["mae", "rmse", "rmae", "r2", "adjusted_r2"]
 
 
 def _regressor_results(
@@ -26,11 +24,8 @@ def _regressor_results(
     cumulative: RegressionEvaluator,
     windowed: RegressionWindowedEvaluator | None,
 ) -> RegressorResults:
-    metrics = cumulative.metrics_dict()
-    return RegressorResults(
-        **_run_info(name, stream, out, windowed, _METRICS),
-        **{key: float(metrics[key]) for key in _METRICS},
-    )  # type: ignore[typeddict-item]
+    body = _results_body(name, stream, out, cumulative, windowed, RegressorWindows)
+    return RegressorResults(**body)  # type: ignore[typeddict-item]
 
 
 @overload

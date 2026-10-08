@@ -4,7 +4,7 @@ from typing import Any, overload
 from tqdm import tqdm
 from typing_extensions import override
 
-from capymoa.anomaly._results import AnomalyResults
+from capymoa.anomaly._results import AnomalyResults, AnomalyWindows
 from capymoa.anomaly.evaluate import (
     AnomalyDetectionEvaluator,
     AnomalyDetectionWindowedEvaluator,
@@ -14,13 +14,11 @@ from capymoa.evaluation._loop import (
     _LoopOutput,
     _prequential_loop,
     _prequential_loop_fast,
+    _results_body,
     _Run,
-    _run_info,
     _use_java_loop,
 )
 from capymoa.stream import Stream
-
-_METRICS = ["auc", "s_auc"]
 
 
 class _AnomalyRun(_Run):
@@ -44,11 +42,8 @@ def _anomaly_results(
     cumulative: AnomalyDetectionEvaluator,
     windowed: AnomalyDetectionWindowedEvaluator | None,
 ) -> AnomalyResults:
-    metrics = cumulative.metrics_dict()
-    return AnomalyResults(
-        **_run_info(name, stream, out, windowed, _METRICS),
-        **{key: float(metrics[key]) for key in _METRICS},
-    )  # type: ignore[typeddict-item]
+    body = _results_body(name, stream, out, cumulative, windowed, AnomalyWindows)
+    return AnomalyResults(**body)  # type: ignore[typeddict-item]
 
 
 @overload

@@ -96,7 +96,7 @@ ht = HoeffdingTree(schema=elec_stream.get_schema(), grace_period=50)
 
 # Obtain the results from the high-level function.
 # Note that we need to specify a window_size as we obtain both windowed and cumulative results.
-# The results from a high-level evaluation function are a `ClassifierResults`: a flat dictionary.
+# The results from a high-level evaluation function are a `ClassifierResults`: a typed dictionary.
 results_ht = evaluate_classifier(stream=elec_stream, learner=ht, window_size=4500)
 
 print(

@@ -4,7 +4,7 @@ from capymoa.classifier import ClassifierResults
 class SSLResults(ClassifierResults):
     """Results of evaluating a semi-supervised classifier.
 
-    See :func:`evaluate_ssl`. The metrics are as in :class:`capymoa.classifier.ClassifierResults`.
+    See :func:`evaluate_ssl`.
     """
 
     #: Proportion of instances that had a label, from 0 to 1.

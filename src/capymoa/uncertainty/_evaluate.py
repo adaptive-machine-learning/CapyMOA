@@ -7,18 +7,18 @@ from capymoa.base import PredictionIntervalLearner
 from capymoa.evaluation._loop import (
     _LoopOutput,
     _prequential_loop,
+    _results_body,
     _Run,
-    _run_info,
 )
 from capymoa.stream import Stream
-from capymoa.uncertainty._results import PredictionIntervalResults
+from capymoa.uncertainty._results import (
+    PredictionIntervalResults,
+    PredictionIntervalWindows,
+)
 from capymoa.uncertainty.evaluate import (
-    _INTERVAL,
     PredictionIntervalEvaluator,
     PredictionIntervalWindowedEvaluator,
 )
-
-_POINT = ["mae", "rmse", "rmae", "r2", "adjusted_r2"]
 
 
 def _results(
@@ -28,11 +28,10 @@ def _results(
     cumulative: PredictionIntervalEvaluator,
     windowed: PredictionIntervalWindowedEvaluator | None,
 ) -> PredictionIntervalResults:
-    metrics = cumulative.metrics_dict()
-    return PredictionIntervalResults(
-        **_run_info(name, stream, out, windowed, [*_POINT, *_INTERVAL]),
-        **{key: float(metrics[key]) for key in [*_POINT, *_INTERVAL]},
-    )  # type: ignore[typeddict-item]
+    body = _results_body(
+        name, stream, out, cumulative, windowed, PredictionIntervalWindows
+    )
+    return PredictionIntervalResults(**body)  # type: ignore[typeddict-item]
 
 
 @overload

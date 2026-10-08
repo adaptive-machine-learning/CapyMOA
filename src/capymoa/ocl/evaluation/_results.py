@@ -42,7 +42,7 @@ class TaskWindows(ClassifierWindows):
 
 
 class OnlineResults(ClassifierResults):
-    """Test-then-train results of an OCL run. See :class:`capymoa.classifier.ClassifierResults`."""
+    """Test-then-train results of an OCL run."""
 
     #: The metrics of each window, with the position in the tasks (see
     #: :class:`TaskWindows`).
