@@ -14,9 +14,17 @@ from capymoa.classifier import (
     evaluate_classifier,
     evaluate_classifiers,
 )
+from capymoa.classifier.evaluate import (
+    ClassificationEvaluator,
+    ClassificationWindowedEvaluator,
+)
 from capymoa.datasets import Electricity, ElectricityTiny
 from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation._loop import _is_fast_mode_compilable
+from capymoa.evaluation._loop import (
+    _is_fast_mode_compilable,
+    _prequential_loop_fast,
+    _Run,
+)
 from capymoa.exception import StreamTypeError
 from capymoa.regressor import KNNRegressor
 from capymoa.ssl import evaluate_ssl
@@ -380,3 +388,23 @@ def test_predict_proba_only_rejects_absent_predictions(votes, expected):
         assert result is None
     else:
         assert result == pytest.approx(expected)
+
+
+def test_fast_loop_refuses_custom_test_then_train():
+    """The Java loop would skip a custom ``test_then_train``, so it must refuse it."""
+
+    class _CustomRun(_Run):
+        def test_then_train(self, batch):
+            return super().test_then_train(batch)
+
+    stream = ElectricityTiny()
+    schema = stream.get_schema()
+    run = _CustomRun(
+        NaiveBayes(schema),
+        ClassificationEvaluator(schema=schema),
+        ClassificationWindowedEvaluator(schema=schema, window_size=10),
+        store_y=False,
+        store_predictions=False,
+    )
+    with pytest.raises(TypeError, match="custom test_then_train"):
+        _prequential_loop_fast(stream, run, max_instances=10)

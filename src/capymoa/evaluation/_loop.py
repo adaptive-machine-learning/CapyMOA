@@ -273,11 +273,14 @@ def _prequential_loop_fast(
     """The test-then-train loop of one learner, run by MOA in Java.
 
     Needs a MOA learner and a MOA stream (see :func:`_is_fast_mode_compilable`).
-    The run needs a windowed evaluator.
+    The run needs a windowed evaluator. It must not override
+    :meth:`_Run.test_then_train`, since Java cannot run that code.
 
     :param ssl: ``(initial_window_size, delay_length, label_probability,
         random_seed)`` for semi-supervised evaluation, else ``None``.
     """
+    if type(run).test_then_train is not _Run.test_then_train:
+        raise TypeError("The Java loop cannot run a custom test_then_train.")
     learner, cumulative, windowed = run.learner, run.cumulative, run.windowed
     if windowed is None:
         raise ValueError("The fast loop requires a windowed evaluator.")
