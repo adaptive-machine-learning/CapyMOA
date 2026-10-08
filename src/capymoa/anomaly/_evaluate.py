@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from tqdm import tqdm
+from typing_extensions import override
 
 from capymoa.anomaly._results import AnomalyResults
 from capymoa.anomaly.evaluate import (
@@ -27,6 +28,7 @@ _METRICS = ["auc", "s_auc"]
 class _AnomalyRun(_Run):
     """Test-then-train an anomaly detector. It scores each instance, then trains."""
 
+    @override
     def test_then_train(self, batch) -> tuple[list[Any], list[Any]]:
         learner = self.learner
         y_true, y_pred = [], []
