@@ -95,7 +95,6 @@ dev=[
     "jupytext==1.19.5",
     "nbmake~=1.5",
     "pytest-cov~=7.0",
-    "pytest-subtests~=0.15",
     "pytest-timeout~=2.4",
     "pytest-xdist~=3.8",
     "pytest~=9.0",

@@ -5,6 +5,7 @@ from __future__ import annotations
 import functools
 import inspect
 from collections.abc import Callable
+from importlib import import_module
 from typing import (
     Any,
     Concatenate,
@@ -144,6 +145,9 @@ def learner_from_params(spec: LearnerSpec, schema: Any, random_seed: int = 1) ->
     See :class:`~capymoa.base.LearnerParamsMixin` for the parameter capture
     and serialization support used by learners.
     """
+    module, class_name = spec["learner"].rsplit(".", 1)
+    # Accessing a lazy module attribute triggers its import and registration.
+    getattr(import_module(module), class_name)
     return _LEARNER_REGISTRY.build(spec, schema, random_seed)
 
 
