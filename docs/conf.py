@@ -85,6 +85,8 @@ nitpick_ignore_regex = [
     # `autodoc_typehints_format = "short"` renders
     # torch.optim.optimizer.Optimizer as a bare name, like Tensor above.
     ("py:class", r"Optimizer"),
+    # Replay buffers live in a private module and are not documented.
+    ("py:class", r"capymoa\.ocl\.util\._replay\..*"),
 ]
 
 # These warnings are usually false positives.
