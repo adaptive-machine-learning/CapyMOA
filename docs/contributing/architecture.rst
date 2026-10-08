@@ -52,8 +52,9 @@ Each domain implements its own::
     capymoa.{{domain}}.evaluate  (optional) # Public evaluation code
     capymoa.{{domain}}.plot      (optional) # Public plotting code
 
-``evaluate_{{domain}}`` evaluates one learner, or a mapping of names to learners
-on one pass over the stream (returning a dict of results by name).
+``evaluate_{{domain}}`` evaluates one learner. Domains that can compare learners
+on one pass over a stream (classifier, regressor, anomaly and uncertainty) also
+take a mapping of names to learners and return a dict of results by name.
 ``{{Domain}}Results`` is a plain ``TypedDict`` with a fixed set of keys, so
 ``pandas.DataFrame([r1, r2])`` is a tidy table. It lives in
 ``capymoa/{{domain}}/_results.py`` and ``evaluate_{{domain}}`` in
