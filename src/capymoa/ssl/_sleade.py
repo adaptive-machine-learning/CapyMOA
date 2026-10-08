@@ -35,12 +35,12 @@ class SLEADE(MOAClassifierSSL):
 
     >>> from capymoa.ssl import SLEADE
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
     >>> clf = SLEADE(stream.get_schema())
-    >>> results = prequential_evaluation(stream, clf, max_instances=1000)
-    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    >>> results = evaluate_classifier(stream, clf, max_instances=1000)
+    >>> print(f"{results['accuracy']:.1f}")
     90.2
     """
 

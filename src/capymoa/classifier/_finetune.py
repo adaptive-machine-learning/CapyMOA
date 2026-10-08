@@ -12,7 +12,7 @@ class Finetune(BatchClassifier):
     """Finetune a PyTorch neural network using stochastic gradient descent.
 
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.classifier import evaluate_classifier
     >>> from capymoa.classifier import Finetune
     >>> from capymoa.core.torch.ann import Perceptron
     >>> from torch import nn
@@ -25,8 +25,8 @@ class Finetune(BatchClassifier):
     ...     model=Perceptron,
     ...     optimizer=partial(Adam, lr=0.01)
     ... )
-    >>> results = prequential_evaluation(stream, learner, batch_size=32)
-    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    >>> results = evaluate_classifier(stream, learner, batch_size=32)
+    >>> print(f"{results['accuracy']:.1f}")
     62.4
 
     Alternatively, you can use a custom model and optimizer:
@@ -38,8 +38,8 @@ class Finetune(BatchClassifier):
     ...     model=model,
     ...     optimizer=optimizer,
     ... )
-    >>> results = prequential_evaluation(stream, learner, batch_size=32)
-    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    >>> results = evaluate_classifier(stream, learner, batch_size=32)
+    >>> print(f"{results['accuracy']:.1f}")
     60.4
 
     """

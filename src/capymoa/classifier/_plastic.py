@@ -22,12 +22,12 @@ class PLASTIC(MOAClassifier):
 
     >>> from capymoa.classifier import PLASTIC
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
     >>> classifier = PLASTIC(stream.get_schema())
-    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
-    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
+    >>> print(f"{results['accuracy']:.1f}")
     84.4
 
     .. [#f1] Heyden, Marco, et al. "Leveraging plasticity in incremental decision trees."

@@ -25,12 +25,12 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
 
     >>> from capymoa.classifier import AdaptiveRandomForestClassifier
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
     >>> classifier = AdaptiveRandomForestClassifier(stream.get_schema())
-    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
-    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
+    >>> print(f"{results['accuracy']:.1f}")
     87.9
 
     .. [#0] `Gomes, H. M., Bifet, A., Read, J., Barddal, J. P., Enembreck, F.,

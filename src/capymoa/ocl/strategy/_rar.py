@@ -32,7 +32,7 @@ class RAR(BatchClassifier, Handler):
     >>> from capymoa.classifier import Finetune
     >>> from capymoa.ocl.strategy import RAR
     >>> from capymoa.ocl.datasets import TinySplitMNIST
-    >>> from capymoa.ocl.evaluation import ocl_train_eval_loop
+    >>> from capymoa.ocl import evaluate_ocl
     >>> import torchvision.transforms as T
     >>> import torch
     >>> _ = torch.manual_seed(0)
@@ -43,12 +43,12 @@ class RAR(BatchClassifier, Handler):
     ...     T.RandomRotation(10),
     ... ])
     >>> learner = RAR(Finetune(scenario.schema, model), augment=augment, repeats=5)
-    >>> results = ocl_train_eval_loop(
+    >>> results = evaluate_ocl(
     ...     learner,
     ...     scenario.train_loaders(32),
     ...     scenario.test_loaders(32),
     ... )
-    >>> print(f"{results.accuracy_final*100:.1f}%")
+    >>> print(f"{results['accuracy_final']*100:.1f}%")
     39.5%
 
     Usually more complex augmentations are used such as random crops and

@@ -33,15 +33,15 @@ class NCM(BatchClassifier):
 
     >>> from capymoa.ocl.strategy import NCM
     >>> from capymoa.ocl.datasets import TinySplitMNIST
-    >>> from capymoa.ocl.evaluation import ocl_train_eval_loop
+    >>> from capymoa.ocl import evaluate_ocl
     >>> scenario = TinySplitMNIST()
     >>> learner = NCM(scenario.schema)
-    >>> results = ocl_train_eval_loop(
+    >>> results = evaluate_ocl(
     ...     learner,
     ...     scenario.train_loaders(32),
     ...     scenario.test_loaders(32),
     ... )
-    >>> print(f"{results.accuracy_final*100:.1f}%")
+    >>> print(f"{results['accuracy_final']*100:.1f}%")
     71.5%
 
     .. [#f0] `Rebuffi, S.-A., Kolesnikov, A., Sperl, G., & Lampert, C. H. (2017, July).

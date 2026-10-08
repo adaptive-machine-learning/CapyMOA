@@ -25,7 +25,7 @@ class HalfSpaceTrees(MOAAnomalyDetector):
 
     >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import HalfSpaceTrees
-    >>> from capymoa.evaluation import AnomalyDetectionEvaluator
+    >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = HalfSpaceTrees(schema)
