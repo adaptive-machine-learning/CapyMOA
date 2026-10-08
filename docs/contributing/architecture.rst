@@ -43,7 +43,7 @@ discovery of related features within a domain.
 Each domain implements its own::
 
     capymoa.{{domain}}                      # Domain-specific modules (listed above)
-    - {{Domain}}Results          (TypedDict)# Flat, typed, serialisable results
+    - {{Domain}}Results          (TypedDict)# Typed, serialisable results
     - evaluate_{{domain}}        (function) # Evaluation logic
     - *Algorithm                 (classes)  # Algorithm implementations
 

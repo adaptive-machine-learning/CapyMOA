@@ -1,6 +1,6 @@
 """Shared plumbing for results.
 
-Every research domain defines its own flat, typed result (see
+Every research domain defines its own typed result (see
 :class:`capymoa.classifier.ClassifierResults`). All of them extend
 :class:`RunInfo`. A result is a plain :class:`dict`, so it can be pickled,
 compared and put in a :class:`pandas.DataFrame`.

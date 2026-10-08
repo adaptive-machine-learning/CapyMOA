@@ -121,13 +121,6 @@ def test_prequential_evaluation_dispatches_on_learner_type():
     )
     assert "rmse" in results and "accuracy" not in results
 
-    many = prequential_evaluation(
-        classification,
-        {"a": NaiveBayes(classification.get_schema())},
-        max_instances=50,
-    )
-    assert list(many) == ["a"]
-
     with pytest.raises(TypeError):
         prequential_evaluation(classification, object(), max_instances=50)
 

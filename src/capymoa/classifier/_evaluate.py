@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 
 from capymoa.base import Classifier
-from capymoa.classifier._results import ClassifierResults, PerClass
+from capymoa.classifier._results import ClassifierResults, ClassifierWindows, PerClass
 from capymoa.classifier.evaluate import (
     ClassificationEvaluator,
     ClassificationWindowedEvaluator,
@@ -16,23 +16,14 @@ from capymoa.evaluation._loop import (
     _LoopOutput,
     _prequential_loop,
     _prequential_loop_fast,
+    _results_body,
     _Run,
-    _run_info,
     _use_java_loop,
 )
 from capymoa.stream import Schema, Stream
 
-_METRICS = [
-    "accuracy",
-    "kappa",
-    "kappa_t",
-    "kappa_m",
-    "f1_score",
-    "precision",
-    "recall",
-]
-_PER_CLASS_METRICS = ["precision", "recall", "f1_score"]
-_PER_CLASS = re.compile(r"^(precision|recall|f1_score)_(\d+)$")
+_PER_CLASS_METRICS = [key for key in PerClass.__annotations__ if key != "label"]
+_PER_CLASS = re.compile(rf"^({'|'.join(_PER_CLASS_METRICS)})_(\d+)$")
 
 
 def _per_class(metrics: Mapping[str, float], schema: Schema) -> PerClass:
@@ -52,16 +43,11 @@ def _classifier_results(
     cumulative: ClassificationEvaluator,
     windowed: ClassificationWindowedEvaluator | None,
 ) -> ClassifierResults:
-    metrics = cumulative.metrics_dict()
-    roc_auc = float(metrics["roc_auc"])
-    results = ClassifierResults(
-        **_run_info(name, stream, out, windowed, [*_METRICS, "roc_auc"]),
-        **{key: float(metrics[key]) for key in _METRICS},
-        per_class=_per_class(metrics, cumulative.schema),
-    )  # type: ignore[typeddict-item]
-    if not math.isnan(roc_auc):
-        results["roc_auc"] = roc_auc
-    return results
+    body = _results_body(name, stream, out, cumulative, windowed, ClassifierWindows)
+    if math.isnan(body["roc_auc"]):
+        del body["roc_auc"]
+    body["per_class"] = _per_class(cumulative.metrics_dict(), cumulative.schema)
+    return ClassifierResults(**body)  # type: ignore[typeddict-item]
 
 
 @overload

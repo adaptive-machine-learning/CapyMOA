@@ -113,7 +113,7 @@ print(
 #
 # **Result of a high-level function**
 #
-# * The return from `evaluate_classifier()` is a `ClassifierResults`: a plain, flat `dict` with a fixed set of keys. Hover over a key in your IDE or see the API documentation for what each one means and its unit.
+# * The return from `evaluate_classifier()` is a `ClassifierResults`: a plain, typed `dict` with a fixed set of keys. Hover over a key in your IDE or see the API documentation for what each one means and its unit.
 #
 # **Common characteristics for all high-level evaluation functions**
 #
@@ -209,7 +209,7 @@ plot_windowed_results(results["OB"], results["ARF"], metric="accuracy")
 # %% [markdown]
 # ## Working with results
 #
-# The results of every domain are flat and typed dictionaries, which makes them easy to compare, plot and keep.
+# The results of every domain are typed dictionaries, which makes them easy to compare, plot and keep.
 #
 # * A list of results makes a table with one row per run. Since the keys are fixed, the columns always line up.
 # * `windowed` is a dict of columns, so `pd.DataFrame(result["windowed"])` makes a table of the windows. Stack the tables of many runs with a `learner` column to plot them with `seaborn.lineplot(..., hue="learner")`.

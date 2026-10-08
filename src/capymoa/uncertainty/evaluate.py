@@ -19,11 +19,6 @@ from moa.evaluation import (
 from capymoa._utils import _translate_metric_name
 from capymoa.regressor.evaluate import RegressionEvaluator
 
-#: The metrics that come from MOA's interval evaluator. The others come from a
-#: regression evaluator on the point prediction, because MOA's interval
-#: evaluator reports wrong regression metrics.
-_INTERVAL = ["coverage", "average_length", "nmpiw"]
-
 
 class PredictionIntervalEvaluator(RegressionEvaluator):
     """Scores a prediction interval and its point prediction.
@@ -128,13 +123,8 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
         }
 
     def metrics_dict(self):
-        interval = self._interval_metrics()
-        point = self._point.metrics_dict()
-        return {
-            "instances": point.pop("instances"),
-            **{k: interval[k] for k in _INTERVAL},
-            **point,
-        }
+        # MOA's regression metrics are wrong, so the point ones replace them.
+        return {**self._interval_metrics(), **self._point.metrics_dict()}
 
     def metrics_header(self):
         return list(self.metrics_dict())

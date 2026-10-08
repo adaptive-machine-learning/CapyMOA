@@ -1,4 +1,4 @@
-"""The results of every domain are flat, typed dictionaries."""
+"""The results of every domain are typed dictionaries."""
 
 import pickle
 import types
@@ -17,10 +17,7 @@ from capymoa.classifier import (
     evaluate_classifier,
 )
 from capymoa.datasets import ElectricityTiny, Fried, FriedTiny
-from capymoa.evaluation import (
-    RunInfo,
-    prequential_evaluation,
-)
+from capymoa.evaluation import RunInfo
 from capymoa.regressor import FIMTDD, RegressorResults, evaluate_regressor
 from capymoa.ssl import SSLResults, evaluate_ssl
 from capymoa.stream.drift import (
@@ -231,7 +228,7 @@ def test_ssl_unlabeled_same_in_both_loops(delay_length):
 
 def test_empty_mapping_of_learners():
     with pytest.raises(ValueError, match="No learners"):
-        prequential_evaluation(ElectricityTiny(), {})
+        evaluate_classifier(ElectricityTiny(), {})
 
 
 @pytest.mark.parametrize("optimise", [True, False])
