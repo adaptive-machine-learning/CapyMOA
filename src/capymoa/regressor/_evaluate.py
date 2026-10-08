@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from typing import Any, overload
 
 from tqdm import tqdm
 
@@ -7,8 +8,6 @@ from capymoa.evaluation._loop import (
     _LoopOutput,
     _prequential_loop,
     _prequential_loop_fast,
-    _require_mapping,
-    _require_single,
     _Run,
     _run_info,
     _use_java_loop,
@@ -34,88 +33,17 @@ def _regressor_results(
     )  # type: ignore[typeddict-item]
 
 
-def evaluate_regressors(
-    stream: Stream,
-    learners: Mapping[str, Regressor],
-    max_instances: int | None = None,
-    window_size: int | None = 1000,
-    store_predictions: bool = False,
-    store_y: bool = False,
-    restart_stream: bool = True,
-    progress_bar: bool | tqdm = False,
-    batch_size: int = 1,
-) -> dict[str, RegressorResults]:
-    """Test-then-train many regressors on one pass over a stream.
-
-    The learners get the same instances in turn, so the stream is read once.
-    This is useful when reading the stream is slow. It does not use the Java
-    loop. The training and testing of the learners is interleaved, so
-    ``wallclock`` and ``cpu_time`` are for the whole pass and are the same for
-    all the learners. Do not use them to compare the speed of learners.
-
-    >>> from capymoa.regressor import FIMTDD, TargetMean, evaluate_regressors
-    >>> from capymoa.datasets import FriedTiny
-    >>> stream = FriedTiny()
-    >>> learners = {
-    ...     "fimtdd": FIMTDD(stream.get_schema()),
-    ...     "mean": TargetMean(stream.get_schema()),
-    ... }
-    >>> results = evaluate_regressors(stream, learners, max_instances=1000)
-    >>> list(results)
-    ['fimtdd', 'mean']
-
-    :param stream: The stream to evaluate on. Restarted if ``restart_stream``.
-    :param max_instances: Number of instances to evaluate. If ``None``, go on
-        until the stream ends.
-    :param window_size: Number of instances in a window of ``windowed``. If
-        ``None``, there are no windowed results.
-    :param store_predictions: Keep the predictions in ``y_pred``.
-    :param store_y: Keep the ground truth in ``y_true``.
-    :param restart_stream: If ``False``, continue from the current position in the
-        stream.
-    :param progress_bar: Enable, disable, or give a progress bar.
-    :param learners: The learners to evaluate, by name. The name is the ``learner``
-        key of the result.
-    :param batch_size: Instances per mini-batch, for batch learners.
-    :return: The results by name.
-    """
-    learners = _require_mapping(learners, "evaluate_regressor")
-    if restart_stream:
-        stream.restart()
-    schema = stream.get_schema()
-    if not schema.is_regression():
-        raise ValueError("The stream is not a regression stream.")
-
-    runs = {}
-    for name, learner in learners.items():
-        windowed = None
-        if window_size is not None:
-            windowed = RegressionWindowedEvaluator(
-                schema=schema, window_size=window_size
-            )
-        runs[name] = _Run(
-            learner,
-            RegressionEvaluator(schema=schema),
-            windowed,
-            store_y=store_y,
-            store_predictions=store_predictions,
-        )
-    outs = _prequential_loop(
-        stream,
-        runs,
-        max_instances=max_instances,
-        progress_bar=progress_bar,
-        batch_size=batch_size,
-    )
-    return {
-        n: _regressor_results(n, stream, out, runs[n].cumulative, runs[n].windowed)
-        for n, out in outs.items()
-    }
-
-
+@overload
+def evaluate_regressor(
+    stream: Stream, learner: Regressor, **kwargs: Any
+) -> RegressorResults: ...
+@overload
+def evaluate_regressor(
+    stream: Stream, learner: Mapping[str, Regressor], **kwargs: Any
+) -> dict[str, RegressorResults]: ...
 def evaluate_regressor(
     stream: Stream,
-    learner: Regressor,
+    learner: Regressor | Mapping[str, Regressor],
     max_instances: int | None = None,
     window_size: int | None = 1000,
     store_predictions: bool = False,
@@ -124,8 +52,8 @@ def evaluate_regressor(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
-) -> RegressorResults:
-    """Test-then-train a regressor on a stream (prequential evaluation).
+) -> RegressorResults | dict[str, RegressorResults]:
+    """Test-then-train a regressor, or many on one pass over a stream.
 
     Each instance is first used to test the learner, then to train it.
 
@@ -138,33 +66,50 @@ def evaluate_regressor(
     >>> print(f"{results['rmse']:.2f}")
     7.36
 
-    To compare learners on one pass over the stream use
-    :func:`evaluate_regressors`.
+    Give a mapping of names to learners to get a dict of results by name. The
+    learners get the same instances in turn, so the stream is read once. This
+    is useful when reading the stream is slow. A mapping does not use the Java
+    loop. The learners are interleaved, so ``wallclock`` and ``cpu_time`` are
+    for the whole pass and are the same for all the learners. Do not use them
+    to compare the speed of learners.
+
+    >>> from capymoa.regressor import TargetMean
+    >>> learners = {
+    ...     "fimtdd": FIMTDD(stream.get_schema()),
+    ...     "mean": TargetMean(stream.get_schema()),
+    ... }
+    >>> results = evaluate_regressor(stream, learners, max_instances=1000)
+    >>> list(results)
+    ['fimtdd', 'mean']
 
     :param stream: The stream to evaluate on. Restarted if ``restart_stream``.
+    :param learner: The learner to evaluate, or a mapping of names to learners.
+        The name is the ``learner`` key of each result.
     :param max_instances: Number of instances to evaluate. If ``None``, go on
         until the stream ends.
     :param window_size: Number of instances in a window of ``windowed``. If
         ``None``, there are no windowed results.
     :param store_predictions: Keep the predictions in ``y_pred``.
     :param store_y: Keep the ground truth in ``y_true``.
+    :param optimise: Use the Java loop in MOA if the learner allows it. Needs a
+        ``window_size``. The Java loop has no progress bar. Only used for one
+        learner.
     :param restart_stream: If ``False``, continue from the current position in the
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
-    :param learner: The learner to evaluate.
-    :param optimise: Use the Java loop in MOA if the learner allows it. Needs a
-        ``window_size``. The Java loop has no progress bar.
     :param batch_size: Instances per mini-batch, for batch learners.
-    :return: The results.
+    :return: The results, or a dict of results by name for a mapping.
     """
-    _require_single(learner, "evaluate_regressors")
+    many = isinstance(learner, Mapping)
+    if many and not learner:
+        raise ValueError("No learners to evaluate.")
     if restart_stream:
         stream.restart()
     schema = stream.get_schema()
     if not schema.is_regression():
         raise ValueError("The stream is not a regression stream.")
-    name = str(learner)
-    if _use_java_loop(
+
+    if not many and _use_java_loop(
         stream,
         learner,
         optimise=optimise,
@@ -179,15 +124,34 @@ def evaluate_regressor(
             store_predictions=store_predictions,
         )
         out = _prequential_loop_fast(stream, run, max_instances=max_instances)
-        return _regressor_results(name, stream, out, run.cumulative, run.windowed)
-    return evaluate_regressors(
+        return _regressor_results(
+            str(learner), stream, out, run.cumulative, run.windowed
+        )
+
+    learners = dict(learner) if many else {str(learner): learner}
+    runs = {}
+    for name, each in learners.items():
+        windowed = None
+        if window_size is not None:
+            windowed = RegressionWindowedEvaluator(
+                schema=schema, window_size=window_size
+            )
+        runs[name] = _Run(
+            each,
+            RegressionEvaluator(schema=schema),
+            windowed,
+            store_y=store_y,
+            store_predictions=store_predictions,
+        )
+    outs = _prequential_loop(
         stream,
-        {name: learner},
+        runs,
         max_instances=max_instances,
-        window_size=window_size,
-        store_predictions=store_predictions,
-        store_y=store_y,
-        restart_stream=False,
         progress_bar=progress_bar,
         batch_size=batch_size,
-    )[name]
+    )
+    results = {
+        n: _regressor_results(n, stream, out, runs[n].cumulative, runs[n].windowed)
+        for n, out in outs.items()
+    }
+    return results if many else next(iter(results.values()))

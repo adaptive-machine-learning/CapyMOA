@@ -60,12 +60,12 @@ def prequential_evaluation(
     :func:`~capymoa.classifier.evaluate_classifier`,
     :func:`~capymoa.regressor.evaluate_regressor`,
     :func:`~capymoa.uncertainty.evaluate_prediction_interval` or
-    :func:`~capymoa.anomaly.evaluate_anomaly`. For a mapping of learners it calls
-    the plural form, such as :func:`~capymoa.classifier.evaluate_classifiers`.
-    Use those to see the parameters and the results of a domain.
+    :func:`~capymoa.anomaly.evaluate_anomaly`. A mapping of names to learners is
+    passed through as is, and the result is a dict of results by name. Use
+    those functions to see the parameters and the results of a domain.
 
     :param learner: A learner, or a mapping of names to learners of one domain.
-    :return: The results of the domain, or one result per learner when given a
+    :return: The results of the domain, or a dict of results by name for a
         mapping.
     :raises TypeError: If the learner is not a known type.
     :raises ValueError: If the mapping of learners is empty.
@@ -81,36 +81,27 @@ def prequential_evaluation(
         "restart_stream": restart_stream,
         "progress_bar": progress_bar,
     }
-    many = isinstance(learner, Mapping)
     if isinstance(sample, PredictionIntervalLearner):
-        from capymoa.uncertainty import (
-            evaluate_prediction_interval,
-            evaluate_prediction_intervals,
-        )
+        from capymoa.uncertainty import evaluate_prediction_interval
 
-        function = (
-            evaluate_prediction_intervals if many else evaluate_prediction_interval
-        )
+        function = evaluate_prediction_interval
     elif isinstance(sample, Classifier):
-        from capymoa.classifier import evaluate_classifier, evaluate_classifiers
+        from capymoa.classifier import evaluate_classifier
 
-        function = evaluate_classifiers if many else evaluate_classifier
+        function = evaluate_classifier
         kwargs["batch_size"] = batch_size
-        if not many:
-            kwargs["optimise"] = optimise
+        kwargs["optimise"] = optimise
     elif isinstance(sample, Regressor):
-        from capymoa.regressor import evaluate_regressor, evaluate_regressors
+        from capymoa.regressor import evaluate_regressor
 
-        function = evaluate_regressors if many else evaluate_regressor
+        function = evaluate_regressor
         kwargs["batch_size"] = batch_size
-        if not many:
-            kwargs["optimise"] = optimise
+        kwargs["optimise"] = optimise
     elif isinstance(sample, AnomalyDetector):
-        from capymoa.anomaly import evaluate_anomaly, evaluate_anomaly_detectors
+        from capymoa.anomaly import evaluate_anomaly
 
-        function = evaluate_anomaly_detectors if many else evaluate_anomaly
-        if not many:
-            kwargs["optimise"] = optimise
+        function = evaluate_anomaly
+        kwargs["optimise"] = optimise
     else:
         raise TypeError(f"Cannot evaluate a learner of type {type(sample).__name__}")
     return function(stream, learner, **kwargs)

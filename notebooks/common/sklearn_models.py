@@ -137,7 +137,7 @@ results_sklearn_SGD["accuracy"]
 # %%time
 from capymoa.classifier import PassiveAggressiveClassifier, SGDClassifier
 from capymoa.datasets import Electricity
-from capymoa.classifier import evaluate_classifiers
+from capymoa.classifier import evaluate_classifier
 from capymoa.evaluation.plot import plot_windowed_results
 
 stream = Electricity()
@@ -145,8 +145,8 @@ stream = Electricity()
 sklearn_SGD = SGDClassifier(schema=stream.get_schema())
 sklearn_PA = PassiveAggressiveClassifier(schema=stream.get_schema())
 
-results = evaluate_classifiers(
-    stream=stream, learners={"SGD": sklearn_SGD, "PA": sklearn_PA}, window_size=500
+results = evaluate_classifier(
+    stream=stream, learner={"SGD": sklearn_SGD, "PA": sklearn_PA}, window_size=500
 )
 
 plot_windowed_results(results["SGD"], results["PA"], metric="accuracy")

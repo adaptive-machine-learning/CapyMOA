@@ -5,7 +5,7 @@ from pytest import CaptureFixture
 from tqdm import tqdm
 
 from capymoa.anomaly import HalfSpaceTrees, evaluate_anomaly
-from capymoa.classifier import NoChange, evaluate_classifier, evaluate_classifiers
+from capymoa.classifier import NoChange, evaluate_classifier
 from capymoa.datasets import ElectricityTiny
 from capymoa.ssl import evaluate_ssl
 from capymoa.stream.generator import WaveformGenerator
@@ -64,7 +64,7 @@ def test_multiple_learners(capfd: CaptureFixture) -> None:
         "a": NoChange(schema=stream.get_schema()),
         "b": NoChange(schema=stream.get_schema()),
     }
-    evaluate_classifiers(stream, classifiers, progress_bar=True, max_instances=100)
+    evaluate_classifier(stream, classifiers, progress_bar=True, max_instances=100)
     assert_pbar(capfd, "Eval 2 learners on ElectricityTiny:")
 
 

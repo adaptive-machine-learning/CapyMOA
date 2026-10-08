@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, overload
 
 from tqdm import tqdm
 from typing_extensions import override
@@ -14,8 +14,6 @@ from capymoa.evaluation._loop import (
     _LoopOutput,
     _prequential_loop,
     _prequential_loop_fast,
-    _require_mapping,
-    _require_single,
     _Run,
     _run_info,
     _use_java_loop,
@@ -53,77 +51,17 @@ def _anomaly_results(
     )  # type: ignore[typeddict-item]
 
 
-def evaluate_anomaly_detectors(
-    stream: Stream,
-    learners: Mapping[str, AnomalyDetector],
-    max_instances: int | None = None,
-    window_size: int | None = 1000,
-    store_predictions: bool = False,
-    store_y: bool = False,
-    restart_stream: bool = True,
-    progress_bar: bool | tqdm = False,
-) -> dict[str, AnomalyResults]:
-    """Test-then-train many anomaly detectors on one pass over a stream.
-
-    The learners get the same instances in turn, so the stream is read once.
-    The training and testing of the learners is interleaved, so ``wallclock``
-    and ``cpu_time`` are for the whole pass and are the same for all the
-    learners. Do not use them to compare the speed of learners.
-
-    It does not use the Java loop. ``y_pred`` holds the anomaly scores.
-
-    :param stream: The stream to evaluate on. Restarted if ``restart_stream``.
-    :param max_instances: Number of instances to evaluate. If ``None``, go on
-        until the stream ends.
-    :param window_size: Number of instances in a window of ``windowed``. If
-        ``None``, there are no windowed results.
-    :param store_predictions: Keep the predictions in ``y_pred``.
-    :param store_y: Keep the ground truth in ``y_true``.
-    :param restart_stream: If ``False``, continue from the current position in the
-        stream.
-    :param progress_bar: Enable, disable, or give a progress bar.
-    :param learners: The detectors to evaluate, by name. The name is the ``learner``
-        key of the result.
-    :return: The results by name.
-    """
-    learners = _require_mapping(learners, "evaluate_anomaly")
-    for one in learners.values():
-        if not isinstance(one, AnomalyDetector):
-            raise TypeError("The learner is not an AnomalyDetector")
-    if restart_stream:
-        stream.restart()
-    schema = stream.get_schema()
-
-    runs = {}
-    for name, learner in learners.items():
-        windowed = None
-        if window_size is not None:
-            windowed = AnomalyDetectionWindowedEvaluator(
-                schema=schema, window_size=window_size
-            )
-        runs[name] = _AnomalyRun(
-            learner,
-            AnomalyDetectionEvaluator(schema=schema),
-            windowed,
-            store_y=store_y,
-            store_predictions=store_predictions,
-        )
-    outs = _prequential_loop(
-        stream,
-        runs,
-        max_instances=max_instances,
-        progress_bar=progress_bar,
-        progress_prefix="AD Eval",
-    )
-    return {
-        n: _anomaly_results(n, stream, out, runs[n].cumulative, runs[n].windowed)
-        for n, out in outs.items()
-    }
-
-
+@overload
+def evaluate_anomaly(
+    stream: Stream, learner: AnomalyDetector, **kwargs: Any
+) -> AnomalyResults: ...
+@overload
+def evaluate_anomaly(
+    stream: Stream, learner: Mapping[str, AnomalyDetector], **kwargs: Any
+) -> dict[str, AnomalyResults]: ...
 def evaluate_anomaly(
     stream: Stream,
-    learner: AnomalyDetector,
+    learner: AnomalyDetector | Mapping[str, AnomalyDetector],
     max_instances: int | None = None,
     window_size: int | None = 1000,
     store_predictions: bool = False,
@@ -131,8 +69,8 @@ def evaluate_anomaly(
     optimise: bool = True,
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
-) -> AnomalyResults:
-    """Test-then-train an anomaly detector on a stream.
+) -> AnomalyResults | dict[str, AnomalyResults]:
+    """Test-then-train an anomaly detector, or many on one pass over a stream.
 
     The detector scores each instance, then trains on it. ``y_pred`` holds the
     anomaly scores.
@@ -146,32 +84,44 @@ def evaluate_anomaly(
     >>> print(f"{results['auc']:.2f}")
     0.38
 
-    To compare detectors on one pass over the stream use
-    :func:`evaluate_anomaly_detectors`.
+    Give a mapping of names to detectors to get a dict of results by name. The
+    detectors get the same instances in turn, so the stream is read once. A
+    mapping does not use the Java loop. The training and testing of the
+    detectors is interleaved, so ``wallclock`` and ``cpu_time`` are for the
+    whole pass and are the same for all the detectors. Do not use them to
+    compare the speed of detectors.
 
     :param stream: The stream to evaluate on. Restarted if ``restart_stream``.
+    :param learner: The detector to evaluate, or a mapping of names to detectors.
+        The name is the ``learner`` key of each result.
     :param max_instances: Number of instances to evaluate. If ``None``, go on
         until the stream ends.
     :param window_size: Number of instances in a window of ``windowed``. If
         ``None``, there are no windowed results.
     :param store_predictions: Keep the predictions in ``y_pred``.
     :param store_y: Keep the ground truth in ``y_true``.
+    :param optimise: Use the Java loop in MOA if the detector allows it. Needs a
+        ``window_size``. The Java loop has no progress bar. Only used for one
+        detector.
     :param restart_stream: If ``False``, continue from the current position in the
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
-    :param learner: The detector to evaluate.
-    :param optimise: Use the Java loop in MOA if the detector allows it. Needs a
-        ``window_size``. The Java loop has no progress bar.
-    :return: The results.
+    :return: The results, or a dict of results by name for a mapping.
     """
-    _require_single(learner, "evaluate_anomaly_detectors")
-    if not isinstance(learner, AnomalyDetector):
-        raise TypeError("The learner is not an AnomalyDetector")
+    many = isinstance(learner, Mapping)
+    if many and not learner:
+        raise ValueError("No learners to evaluate.")
+    each_learner = learner.values() if many else [learner]
+    for one in each_learner:
+        if not isinstance(one, AnomalyDetector):
+            raise TypeError("The learner is not an AnomalyDetector")
     if restart_stream:
         stream.restart()
     schema = stream.get_schema()
-    name = str(learner)
-    if _use_java_loop(stream, learner, optimise=optimise, window_size=window_size):
+
+    if not many and _use_java_loop(
+        stream, learner, optimise=optimise, window_size=window_size
+    ):
         run = _Run(
             learner,
             AnomalyDetectionEvaluator(schema=schema),
@@ -180,14 +130,32 @@ def evaluate_anomaly(
             store_predictions=store_predictions,
         )
         out = _prequential_loop_fast(stream, run, max_instances=max_instances)
-        return _anomaly_results(name, stream, out, run.cumulative, run.windowed)
-    return evaluate_anomaly_detectors(
+        return _anomaly_results(str(learner), stream, out, run.cumulative, run.windowed)
+
+    learners = dict(learner) if many else {str(learner): learner}
+    runs = {}
+    for name, each in learners.items():
+        windowed = None
+        if window_size is not None:
+            windowed = AnomalyDetectionWindowedEvaluator(
+                schema=schema, window_size=window_size
+            )
+        runs[name] = _AnomalyRun(
+            each,
+            AnomalyDetectionEvaluator(schema=schema),
+            windowed,
+            store_y=store_y,
+            store_predictions=store_predictions,
+        )
+    outs = _prequential_loop(
         stream,
-        {name: learner},
+        runs,
         max_instances=max_instances,
-        window_size=window_size,
-        store_predictions=store_predictions,
-        store_y=store_y,
-        restart_stream=False,
         progress_bar=progress_bar,
-    )[name]
+        progress_prefix="AD Eval",
+    )
+    results = {
+        n: _anomaly_results(n, stream, out, runs[n].cumulative, runs[n].windowed)
+        for n, out in outs.items()
+    }
+    return results if many else next(iter(results.values()))

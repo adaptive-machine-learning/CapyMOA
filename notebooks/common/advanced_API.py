@@ -147,7 +147,7 @@ from sklearn.linear_model import SGDClassifier
 
 from capymoa.base import MOAClassifier, SKClassifier
 from capymoa.datasets import CovtypeTiny
-from capymoa.classifier import evaluate_classifiers
+from capymoa.classifier import evaluate_classifier
 from capymoa.evaluation.plot import plot_windowed_results
 
 covt_tiny = CovtypeTiny()
@@ -158,8 +158,8 @@ sk_sgd = SKClassifier(
 )
 moa_ht = MOAClassifier(schema=covt_tiny.schema, moa_learner=HoeffdingTree, CLI="-g 50")
 
-results = evaluate_classifiers(
-    stream=covt_tiny, learners={"sk_sgd": sk_sgd, "moa_ht": moa_ht}, window_size=100
+results = evaluate_classifier(
+    stream=covt_tiny, learner={"sk_sgd": sk_sgd, "moa_ht": moa_ht}, window_size=100
 )
 plot_windowed_results(results["sk_sgd"], results["moa_ht"], metric="accuracy")
 
