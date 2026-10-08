@@ -1,12 +1,4 @@
-"""Ready-made inputs for drift detectors.
-
-A drift detector consumes one number per instance. Deciding which number is the
-interesting part: the prediction error of a model, a single input feature, or
-anything else you can compute. :class:`capymoa.stream.preprocessing.pipeline.DriftDetectorPipelineElement`
-takes a callable for this, and these are the common ones so that you declare
-intent instead of writing the callable yourself.
-
-Each is a factory: call it to get the callable.
+"""This module provides tools to add drift detectors to pipelines.
 
 >>> from capymoa.classifier import OnlineBagging
 >>> from capymoa.datasets import ElectricityTiny
@@ -20,8 +12,18 @@ Each is a factory: call it to get the callable.
 ...     .add_drift_detector(ADWIN(), prediction_is_correct())
 ... )
 
-Pass your own callable to ``add_drift_detector`` for anything these do not
-cover. The signature is ``(instance, prediction)``.
+At the moment only scalar-based drift detection monitors work with the pipeline API.
+However, we provide a few options: :func:`prediction_is_correct` for classification
+accuracy, :func:`absolute_error` for regression error, and :func:`feature_value` for
+monitoring specific input features.
+
+For other inputs, create your own callable with the signature:
+
+.. code-block:: python
+
+    def my_monitor(instance: Instance, prediction) -> float:
+        ...
+        return scalar_value
 """
 
 from __future__ import annotations
@@ -87,14 +89,8 @@ def prediction_is_correct(
     detector such as :class:`capymoa.drift.detectors.ADWIN` expects when
     monitoring accuracy.
 
-    A ``None`` prediction counts as incorrect. Classifiers return ``None`` until
-    they can predict, so the first few instances of a stream are ``None`` even
-    when everything is wired correctly. After ``warn_after`` *consecutive*
-    ``None`` predictions a :class:`UserWarning` is raised once, because that
-    means no prediction is reaching the monitor at all.
-
-    :param warn_after: Consecutive ``None`` predictions tolerated before warning.
-    :return: A callable taking ``(instance, prediction)``.
+    A ``None`` prediction contributes ``0``. Repeated ``None`` predictions
+    trigger a warning.
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.drift.monitors import prediction_is_correct
@@ -104,6 +100,9 @@ def prediction_is_correct(
     1
     >>> monitor(instance, 1 - instance.y_index)
     0
+
+    :param warn_after: Consecutive ``None`` predictions tolerated before warning.
+    :return: A callable taking ``(instance, prediction)``.
     """
     observe = _none_watcher("prediction_is_correct", warn_after)
 
@@ -121,17 +120,8 @@ def absolute_error(
 
     The regression counterpart of :func:`prediction_is_correct`.
 
-    A ``None`` prediction contributes ``0.0``, matching what
-    ``RegressionEvaluator`` already does with an abstention. Note the direction
-    of that choice: zero error looks like a perfect prediction, so it biases the
-    detector *away* from reporting drift. CapyMOA has no single policy for
-    scoring abstentions yet -- four parts of the library handle them
-    differently -- so this follows the existing convention rather than inventing
-    a fifth. The warning described in :func:`prediction_is_correct` is what
-    guards against a monitor that only ever sees ``None``.
-
-    :param warn_after: Consecutive ``None`` predictions tolerated before warning.
-    :return: A callable taking ``(instance, prediction)``.
+    A ``None`` prediction contributes ``0.0``. Repeated ``None`` predictions
+    trigger a warning.
 
     >>> from capymoa.datasets import FriedTiny
     >>> from capymoa.drift.monitors import absolute_error
@@ -141,6 +131,9 @@ def absolute_error(
     0.0
     >>> monitor(instance, instance.y_value + 2.5)
     2.5
+
+    :param warn_after: Consecutive ``None`` predictions tolerated before warning.
+    :return: A callable taking ``(instance, prediction)``.
     """
     observe = _none_watcher("absolute_error", warn_after)
 
@@ -163,16 +156,16 @@ def feature_value(index: int) -> Callable[[Instance, Any], float]:
     The feature is read *as it reaches this point in the pipeline*, so the same
     index gives different values before and after a transformer.
 
-    :param index: Position in :attr:`capymoa.core.Instance.x`.
-    :return: A callable taking ``(instance, prediction)``; the prediction is
-        ignored.
-
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.drift.monitors import feature_value
     >>> instance = ElectricityTiny().next_instance()
     >>> monitor = feature_value(0)
     >>> monitor(instance, None) == float(instance.x[0])
     True
+
+    :param index: Position in :attr:`capymoa.core.Instance.x`.
+    :return: A callable taking ``(instance, prediction)``; the prediction is
+        ignored.
     """
 
     def monitor(instance: Instance, prediction: Any = None) -> float:
