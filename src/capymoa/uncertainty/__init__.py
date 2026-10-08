@@ -11,9 +11,15 @@ prediction.
 """
 
 from ._adaptive_prediction_interval import AdaPI
+from ._evaluate import evaluate_prediction_interval, evaluate_prediction_intervals
 from ._mean_and_standard_deviation_estimation import MVE
+from ._results import PredictionIntervalResults, PredictionIntervalWindows
 
 __all__ = [
     "MVE",
     "AdaPI",
+    "PredictionIntervalResults",
+    "PredictionIntervalWindows",
+    "evaluate_prediction_interval",
+    "evaluate_prediction_intervals",
 ]
