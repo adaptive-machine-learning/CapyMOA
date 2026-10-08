@@ -14,8 +14,8 @@ from torch import nn
 from capymoa.base import Classifier
 from capymoa.classifier import Finetune, HoeffdingTree
 from capymoa.core.torch.ann import Perceptron
+from capymoa.ocl import evaluate_ocl
 from capymoa.ocl.datasets import TinySplitMNIST
-from capymoa.ocl.evaluation import ocl_train_eval_loop
 from capymoa.ocl.strategy import (
     EWC,
     LWF,
@@ -240,16 +240,16 @@ def test_ocl_classifier(case: Case):
     if case.task_mask:
         kwargs["task_mask"] = scenario.task_mask
     learner = case.constructor(scenario.schema, **kwargs)  # type: ignore
-    r = ocl_train_eval_loop(
+    r = evaluate_ocl(
         learner,
         scenario.train_loaders(case.batch_size),
         scenario.test_loaders(case.batch_size),
         epochs=case.epochs,
     )
     actual = Result(
-        r.accuracy_final * 100,
-        r.anytime_accuracy_all_avg * 100,
-        r.ttt.accuracy(),
+        r["accuracy_final"] * 100,
+        r["anytime_accuracy_all_avg"] * 100,
+        r["ttt"]["accuracy"],
     )
     assert asdict(actual) == approx(asdict(case.expected)), f"Case {case.name} failed."
 
@@ -262,20 +262,28 @@ def test_ocl_classifier(case: Case):
     def assert_float(value: float):
         assert isinstance(value, float), f"Expected float but got {type(value)}"
 
-    total_eval = r.n_continual_evaluations * r.n_tasks
-    assert_float(r.accuracy_all_avg)
-    assert_float(r.accuracy_final)
-    assert_float(r.accuracy_seen_avg)
-    assert_float(r.anytime_accuracy_all_avg)
-    assert_float(r.anytime_accuracy_seen_avg)
-    assert_float(r.backward_transfer)
-    assert_float(r.forward_transfer)
-    assert_ndarray(r.accuracy_all, (r.n_tasks,))
-    assert_ndarray(r.accuracy_matrix, (r.n_tasks, r.n_tasks))
-    assert_ndarray(r.accuracy_seen, (r.n_tasks,))
-    assert_ndarray(r.anytime_accuracy_all, (total_eval,))
-    assert_ndarray(r.anytime_accuracy_matrix, (total_eval, r.n_tasks))
-    assert_ndarray(r.anytime_task_index, (total_eval,), dtype=np.integer)
-    assert_ndarray(r.boundaries, (r.n_tasks + 1,), dtype=np.integer)
-    assert_ndarray(r.class_cm, (r.n_tasks, r.n_classes, r.n_classes), dtype=np.integer)
-    assert_ndarray(r.task_index, (r.n_tasks,), dtype=np.integer)
+    n_tasks = r["n_tasks"]
+    total_eval = r["n_continual_evaluations"] * n_tasks
+    assert_float(r["accuracy_all_avg"])
+    assert_float(r["accuracy_final"])
+    assert_float(r["accuracy_seen_avg"])
+    assert_float(r["anytime_accuracy_all_avg"])
+    assert_float(r["anytime_accuracy_seen_avg"])
+    assert_float(r["backward_transfer"])
+    assert_float(r["forward_transfer"])
+    assert_ndarray(r["accuracy_matrix"], (n_tasks, n_tasks))
+    assert_ndarray(r["anytime_accuracy_matrix"], (total_eval, n_tasks))
+    assert_ndarray(r["boundaries"], (n_tasks + 1,), dtype=np.integer)
+    assert_ndarray(
+        r["class_cm"], (n_tasks, r["n_classes"], r["n_classes"]), dtype=np.integer
+    )
+    assert list(r["per_task"]) == ["task", "accuracy_all", "accuracy_seen"]
+    assert len(r["per_task"]["task"]) == n_tasks
+    assert list(r["anytime"]) == [
+        "task",
+        "step",
+        "accuracy_all",
+        "accuracy_seen",
+    ]
+    assert len(r["anytime"]["task"]) == total_eval
+    assert "task" in r["ttt"]["windowed"]

@@ -15,9 +15,9 @@ from capymoa.anomaly import (
     StreamRHF,
 )
 from capymoa.anomaly.datasets import TinyBlobs
+from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
 from capymoa.base import AnomalyDetector, MOAClassifier
 from capymoa.core.moa._cli import cli_str_classifier
-from capymoa.evaluation import AnomalyDetectionEvaluator
 from capymoa.stream._stream import Schema
 
 

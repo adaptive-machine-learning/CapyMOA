@@ -4,7 +4,7 @@ import pytest
 
 from capymoa.base import ClassifierSSL
 from capymoa.datasets._datasets import CovtypeTiny, ElectricityTiny
-from capymoa.evaluation.evaluation import prequential_ssl_evaluation
+from capymoa.ssl import evaluate_ssl
 from capymoa.stream import Stream
 
 
@@ -29,7 +29,7 @@ def assert_ssl_evaluation(
     label_probability: float = 0.01,
     max_instances: int = 1000,
 ):
-    results = prequential_ssl_evaluation(
+    results = evaluate_ssl(
         stream=stream,
         learner=learner,
         label_probability=label_probability,
@@ -37,7 +37,7 @@ def assert_ssl_evaluation(
         max_instances=max_instances,
     )
 
-    assert results["cumulative"].accuracy() == pytest.approx(expectation), (
+    assert results["accuracy"] == pytest.approx(expectation), (
         f"Expected accuracy of {expectation} but got {results['cumulative'].accuracy()}"
         + f" for learner {learner} on stream {stream}"
     )
@@ -108,7 +108,7 @@ def test_ssl_delay_length_in_python_loop():
     feature unreachable for drifting streams.
     """
     from capymoa.classifier import HoeffdingTree
-    from capymoa.evaluation import prequential_ssl_evaluation
+    from capymoa.ssl import evaluate_ssl
     from capymoa.stream.drift import AbruptDrift, DriftStream
     from capymoa.stream.generator import SEA
 
@@ -129,7 +129,7 @@ def test_ssl_delay_length_in_python_loop():
     for delay in (0, 2000):
         stream.restart()
         learner = _CountingHoeffdingTree(schema=stream.get_schema())
-        results = prequential_ssl_evaluation(
+        results = evaluate_ssl(
             stream=stream,
             learner=learner,
             max_instances=4000,
@@ -138,7 +138,7 @@ def test_ssl_delay_length_in_python_loop():
             delay_length=delay,
             optimise=False,
         )
-        assert results["cumulative"].accuracy() > 0
+        assert results["accuracy"] > 0
         calls[delay] = learner.labeled_train_calls
 
     # Labels queued within ``delay`` of the end are never delivered, so a delay
@@ -148,12 +148,12 @@ def test_ssl_delay_length_in_python_loop():
 
 def test_ssl_rejects_negative_delay():
     from capymoa.classifier import HoeffdingTree
-    from capymoa.evaluation import prequential_ssl_evaluation
+    from capymoa.ssl import evaluate_ssl
     from capymoa.stream.generator import SEA
 
     stream = SEA(function=1)
     with pytest.raises(ValueError, match="delay_length must be zero or positive"):
-        prequential_ssl_evaluation(
+        evaluate_ssl(
             stream=stream,
             learner=HoeffdingTree(schema=stream.get_schema()),
             max_instances=100,

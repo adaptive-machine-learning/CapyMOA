@@ -38,12 +38,13 @@ from capymoa.classifier import (
     StreamingGradientBoostedTrees,
     StreamingRandomPatches,
     WeightedkNN,
+    evaluate_classifier,
 )
+from capymoa.classifier.evaluate import ClassificationEvaluator
 from capymoa.core.io import load_model, save_model
 from capymoa.core.moa._cli import cli_str_classifier
 from capymoa.core.moa.splitcriteria import GiniSplitCriterion
 from capymoa.datasets import ElectricityTiny
-from capymoa.evaluation import ClassificationEvaluator, prequential_evaluation
 from capymoa.stream import Schema, Stream
 from capymoa.stream.generator import RandomTreeGenerator
 
@@ -345,7 +346,7 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
 
     # Main Loop
     stream.restart()
-    results = prequential_evaluation(
+    results = evaluate_classifier(
         stream, learner, window_size=100, batch_size=test_case.batch_size
     )
 
@@ -361,8 +362,8 @@ def test_classifiers(test_case: ClassifierTestCase, subtests: SubTests):
     assert sum(y_proba) == pytest.approx(1.0, abs=1e-5), "Probability sum != 1"
 
     # Check if the accuracy matches the expected value for both evaluator types
-    actual_acc = results.cumulative.accuracy()
-    actual_win_acc = results.windowed.accuracy()[-1]
+    actual_acc = results["accuracy"]
+    actual_win_acc = results["windowed"]["accuracy"][-1]
 
     assert actual_acc == pytest.approx(test_case.accuracy, abs=0.1), (
         f"Basic Eval: Expected accuracy of {test_case.accuracy:0.1f} got {actual_acc: 0.1f}"

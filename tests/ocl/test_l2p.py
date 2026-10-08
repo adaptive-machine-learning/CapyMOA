@@ -11,8 +11,8 @@ pytestmark = pytest.markskip("torch")
 import torch
 from torch import Tensor, nn
 
+from capymoa.ocl import evaluate_ocl
 from capymoa.ocl.datasets import TinySplitMNIST
-from capymoa.ocl.evaluation import ocl_train_eval_loop
 from capymoa.ocl.strategy.l2p import L2P, L2PViT
 
 
@@ -41,7 +41,7 @@ def test_l2p():
         vit=DummyViT(),
         device="cpu",
     )
-    ocl_train_eval_loop(
+    evaluate_ocl(
         learner,
         scenario.train_loaders(32),
         scenario.test_loaders(32),

@@ -1,16 +1,19 @@
 from functools import partial
+from itertools import islice
 
 import pytest
 
 from capymoa.base import PredictionIntervalLearner
 from capymoa.datasets import Fried
-from capymoa.evaluation import (
-    PredictionIntervalEvaluator,
-    PredictionIntervalWindowedEvaluator,
-)
+from capymoa.regressor.evaluate import RegressionEvaluator
 from capymoa.uncertainty import (
     MVE,
     AdaPI,
+    evaluate_prediction_interval,
+)
+from capymoa.uncertainty.evaluate import (
+    PredictionIntervalEvaluator,
+    PredictionIntervalWindowedEvaluator,
 )
 
 
@@ -59,3 +62,24 @@ def test_PI(learner_constructor, coverage, win_coverage):
     assert actual_win_coverage == pytest.approx(win_coverage, abs=0.1), (
         f"Windowed Eval: Expected {win_coverage:0.1f} coverage got {actual_win_coverage:0.1f} coverage"
     )
+
+
+def test_interval_evaluator_scores_the_point():
+    """The regression metrics of an interval evaluator score the middle value."""
+    stream = Fried()
+    schema = stream.get_schema()
+    evaluator = PredictionIntervalEvaluator(schema=schema)
+    point = RegressionEvaluator(schema=schema)
+    learner = MVE(schema=schema)
+    for instance in islice(stream, 500):
+        prediction = learner.predict(instance)
+        evaluator.update(instance.y_value, prediction)
+        point.update(instance.y_value, prediction[1])
+        learner.train(instance)
+    assert evaluator.mae() == pytest.approx(point.mae())
+    assert evaluator.rmse() == pytest.approx(point.rmse())
+
+    results = evaluate_prediction_interval(
+        stream, MVE(schema=schema), max_instances=500
+    )
+    assert results["mae"] == pytest.approx(evaluator.mae())
