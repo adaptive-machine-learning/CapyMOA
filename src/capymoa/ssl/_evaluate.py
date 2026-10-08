@@ -11,11 +11,10 @@ from capymoa.classifier.evaluate import (
     ClassificationWindowedEvaluator,
 )
 from capymoa.evaluation._loop import (
-    _is_fast_mode_compilable,
     _prequential_loop,
     _prequential_loop_fast,
-    _progress_label,
     _Run,
+    _use_java_loop,
 )
 from capymoa.ssl._results import SSLResults
 from capymoa.stream import Stream
@@ -158,7 +157,7 @@ def evaluate_ssl(
         "initial_window_size": initial_window_size,
     }
 
-    if window_size is not None and _is_fast_mode_compilable(stream, learner, optimise):
+    if _use_java_loop(stream, learner, optimise=optimise, window_size=window_size):
         run = _Run(
             learner,
             ClassificationEvaluator(schema=schema),
@@ -201,7 +200,7 @@ def evaluate_ssl(
         {name: run},
         max_instances=max_instances,
         progress_bar=progress_bar,
-        progress_label=_progress_label("SSL Eval", {name: learner}, stream),
+        progress_prefix="SSL Eval",
     )[name]
     base = _classifier_results(name, stream, out, run.cumulative, run.windowed)
     return SSLResults(**base, **extra, **_unlabeled(run.unlabeled, out.instances))  # type: ignore[typeddict-item]

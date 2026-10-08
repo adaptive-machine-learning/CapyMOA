@@ -21,9 +21,9 @@ from capymoa.classifier.evaluate import (
 from capymoa.datasets import Electricity, ElectricityTiny
 from capymoa.evaluation import prequential_evaluation
 from capymoa.evaluation._loop import (
-    _is_fast_mode_compilable,
     _prequential_loop_fast,
     _Run,
+    _use_java_loop,
 )
 from capymoa.exception import StreamTypeError
 from capymoa.regressor import KNNRegressor
@@ -230,7 +230,7 @@ def test_restart_stream_flag(restart_stream, optimise, regression, evaluation):
         )  # The type of model is not important
     else:
         learner = KNNRegressor(schema=stream.get_schema())
-    assert _is_fast_mode_compilable(stream, learner, True), (
+    assert _use_java_loop(stream, learner, optimise=True, window_size=10), (
         "Fast mode should always be compilable for this test"
     )
 
@@ -283,9 +283,9 @@ def test_store_y_and_store_predictions(
 
     learner = NoChange(schema=stream.get_schema())
 
-    assert _is_fast_mode_compilable(stream, learner, True) or not optimise, (
-        "Fast mode should be compilable for this test if optimise is True"
-    )
+    assert (
+        _use_java_loop(stream, learner, optimise=True, window_size=10) or not optimise
+    ), "Fast mode should be compilable for this test if optimise is True"
     results = eval_func(
         stream=stream,
         learner=learner,

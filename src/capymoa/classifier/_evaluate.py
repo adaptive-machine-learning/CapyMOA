@@ -12,16 +12,14 @@ from capymoa.classifier.evaluate import (
     ClassificationWindowedEvaluator,
 )
 from capymoa.evaluation._loop import (
-    _check_batch_size,
-    _is_fast_mode_compilable,
     _LoopOutput,
     _prequential_loop,
     _prequential_loop_fast,
-    _progress_label,
     _require_mapping,
     _require_single,
     _Run,
     _run_info,
+    _use_java_loop,
 )
 from capymoa.stream import Schema, Stream
 
@@ -115,8 +113,6 @@ def evaluate_classifiers(
     learners = _require_mapping(learners, "evaluate_classifier")
     if restart_stream:
         stream.restart()
-    for one in learners.values():
-        _check_batch_size(one, batch_size)
     schema = stream.get_schema()
     if not schema.is_classification():
         raise ValueError("The stream is not a classification stream.")
@@ -140,7 +136,6 @@ def evaluate_classifiers(
         runs,
         max_instances=max_instances,
         progress_bar=progress_bar,
-        progress_label=_progress_label("Eval", learners, stream),
         batch_size=batch_size,
     )
     return {
@@ -200,8 +195,13 @@ def evaluate_classifier(
     if not schema.is_classification():
         raise ValueError("The stream is not a classification stream.")
     name = str(learner)
-    if window_size is not None and _is_fast_mode_compilable(stream, learner, optimise):
-        _check_batch_size(learner, batch_size)
+    if _use_java_loop(
+        stream,
+        learner,
+        optimise=optimise,
+        window_size=window_size,
+        batch_size=batch_size,
+    ):
         run = _Run(
             learner,
             ClassificationEvaluator(schema=schema),

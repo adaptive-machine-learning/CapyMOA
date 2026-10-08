@@ -9,7 +9,7 @@ import time
 from collections.abc import Mapping, Sequence, Sized
 from dataclasses import dataclass, field
 from itertools import islice
-from typing import Any, Protocol
+from typing import Any
 
 import numpy as np
 from moa.evaluation import EfficientEvaluationLoops
@@ -18,22 +18,10 @@ from tqdm import tqdm
 
 from capymoa._utils import batched
 from capymoa.base import MOAPredictionIntervalLearner
-from capymoa.core import LabeledInstance, RegressionInstance
-from capymoa.evaluation._progress_bar import resolve_progress_bar
+from capymoa.core import LabeledInstance
 from capymoa.evaluation.results import RunInfo
 from capymoa.stream import Stream
 from capymoa.stream.drift import DriftStream, RecurrentConceptDriftStream
-
-
-class _Evaluator(Protocol):
-    """What the loop needs from an evaluator."""
-
-    result_windows: list
-    window_size: int | None
-
-    def update(self, y_true: Any, y_pred: Any) -> None: ...
-    def get_instances_seen(self) -> int: ...
-    def metrics(self) -> list: ...
 
 
 @dataclass
@@ -49,53 +37,25 @@ class _LoopOutput:
     other: dict[str, float] = field(default_factory=dict)
 
 
-def start_time_measuring() -> tuple[float, float]:
-    """Start a wallclock and a CPU timer."""
-    return time.time(), time.process_time()
-
-
-def stop_time_measuring(
-    start_wallclock_time: float, start_cpu_time: float
-) -> tuple[float, float]:
-    """Stop the timers. Returns the elapsed wallclock and CPU time in seconds."""
-    return (
-        time.time() - start_wallclock_time,
-        time.process_time() - start_cpu_time,
-    )
-
-
-def _is_fast_mode_compilable(stream: Stream, learner, optimise=True) -> bool:
-    """Check if the stream and learner work with the efficient loops in MOA."""
+def _use_java_loop(
+    stream: Stream,
+    learner,
+    *,
+    optimise: bool,
+    window_size: int | None,
+    batch_size: int = 1,
+) -> bool:
+    """Whether MOA can run the whole loop in Java."""
     moa_learner = getattr(learner, "moa_learner", None)
     return (
         optimise
+        and window_size is not None
+        and batch_size == 1
         and moa_learner is not None
         # refuse prediction interval learner
         and not isinstance(moa_learner, MOAPredictionIntervalLearner)
         and isinstance(stream.get_moa_stream(), InstanceStream)
     )
-
-
-def _get_expected_length(
-    stream: Stream, max_instances: int | None = None
-) -> int | None:
-    """Get the expected length of the stream."""
-    if isinstance(stream, Sized):
-        return len(stream) if max_instances is None else min(len(stream), max_instances)
-    return max_instances
-
-
-def _setup_progress_bar(
-    label: str,
-    progress_bar: bool | tqdm,
-    stream: Stream,
-    max_instances: int | None,
-):
-    expected_length = _get_expected_length(stream, max_instances)
-    progress_bar = resolve_progress_bar(progress_bar, label)
-    if progress_bar is not None and expected_length is not None:
-        progress_bar.set_total(expected_length)
-    return progress_bar
 
 
 def _drift_info(stream: Stream) -> dict[str, list]:
@@ -129,16 +89,6 @@ def _is_batch(learner) -> bool:
     return module is not None and isinstance(learner, module.Batch)
 
 
-def _get_target(instance: LabeledInstance | RegressionInstance) -> int | np.double:
-    """Get the target value from an instance."""
-    if isinstance(instance, LabeledInstance):
-        return instance.y_index
-    elif isinstance(instance, RegressionInstance):
-        return instance.y_value
-    else:
-        raise TypeError("Unknown instance type")
-
-
 class _Run:
     """One learner in the test-then-train loop, with its evaluators.
 
@@ -149,8 +99,8 @@ class _Run:
     def __init__(
         self,
         learner,
-        cumulative: _Evaluator,
-        windowed: _Evaluator | None,
+        cumulative,
+        windowed,
         *,
         store_y: bool,
         store_predictions: bool,
@@ -168,7 +118,9 @@ class _Run:
     ) -> tuple[Sequence[Any], Sequence[Any]]:
         """Test, then train on a batch. Returns the targets and predictions."""
         learner = self.learner
-        yb_true = [_get_target(instance) for instance in batch]
+        yb_true = [
+            i.y_index if isinstance(i, LabeledInstance) else i.y_value for i in batch
+        ]
         yb_pred = []
         if _is_batch(learner):
             # Collect a batch of instances and predict them all at once
@@ -206,11 +158,7 @@ class _Run:
         # Keep the last, shorter window if the window size does not divide the
         # stream.
         win = self.windowed
-        if (
-            win is not None
-            and win.window_size
-            and win.get_instances_seen() % win.window_size
-        ):
+        if win is not None and win.get_instances_seen() % win.window_size:
             win.result_windows.append(win.metrics())
         return _LoopOutput(
             instances=instances,
@@ -221,11 +169,32 @@ class _Run:
         )
 
 
-def _check_batch_size(learner, batch_size: int) -> None:
-    if batch_size != 1 and not _is_batch(learner):
-        raise ValueError(
-            "The learner is not a batch learner, but batch_size is set to a value greater than 1."
+def _progress_bar(
+    progress_bar: bool | tqdm,
+    prefix: str,
+    runs: Mapping[str, _Run],
+    stream: Stream,
+    max_instances: int | None,
+) -> tqdm:
+    """The progress bar of a loop. It prints nothing if ``progress_bar`` is false."""
+    if isinstance(progress_bar, tqdm):
+        bar = progress_bar
+    else:
+        stream_name = type(stream).__name__
+        if len(runs) == 1:
+            (run,) = runs.values()
+            label = f"{prefix} {type(run.learner).__name__!r} on {stream_name!r}"
+        else:
+            label = f"{prefix} {len(runs)} learners on {stream_name}"
+        bar = tqdm(desc=label, disable=not progress_bar)
+    total = max_instances
+    if isinstance(stream, Sized):
+        total = (
+            len(stream) if max_instances is None else min(len(stream), max_instances)
         )
+    if total is not None:
+        bar.total = total
+    return bar
 
 
 def _prequential_loop(
@@ -234,7 +203,7 @@ def _prequential_loop(
     *,
     max_instances: int | None,
     progress_bar: bool | tqdm = False,
-    progress_label: str = "Eval",
+    progress_prefix: str = "Eval",
     batch_size: int = 1,
 ) -> dict[str, _LoopOutput]:
     """Test-then-train every learner on the stream, going over it once.
@@ -244,19 +213,21 @@ def _prequential_loop(
 
     :param runs: The learners to run, by name.
     """
+    if batch_size != 1 and not all(_is_batch(run.learner) for run in runs.values()):
+        raise ValueError(
+            "The learner is not a batch learner, but batch_size is set to a value greater than 1."
+        )
     instances = 0
-
-    start_wallclock_time, start_cpu_time = start_time_measuring()
-    bar = _setup_progress_bar(progress_label, progress_bar, stream, max_instances)
+    start_wallclock, start_cpu = time.time(), time.process_time()
+    bar = _progress_bar(progress_bar, progress_prefix, runs, stream, max_instances)
     for batch in batched(islice(stream, max_instances), batch_size):
         for run in runs.values():
             run.step(batch)
         instances += len(batch)
-        if bar is not None:
-            bar.update(len(batch))
-    if bar is not None:
-        bar.close()
-    wallclock, cpu_time = stop_time_measuring(start_wallclock_time, start_cpu_time)
+        bar.update(len(batch))
+    bar.close()
+    wallclock = time.time() - start_wallclock
+    cpu_time = time.process_time() - start_cpu
 
     return {
         name: run.output(instances, wallclock, cpu_time) for name, run in runs.items()
@@ -272,9 +243,9 @@ def _prequential_loop_fast(
 ) -> _LoopOutput:
     """The test-then-train loop of one learner, run by MOA in Java.
 
-    Needs a MOA learner and a MOA stream (see :func:`_is_fast_mode_compilable`).
-    The run needs a windowed evaluator. It must not override
-    :meth:`_Run.test_then_train`, since Java cannot run that code.
+    Callers must check :func:`_use_java_loop` first. The run needs a windowed
+    evaluator. It must not override :meth:`_Run.test_then_train`, since Java
+    cannot run that code.
 
     :param ssl: ``(initial_window_size, delay_length, label_probability,
         random_seed)`` for semi-supervised evaluation, else ``None``.
@@ -282,14 +253,8 @@ def _prequential_loop_fast(
     if type(run).test_then_train is not _Run.test_then_train:
         raise TypeError("The Java loop cannot run a custom test_then_train.")
     learner, cumulative, windowed = run.learner, run.cumulative, run.windowed
-    if windowed is None:
-        raise ValueError("The fast loop requires a windowed evaluator.")
-    if not _is_fast_mode_compilable(stream, learner):
-        raise ValueError(
-            "The fast loop requires the stream object to have a `Stream.moa_stream`"
-        )
     window_size = windowed.window_size
-    start_wallclock_time, start_cpu_time = start_time_measuring()
+    start_wallclock, start_cpu = time.time(), time.process_time()
     limit = -1 if max_instances is None else max_instances
     if ssl is None:
         moa_results = EfficientEvaluationLoops.PrequentialEvaluation(
@@ -319,17 +284,13 @@ def _prequential_loop_fast(
             run.store_y,
             run.store_predictions,
         )
-    wallclock, cpu_time = stop_time_measuring(start_wallclock_time, start_cpu_time)
+    wallclock = time.time() - start_wallclock
+    cpu_time = time.process_time() - start_cpu
 
-    windowed.result_windows = []
-    if moa_results is not None and moa_results.windowedResults is not None:
-        for entry in moa_results.windowedResults:
-            windowed.result_windows.append(entry)
-
-    metrics = dict(zip(cumulative.metrics_header(), cumulative.metrics()))
+    windowed.result_windows = list(moa_results.windowedResults or [])
     other = moa_results.otherMeasurements or {}
     return _LoopOutput(
-        instances=int(metrics["instances"]),
+        instances=int(cumulative.metrics_dict()["instances"]),
         wallclock=wallclock,
         cpu_time=cpu_time,
         # Via numpy to turn Java arrays into Python numbers of the same type.
@@ -361,28 +322,11 @@ def _require_single(learner, plural: str) -> None:
         raise TypeError(f"Got a mapping of learners. Use `{plural}` for many learners.")
 
 
-def _progress_label(prefix: str, learners: Mapping[str, Any], stream: Stream) -> str:
-    stream_name = type(stream).__name__
-    if len(learners) == 1:
-        (learner,) = learners.values()
-        return f"{prefix} {type(learner).__name__!r} on {stream_name!r}"
-    return f"{prefix} {len(learners)} learners on {stream_name}"
-
-
-def _windows(evaluator, columns: Sequence[str]) -> dict[str, np.ndarray]:
-    """The windows of an evaluator in columns: ``instances`` and the given metrics."""
-    frame = evaluator.metrics_per_window()
-    windows = {"instances": frame["instances"].to_numpy().astype(int)}
-    for column in columns:
-        windows[column] = frame[column].to_numpy(dtype=float)
-    return windows
-
-
 def _run_info(
     name: str,
     stream: "Stream | str",
     out: _LoopOutput,
-    windowed: _Evaluator | None,
+    windowed,
     columns: Sequence[str],
 ) -> RunInfo:
     """Run info of a stream, or of a stream known only by its name.
@@ -392,8 +336,6 @@ def _run_info(
     :param windowed: The windowed evaluator, or ``None`` if windows are off.
     :param columns: The metric columns to put in ``windowed``.
     """
-    window_size = windowed.window_size if windowed is not None else None
-    frame = _windows(windowed, columns) if windowed is not None else None
     info = RunInfo(
         learner=name,
         stream=stream if isinstance(stream, str) else str(stream),
@@ -401,13 +343,17 @@ def _run_info(
         wallclock=out.wallclock,
         cpu_time=out.cpu_time,
     )  # type: ignore[typeddict-item]
-    optional = {
-        "window_size": window_size,
-        "windowed": frame,
-        "y_true": out.y_true,
-        "y_pred": out.y_pred,
-    }
-    info.update({k: v for k, v in optional.items() if v is not None})  # type: ignore[typeddict-item]
+    if windowed is not None:
+        frame = windowed.metrics_per_window()
+        info["window_size"] = windowed.window_size
+        info["windowed"] = {
+            "instances": frame["instances"].to_numpy().astype(int),
+            **{c: frame[c].to_numpy(dtype=float) for c in columns},
+        }
+    if out.y_true is not None:
+        info["y_true"] = out.y_true
+    if out.y_pred is not None:
+        info["y_pred"] = out.y_pred
     if not isinstance(stream, str):
         info.update(_drift_info(stream))  # type: ignore[typeddict-item]
     return info

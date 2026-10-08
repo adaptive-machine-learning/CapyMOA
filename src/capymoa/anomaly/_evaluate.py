@@ -10,15 +10,14 @@ from capymoa.anomaly.evaluate import (
 )
 from capymoa.base import AnomalyDetector
 from capymoa.evaluation._loop import (
-    _is_fast_mode_compilable,
     _LoopOutput,
     _prequential_loop,
     _prequential_loop_fast,
-    _progress_label,
     _require_mapping,
     _require_single,
     _Run,
     _run_info,
+    _use_java_loop,
 )
 from capymoa.stream import Stream
 
@@ -112,7 +111,7 @@ def evaluate_anomaly_detectors(
         runs,
         max_instances=max_instances,
         progress_bar=progress_bar,
-        progress_label=_progress_label("AD Eval", learners, stream),
+        progress_prefix="AD Eval",
     )
     return {
         n: _anomaly_results(n, stream, out, runs[n].cumulative, runs[n].windowed)
@@ -170,7 +169,7 @@ def evaluate_anomaly(
         stream.restart()
     schema = stream.get_schema()
     name = str(learner)
-    if window_size is not None and _is_fast_mode_compilable(stream, learner, optimise):
+    if _use_java_loop(stream, learner, optimise=optimise, window_size=window_size):
         run = _Run(
             learner,
             AnomalyDetectionEvaluator(schema=schema),
