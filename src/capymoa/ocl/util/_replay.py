@@ -7,7 +7,7 @@ from torch.utils.data import TensorDataset
 from typing_extensions import override
 
 #: Maps a buffer key to the shape (excluding batch) and dtype of its tensor.
-BufferSpec = Mapping[str, tuple[tuple[int, ...], torch.dtype]]
+BufferShape = Mapping[str, tuple[tuple[int, ...], torch.dtype]]
 
 
 class ReplayBuffer(ABC, nn.Module):
@@ -15,7 +15,7 @@ class ReplayBuffer(ABC, nn.Module):
     def update(self, **batch: Tensor) -> None:
         """Update the replay buffer with new examples.
 
-        :param batch: Tensors with the same keys as the buffer's spec. Each has a
+        :param batch: Tensors with the same keys as the buffer's shape. Each has a
             leading batch dimension. Tensors are detached before storing.
         """
         ...
@@ -24,7 +24,7 @@ class ReplayBuffer(ABC, nn.Module):
         """Sample ``n`` examples (with replacement) from the replay buffer.
 
         :param n: Number of examples to sample
-        :return: Dictionary with the same keys as the spec. Each tensor has ``n``
+        :return: Dictionary with the same keys as the shape. Each tensor has ``n``
             rows.
         """
         indices = torch.randint(0, self.count, (n,), generator=self._rng)
@@ -51,7 +51,7 @@ class ReplayBuffer(ABC, nn.Module):
 
     @property
     def _buffer(self) -> dict[str, Tensor]:
-        return {k: getattr(self, f"buffer_{k}") for k in self._spec}
+        return {k: getattr(self, f"buffer_{k}") for k in self._shape}
 
     @property
     def device(self) -> torch.device:
@@ -60,35 +60,35 @@ class ReplayBuffer(ABC, nn.Module):
     def __init__(
         self,
         capacity: int,
-        spec: BufferSpec,
+        shape: BufferShape,
         rng: torch.Generator | None = None,
     ) -> None:
         """Construct a replay buffer.
 
         :param capacity: Maximum number of examples to store.
-        :param spec: Shape (excluding batch) and dtype of each stored tensor, by key.
+        :param shape: Shape (excluding batch) and dtype of each stored tensor, by key.
         :param rng: Random number generator, defaults to an unseeded generator.
         """
         super().__init__()
         if rng is None:
             rng = torch.Generator()
         self._capacity = capacity
-        self._spec = dict(spec)
+        self._shape = dict(shape)
         self._rng = rng
         self._count = 0
-        for key, (shape, dtype) in spec.items():
+        for key, (item_shape, dtype) in shape.items():
             self.register_buffer(
-                f"buffer_{key}", torch.zeros((capacity, *shape), dtype=dtype)
+                f"buffer_{key}", torch.zeros((capacity, *item_shape), dtype=dtype)
             )
         self._i = 0
 
     def _prepare(self, batch: dict[str, Tensor]) -> tuple[dict[str, Tensor], int]:
         """Check keys and shapes, detach and move to the buffer device."""
-        assert set(batch.keys()) == set(self._spec.keys())
+        assert set(batch.keys()) == set(self._shape.keys())
         batch_size = next(iter(batch.values())).shape[0]
         out = {}
         for key, values in batch.items():
-            shape, _ = self._spec[key]
+            shape, _ = self._shape[key]
             assert values.shape == (batch_size, *shape)
             out[key] = values.detach().to(self._buffer[key].device)
         return out, batch_size
@@ -119,7 +119,7 @@ class GreedySampler(ReplayBuffer):
     """Update the buffer with every new example, replacing a random example from the
     majority class if the buffer is full.
 
-    The spec must contain a ``y`` key with integer class labels.
+    The shape must contain a ``y`` key with integer class labels.
     """
 
     @override

@@ -56,7 +56,7 @@ class ExperienceReplay(BatchClassifier, Handler):
         self.learner = learner
         self._buffer = ReservoirSampler(
             capacity=buffer_size,
-            spec={
+            shape={
                 "x": ((self.schema.get_num_attributes(),), torch.float32),
                 "y": ((), torch.long),
             },

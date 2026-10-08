@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 
 from capymoa.base import BatchClassifier
-from capymoa.ocl.util._replay import ReplayBuffer, ReservoirSampler
+from capymoa.ocl.util._replay import ReservoirSampler
 from capymoa.stream import Schema
 
 
@@ -30,7 +30,6 @@ class DER(BatchClassifier):
         augment: Callable[[Tensor], Tensor] | None = None,
         alpha: float = 0.5,
         buffer_capacity: int = 200,
-        replay_buffer: ReplayBuffer | None = None,
         seed: int = 0,
         substeps: int = 1,
         device: torch.device | str = "cpu",
@@ -44,8 +43,6 @@ class DER(BatchClassifier):
             ``schema.shape``. Defaults to no augmentation.
         :param alpha: Weight of the logit replay loss.
         :param buffer_capacity: Number of replay samples to keep.
-        :param replay_buffer: Replay buffer with keys ``x``, ``z`` and ``y``. By
-            default, a reservoir sampler of size ``buffer_capacity``.
         :param seed: Random seed.
         :param substeps: Optimisation steps per batch. Each step uses a new random
             augmentation of the batch and the replay samples.
@@ -68,17 +65,15 @@ class DER(BatchClassifier):
         self._criterion = torch.nn.CrossEntropyLoss()
         self._logit_loss = torch.nn.MSELoss()
         self._shape = schema.shape
-        if replay_buffer is None:
-            replay_buffer = ReservoirSampler(
-                buffer_capacity,
-                {
-                    "x": ((schema.get_num_attributes(),), torch.float32),
-                    "z": ((schema.get_num_classes(),), torch.float32),
-                    "y": ((), torch.long),
-                },
-                torch.Generator().manual_seed(seed),
-            )
-        self._buffer = replay_buffer.to(self.device)
+        self._buffer = ReservoirSampler(
+            buffer_capacity,
+            {
+                "x": ((schema.get_num_attributes(),), torch.float32),
+                "z": ((schema.get_num_classes(),), torch.float32),
+                "y": ((), torch.long),
+            },
+            torch.Generator().manual_seed(seed),
+        ).to(self.device)
 
     def _train_step(self, x: Tensor, y: Tensor, update_buffer: bool) -> None:
         self._optimiser.zero_grad()
