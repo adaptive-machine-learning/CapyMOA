@@ -69,9 +69,9 @@ class RunInfo(TypedDict):
     #: absent.
     windowed: NotRequired[Windows]
     #: The ground truth targets. Absent unless ``store_y`` was set.
-    y_true: NotRequired[np.ndarray]
+    y_true: NotRequired[list]
     #: The predictions. Absent unless ``store_predictions`` was set.
-    y_pred: NotRequired[np.ndarray]
+    y_pred: NotRequired[list]
     #: Instance indexes of the drifts in the stream. Absent if the stream has
     #: no drifts.
     drifts: NotRequired[list[int]]

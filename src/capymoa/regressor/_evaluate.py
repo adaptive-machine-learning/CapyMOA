@@ -12,9 +12,8 @@ from capymoa.evaluation._loop import (
     _progress_label,
     _require_mapping,
     _require_single,
+    _Run,
     _run_info,
-    _supervised_step,
-    _windows,
 )
 from capymoa.regressor._results import RegressorResults
 from capymoa.regressor.evaluate import RegressionEvaluator, RegressionWindowedEvaluator
@@ -29,12 +28,10 @@ def _regressor_results(
     out: _LoopOutput,
     cumulative: RegressionEvaluator,
     windowed: RegressionWindowedEvaluator | None,
-    window_size: int | None,
 ) -> RegressorResults:
     metrics = cumulative.metrics_dict()
-    frame = _windows(windowed, _METRICS) if windowed is not None else None
     return RegressorResults(
-        **_run_info(name, stream, out, window_size, frame),
+        **_run_info(name, stream, out, windowed, _METRICS),
         **{key: float(metrics[key]) for key in _METRICS},
     )  # type: ignore[typeddict-item]
 
@@ -84,40 +81,38 @@ def evaluate_regressors(
     :param batch_size: Instances per mini-batch, for batch learners.
     :return: The results by name.
     """
-    runs = _require_mapping(learners, "evaluate_regressor")
+    learners = _require_mapping(learners, "evaluate_regressor")
     if restart_stream:
         stream.restart()
-    for one in runs.values():
+    for one in learners.values():
         _check_batch_size(one, batch_size)
     schema = stream.get_schema()
     if not schema.is_regression():
         raise ValueError("The stream is not a regression stream.")
 
-    cumulative = {n: RegressionEvaluator(schema=schema) for n in runs}
-    windowed = {
-        n: None
-        if window_size is None
-        else RegressionWindowedEvaluator(schema=schema, window_size=window_size)
-        for n in runs
+    runs = {
+        n: _Run(
+            one,
+            RegressionEvaluator(schema=schema),
+            None
+            if window_size is None
+            else RegressionWindowedEvaluator(schema=schema, window_size=window_size),
+            store_y=store_y,
+            store_predictions=store_predictions,
+        )
+        for n, one in learners.items()
     }
     outs = _prequential_loop(
         stream,
-        {n: _supervised_step(one) for n, one in runs.items()},
-        cumulative,
-        windowed,
+        runs,
         max_instances=max_instances,
-        window_size=window_size,
-        store_y=store_y,
-        store_predictions=store_predictions,
         progress_bar=progress_bar,
-        progress_label=_progress_label("Eval", runs, stream),
+        progress_label=_progress_label("Eval", learners, stream),
         batch_size=batch_size,
     )
     return {
-        n: _regressor_results(
-            n, stream, outs[n], cumulative[n], windowed[n], window_size
-        )
-        for n in runs
+        n: _regressor_results(n, stream, out, runs[n].cumulative, runs[n].windowed)
+        for n, out in outs.items()
     }
 
 
@@ -174,19 +169,15 @@ def evaluate_regressor(
     name = str(learner)
     if window_size is not None and _is_fast_mode_compilable(stream, learner, optimise):
         _check_batch_size(learner, batch_size)
-        cumulative = RegressionEvaluator(schema=schema)
-        windowed = RegressionWindowedEvaluator(schema=schema, window_size=window_size)
-        out = _prequential_loop_fast(
-            stream,
+        run = _Run(
             learner,
-            cumulative,
-            windowed,
-            max_instances=max_instances,
-            window_size=window_size,
+            RegressionEvaluator(schema=schema),
+            RegressionWindowedEvaluator(schema=schema, window_size=window_size),
             store_y=store_y,
             store_predictions=store_predictions,
         )
-        return _regressor_results(name, stream, out, cumulative, windowed, window_size)
+        out = _prequential_loop_fast(stream, run, max_instances=max_instances)
+        return _regressor_results(name, stream, out, run.cumulative, run.windowed)
     return evaluate_regressors(
         stream,
         {name: learner},

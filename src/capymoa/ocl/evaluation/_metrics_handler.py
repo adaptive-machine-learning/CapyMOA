@@ -93,6 +93,5 @@ class _OCLMetricsHandler(Handler):
             out,
             self._online_eval,
             self._windowed_eval,
-            self._windowed_eval.window_size,
         )
         return self._collector.build(ttt, self._boundary_instances)

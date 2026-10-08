@@ -11,66 +11,78 @@ from capymoa.classifier.evaluate import (
     ClassificationWindowedEvaluator,
 )
 from capymoa.evaluation._loop import (
-    Step,
     _is_fast_mode_compilable,
     _prequential_loop,
     _prequential_loop_fast,
     _progress_label,
+    _Run,
 )
 from capymoa.ssl._results import SSLResults
 from capymoa.stream import Stream
 
 
-def _ssl_step(
-    learner: Classifier | ClassifierSSL,
-    delay_length: int,
-    label_probability: float,
-    random_seed: int,
-    counts: dict[str, int],
-) -> Step:
-    """Test-then-train, keeping only some labels.
+class _SSLRun(_Run):
+    """Test-then-train, keeping only some labels."""
 
-    :param counts: Updated in place. ``counts["unlabeled"]`` is the number of
-        instances that never get a label.
-    """
-    mt19937 = np.random.MT19937()
-    mt19937._legacy_seeding(random_seed)
-    rand = np.random.Generator(mt19937)
-    seen = 0
-    # Instances whose label is delayed: each entry is the index at which the
-    # instance reappears as labeled, paired with the instance itself.
-    delayed_labels: deque[tuple[int, Any]] = deque()
+    def __init__(
+        self,
+        learner: Classifier | ClassifierSSL,
+        cumulative,
+        windowed,
+        *,
+        delay_length: int,
+        label_probability: float,
+        random_seed: int,
+        store_y: bool,
+        store_predictions: bool,
+    ):
+        super().__init__(
+            learner,
+            cumulative,
+            windowed,
+            store_y=store_y,
+            store_predictions=store_predictions,
+        )
+        self.delay_length = delay_length
+        self.label_probability = label_probability
+        mt19937 = np.random.MT19937()
+        mt19937._legacy_seeding(random_seed)
+        self._rand = np.random.Generator(mt19937)
+        self._seen = 0
+        # Instances whose label is delayed: each entry is the index at which the
+        # instance reappears as labeled, paired with the instance itself.
+        self._delayed: deque[tuple[int, Any]] = deque()
+        # Instances that never get a label.
+        self.unlabeled = 0
 
-    def step(batch):
-        nonlocal seen
+    def test_then_train(self, batch) -> tuple[list[Any], list[Any]]:
+        learner = self.learner
         y_true, y_pred = [], []
         for instance in batch:
             # Deliver any labels whose delay has elapsed, before this instance
             # is used, so the learner has everything available up to this point.
-            while delayed_labels and delayed_labels[0][0] <= seen:
-                learner.train(delayed_labels.popleft()[1])
+            while self._delayed and self._delayed[0][0] <= self._seen:
+                learner.train(self._delayed.popleft()[1])
 
             y_pred.append(learner.predict(instance))
             y_true.append(instance.y_index)
 
-            if rand.random(dtype=np.float64) >= label_probability:
+            if self._rand.random(dtype=np.float64) >= self.label_probability:
                 # Do not label the instance. Otherwise, just ignore it.
                 if isinstance(learner, ClassifierSSL):
                     learner.train_on_unlabeled(instance)
-                counts["unlabeled"] += 1
-            elif delay_length > 0:
+                self.unlabeled += 1
+            elif self.delay_length > 0:
                 # The label exists but arrives late: the instance is presented
                 # unlabeled now and reappears as labeled after ``delay_length``
                 # instances.
                 if isinstance(learner, ClassifierSSL):
                     learner.train_on_unlabeled(instance)
-                delayed_labels.append((seen + delay_length, instance))
+                self._delayed.append((self._seen + self.delay_length, instance))
             else:
                 learner.train(instance)
-            seen += 1
+            self._seen += 1
         return y_true, y_pred
-
-    return step
 
 
 def _unlabeled(unlabeled: int, instances: int) -> dict[str, Any]:
@@ -147,23 +159,21 @@ def evaluate_ssl(
     }
 
     if window_size is not None and _is_fast_mode_compilable(stream, learner, optimise):
-        cumulative = ClassificationEvaluator(schema=schema)
-        windowed = ClassificationWindowedEvaluator(
-            schema=schema, window_size=window_size
+        run = _Run(
+            learner,
+            ClassificationEvaluator(schema=schema),
+            ClassificationWindowedEvaluator(schema=schema, window_size=window_size),
+            store_y=store_y,
+            store_predictions=store_predictions,
         )
         out = _prequential_loop_fast(
             stream,
-            learner,
-            cumulative,
-            windowed,
+            run,
             max_instances=max_instances,
-            window_size=window_size,
-            store_y=store_y,
-            store_predictions=store_predictions,
             ssl=(initial_window_size, delay_length, label_probability, random_seed),
         )
         base = _classifier_results(
-            str(learner), stream, out, cumulative, windowed, window_size
+            str(learner), stream, out, run.cumulative, run.windowed
         )
         unlabeled = int(out.other.get("num_unlabeled_instances", 0))
         return SSLResults(**base, **extra, **_unlabeled(unlabeled, out.instances))  # type: ignore[typeddict-item]
@@ -174,29 +184,24 @@ def evaluate_ssl(
             "Initial window size must be 0 for this function as the feature is not implemented yet."
         )
     name = str(learner)
-    runs = {name: learner}
-    counts = {"unlabeled": 0}
-    cumulative = ClassificationEvaluator(schema=schema)
-    windowed = (
+    run = _SSLRun(
+        learner,
+        ClassificationEvaluator(schema=schema),
         None
         if window_size is None
-        else ClassificationWindowedEvaluator(schema=schema, window_size=window_size)
+        else ClassificationWindowedEvaluator(schema=schema, window_size=window_size),
+        delay_length=delay_length,
+        label_probability=label_probability,
+        random_seed=random_seed,
+        store_y=store_y,
+        store_predictions=store_predictions,
     )
     out = _prequential_loop(
         stream,
-        {
-            name: _ssl_step(
-                learner, delay_length, label_probability, random_seed, counts
-            )
-        },
-        {name: cumulative},
-        {name: windowed},
+        {name: run},
         max_instances=max_instances,
-        window_size=window_size,
-        store_y=store_y,
-        store_predictions=store_predictions,
         progress_bar=progress_bar,
-        progress_label=_progress_label("SSL Eval", runs, stream),
+        progress_label=_progress_label("SSL Eval", {name: learner}, stream),
     )[name]
-    base = _classifier_results(name, stream, out, cumulative, windowed, window_size)
-    return SSLResults(**base, **extra, **_unlabeled(counts["unlabeled"], out.instances))  # type: ignore[typeddict-item]
+    base = _classifier_results(name, stream, out, run.cumulative, run.windowed)
+    return SSLResults(**base, **extra, **_unlabeled(run.unlabeled, out.instances))  # type: ignore[typeddict-item]

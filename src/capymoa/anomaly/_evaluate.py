@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from typing import Any
 
 from tqdm import tqdm
 
@@ -9,7 +10,6 @@ from capymoa.anomaly.evaluate import (
 )
 from capymoa.base import AnomalyDetector
 from capymoa.evaluation._loop import (
-    Step,
     _is_fast_mode_compilable,
     _LoopOutput,
     _prequential_loop,
@@ -17,24 +17,25 @@ from capymoa.evaluation._loop import (
     _progress_label,
     _require_mapping,
     _require_single,
+    _Run,
     _run_info,
-    _windows,
 )
 from capymoa.stream import Stream
 
 _METRICS = ["auc", "s_auc"]
 
 
-def _anomaly_step(learner: AnomalyDetector) -> Step:
-    def step(batch):
+class _AnomalyRun(_Run):
+    """Test-then-train an anomaly detector. It scores each instance, then trains."""
+
+    def test_then_train(self, batch) -> tuple[list[Any], list[Any]]:
+        learner = self.learner
         y_true, y_pred = [], []
         for instance in batch:
             y_pred.append(learner.score_instance(instance))
             y_true.append(instance.y_index)
             learner.train(instance)
         return y_true, y_pred
-
-    return step
 
 
 def _anomaly_results(
@@ -43,12 +44,10 @@ def _anomaly_results(
     out: _LoopOutput,
     cumulative: AnomalyDetectionEvaluator,
     windowed: AnomalyDetectionWindowedEvaluator | None,
-    window_size: int | None,
 ) -> AnomalyResults:
     metrics = cumulative.metrics_dict()
-    frame = _windows(windowed, _METRICS) if windowed is not None else None
     return AnomalyResults(
-        **_run_info(name, stream, out, window_size, frame),
+        **_run_info(name, stream, out, windowed, _METRICS),
         **{key: float(metrics[key]) for key in _METRICS},
     )  # type: ignore[typeddict-item]
 
@@ -86,36 +85,38 @@ def evaluate_anomaly_detectors(
         key of the result.
     :return: The results by name.
     """
-    runs = _require_mapping(learners, "evaluate_anomaly")
-    for one in runs.values():
+    learners = _require_mapping(learners, "evaluate_anomaly")
+    for one in learners.values():
         if not isinstance(one, AnomalyDetector):
             raise TypeError("The learner is not an AnomalyDetector")
     if restart_stream:
         stream.restart()
     schema = stream.get_schema()
 
-    cumulative = {n: AnomalyDetectionEvaluator(schema=schema) for n in runs}
-    windowed = {
-        n: None
-        if window_size is None
-        else AnomalyDetectionWindowedEvaluator(schema=schema, window_size=window_size)
-        for n in runs
+    runs = {
+        n: _AnomalyRun(
+            one,
+            AnomalyDetectionEvaluator(schema=schema),
+            None
+            if window_size is None
+            else AnomalyDetectionWindowedEvaluator(
+                schema=schema, window_size=window_size
+            ),
+            store_y=store_y,
+            store_predictions=store_predictions,
+        )
+        for n, one in learners.items()
     }
     outs = _prequential_loop(
         stream,
-        {n: _anomaly_step(one) for n, one in runs.items()},
-        cumulative,
-        windowed,
+        runs,
         max_instances=max_instances,
-        window_size=window_size,
-        store_y=store_y,
-        store_predictions=store_predictions,
         progress_bar=progress_bar,
-        progress_label=_progress_label("AD Eval", runs, stream),
+        progress_label=_progress_label("AD Eval", learners, stream),
     )
     return {
-        n: _anomaly_results(n, stream, outs[n], cumulative[n], windowed[n], window_size)
-        for n in runs
+        n: _anomaly_results(n, stream, out, runs[n].cumulative, runs[n].windowed)
+        for n, out in outs.items()
     }
 
 
@@ -170,21 +171,15 @@ def evaluate_anomaly(
     schema = stream.get_schema()
     name = str(learner)
     if window_size is not None and _is_fast_mode_compilable(stream, learner, optimise):
-        cumulative = AnomalyDetectionEvaluator(schema=schema)
-        windowed = AnomalyDetectionWindowedEvaluator(
-            schema=schema, window_size=window_size
-        )
-        out = _prequential_loop_fast(
-            stream,
+        run = _Run(
             learner,
-            cumulative,
-            windowed,
-            max_instances=max_instances,
-            window_size=window_size,
+            AnomalyDetectionEvaluator(schema=schema),
+            AnomalyDetectionWindowedEvaluator(schema=schema, window_size=window_size),
             store_y=store_y,
             store_predictions=store_predictions,
         )
-        return _anomaly_results(name, stream, out, cumulative, windowed, window_size)
+        out = _prequential_loop_fast(stream, run, max_instances=max_instances)
+        return _anomaly_results(name, stream, out, run.cumulative, run.windowed)
     return evaluate_anomaly_detectors(
         stream,
         {name: learner},
