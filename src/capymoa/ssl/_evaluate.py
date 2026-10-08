@@ -3,6 +3,7 @@ from typing import Any
 
 import numpy as np
 from tqdm import tqdm
+from typing_extensions import override
 
 from capymoa.base import Classifier, ClassifierSSL
 from capymoa.classifier._evaluate import _classifier_results
@@ -54,6 +55,7 @@ class _SSLRun(_Run):
         # Instances that never get a label.
         self.unlabeled = 0
 
+    @override
     def test_then_train(self, batch) -> tuple[list[Any], list[Any]]:
         learner = self.learner
         y_true, y_pred = [], []

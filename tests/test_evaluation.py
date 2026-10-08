@@ -4,6 +4,7 @@ from itertools import product
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
+from typing_extensions import override
 
 from capymoa.anomaly import HalfSpaceTrees, evaluate_anomaly
 from capymoa.base import MOAClassifier
@@ -394,6 +395,7 @@ def test_fast_loop_refuses_custom_test_then_train():
     """The Java loop would skip a custom ``test_then_train``, so it must refuse it."""
 
     class _CustomRun(_Run):
+        @override
         def test_then_train(self, batch):
             return super().test_then_train(batch)
 
