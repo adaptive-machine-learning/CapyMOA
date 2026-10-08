@@ -184,7 +184,13 @@ class EWC(BatchClassifier, nn.Module, Handler):
         self._optimiser = optimiser
         self._model = model
         self._criterion = torch.nn.CrossEntropyLoss()
-        self._buffer = SlidingWindow(fim_buffer, schema.get_num_attributes())
+        self._buffer = SlidingWindow(
+            fim_buffer,
+            {
+                "x": ((schema.get_num_attributes(),), torch.float32),
+                "y": ((), torch.long),
+            },
+        )
 
         # Buffers for anchoring the model
         self._anchor_params = BufferList(
@@ -206,7 +212,7 @@ class EWC(BatchClassifier, nn.Module, Handler):
         self.to(device)
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self._buffer.update(x, y)
+        self._buffer.update(x=x, y=y)
         self._model.train()
         self._optimiser.zero_grad()
         y_hat = self._train_forward(x)
