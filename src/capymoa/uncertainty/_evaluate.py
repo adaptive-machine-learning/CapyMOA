@@ -6,7 +6,6 @@ from capymoa.base import PredictionIntervalLearner
 from capymoa.evaluation._loop import (
     _LoopOutput,
     _prequential_loop,
-    _progress_label,
     _require_mapping,
     _require_single,
     _Run,
@@ -95,7 +94,6 @@ def evaluate_prediction_intervals(
         runs,
         max_instances=max_instances,
         progress_bar=progress_bar,
-        progress_label=_progress_label("Eval", learners, stream),
     )
     return {
         n: _results(n, stream, out, runs[n].cumulative, runs[n].windowed)

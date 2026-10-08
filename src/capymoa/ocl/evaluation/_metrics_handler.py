@@ -1,5 +1,7 @@
 """Default event sink for OCL metrics collection."""
 
+import time
+
 import torch
 
 from capymoa.base import Classifier
@@ -8,7 +10,6 @@ from capymoa.classifier.evaluate import (
     ClassificationEvaluator,
     ClassificationWindowedEvaluator,
 )
-from capymoa.evaluation import start_time_measuring, stop_time_measuring
 from capymoa.evaluation._loop import _LoopOutput
 from capymoa.ocl.evaluation.events import (
     TrainBatchPredict,
@@ -56,14 +57,14 @@ class _OCLMetricsHandler(Handler):
         return self
 
     def _on_loop_start(self, _: Event) -> None:
-        self._start_wallclock_time, self._start_cpu_time = start_time_measuring()
+        self._start_wallclock_time = time.time()
+        self._start_cpu_time = time.process_time()
 
     def _on_loop_end(self, _: Event) -> None:
         if self._start_wallclock_time is None or self._start_cpu_time is None:
             return
-        self._elapsed_wallclock_time, self._elapsed_cpu_time = stop_time_measuring(
-            self._start_wallclock_time, self._start_cpu_time
-        )
+        self._elapsed_wallclock_time = time.time() - self._start_wallclock_time
+        self._elapsed_cpu_time = time.process_time() - self._start_cpu_time
 
     def _on_train_batch(self, event: TrainBatchPredict) -> None:
         for y_true, y_pred in zip(event.y, event.y_hat, strict=True):

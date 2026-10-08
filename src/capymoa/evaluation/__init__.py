@@ -8,7 +8,6 @@ type of the learner.
 """
 
 from . import results
-from ._loop import start_time_measuring, stop_time_measuring
 from ._prequential import prequential_evaluation
 from .results import RunInfo
 
@@ -16,6 +15,4 @@ __all__ = [
     "RunInfo",
     "prequential_evaluation",
     "results",
-    "start_time_measuring",
-    "stop_time_measuring",
 ]

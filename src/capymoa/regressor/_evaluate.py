@@ -4,16 +4,14 @@ from tqdm import tqdm
 
 from capymoa.base import Regressor
 from capymoa.evaluation._loop import (
-    _check_batch_size,
-    _is_fast_mode_compilable,
     _LoopOutput,
     _prequential_loop,
     _prequential_loop_fast,
-    _progress_label,
     _require_mapping,
     _require_single,
     _Run,
     _run_info,
+    _use_java_loop,
 )
 from capymoa.regressor._results import RegressorResults
 from capymoa.regressor.evaluate import RegressionEvaluator, RegressionWindowedEvaluator
@@ -84,8 +82,6 @@ def evaluate_regressors(
     learners = _require_mapping(learners, "evaluate_regressor")
     if restart_stream:
         stream.restart()
-    for one in learners.values():
-        _check_batch_size(one, batch_size)
     schema = stream.get_schema()
     if not schema.is_regression():
         raise ValueError("The stream is not a regression stream.")
@@ -107,7 +103,6 @@ def evaluate_regressors(
         runs,
         max_instances=max_instances,
         progress_bar=progress_bar,
-        progress_label=_progress_label("Eval", learners, stream),
         batch_size=batch_size,
     )
     return {
@@ -167,8 +162,13 @@ def evaluate_regressor(
     if not schema.is_regression():
         raise ValueError("The stream is not a regression stream.")
     name = str(learner)
-    if window_size is not None and _is_fast_mode_compilable(stream, learner, optimise):
-        _check_batch_size(learner, batch_size)
+    if _use_java_loop(
+        stream,
+        learner,
+        optimise=optimise,
+        window_size=window_size,
+        batch_size=batch_size,
+    ):
         run = _Run(
             learner,
             RegressionEvaluator(schema=schema),
