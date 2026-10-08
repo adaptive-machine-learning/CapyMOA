@@ -94,20 +94,20 @@ def evaluate_anomaly_detectors(
         stream.restart()
     schema = stream.get_schema()
 
-    runs = {
-        n: _AnomalyRun(
-            one,
-            AnomalyDetectionEvaluator(schema=schema),
-            None
-            if window_size is None
-            else AnomalyDetectionWindowedEvaluator(
+    runs = {}
+    for name, learner in learners.items():
+        windowed = None
+        if window_size is not None:
+            windowed = AnomalyDetectionWindowedEvaluator(
                 schema=schema, window_size=window_size
-            ),
+            )
+        runs[name] = _AnomalyRun(
+            learner,
+            AnomalyDetectionEvaluator(schema=schema),
+            windowed,
             store_y=store_y,
             store_predictions=store_predictions,
         )
-        for n, one in learners.items()
-    }
     outs = _prequential_loop(
         stream,
         runs,

@@ -86,18 +86,20 @@ def evaluate_regressors(
     if not schema.is_regression():
         raise ValueError("The stream is not a regression stream.")
 
-    runs = {
-        n: _Run(
-            one,
+    runs = {}
+    for name, learner in learners.items():
+        windowed = None
+        if window_size is not None:
+            windowed = RegressionWindowedEvaluator(
+                schema=schema, window_size=window_size
+            )
+        runs[name] = _Run(
+            learner,
             RegressionEvaluator(schema=schema),
-            None
-            if window_size is None
-            else RegressionWindowedEvaluator(schema=schema, window_size=window_size),
+            windowed,
             store_y=store_y,
             store_predictions=store_predictions,
         )
-        for n, one in learners.items()
-    }
     outs = _prequential_loop(
         stream,
         runs,

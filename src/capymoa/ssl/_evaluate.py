@@ -185,12 +185,15 @@ def evaluate_ssl(
             "Initial window size must be 0 for this function as the feature is not implemented yet."
         )
     name = str(learner)
+    windowed = None
+    if window_size is not None:
+        windowed = ClassificationWindowedEvaluator(
+            schema=schema, window_size=window_size
+        )
     run = _SSLRun(
         learner,
         ClassificationEvaluator(schema=schema),
-        None
-        if window_size is None
-        else ClassificationWindowedEvaluator(schema=schema, window_size=window_size),
+        windowed,
         delay_length=delay_length,
         label_probability=label_probability,
         random_seed=random_seed,
