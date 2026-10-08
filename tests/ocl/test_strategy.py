@@ -17,6 +17,7 @@ from capymoa.core.torch.ann import Perceptron
 from capymoa.ocl.datasets import TinySplitMNIST
 from capymoa.ocl.evaluation import ocl_train_eval_loop
 from capymoa.ocl.strategy import (
+    DER,
     EWC,
     LWF,
     MAS,
@@ -93,6 +94,11 @@ def _new_rar(schema):
     )
 
 
+def _new_der(schema: Schema) -> DER:
+    model = Perceptron(schema)
+    return DER(schema, model, torch.optim.Adam(model.parameters(), lr=0.001))
+
+
 """
 Add new test cases here.
 
@@ -131,6 +137,11 @@ TEST_CASES: list[Case] = [
         "ExperienceReplay",
         lambda schema: ExperienceReplay(Finetune(schema, Perceptron)),
         Result(28.5, 20.1, 3.0),
+    ),
+    Case(
+        "DER",
+        _new_der,
+        Result(29.5, 20.5, 2.9),
     ),
     Case(
         "GDumb",

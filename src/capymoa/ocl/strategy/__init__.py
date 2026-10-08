@@ -1,6 +1,7 @@
 """Online Continual Learning (OCL) strategies."""
 
 from . import l2p
+from ._der import DER
 from ._ewc import EWC
 from ._experience_replay import ExperienceReplay
 from ._gdumb import GDumb
@@ -13,6 +14,7 @@ from ._si import SI
 from ._slda import SLDA
 
 __all__ = [
+    "DER",
     "EWC",
     "LWF",
     "MAS",

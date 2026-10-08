@@ -94,7 +94,7 @@ class RAR(BatchClassifier, Handler):
         self.repeats = repeats
         self.coreset = ReservoirSampler(
             coreset_size,
-            num_features,
+            {"x": ((num_features,), torch.float32), "y": ((), torch.long)},
             rng=torch.Generator().manual_seed(learner.random_seed),
         )
         self.shape = learner.schema.shape
@@ -102,9 +102,9 @@ class RAR(BatchClassifier, Handler):
     def train_step(self, x_fresh: Tensor, y_fresh: Tensor) -> None:
         # Sample from reservoir and augment the data
         n = x_fresh.shape[0]
-        x_replay, y_replay = self.coreset.sample(n)
-        x = torch.cat((x_fresh, x_replay), dim=0).to(self.device, self.x_dtype)
-        y = torch.cat((y_fresh, y_replay), dim=0).to(self.device, self.y_dtype)
+        replay = self.coreset.sample(n)
+        x = torch.cat((x_fresh, replay["x"]), dim=0).to(self.device, self.x_dtype)
+        y = torch.cat((y_fresh, replay["y"]), dim=0).to(self.device, self.y_dtype)
         x = x.view(-1, *self.shape)
         x: Tensor = self.augment(x)
 
@@ -114,7 +114,7 @@ class RAR(BatchClassifier, Handler):
         self.learner.batch_train(x, y)
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self.coreset.update(x, y)
+        self.coreset.update(x=x, y=y)
         for i in range(self.repeats):
             self.train_step(x, y)
 
