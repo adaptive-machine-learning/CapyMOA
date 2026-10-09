@@ -45,11 +45,11 @@ class AnomalyDetector(LearnerParamsMixin, ABC):
 
     Attributes:
     - schema: The schema representing the instances. Defaults to None.
-    - random_seed: The random seed for reproducibility. Defaults to 1.
+    - random_seed: The random seed for reproducibility. Defaults to 1 (passing None also selects 1, so detectors are reproducible by default rather than seeded from system entropy).
     """
 
     def __init__(self, schema: Schema, random_seed=1):
-        self.random_seed = random_seed
+        self.random_seed = 1 if random_seed is None else random_seed
         self.schema = schema
         if self.schema is None:
             raise ValueError("Schema must be initialised")
@@ -83,8 +83,10 @@ class MOAAnomalyDetector(AnomalyDetector):
         self.CLI = CLI
         self.moa_learner = moa_learner
 
-        if random_seed is not None:
-            self.moa_learner.setRandomSeed(random_seed)
+        # Read the normalized seed, not the raw argument: AnomalyDetector
+        # resolves None first, so guarding on the parameter here skipped the
+        # call for every default-seeded MOA detector.
+        self.moa_learner.setRandomSeed(self.random_seed)
 
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())

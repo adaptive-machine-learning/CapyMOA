@@ -154,7 +154,8 @@ class RSHash(AnomalyDetector):
         self.p = p
         self.d = schema.get_num_attributes()
 
-        self.rng = np.random.default_rng(seed)
+        # Normalized by AnomalyDetector: never None, so no entropy seeding.
+        self.rng = np.random.default_rng(self.random_seed)
 
         self.components: list[RSHashComponent] = []
         self.window: list[Instance] = []

@@ -273,7 +273,7 @@ class AdaptiveIsolationForest(AnomalyDetector):
         :param weights: Weight for combining tree size and max mass scores (0-1).
         :param skip_default_strategy: If True, skip default replacement when quality score doesn't improve.
         """
-        super().__init__(schema=schema, random_seed=seed if seed is not None else 1)
+        super().__init__(schema=schema, random_seed=seed)
         self.n_trees = n_trees
         self._trees: list[IsolationTree] = []
         self.height_limit = height or math.ceil(math.log2(window_size))
