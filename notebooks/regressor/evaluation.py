@@ -39,7 +39,7 @@ if is_nb_fast():
 # ## Regression
 #
 # * We introduce a simple example using regression just to show how similar it is to assess regressors using the **high-level evaluation functions**.
-# * The example below uses `evaluate_regressor()`. Its results are a `RegressorResults`, a typed dictionary with the keys `mae`, `rmse`, `rmae`, `r2` and `adjusted_r2` besides the run information and the `windowed` table.
+# * The example below uses `evaluate_regressor()`. Its results are a `RegressorResults` (see `capymoa.regressor.evaluate`), a typed dictionary with the keys `mae`, `rmse`, `rmae`, `r2` and `adjusted_r2` besides the run information and the `windowed` table.
 # * One difference between classification and regression evaluation in CapyMOA is that the evaluators are different. Instead of `ClassificationEvaluator` and `ClassificationWindowedEvaluator` functions use `RegressionEvaluator` and `RegressionWindowedEvaluator`.
 
 # %%

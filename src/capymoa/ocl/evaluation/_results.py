@@ -6,7 +6,7 @@ from typing import NotRequired, TypedDict
 import numpy as np
 import torch
 
-from capymoa.classifier import ClassifierResults, ClassifierWindows
+from capymoa.classifier.evaluate import ClassifierResults, ClassifierWindows
 
 
 class PerTask(TypedDict):
@@ -50,7 +50,7 @@ class OnlineResults(ClassifierResults):
 
 
 class OCLResults(TypedDict):
-    r"""Results of evaluating an online continual learner. See :func:`evaluate_ocl`.
+    r"""Results of evaluating an online continual learner. See :func:`~capymoa.ocl.evaluate_ocl`.
 
     We define some metrics in terms of a matrix :math:`R\in\mathbb{R}^{T \times T}`
     (:attr:`accuracy_matrix`) where each element :math:`R_{i,j}` contains the

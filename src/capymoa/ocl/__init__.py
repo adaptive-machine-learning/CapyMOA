@@ -56,13 +56,6 @@ Backward Transfer: -0.07
 try:
     from . import datasets, evaluation, events, plot, strategy, util
     from .evaluation._loop import evaluate_ocl
-    from .evaluation._results import (
-        Anytime,
-        OCLResults,
-        OnlineResults,
-        PerTask,
-        TaskWindows,
-    )
 except ModuleNotFoundError as _err:  # pragma: no cover
     if (_err.name or "").split(".")[0] in ("torch", "torchvision"):
         from capymoa.exception import OptionalDependencyError
@@ -71,11 +64,6 @@ except ModuleNotFoundError as _err:  # pragma: no cover
     raise
 
 __all__ = [
-    "Anytime",
-    "OCLResults",
-    "OnlineResults",
-    "PerTask",
-    "TaskWindows",
     "datasets",
     "evaluate_ocl",
     "evaluation",

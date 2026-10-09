@@ -3,7 +3,7 @@
 import numpy as np
 import torch
 
-from capymoa.classifier import ClassifierResults
+from capymoa.classifier.evaluate import ClassifierResults
 from capymoa.core import LabelIndex
 from capymoa.ocl.evaluation import events
 from capymoa.ocl.events import Dispatcher, Handler

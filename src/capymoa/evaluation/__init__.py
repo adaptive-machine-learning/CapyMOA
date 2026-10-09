@@ -13,6 +13,8 @@ from .results import RunInfo
 
 __all__ = [
     "RunInfo",
+    # Not imported here, so importing the domain does not load matplotlib.
+    "plot",
     "prequential_evaluation",
     "results",
 ]

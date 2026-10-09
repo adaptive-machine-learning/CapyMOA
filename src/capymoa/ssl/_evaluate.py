@@ -17,7 +17,7 @@ from capymoa.evaluation._loop import (
     _Run,
     _use_java_loop,
 )
-from capymoa.ssl._results import SSLResults
+from capymoa.ssl.evaluate import SSLResults
 from capymoa.stream import Stream
 
 

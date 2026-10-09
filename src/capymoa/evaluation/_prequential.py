@@ -9,10 +9,10 @@ from capymoa.base import (
 from capymoa.stream import Stream
 
 if TYPE_CHECKING:
-    from capymoa.anomaly import AnomalyResults
-    from capymoa.classifier import ClassifierResults
-    from capymoa.regressor import RegressorResults
-    from capymoa.uncertainty import PredictionIntervalResults
+    from capymoa.anomaly.evaluate import AnomalyResults
+    from capymoa.classifier.evaluate import ClassifierResults
+    from capymoa.regressor.evaluate import RegressorResults
+    from capymoa.uncertainty.evaluate import PredictionIntervalResults
 
 
 @overload

@@ -43,13 +43,12 @@ discovery of related features within a domain.
 Each domain implements its own::
 
     capymoa.{{domain}}                      # Domain-specific modules (listed above)
-    - {{Domain}}Results          (TypedDict)# Typed, serialisable results
     - evaluate_{{domain}}        (function) # Evaluation logic
     - *Algorithm                 (classes)  # Algorithm implementations
 
     capymoa.{{domain}}.base      (optional) # Abstract base classes for the module
     capymoa.{{domain}}.datasets  (optional) # Domain-specific datasets
-    capymoa.{{domain}}.evaluate  (optional) # Public evaluation code
+    capymoa.{{domain}}.evaluate  (optional) # Evaluators and result types (TypedDict)
     capymoa.{{domain}}.plot      (optional) # Public plotting code
 
 ``evaluate_{{domain}}`` evaluates one learner. Domains that can compare learners
@@ -57,10 +56,10 @@ on one pass over a stream (classifier, regressor, anomaly and uncertainty) also
 take a mapping of names to learners and return a dict of results by name.
 ``{{Domain}}Results`` is a plain ``TypedDict`` with a fixed set of keys, so
 ``pandas.DataFrame([r1, r2])`` is a tidy table. It lives in
-``capymoa/{{domain}}/_results.py`` and ``evaluate_{{domain}}`` in
-``capymoa/{{domain}}/_evaluate.py``. Both are exported from the domain.
-The evaluator classes (such as ``ClassificationEvaluator``) are in
-``capymoa.{{domain}}.evaluate`` for use in custom loops.
+``capymoa.{{domain}}.evaluate``, next to the evaluator classes (such as
+``ClassificationEvaluator``) for use in custom loops. ``evaluate_{{domain}}`` is
+in ``capymoa/{{domain}}/_evaluate.py`` and exported from the domain. OCL keeps
+its result types in ``capymoa.ocl.evaluation``.
 
 The domains that follow this layout are ``capymoa.classifier``,
 ``capymoa.regressor``, ``capymoa.uncertainty`` (prediction intervals),

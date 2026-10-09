@@ -101,11 +101,11 @@ print(
 #
 # | Domain | Function | Results |
 # |---|---|---|
-# | classification | `capymoa.classifier.evaluate_classifier` | `ClassifierResults` |
-# | regression | `capymoa.regressor.evaluate_regressor` | `RegressorResults` |
-# | prediction intervals | `capymoa.uncertainty.evaluate_prediction_interval` | `PredictionIntervalResults` |
-# | semi-supervised | `capymoa.ssl.evaluate_ssl` | `SSLResults` |
-# | anomaly detection | `capymoa.anomaly.evaluate_anomaly` | `AnomalyResults` |
+# | classification | `capymoa.classifier.evaluate_classifier` | `capymoa.classifier.evaluate.ClassifierResults` |
+# | regression | `capymoa.regressor.evaluate_regressor` | `capymoa.regressor.evaluate.RegressorResults` |
+# | prediction intervals | `capymoa.uncertainty.evaluate_prediction_interval` | `capymoa.uncertainty.evaluate.PredictionIntervalResults` |
+# | semi-supervised | `capymoa.ssl.evaluate_ssl` | `capymoa.ssl.evaluate.SSLResults` |
+# | anomaly detection | `capymoa.anomaly.evaluate_anomaly` | `capymoa.anomaly.evaluate.AnomalyResults` |
 #
 # Each function evaluates one learner. Pass a dictionary of learners instead, and the function evaluates them all in one pass over the stream.
 #
@@ -113,7 +113,7 @@ print(
 #
 # **Result of a high-level function**
 #
-# * The return from `evaluate_classifier()` is a `ClassifierResults`: a plain, typed `dict` with a fixed set of keys. Hover over a key in your IDE or see the API documentation for what each one means and its unit.
+# * The return from `evaluate_classifier()` is a `ClassifierResults` (from `capymoa.classifier.evaluate`): a plain, typed `dict` with a fixed set of keys. Hover over a key in your IDE or see the API documentation for what each one means and its unit.
 #
 # **Common characteristics for all high-level evaluation functions**
 #
