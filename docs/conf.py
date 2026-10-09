@@ -9,6 +9,9 @@ import os
 import re
 import sys
 from pathlib import Path
+from typing import is_typeddict
+
+from sphinx.ext.autodoc import AttributeDocumenter
 
 from capymoa.__about__ import __version__
 from docs.release_scripts import site_base_url
@@ -335,6 +338,28 @@ def autodoc_skip_member(app, obj_type, name, obj, skip, options) -> bool | None:
             return True
 
     return None
+
+
+_get_attribute_comment = AttributeDocumenter.get_attribute_comment
+
+
+def _get_attribute_comment_from_typed_dict_bases(self, parent, attrname):
+    """Find the ``#:`` doc of a TypedDict key declared in a base TypedDict.
+
+    A TypedDict drops its bases from ``__mro__``, so autodoc cannot find the
+    docs of inherited keys such as ``RunInfo.instances``. They are only in
+    ``__orig_bases__``.
+    """
+    comment = _get_attribute_comment(self, parent, attrname)
+    for base in getattr(parent, "__orig_bases__", ()):
+        if comment is not None:
+            break
+        if is_typeddict(base):
+            comment = _get_attribute_comment_from_typed_dict_bases(self, base, attrname)
+    return comment
+
+
+AttributeDocumenter.get_attribute_comment = _get_attribute_comment_from_typed_dict_bases
 
 
 def setup(app):

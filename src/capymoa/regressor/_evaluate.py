@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, overload
+from typing import overload
 
 from tqdm import tqdm
 
@@ -12,8 +12,12 @@ from capymoa.evaluation._loop import (
     _Run,
     _use_java_loop,
 )
-from capymoa.regressor._results import RegressorResults, RegressorWindows
-from capymoa.regressor.evaluate import RegressionEvaluator, RegressionWindowedEvaluator
+from capymoa.regressor.evaluate import (
+    RegressionEvaluator,
+    RegressionWindowedEvaluator,
+    RegressorResults,
+    RegressorWindows,
+)
 from capymoa.stream import Stream
 
 
@@ -30,11 +34,29 @@ def _regressor_results(
 
 @overload
 def evaluate_regressor(
-    stream: Stream, learner: Regressor, **kwargs: Any
+    stream: Stream,
+    learner: Regressor,
+    max_instances: int | None = None,
+    window_size: int | None = 1000,
+    store_predictions: bool = False,
+    store_y: bool = False,
+    optimise: bool = True,
+    restart_stream: bool = True,
+    progress_bar: bool | tqdm = False,
+    batch_size: int = 1,
 ) -> RegressorResults: ...
 @overload
 def evaluate_regressor(
-    stream: Stream, learner: Mapping[str, Regressor], **kwargs: Any
+    stream: Stream,
+    learner: Mapping[str, Regressor],
+    max_instances: int | None = None,
+    window_size: int | None = 1000,
+    store_predictions: bool = False,
+    store_y: bool = False,
+    optimise: bool = True,
+    restart_stream: bool = True,
+    progress_bar: bool | tqdm = False,
+    batch_size: int = 1,
 ) -> dict[str, RegressorResults]: ...
 def evaluate_regressor(
     stream: Stream,
