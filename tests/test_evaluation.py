@@ -4,25 +4,30 @@ from itertools import product
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
+from typing_extensions import override
 
-from capymoa.anomaly import (
-    HalfSpaceTrees,
-)
+from capymoa.anomaly import HalfSpaceTrees, evaluate_anomaly
 from capymoa.base import MOAClassifier
-from capymoa.classifier import HoeffdingTree, NaiveBayes, NoChange
-from capymoa.datasets import Electricity, ElectricityTiny
-from capymoa.evaluation import (
-    prequential_evaluation,
-    prequential_evaluation_multiple_learners,
-    prequential_ssl_evaluation,
+from capymoa.classifier import (
+    HoeffdingTree,
+    NaiveBayes,
+    NoChange,
+    evaluate_classifier,
 )
-from capymoa.evaluation.evaluation import (
-    PrequentialResults,
-    _is_fast_mode_compilable,
-    prequential_evaluation_anomaly,
+from capymoa.classifier.evaluate import (
+    ClassificationEvaluator,
+    ClassificationWindowedEvaluator,
+)
+from capymoa.datasets import Electricity, ElectricityTiny
+from capymoa.evaluation import prequential_evaluation
+from capymoa.evaluation._loop import (
+    _prequential_loop_fast,
+    _Run,
+    _use_java_loop,
 )
 from capymoa.exception import StreamTypeError
 from capymoa.regressor import KNNRegressor
+from capymoa.ssl import evaluate_ssl
 from capymoa.stream.generator import (
     SEA,
     HyperPlaneRegression,
@@ -31,7 +36,7 @@ from capymoa.stream.generator import (
 )
 
 
-def test_prequential_evaluation():
+def test_evaluate_classifier():
     """The stream should be restarted every time we run the evaluation, so the 11th instance should be the same, also
     the accuracy of models from the same learner (but different models) should be the same
     """
@@ -39,204 +44,157 @@ def test_prequential_evaluation():
     model1 = NaiveBayes(schema=stream.get_schema())
     model2 = NaiveBayes(schema=stream.get_schema())
 
-    results_1st_run = prequential_evaluation(
-        stream=stream, learner=model1, max_instances=10
-    )
-    eleventh_instance_1st_run = results_1st_run.stream.next_instance().x
-    results_2nd_run = prequential_evaluation(
-        stream=stream, learner=model2, max_instances=10
-    )
-    eleventh_instance_2nd_run = results_2nd_run.stream.next_instance().x
+    results_1st_run = evaluate_classifier(stream, model1, max_instances=10)
+    eleventh_instance_1st_run = stream.next_instance().x
+    results_2nd_run = evaluate_classifier(stream, model2, max_instances=10)
+    eleventh_instance_2nd_run = stream.next_instance().x
 
     assert eleventh_instance_1st_run == pytest.approx(eleventh_instance_2nd_run)
-
-    assert results_1st_run["cumulative"].accuracy() == pytest.approx(
-        results_2nd_run["cumulative"].accuracy(), abs=0.001
-    ), (
-        f"Prequential evaluation same synthetic stream: Expected accuracy of "
-        f"{results_1st_run['cumulative'].accuracy():0.3f} got {results_2nd_run['cumulative'].accuracy(): 0.3f}"
+    assert results_1st_run["stream"] == results_2nd_run["stream"] == str(stream)
+    assert results_1st_run["accuracy"] == pytest.approx(
+        results_2nd_run["accuracy"], abs=0.001
     )
 
 
-def test_prequential_evaluation_multiple_learners():
-    """The stream should be restarted every time we run the evaluation, so the 11th instance should be the same, also
-    the accuracy of models from the same learner (but different models) should be the same
-    """
+def test_evaluate_classifier_mapping():
+    """One pass over the stream gives the same results as one pass per learner."""
     stream = SEA(function=1)
-    model11 = NaiveBayes(schema=stream.get_schema())
-    model12 = HoeffdingTree(schema=stream.get_schema())
-    model21 = NaiveBayes(schema=stream.get_schema())
-    model22 = HoeffdingTree(schema=stream.get_schema())
+    learners = {
+        "nb": NaiveBayes(schema=stream.get_schema()),
+        "ht": HoeffdingTree(schema=stream.get_schema()),
+    }
 
-    results_1st_run = prequential_evaluation_multiple_learners(
-        stream=stream,
-        learners={"model11": model11, "model12": model12},
-        max_instances=100,
-    )
-    # print(results_1st_run['model11'].stream)
-    hundredth_first_instance_1st_run = (
-        results_1st_run["model11"].stream.next_instance().x
-    )
-    results_2nd_run = prequential_evaluation_multiple_learners(
-        stream=stream,
-        learners={"model21": model21, "model22": model22},
-        max_instances=100,
-    )
-    hundredth_first_instance_2nd_run = (
-        results_2nd_run["model21"].stream.next_instance().x
-    )
+    together = evaluate_classifier(stream, learners, max_instances=100)
+    assert list(together) == ["nb", "ht"]
+    assert together["nb"]["learner"] == "nb"
+    # Evaluated together, the stream has been read once.
+    hundredth_first_instance = stream.next_instance().x
 
-    assert hundredth_first_instance_1st_run == pytest.approx(
-        hundredth_first_instance_2nd_run
-    )
-
-    assert results_1st_run["model11"].cumulative.accuracy() == pytest.approx(
-        results_2nd_run["model21"].cumulative.accuracy(), abs=0.001
-    ), (
-        f"Prequential evaluation multiple learners same synthetic stream: Expected accuracy of "
-        f"{results_1st_run['model11'].cumulative.accuracy():0.3f} got "
-        f"{results_2nd_run['model21'].cumulative.accuracy(): 0.3f}"
-    )
-
-    assert results_1st_run["model12"].cumulative.accuracy() == pytest.approx(
-        results_2nd_run["model22"].cumulative.accuracy(), abs=0.001
-    ), (
-        f"Prequential evaluation multiple learners same synthetic stream: Expected accuracy of "
-        f"{results_1st_run['model12'].cumulative.accuracy():0.3f} got "
-        f"{results_2nd_run['model22'].cumulative.accuracy(): 0.3f}"
-    )
+    alone = {
+        name: evaluate_classifier(
+            stream,
+            type(learner)(schema=stream.get_schema()),
+            max_instances=100,
+            optimise=False,
+        )
+        for name, learner in learners.items()
+    }
+    for name in learners:
+        assert together[name]["accuracy"] == pytest.approx(
+            alone[name]["accuracy"], abs=0.001
+        )
+    stream.restart()
+    for _ in range(100):
+        stream.next_instance()
+    assert stream.next_instance().x == pytest.approx(hundredth_first_instance)
 
 
-def test_prequential_ssl_evaluation():
-    """The stream should be restarted every time we run the evaluation, so the 11th instance should be the same, also
-    the accuracy of models from the same learner (but different models) should be the same
-    """
+def test_evaluate_ssl():
+    """The stream should be restarted every time we run the evaluation."""
     stream = SEA(function=1)
     model1 = NaiveBayes(schema=stream.get_schema())
     model2 = NaiveBayes(schema=stream.get_schema())
 
-    results_1st_run = prequential_ssl_evaluation(
-        stream=stream, learner=model1, max_instances=10
-    )
-    eleventh_instance_1st_run = results_1st_run.stream.next_instance().x
-    results_2nd_run = prequential_ssl_evaluation(
-        stream=stream, learner=model2, max_instances=10
-    )
-    eleventh_instance_2nd_run = results_2nd_run.stream.next_instance().x
+    results_1st_run = evaluate_ssl(stream, model1, max_instances=10)
+    eleventh_instance_1st_run = stream.next_instance().x
+    results_2nd_run = evaluate_ssl(stream, model2, max_instances=10)
+    eleventh_instance_2nd_run = stream.next_instance().x
 
     assert eleventh_instance_1st_run == pytest.approx(eleventh_instance_2nd_run)
-
-    assert results_1st_run.cumulative.accuracy() == pytest.approx(
-        results_2nd_run.cumulative.accuracy(), abs=0.001
-    ), (
-        f"Prequential_ssl_evaluation same synthetic stream: Expected accuracy of "
-        f"{results_1st_run.cumulative.accuracy():0.3f} got {results_2nd_run.cumulative.accuracy(): 0.3f}"
+    assert results_1st_run["accuracy"] == pytest.approx(
+        results_2nd_run["accuracy"], abs=0.001
     )
+    assert results_1st_run["label_probability"] == 0.01
 
 
-def _test_accessibility(obj, function_names):
-    errors = []
-    for func_name in function_names:
-        try:
-            # Check if the function is directly accessible
-            if not hasattr(obj, func_name):
-                raise AttributeError(
-                    f"Function {func_name} is not directly accessible."
-                )
+def test_prequential_evaluation_dispatches_on_learner_type():
+    """``prequential_evaluation`` calls the ``evaluate_*`` of the learner's domain."""
+    classification = ElectricityTiny()
+    results = prequential_evaluation(
+        classification, NaiveBayes(classification.get_schema()), max_instances=50
+    )
+    assert "accuracy" in results and "per_class" in results
 
-            # Attempt to call the function if it's callable
-            func = getattr(obj, func_name)
-            if callable(func):
-                func()
-            else:
-                raise TypeError(f"{func_name} is not callable.")
+    regression = HyperPlaneRegression()
+    results = prequential_evaluation(
+        regression, KNNRegressor(regression.get_schema()), max_instances=50
+    )
+    assert "rmse" in results and "accuracy" not in results
 
-            # Check if the function is accessible via __getitem__
-            if obj[func_name] is None:  # func_name in obj.metrics_header():
-                raise KeyError(f"{func_name} is not accessible via __getitem__.")
-
-        except Exception as e:  # noqa: BLE001 - collect every accessor failure instead of stopping at the first
-            errors.append((func_name, str(e)))
-
-    return errors
+    with pytest.raises(TypeError):
+        prequential_evaluation(classification, object(), max_instances=50)
 
 
-def test_evaluation_api():
-    """Test whether the API is functioning as expected, the access to result objects and so on."""
-
-    # Define the list of function names that should be accessible through results_ht
-    prequential_results_function_names = [
-        "wallclock",
-        "cpu_time",
-        "max_instances",
-        "ground_truth_y",
-        "predictions",
-    ]
-
+def test_learner_or_mapping():
+    """One learner gives one result. A mapping gives a dict of results by name."""
     stream = ElectricityTiny()
-    ht = HoeffdingTree(schema=stream.get_schema(), grace_period=50)
-
-    results_ht = prequential_evaluation(
-        stream=stream,
-        learner=ht,
-        window_size=50,
-        optimise=True,
-        store_predictions=True,
-        store_y=True,
+    single = evaluate_classifier(
+        stream, NaiveBayes(stream.get_schema()), max_instances=100
     )
+    assert "accuracy" in single
 
-    # Test accessibility of PrequentialResults attributes through PrequentialResults object. This is relevant
-    # as the function tests access via __getitem__ (i.e. []), like results['wallclock']
-    results_ht_errors = _test_accessibility(
-        results_ht, prequential_results_function_names
+    many = evaluate_classifier(
+        stream, {"nb": NaiveBayes(stream.get_schema())}, max_instances=100
     )
-    if results_ht_errors:
-        print(
-            "Errors accessing PrequentialResults attributes through PrequentialResults object: "
-        )
-        for func_name, error in results_ht_errors:
-            print(f"{func_name}: {error}")
-    else:
-        print("PrequentialResults attributes are accessible.")
+    assert isinstance(many, dict)
+    assert list(many) == ["nb"]
+    assert many["nb"]["learner"] == "nb"
+    assert "accuracy" in many["nb"]
 
-    # Test accessibility of cumulative functions through prequential results object
-    cumulative_errors = _test_accessibility(
-        results_ht, results_ht.cumulative.metrics_header()
+    with pytest.raises(ValueError, match="No learners to evaluate\\."):
+        evaluate_classifier(stream, {}, max_instances=100)
+
+
+def test_run_info():
+    """Every result starts with the shared run information."""
+    stream = ElectricityTiny()
+    results = evaluate_classifier(
+        stream,
+        HoeffdingTree(stream.get_schema()),
+        max_instances=1500,
+        window_size=500,
     )
-    if cumulative_errors:
-        print(
-            "Errors accessing cumulative metrics through prequential results object: "
-        )
-        for func_name, error in cumulative_errors:
-            print(f"{func_name}: {error}")
-    else:
-        print("Cumulative metrics are accessible through PrequentialResults object.")
-
-    assert results_ht_errors == [], "Issues with access to PrequentialResults"
-    assert cumulative_errors == [], "Issues with access to cumulative"
+    assert results["learner"] == "HoeffdingTree"
+    assert results["stream"] == "ElectricityTiny"
+    assert results["instances"] == 1500
+    assert results["window_size"] == 500
+    assert results["wallclock"] > 0
+    assert results["cpu_time"] > 0
+    assert list(results["windowed"]["instances"]) == [500, 1000, 1500]
+    assert "drifts" not in results
 
 
-def test_prequential_evaluation_anomaly():
-    """The stream should be restarted every time we run the evaluation, so the 11th instance should be the same, also
-    the AUC of models from the same learner (but different models) should be the same
-    """
+@pytest.mark.parametrize("optimise", [True, False])
+def test_no_windowed_results(optimise):
+    stream = ElectricityTiny()
+    results = evaluate_classifier(
+        stream,
+        HoeffdingTree(stream.get_schema()),
+        max_instances=100,
+        window_size=None,
+        optimise=optimise,
+    )
+    assert "window_size" not in results
+    assert "windowed" not in results
+
+
+def test_evaluate_anomaly():
+    """Fast and Python loops give the same AUC."""
     stream = Electricity()
     model1 = HalfSpaceTrees(schema=stream.get_schema())
     model2 = HalfSpaceTrees(schema=stream.get_schema())
 
-    results_1st_run = prequential_evaluation_anomaly(
+    results_1st_run = evaluate_anomaly(
         stream=stream, learner=model1, window_size=1000, optimise=True
     )
-    results_2nd_run = prequential_evaluation_anomaly(
+    results_2nd_run = evaluate_anomaly(
         stream=stream, learner=model2, window_size=1000, optimise=False
     )
 
-    assert results_1st_run["windowed"].auc() == pytest.approx(
-        results_2nd_run["windowed"].auc(), abs=0.001
-    ), (
-        f"prequential_evaluation_anomaly same synthetic stream: Expected AUC of "
-        f"{results_1st_run['windowed'].auc():0.3f} got {results_2nd_run['windowed'].auc(): 0.3f}"
+    assert results_1st_run["windowed"]["auc"][-1] == pytest.approx(
+        results_2nd_run["windowed"]["auc"][-1], abs=0.001
     )
+    assert results_1st_run["auc"] == pytest.approx(results_2nd_run["auc"], abs=0.001)
 
 
 @pytest.mark.parametrize(
@@ -248,7 +206,7 @@ def test_prequential_evaluation_anomaly():
             [True, False],
             [
                 prequential_evaluation,
-                prequential_ssl_evaluation,
+                evaluate_ssl,
             ],
         )
     ),
@@ -265,7 +223,7 @@ def test_restart_stream_flag(restart_stream, optimise, regression, evaluation):
     )
 
     # This evaluation function does not yet support regression
-    if evaluation == prequential_ssl_evaluation and regression:
+    if evaluation == evaluate_ssl and regression:
         expect_error = True
 
     if not regression:
@@ -274,7 +232,7 @@ def test_restart_stream_flag(restart_stream, optimise, regression, evaluation):
         )  # The type of model is not important
     else:
         learner = KNNRegressor(schema=stream.get_schema())
-    assert _is_fast_mode_compilable(stream, learner, True), (
+    assert _use_java_loop(stream, learner, optimise=True, window_size=10), (
         "Fast mode should always be compilable for this test"
     )
 
@@ -315,13 +273,11 @@ def test_restart_stream_flag(restart_stream, optimise, regression, evaluation):
 @pytest.mark.parametrize("optimise", [False, True])
 @pytest.mark.parametrize("store_y", [True, False])
 @pytest.mark.parametrize("store_predictions", [True, False])
-@pytest.mark.parametrize(
-    "eval_func", [prequential_evaluation, prequential_ssl_evaluation]
-)
+@pytest.mark.parametrize("eval_func", [prequential_evaluation, evaluate_ssl])
 def test_store_y_and_store_predictions(
     eval_func, optimise: bool, store_y: bool, store_predictions: bool
 ):
-    """Test ``prequential_evaluation``'s ``store_predictions`` and ``store_y`` flags."""
+    """Test ``evaluate_classifier``'s ``store_predictions`` and ``store_y`` flags."""
     n = 10
     stream = ElectricityTiny()
     expected_true_y = [stream.next_instance().y_index for _ in range(n)]
@@ -329,10 +285,10 @@ def test_store_y_and_store_predictions(
 
     learner = NoChange(schema=stream.get_schema())
 
-    assert _is_fast_mode_compilable(stream, learner, True) or not optimise, (
-        "Fast mode should be compilable for this test if optimise is True"
-    )
-    results: PrequentialResults = eval_func(
+    assert (
+        _use_java_loop(stream, learner, optimise=True, window_size=10) or not optimise
+    ), "Fast mode should be compilable for this test if optimise is True"
+    results = eval_func(
         stream=stream,
         learner=learner,
         window_size=10,
@@ -341,13 +297,13 @@ def test_store_y_and_store_predictions(
         store_y=store_y,
         optimise=optimise,
     )
-    true_y = results.ground_truth_y()
-    pred_y = results.predictions()
+    true_y = results.get("y_true")
+    pred_y = results.get("y_pred")
 
     if store_y is True:
         assert true_y is not None
         assert len(true_y) == n
-        assert isinstance(true_y, np.ndarray)
+        assert isinstance(true_y, list)
         assert_array_equal(true_y, expected_true_y)
     else:
         assert true_y is None, "ground truth should not be stored"
@@ -355,11 +311,11 @@ def test_store_y_and_store_predictions(
     if store_predictions is True:
         assert pred_y is not None
         assert len(pred_y) == n
-        assert isinstance(pred_y, np.ndarray) and pred_y.dtype == np.int64
+        assert isinstance(pred_y, list) and np.asarray(pred_y).dtype == np.int64
 
-        # TODO: `prequential_ssl_evaluation` sometimes removes labels so we cannot
+        # TODO: `evaluate_ssl` sometimes removes labels so we cannot
         # expect a match
-        if eval_func != prequential_ssl_evaluation:
+        if eval_func != evaluate_ssl:
             assert_array_equal(
                 pred_y[1:], expected_true_y[:-1]
             )  # NoChange predicts previous y
@@ -389,13 +345,13 @@ def test_optimise_flag_does_not_change_results(make_stream):
     accuracies = []
     for optimise in (True, False):
         stream = make_stream()
-        results = prequential_evaluation(
+        results = evaluate_classifier(
             stream=stream,
             learner=NaiveBayes(schema=stream.get_schema()),
             max_instances=2000,
             optimise=optimise,
         )
-        accuracies.append(results["cumulative"].accuracy())
+        accuracies.append(results["accuracy"])
 
     assert accuracies[0] == pytest.approx(accuracies[1], abs=0.01)
 
@@ -434,3 +390,24 @@ def test_predict_proba_only_rejects_absent_predictions(votes, expected):
         assert result is None
     else:
         assert result == pytest.approx(expected)
+
+
+def test_fast_loop_refuses_custom_test_then_train():
+    """The Java loop would skip a custom ``test_then_train``, so it must refuse it."""
+
+    class _CustomRun(_Run):
+        @override
+        def test_then_train(self, batch):
+            return super().test_then_train(batch)
+
+    stream = ElectricityTiny()
+    schema = stream.get_schema()
+    run = _CustomRun(
+        NaiveBayes(schema),
+        ClassificationEvaluator(schema=schema),
+        ClassificationWindowedEvaluator(schema=schema, window_size=10),
+        store_y=False,
+        store_predictions=False,
+    )
+    with pytest.raises(TypeError, match="custom test_then_train"):
+        _prequential_loop_fast(stream, run, max_instances=10)

@@ -37,7 +37,7 @@ if is_nb_fast():
 # %% [markdown]
 # ## Regression
 #
-# * Regression algorithms have APIs very similar to classification algorithms. We can use the same high-level evaluation and visualisation functions for regression and classification, such as `prequential_evaluation` and `plot_windowed_results` (see notebooks/classifier for an introduction to these functions).
+# * Regression algorithms have APIs very similar to classification algorithms. We can use the same high-level evaluation and visualisation functions for regression and classification, such as `evaluate_regressor` and `plot_windowed_results` (see notebooks/classifier for an introduction to these functions).
 # * Similar to classification, we can also use MOA objects through a generic API.
 
 # %%
@@ -45,8 +45,8 @@ from moa.classifiers.trees import FIMTDD
 
 from capymoa.base import MOARegressor
 from capymoa.datasets import Fried
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.regressor import evaluate_regressor
+from capymoa.evaluation.plot import plot_windowed_results
 from capymoa.regressor import KNNRegressor
 
 fried_stream = (
@@ -55,14 +55,16 @@ fried_stream = (
 fimtdd = MOARegressor(schema=fried_stream.get_schema(), moa_learner=FIMTDD())
 knnreg = KNNRegressor(schema=fried_stream.get_schema(), k=3, window_size=1000)
 
-results_fimtdd = prequential_evaluation(
+results_fimtdd = evaluate_regressor(
     stream=fried_stream, learner=fimtdd, window_size=5000
 )
-results_knnreg = prequential_evaluation(
+results_knnreg = evaluate_regressor(
     stream=fried_stream, learner=knnreg, window_size=5000
 )
 
-results_fimtdd.windowed.metrics_per_window()
+import pandas as pd
+
+pd.DataFrame(results_fimtdd["windowed"])
 # Note that the metric is different from the ylabel parameter, which just overrides the y-axis label.
 plot_windowed_results(
     results_fimtdd, results_knnreg, metric="rmse", ylabel="root mean squared error"

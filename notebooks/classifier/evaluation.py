@@ -19,7 +19,7 @@
 # This notebook further explores **high-level evaluation functions**, **data abstraction** and **classifiers**.
 #
 # * **High-level evaluation functions**
-#     * We demonstrate how to use `prequential_evaluation()` and how to further encapsulate prequential evaluation using `prequential_evaluation_multiple_learners`.
+#     * We show how to evaluate one learner with `evaluate_classifier()`, many learners in one pass over the stream by passing a dictionary to `evaluate_classifier()`, and how to work with the results.
 #     * We also discuss particularities about how these evaluation functions relate to how research has developed in the field, and how evaluation is commonly performed and presented.
 #
 # * **Supervised Learning**
@@ -55,7 +55,10 @@ if is_nb_fast():
 # %%
 from capymoa.classifier import AdaptiveRandomForestClassifier
 from capymoa.datasets import Electricity
-from capymoa.evaluation import ClassificationEvaluator, ClassificationWindowedEvaluator
+from capymoa.classifier.evaluate import (
+    ClassificationEvaluator,
+    ClassificationWindowedEvaluator,
+)
 
 stream = Electricity()
 
@@ -92,57 +95,59 @@ print(
 # %% [markdown]
 # ## High-level evaluation functions
 #
-# In CapyMOA, for supervised learning, there is one primary evaluation function designed to handle the manipulation of evaluators, i.e. the `prequential_evaluation()`. This function streamlines the process, ensuring users need not directly update them. Essentially, this function executes the evaluation loop and updates the relevant evaluators:
+# For classification, the high-level function is `evaluate_classifier()`. It runs the test-then-train loop and updates a `ClassificationEvaluator` and a `ClassificationWindowedEvaluator` for you, so you do not need to update them yourself.
 #
-# * `prequential_evaluation()` utilises `ClassificationEvaluator` and `ClassificationWindowedEvaluator`.
+# Each research domain has its own function and result type:
 #
-# Previously, CapyMOA included two other functions: `cumulative_evaluation()` and `windowed_evaluation()`. However, since `prequential_evaluation()` incorporates the functionality of both we decided to remove those functions and focus on `prequential_evaluation()`.
-# It's important to note that `prequential_evaluation()` is applicable to both `Regression` and `Prediction Intervals` besides `Classification`. The functionality and interpretation remain the same across these cases, but the metrics differ.
+# | Domain | Function | Results |
+# |---|---|---|
+# | classification | `capymoa.classifier.evaluate_classifier` | `capymoa.classifier.evaluate.ClassifierResults` |
+# | regression | `capymoa.regressor.evaluate_regressor` | `capymoa.regressor.evaluate.RegressorResults` |
+# | prediction intervals | `capymoa.uncertainty.evaluate_prediction_interval` | `capymoa.uncertainty.evaluate.PredictionIntervalResults` |
+# | semi-supervised | `capymoa.ssl.evaluate_ssl` | `capymoa.ssl.evaluate.SSLResults` |
+# | anomaly detection | `capymoa.anomaly.evaluate_anomaly` | `capymoa.anomaly.evaluate.AnomalyResults` |
+#
+# Each function evaluates one learner. Pass a dictionary of learners instead, and the function evaluates them all in one pass over the stream.
+#
+# If you do not know the domain of a learner in advance, use `capymoa.evaluation.prequential_evaluation()`. It checks the type of the learner and calls the matching function from the table.
 #
 # **Result of a high-level function**
 #
-# * The return from `prequential_evaluation()` is a `PrequentialResults` object which provides access to the `cumulative` and `windowed` metrics as well as some other metrics (like wall-clock and cpu time).
+# * The return from `evaluate_classifier()` is a `ClassifierResults` (from `capymoa.classifier.evaluate`): a plain, typed `dict` with a fixed set of keys. Hover over a key in your IDE or see the API documentation for what each one means and its unit.
 #
 # **Common characteristics for all high-level evaluation functions**
 #
-# * `prequential_evaluation()` specifies a `max_instances` parameter, which by default is `None`. Depending on the source of the data (e.g. a real stream or a synthetic stream) the function will never stop! The intuition behind this is that streams are infinite, we process them as such. Therefore, it is a good idea to specify `max_instances` unless you are using a snapshot of a stream (i.e. a `Dataset` like `Electricity`)
+# * `evaluate_classifier()` specifies a `max_instances` parameter, which by default is `None`. Depending on the source of the data (e.g. a real stream or a synthetic stream) the function will never stop! The intuition behind this is that streams are infinite, we process them as such. Therefore, it is a good idea to specify `max_instances` unless you are using a snapshot of a stream (i.e. a `Dataset` like `Electricity`)
 #
 # **Evaluation practices in the literature (and practice)**
 #
-# Interested readers might want to peruse section **6.1.1 Error Estimation** from [Machine Learning for Data Streams](https://moa.cms.waikato.ac.nz/book-html/) book. We further expand the relationships between the literature and our evaluation functions in the documentation: https://www.capymoa.org.
+# Interested readers might want to peruse section **6.1.1 Error Estimation** from [Machine Learning for Data Streams](https://moa.cms.waikato.ac.nz/book-html/) book. We further expand the relationships between the literature and our evaluation functions in the documentation: https://www.capymoa.org.
 
 # %% [markdown]
-# ### prequential_evaluation()
+# ### evaluate_classifier()
 #
-# The `prequential_evaluation()` function performs a windowed evaluation and a cumulative evaluation at once. Internally, it maintains a `ClassificationWindowedEvaluator` (for the windowed metrics) and `ClassificationEvaluator` (for the cumulative metrics). This allows us to have access to the **cumulative** and **windowed** results without running two separate evaluation functions. 
+# The `evaluate_classifier()` function performs a windowed evaluation and a cumulative evaluation at once. Internally, it maintains a `ClassificationWindowedEvaluator` (for the windowed metrics) and `ClassificationEvaluator` (for the cumulative metrics). This allows us to have access to the **cumulative** and **windowed** results without running two separate evaluation functions.
 #
-# * The results returned from `prequential_evaluation()` allows access to the evaluator objects `ClassificationWindowedEvaluator` (attribute `windowed`) and `ClassificationEvaluator` (attribute `cumulative`) directly. 
-#   
-# * Notice that the computational overhead of training and assessing the same model twice outweighs the minimum overhead of updating the two evaluators within the function. Thus, it is advisable to use the `prequential_evaluation()` function instead of creating separate `while` loops for evaluation.
+# * The metrics over the whole stream (**cumulative**) are keys of the results, for example `results["accuracy"]`.
 #
-# * Advanced users might intuitively request metrics directly from the `results` object, which will return the `cumulative` metrics. For example, assuming `results = prequential_evaluation(...)`, `results.accuracy()` will return the `cumulative` accuracy. 
-# **IMPORTANT**: There are no IDE hints for these metrics as they are accessed dynamically via `__getattr__`. It is advisable that users access metrics explicitly through `results.cumulative` (or `results['cumulative']`) or `results.windowed` (or `results['windowed']`).
+# * The `windowed` key holds the metrics of each window in columns: a dictionary with an `instances` entry and one entry per metric, each an array with one value per window. `pd.DataFrame(results["windowed"])` makes a table from it. `per_class` works the same way, with one value per class.
 #
-# * Invoking `results.metrics_per_window()` from a `results` object will return the dataframe with the `windowed` results.
+# * `run info` keys such as `learner`, `stream`, `instances`, `wallclock` and `cpu_time` are in every result.
 #
-# * `results.write_to_file()` will output the `cumulative` and `windowed` results to a directory.
+# * Invoking `plot_windowed_results()` with a result will plot its `windowed` results.
 #
-# * `results.cumulative.metrics_dict()` will return all the cumulative metrics identifiers and their corresponding values in a dictionary structure.
-#
-# * Invoking `plot_windowed_results()` with a `PrequentialResults` object will plot its `windowed` results.
-#
-# * For plotting and analysis purposes, one might want to set `store_predictions=True` and `store_y=True` on the `prequential_evaluation()` function, which will include all the predictions and ground truth y in the `PrequentialResults` object. It is important to note that this can be costly in terms of memory depending on the size of the stream.
+# * For plotting and analysis purposes, one might want to set `store_predictions=True` and `store_y=True` on the `evaluate_classifier()` function, which will include all the predictions and ground truth y in the `y_pred` and `y_true` keys. It is important to note that this can be costly in terms of memory depending on the size of the stream. Otherwise, the result has no `y_pred` or `y_true` key.
 
 # %%
 from capymoa.classifier import HoeffdingTree
 from capymoa.datasets import ElectricityTiny
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 
 elec_stream = ElectricityTiny()
 ht = HoeffdingTree(schema=elec_stream.get_schema(), grace_period=50)
 
-results_ht = prequential_evaluation(
+results_ht = evaluate_classifier(
     stream=elec_stream,
     learner=ht,
     window_size=100,
@@ -151,46 +156,40 @@ results_ht = prequential_evaluation(
     store_y=False,
 )
 
+print("\tRun information:")
+print(f"results_ht['learner']: {results_ht['learner']}")
+print(f"results_ht['wallclock']: {results_ht['wallclock']}")
+print(f"results_ht['cpu_time']: {results_ht['cpu_time']}")
 
-print("\tDifferent ways of accessing metrics:")
+print("\n\tThe cumulative metrics:")
+print(f"results_ht['accuracy'] = {results_ht['accuracy']}")
 
-print(
-    f"results_ht['wallclock']: {results_ht['wallclock']} results_ht.wallclock(): {results_ht.wallclock()}"
-)
-print(
-    f"results_ht['cpu_time']: {results_ht['cpu_time']} results_ht.cpu_time(): {results_ht.cpu_time()}"
-)
+print("\n\tPer class metrics:")
+import pandas as pd
 
-print(f"results_ht.cumulative.accuracy() = {results_ht.cumulative.accuracy()}")
-print(f"results_ht.cumulative['accuracy'] = {results_ht.cumulative['accuracy']}")
-print(f"results_ht['cumulative'].accuracy() = {results_ht['cumulative'].accuracy()}")
-print(f"results_ht.accuracy() = {results_ht.accuracy()}")
-
-print("\n\tAll the cumulative results:")
-print(results_ht.cumulative.metrics_dict())
+display(pd.DataFrame(results_ht["per_class"]))
 
 print("\n\tAll the windowed results:")
-display(results_ht.metrics_per_window())
-# OR display(results_ht.windowed.metrics_per_window())
-
-# results_ht.write_to_file() -> this will save the results to a directory
+display(pd.DataFrame(results_ht["windowed"]))
 
 plot_windowed_results(results_ht, metric="accuracy")
 
 # %% [markdown]
 # ### Evaluating a single stream using multiple learners
 #
-# `prequential_evaluation_multiple_learners()` further encapsulates experiments by executing multiple learners on a single stream. 
+# Passing a dictionary of names to learners to `evaluate_classifier()` further encapsulates experiments by executing multiple learners on a single stream.
 #
-# * This function behaves as if we invoked `prequential_evaluation()` multiple times, but internally it only iterates through the stream once. This is useful if we are faced with a situation where accessing each instance of the stream is costly, then this function will be more convenient than just invoking `prequential_evaluation()` multiple times. 
+# * This behaves as if we invoked `evaluate_classifier()` multiple times (without the Java loop), but internally it only iterates through the stream once. This is useful if we are faced with a situation where accessing each instance of the stream is costly, then this will be more convenient than just invoking `evaluate_classifier()` multiple times.
 #
-# * This method does not calculate `wallclock` or `cpu_time` because the training and testing of each learner is interleaved, thus timing estimations are unreliable. Thus, the results dictionaries do not contain the keys `wallclock` and `cpu_time`.
+# * The result is a dictionary from the name of each learner to its results. The name is also the `learner` key of each result.
+#
+# * The training and testing of each learner is interleaved, so `wallclock` and `cpu_time` are for the whole pass and are the same for all the learners. Do not use them to compare the speed of learners.
 
 # %%
 from capymoa.classifier import AdaptiveRandomForestClassifier, OnlineBagging
 from capymoa.datasets import Electricity
-from capymoa.evaluation import prequential_evaluation_multiple_learners
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 
 stream = Electricity()
 
@@ -200,9 +199,41 @@ learners = {
     "ARF": AdaptiveRandomForestClassifier(schema=stream.get_schema(), ensemble_size=10),
 }
 
-results = prequential_evaluation_multiple_learners(stream, learners, window_size=4500)
+results = evaluate_classifier(stream, learners, window_size=4500)
 
 print(
-    f"OB final accuracy = {results['OB'].cumulative.accuracy()} and ARF final accuracy = {results['ARF'].cumulative.accuracy()}"
+    f"OB final accuracy = {results['OB']['accuracy']} and ARF final accuracy = {results['ARF']['accuracy']}"
 )
 plot_windowed_results(results["OB"], results["ARF"], metric="accuracy")
+
+# %% [markdown]
+# ## Working with results
+#
+# The results of every domain are typed dictionaries, which makes them easy to compare, plot and keep.
+#
+# * A list of results makes a table with one row per run. Since the keys are fixed, the columns always line up.
+# * `windowed` is a dict of columns, so `pd.DataFrame(result["windowed"])` makes a table of the windows. Stack the tables of many runs with a `learner` column to plot them with `seaborn.lineplot(..., hue="learner")`.
+# * A result holds only plain values, dicts, lists and NumPy arrays, so you can store it as you like. For example, with `pickle`.
+
+# %%
+import pandas as pd
+
+# One row per learner.
+display(pd.DataFrame(list(results.values()))[["learner", "accuracy", "kappa"]])
+
+# One row per learner and window.
+windows = pd.concat(
+    [pd.DataFrame(r["windowed"]).assign(learner=name) for name, r in results.items()]
+)
+display(windows.head())
+
+# %%
+import seaborn as sns
+
+sns.lineplot(windows, x="instances", y="accuracy", hue="learner");
+
+# %%
+import pickle
+
+restored = pickle.loads(pickle.dumps(results["OB"]))
+print(restored["accuracy"] == results["OB"]["accuracy"])

@@ -179,7 +179,7 @@ class SimpleMLP(nn.Module):
 
 # %%
 from capymoa.ocl.datasets import SplitMNIST
-from capymoa.ocl.evaluation import ocl_train_eval_loop
+from capymoa.ocl import evaluate_ocl
 
 stream = SplitMNIST()
 mlp = SimpleMLP(stream.schema, 64)
@@ -190,17 +190,17 @@ learner = ExperienceReplay(
     learning_rate=0.01,
     device="cpu",
 )
-r = ocl_train_eval_loop(
+r = evaluate_ocl(
     learner,
     stream.train_loaders(64),
     stream.test_loaders(64),
     progress_bar=True,
     continual_evaluations=4,
 )
-print(f"Forward Transfer  {r.forward_transfer:.2f}")
-print(f"Backward Transfer {r.backward_transfer:.2f}")
-print(f"Accuracy          {r.accuracy_final:.2f}")
-print(f"Prequential Acc.  {r.ttt.cumulative.accuracy() / 100:.2f}")
+print(f"Forward Transfer  {r['forward_transfer']:.2f}")
+print(f"Backward Transfer {r['backward_transfer']:.2f}")
+print(f"Accuracy          {r['accuracy_final']:.2f}")
+print(f"Prequential Acc.  {r['ttt']['accuracy'] / 100:.2f}")
 
 # %% [markdown]
 # ## Evaluation
@@ -208,20 +208,10 @@ print(f"Prequential Acc.  {r.ttt.cumulative.accuracy() / 100:.2f}")
 # The plot displays the model's accuracy across tasks. Task zero begins with high accuracy, which decreases as the model forgets. In contrast, tasks one through four start at zero accuracy since the model has not seen the task yet.
 
 # %%
-from matplotlib import pyplot as plt
+from capymoa.ocl.plot import plot_accuracy_matrix
 
-fig, ax = plt.subplots(figsize=(8, 4))
-
-cmap = plt.get_cmap("tab10")
-for t in range(5):
-    ax.scatter(r.task_index, r.accuracy_matrix[:, t], color=cmap(t), label=f"Task {t}")
-    ax.plot(r.anytime_task_index, r.anytime_accuracy_matrix[:, t], color=cmap(t))
-
-ax.set_xlabel("Task")
-ax.set_xticks(range(6))
-ax.set_ylabel("Accuracy")
-ax.set_title("SplitMNIST Per-Task Accuracy Over Tasks")
-ax.legend(frameon=False)
+ax = plot_accuracy_matrix(r)
+ax.set_title("SplitMNIST Per-Task Accuracy Over Tasks");
 
 
 # %% [markdown]
@@ -252,41 +242,15 @@ ax.legend(frameon=False)
 #   This is the usual cumulative test-then-train accuracy over the data stream.
 
 # %%
-def hline(ax, y, label, color):
-    ax.hlines(y, 0, 5, linestyles="--", label=label, color=color)
+from capymoa.ocl.plot import plot_accuracy
 
-
-fig, ax = plt.subplots(figsize=(8.2, 4))
-# Plot the accuracy on all tasks over the course of tasks
-ax.scatter(r.task_index, r.accuracy_all, label="Acc. (all)")
-ax.plot(r.anytime_task_index, r.anytime_accuracy_all, label="Anytime Acc. (all)")
-hline(ax, r.anytime_accuracy_all_avg, "Avg. Anytime Acc. (all)", cmap(0))
-
-# Plot the accuracy on previously seen tasks over the course of tasks
-ax.scatter(r.task_index, r.accuracy_seen, label="Acc. (seen)")
-ax.plot(r.anytime_task_index, r.anytime_accuracy_seen, label="Anytime Acc. (seen)")
-hline(ax, r.anytime_accuracy_seen_avg, "Avg. Anytime Acc. (seen)", cmap(1))
-
-# Windowed test-then-train accuracy
-ax.plot(
-    r.ttt_windowed_task_index,
-    np.array(r.ttt.windowed.accuracy()) / 100,  # percentage to proportion
-    label="Online Win. Acc.",
-)
-# Cumulative test-then-train accuracy
-hline(ax, r.ttt.cumulative.accuracy() / 100, "Online Avg. Acc.", cmap(2))
-
-ax.legend(ncol=3, frameon=False)
-ax.set_xlabel("Task")
-ax.set_xticks(range(6))
-ax.set_ylabel("Accuracy")
-ax.set_title("SplitMNIST Accuracy Over Tasks")
-ax.set_ylim(-0.1, 1.05)
+ax = plot_accuracy(r)
+ax.set_title("SplitMNIST Accuracy Over Tasks");
 
 # %% [markdown]
-# You can use the usual prequential evaluation results object with `r.ttt` (short for test-then-train).
+# The results are a dictionary. Besides the scalars, it has the column dictionaries `per_task` and `anytime` (accuracy after each task and during training, use `pd.DataFrame(...)` for a table), arrays like `accuracy_matrix`, and `ttt` (short for test-then-train), the usual classifier results of the online evaluation.
 
 # %%
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.evaluation.plot import plot_windowed_results
 
-plot_windowed_results(r.ttt, metric="accuracy")
+plot_windowed_results(r["ttt"], metric="accuracy")

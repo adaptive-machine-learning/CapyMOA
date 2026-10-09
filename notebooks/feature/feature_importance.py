@@ -42,7 +42,7 @@
 # %%
 from capymoa.classifier import HoeffdingTree
 from capymoa.datasets import Electricity
-from capymoa.evaluation import ClassificationEvaluator
+from capymoa.classifier.evaluate import ClassificationEvaluator
 from capymoa.feature import (
     MOAFeatureImportanceClassifier,
     plot_feature_importance,

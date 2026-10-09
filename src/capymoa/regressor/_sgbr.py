@@ -19,12 +19,12 @@ class StreamingGradientBoostedRegression(MOARegressor):
 
     >>> from capymoa.datasets import Fried
         >>> from capymoa.regressor import StreamingGradientBoostedRegression
-        >>> from capymoa.evaluation import prequential_evaluation
+        >>> from capymoa.regressor import evaluate_regressor
     >>> stream = Fried()
     >>> schema = stream.get_schema()
     >>> learner = StreamingGradientBoostedRegression(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> round(results["cumulative"].r2(), 2)
+    >>> results = evaluate_regressor(stream, learner, max_instances=1000)
+    >>> round(results["r2"], 2)
     0.61
 
     .. [#0] `Gradient boosted bagging for evolving data stream regression. Nuwan Gunasekara,

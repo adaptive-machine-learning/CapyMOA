@@ -56,19 +56,21 @@ from moa.classifiers.trees import HoeffdingAdaptiveTree
 
 from capymoa.base import MOAClassifier
 from capymoa.datasets import Electricity
-from capymoa.evaluation import prequential_evaluation
+from capymoa.classifier import evaluate_classifier
 
 stream = Electricity()
 
 # Creates a wrapper around the HoeffdingAdaptiveTree, which then can be used as any other CapyMOA classifier
 HAT = MOAClassifier(schema=stream.get_schema(), moa_learner=HoeffdingAdaptiveTree)
 
-results_HAT = prequential_evaluation(stream=stream, learner=HAT, window_size=500)
+results_HAT = evaluate_classifier(stream=stream, learner=HAT, window_size=500)
 
 print(
-    f"Cumulative accuracy = {results_HAT['cumulative'].accuracy()}, wall-clock time: {results_HAT['wallclock']}"
+    f"Cumulative accuracy = {results_HAT['accuracy']}, wall-clock time: {results_HAT['wallclock']}"
 )
-display(results_HAT["windowed"].metrics_per_window())
+import pandas as pd
+
+display(pd.DataFrame(results_HAT["windowed"]))
 
 # %% [markdown]
 # ### Checking the hyperparameters for the MOA CLI
@@ -97,7 +99,7 @@ from moa.streams import FilteredStream
 
 from capymoa.classifier import OnlineBagging
 from capymoa.datasets import Electricity, get_download_dir
-from capymoa.evaluation import prequential_evaluation
+from capymoa.classifier import evaluate_classifier
 from capymoa.stream import MOAStream
 
 stream = Electricity()
@@ -121,15 +123,15 @@ ob_learner_norm = OnlineBagging(
 )
 ob_learner = OnlineBagging(schema=stream.get_schema(), ensemble_size=5)
 
-ob_results_norm = prequential_evaluation(
+ob_results_norm = evaluate_classifier(
     stream=rbf_stream_normalised, learner=ob_learner_norm
 )
-ob_results = prequential_evaluation(stream=stream, learner=ob_learner)
+ob_results = evaluate_classifier(stream=stream, learner=ob_learner)
 
 print(
-    f"\tAccuracy with online normalisation: {ob_results_norm['cumulative'].accuracy()}"
+    f"\tAccuracy with online normalisation: {ob_results_norm['accuracy']}"
 )
-print(f"\tAccuracy without normalisation: {ob_results['cumulative'].accuracy()}")
+print(f"\tAccuracy without normalisation: {ob_results['accuracy']}")
 
 # %% [markdown]
 # ## Comparing a MOA and sklearn models
@@ -145,8 +147,8 @@ from sklearn.linear_model import SGDClassifier
 
 from capymoa.base import MOAClassifier, SKClassifier
 from capymoa.datasets import CovtypeTiny
-from capymoa.evaluation import prequential_evaluation_multiple_learners
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 
 covt_tiny = CovtypeTiny()
 
@@ -156,8 +158,8 @@ sk_sgd = SKClassifier(
 )
 moa_ht = MOAClassifier(schema=covt_tiny.schema, moa_learner=HoeffdingTree, CLI="-g 50")
 
-results = prequential_evaluation_multiple_learners(
-    stream=covt_tiny, learners={"sk_sgd": sk_sgd, "moa_ht": moa_ht}, window_size=100
+results = evaluate_classifier(
+    stream=covt_tiny, learner={"sk_sgd": sk_sgd, "moa_ht": moa_ht}, window_size=100
 )
 plot_windowed_results(results["sk_sgd"], results["moa_ht"], metric="accuracy")
 
@@ -243,7 +245,7 @@ class CustomOnlineBagging(Classifier):
 from moa.classifiers.trees import HoeffdingAdaptiveTree
 
 from capymoa.datasets import Electricity
-from capymoa.evaluation import prequential_evaluation
+from capymoa.classifier import evaluate_classifier
 
 elec_stream = Electricity()
 
@@ -255,11 +257,11 @@ NEW_OB = CustomOnlineBagging(
     CLI_base_learner="-g 50",
 )
 
-results_NEW_OB = prequential_evaluation(
+results_NEW_OB = evaluate_classifier(
     stream=elec_stream, learner=NEW_OB, window_size=4500
 )
 
-print(f"Accuracy: {results_NEW_OB.cumulative.accuracy()}")
+print(f"Accuracy: {results_NEW_OB['accuracy']}")
 
 # %% [markdown]
 # ## Using TensorBoard with PyTorch in CapyMOA
@@ -413,7 +415,7 @@ class PyTorchClassifier(Classifier):
 from torch.utils.tensorboard import SummaryWriter
 
 from capymoa.datasets import Electricity
-from capymoa.evaluation import ClassificationEvaluator
+from capymoa.classifier.evaluate import ClassificationEvaluator
 
 # Create a SummaryWriter instance.
 writer = SummaryWriter()
@@ -484,8 +486,8 @@ writer.close()
 from moa.streams import ConceptDriftStream
 
 from capymoa.classifier import OnlineBagging
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 from capymoa.stream import MOAStream
 
 # Using the API to generate the data using the ConceptDriftStream and SEAGenerator.
@@ -497,7 +499,7 @@ stream_sea1drift = MOAStream(
 
 OB = OnlineBagging(schema=stream_sea1drift.get_schema(), ensemble_size=10)
 
-results_sea1drift_OB = prequential_evaluation(
+results_sea1drift_OB = evaluate_classifier(
     stream=stream_sea1drift, learner=OB, window_size=100, max_instances=10000
 )
 
@@ -538,7 +540,7 @@ stream_sea2drift = MOAStream(
 
 OB = OnlineBagging(schema=stream_sea2drift.get_schema(), ensemble_size=10)
 
-results_sea2drift_OB = prequential_evaluation(
+results_sea2drift_OB = evaluate_classifier(
     stream=stream_sea2drift, learner=OB, window_size=100, max_instances=15000
 )
 
@@ -575,7 +577,7 @@ stream_sea2drift = DriftStream(
 
 OB = OnlineBagging(schema=stream_sea2drift.get_schema(), ensemble_size=10)
 
-results_sea2drift_OB = prequential_evaluation(
+results_sea2drift_OB = evaluate_classifier(
     stream=stream_sea2drift, learner=OB, window_size=100, max_instances=12000
 )
 
@@ -622,8 +624,8 @@ print(
 
 # %%
 from capymoa.classifier import AdaptiveRandomForestClassifier
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 from capymoa.stream.drift import AbruptDrift, DriftStream, GradualDrift
 from capymoa.stream.generator import SEA
 
@@ -643,13 +645,13 @@ arf = AdaptiveRandomForestClassifier(
     schema=SEA3drifts.get_schema(), ensemble_size=100, number_of_jobs=4
 )
 
-results = prequential_evaluation(
+results = evaluate_classifier(
     stream=SEA3drifts, learner=arf, window_size=5000, max_instances=50000
 )
 
-print(f"Cumulative accuracy = {results.cumulative.accuracy()}")
-print(f"Wallclock = {results.wallclock()} seconds")
-display(results.windowed.metrics_per_window())
+print(f"Cumulative accuracy = {results['accuracy']}")
+print(f"Wallclock = {results['wallclock']} seconds")
+display(pd.DataFrame(results["windowed"]))
 plot_windowed_results(results, metric="accuracy")
 
 # %% [markdown]
@@ -664,8 +666,8 @@ plot_windowed_results(results, metric="accuracy")
 from capymoa.automl import AutoClass
 from capymoa.classifier import KNN, HoeffdingAdaptiveTree, HoeffdingTree
 from capymoa.datasets import RBFm_100k
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 
 rbf_100k = RBFm_100k()
 
@@ -681,16 +683,16 @@ autoclass = AutoClass(
     base_classifiers=[KNN, HoeffdingAdaptiveTree, HoeffdingTree],
 )
 
-results_ht = prequential_evaluation(
+results_ht = evaluate_classifier(
     stream=rbf_100k, learner=ht, window_size=window_size, max_instances=max_instances
 )
-results_hat = prequential_evaluation(
+results_hat = evaluate_classifier(
     stream=rbf_100k, learner=hat, window_size=window_size, max_instances=max_instances
 )
-results_knn = prequential_evaluation(
+results_knn = evaluate_classifier(
     stream=rbf_100k, learner=knn, window_size=window_size, max_instances=max_instances
 )
-results_autoclass = prequential_evaluation(
+results_autoclass = evaluate_classifier(
     stream=rbf_100k,
     learner=autoclass,
     window_size=window_size,
@@ -698,16 +700,16 @@ results_autoclass = prequential_evaluation(
 )
 
 print(
-    f"[HT] Cumulative accuracy = {results_ht.accuracy()}, wall-clock time: {results_ht.wallclock()}"
+    f"[HT] Cumulative accuracy = {results_ht['accuracy']}, wall-clock time: {results_ht['wallclock']}"
 )
 print(
-    f"[HAT] Cumulative accuracy = {results_hat.accuracy()}, wall-clock time: {results_hat.wallclock()}"
+    f"[HAT] Cumulative accuracy = {results_hat['accuracy']}, wall-clock time: {results_hat['wallclock']}"
 )
 print(
-    f"[KNN] Cumulative accuracy = {results_knn.accuracy()}, wall-clock time: {results_knn.wallclock()}"
+    f"[KNN] Cumulative accuracy = {results_knn['accuracy']}, wall-clock time: {results_knn['wallclock']}"
 )
 print(
-    f"[AUTOCLASS] Cumulative accuracy = {results_autoclass.accuracy()}, wall-clock time: {results_autoclass.wallclock()}"
+    f"[AUTOCLASS] Cumulative accuracy = {results_autoclass['accuracy']}, wall-clock time: {results_autoclass['wallclock']}"
 )
 plot_windowed_results(
     results_ht, results_knn, results_hat, results_autoclass, metric="accuracy"
@@ -722,8 +724,8 @@ plot_windowed_results(
 from capymoa.automl import AutoClass
 from capymoa.classifier import KNN, HoeffdingAdaptiveTree, HoeffdingTree, OnlineBagging
 from capymoa.datasets import RBFm_100k
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 
 rbf_100k = RBFm_100k()
 
@@ -739,14 +741,14 @@ autoclass_MOAStrings = AutoClass(
     base_classifiers=["lazy.kNN", "trees.HoeffdingTree", "trees.HoeffdingAdaptiveTree"],
 )
 
-results_autoClass = prequential_evaluation(
+results_autoClass = evaluate_classifier(
     stream=rbf_100k, learner=autoclass, window_size=100, max_instances=500
 )
-results_autoclass_MOAStrings = prequential_evaluation(
+results_autoclass_MOAStrings = evaluate_classifier(
     stream=rbf_100k, learner=autoclass_MOAStrings, window_size=100, max_instances=500
 )
 
-results_autoclass_MOAStrings.learner = "AutoClass_MOAStrings"
+results_autoclass_MOAStrings["learner"] = "AutoClass_MOAStrings"
 
 plot_windowed_results(
     results_autoClass, results_autoclass_MOAStrings, metric="accuracy"

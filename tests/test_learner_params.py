@@ -17,9 +17,9 @@ import yaml
 
 from capymoa.anomaly import HalfSpaceTrees
 from capymoa.base import learner_from_params
+from capymoa.classifier import evaluate_classifier
 from capymoa.cluster import ClusTree
 from capymoa.datasets import ElectricityTiny, Fried
-from capymoa.evaluation import prequential_evaluation
 from capymoa.regressor import AdaptiveRandomForestRegressor
 
 from .test_classifiers import test_cases
@@ -47,16 +47,16 @@ def test_classifier_params_roundtrip(test_case):
     assert clone.get_params() == params
 
     stream.restart()
-    original_results = prequential_evaluation(
+    original_results = evaluate_classifier(
         stream, learner, window_size=100, batch_size=test_case.batch_size
     )
     stream.restart()
-    clone_results = prequential_evaluation(
+    clone_results = evaluate_classifier(
         stream, clone, window_size=100, batch_size=test_case.batch_size
     )
 
-    assert clone_results.cumulative.accuracy() == pytest.approx(
-        original_results.cumulative.accuracy(), abs=1e-6
+    assert clone_results["accuracy"] == pytest.approx(
+        original_results["accuracy"], abs=1e-6
     )
 
 
@@ -106,11 +106,11 @@ def test_nested_learner_params_roundtrip():
     assert clone.get_params() == params
 
     stream.restart()
-    original_results = prequential_evaluation(stream, learner, max_instances=300)
+    original_results = evaluate_classifier(stream, learner, max_instances=300)
     stream.restart()
-    clone_results = prequential_evaluation(stream, clone, max_instances=300)
-    assert clone_results.cumulative.accuracy() == pytest.approx(
-        original_results.cumulative.accuracy(), abs=1e-6
+    clone_results = evaluate_classifier(stream, clone, max_instances=300)
+    assert clone_results["accuracy"] == pytest.approx(
+        original_results["accuracy"], abs=1e-6
     )
 
 

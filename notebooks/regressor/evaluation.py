@@ -19,7 +19,7 @@
 # This notebook further explores **high-level evaluation functions** as applied to **regressors**.
 #
 # * **High-level evaluation functions**
-#     * We use `prequential_evaluation()` and `prequential_evaluation_multiple_learners()`, the same functions introduced for classification (see notebooks/classifier/evaluation.py), and show how they apply to regression with only minor differences.
+#     * We use `evaluate_regressor()`, which works like `evaluate_classifier()` introduced for classification (see notebooks/classifier/evaluation.py), and show how they apply to regression with only minor differences.
 #     * We also show how to plot **predictions vs. ground truth** over time, which is particularly useful for regression tasks.
 #  
 # ---
@@ -39,13 +39,13 @@ if is_nb_fast():
 # ## Regression
 #
 # * We introduce a simple example using regression just to show how similar it is to assess regressors using the **high-level evaluation functions**.
-# * In the example below, we just use `prequential_evaluation()` but it would work with `cumulative_evaluation()` and `windowed_evaluation()` as well.
+# * The example below uses `evaluate_regressor()`. Its results are a `RegressorResults` (see `capymoa.regressor.evaluate`), a typed dictionary with the keys `mae`, `rmse`, `rmae`, `r2` and `adjusted_r2` besides the run information and the `windowed` table.
 # * One difference between classification and regression evaluation in CapyMOA is that the evaluators are different. Instead of `ClassificationEvaluator` and `ClassificationWindowedEvaluator` functions use `RegressionEvaluator` and `RegressionWindowedEvaluator`.
 
 # %%
 from capymoa.datasets import Fried
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.regressor import evaluate_regressor
+from capymoa.evaluation.plot import plot_windowed_results
 from capymoa.regressor import AdaptiveRandomForestRegressor, KNNRegressor
 
 stream = Fried()
@@ -54,16 +54,16 @@ ARF_learner = AdaptiveRandomForestRegressor(
     schema=stream.get_schema(), ensemble_size=10
 )
 
-kNN_results = prequential_evaluation(
+kNN_results = evaluate_regressor(
     stream=stream, learner=kNN_learner, window_size=5000
 )
-ARF_results = prequential_evaluation(
+ARF_results = evaluate_regressor(
     stream=stream, learner=ARF_learner, window_size=5000
 )
 
 print(
-    f"{kNN_results['learner']} [cumulative] RMSE = {kNN_results['cumulative'].rmse()} and \
-    {ARF_results['learner']}  [cumulative] RMSE = {ARF_results['cumulative'].rmse()}"
+    f"{kNN_results['learner']} [cumulative] RMSE = {kNN_results['rmse']} and \
+    {ARF_results['learner']}  [cumulative] RMSE = {ARF_results['rmse']}"
 )
 
 plot_windowed_results(kNN_results, ARF_results, metric="rmse")
@@ -71,10 +71,10 @@ plot_windowed_results(kNN_results, ARF_results, metric="rmse")
 # %% [markdown]
 # ### Evaluating a single stream using multiple learners
 #
-# * `prequential_evaluation_multiple_learners` also works for multiple regressors; the example below shows how it can be used.
+# * `evaluate_regressor` evaluates multiple regressors when you pass a dictionary of learners; the example below shows how it can be used.
 
 # %%
-from capymoa.evaluation import prequential_evaluation_multiple_learners
+from capymoa.regressor import evaluate_regressor
 
 # Define the learners + an alias (dictionary key)
 learners = {
@@ -86,18 +86,20 @@ learners = {
     ),
 }
 
-results = prequential_evaluation_multiple_learners(stream, learners)
+results = evaluate_regressor(stream, learners)
 
 print("Cumulative results for each learner:")
 for learner_id in learners:
     if learner_id in results:
-        cumulative = results[learner_id]["cumulative"]
+        result = results[learner_id]
         print(
-            f"{learner_id}, RMSE: {cumulative.rmse():.2f}, adjusted R2: {cumulative.adjusted_r2():.2f}"
+            f"{learner_id}, RMSE: {result['rmse']:.2f}, adjusted R2: {result['adjusted_r2']:.2f}"
         )
 
-# Tip: invoking metrics_header() from an evaluator will show us all the metrics available,
-# e.g. results['kNNReg_k5']['cumulative'].metrics_header()
+# Tip: a list of results makes a table with one row per learner.
+import pandas as pd
+
+display(pd.DataFrame(list(results.values()))[["learner", "rmse", "adjusted_r2"]])
 plot_windowed_results(
     results["kNNReg_k5"],
     results["kNNReg_k2"],
@@ -123,8 +125,8 @@ plot_windowed_results(
 
 # %%
 from capymoa.datasets import Fried
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_predictions_vs_ground_truth
+from capymoa.regressor import evaluate_regressor
+from capymoa.regressor.plot import plot_predictions_vs_ground_truth
 from capymoa.regressor import AdaptiveRandomForestRegressor, KNNRegressor
 
 stream = Fried()
@@ -135,7 +137,7 @@ ARF_learner = AdaptiveRandomForestRegressor(
 
 # When we specify store_predictions and store_y, the results will also include all the predictions and all the ground truth y.
 # It is useful for debugging and outputting the predictions elsewhere.
-kNN_results = prequential_evaluation(
+kNN_results = evaluate_regressor(
     stream=stream,
     learner=kNN_learner,
     window_size=5000,
@@ -143,7 +145,7 @@ kNN_results = prequential_evaluation(
     store_y=True,
 )
 # We don't need to store the ground-truth for every experiment, since it is always the same for the same stream.
-ARF_results = prequential_evaluation(
+ARF_results = evaluate_regressor(
     stream=stream, learner=ARF_learner, window_size=5000, store_predictions=True
 )
 
@@ -152,6 +154,5 @@ ARF_results = prequential_evaluation(
 plot_predictions_vs_ground_truth(
     kNN_results,
     ARF_results,
-    ground_truth=kNN_results["ground_truth_y"],
     plot_interval=(0, 200),
 )

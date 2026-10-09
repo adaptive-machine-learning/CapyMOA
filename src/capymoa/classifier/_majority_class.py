@@ -17,12 +17,12 @@ class MajorityClass(MOAClassifier):
 
     >>> from capymoa.datasets import ElectricityTiny
     >>> from capymoa.classifier import MajorityClass
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.classifier import evaluate_classifier
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
     >>> learner = MajorityClass(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].accuracy()
+    >>> results = evaluate_classifier(stream, learner, max_instances=1000)
+    >>> results["accuracy"]
     50.2
     """
 

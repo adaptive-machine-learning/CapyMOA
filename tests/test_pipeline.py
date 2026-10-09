@@ -20,10 +20,10 @@ from moa.streams.filters import (
 )
 
 from capymoa.anomaly import HalfSpaceTrees
-from capymoa.classifier import OnlineBagging
+from capymoa.classifier import OnlineBagging, evaluate_classifier
+from capymoa.classifier.evaluate import ClassificationEvaluator
 from capymoa.datasets import CovtypeTiny, ElectricityTiny, FriedTiny
 from capymoa.drift.detectors import ADWIN
-from capymoa.evaluation import ClassificationEvaluator, prequential_evaluation
 from capymoa.regressor import AdaptiveRandomForestRegressor
 from capymoa.stream.preprocessing import (
     BasePipeline,
@@ -325,9 +325,9 @@ def test_pipeline_matches_equivalent_manual_loop(elec):
     pipeline = ClassifierPipeline().add_classifier(
         OnlineBagging(schema=stream_b.get_schema(), ensemble_size=3)
     )
-    results = prequential_evaluation(stream_b, pipeline, optimise=False)
+    results = evaluate_classifier(stream_b, pipeline, optimise=False)
 
-    assert results["cumulative"].accuracy() == pytest.approx(expected)
+    assert results["accuracy"] == pytest.approx(expected)
 
 
 def test_transformer_pipeline_matches_equivalent_manual_loop():
@@ -356,9 +356,9 @@ def test_transformer_pipeline_matches_equivalent_manual_loop():
             OnlineBagging(schema=transformer_b.get_schema(), ensemble_size=3)
         )
     )
-    results = prequential_evaluation(stream_b, pipeline, optimise=False)
+    results = evaluate_classifier(stream_b, pipeline, optimise=False)
 
-    assert results["cumulative"].accuracy() == pytest.approx(expected)
+    assert results["accuracy"] == pytest.approx(expected)
 
 
 # ============================================================================

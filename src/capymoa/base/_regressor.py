@@ -61,7 +61,7 @@ class MOARegressor(Regressor):
         # The learner didn't provide a prediction, returns 0.0 (probably the learner has not been initialised.)
         if len(prediction_array) == 0:
             return 0.0
-        return prediction_array[0]
+        return float(prediction_array[0])
 
 
 class SKRegressor(Regressor):

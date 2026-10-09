@@ -10,6 +10,9 @@ import re
 import sys
 from pathlib import Path
 
+from sphinx.ext.autodoc import AttributeDocumenter
+from typing_extensions import is_typeddict
+
 from capymoa.__about__ import __version__
 from docs.release_scripts import site_base_url
 from docs.util.github_link import make_linkcode_resolve
@@ -71,6 +74,7 @@ nitpick_ignore_regex = [
     ("py:class", r"abc\..*"),
     ("py:class", r"com\..*"),
     ("py:class", r"java\..*"),
+    ("py:class", r"matplotlib\..*"),
     ("py:class", r"moa\..*"),
     ("py:class", r"numpy\..*"),
     ("py:class", r"org\..*"),
@@ -79,6 +83,7 @@ nitpick_ignore_regex = [
     ("py:class", r"sklearn\..*"),
     ("py:class", r"torch\..*"),
     ("py:class", r"tqdm\..*"),
+    ("py:class", r"typing_extensions\..*"),
     ("py:class", r"torchvision\..*"),
     ("py:class", r"Tensor"),
     ("py:class", r"nn\.Module"),
@@ -334,6 +339,28 @@ def autodoc_skip_member(app, obj_type, name, obj, skip, options) -> bool | None:
             return True
 
     return None
+
+
+_get_attribute_comment = AttributeDocumenter.get_attribute_comment
+
+
+def _get_attribute_comment_from_typed_dict_bases(self, parent, attrname):
+    """Find the ``#:`` doc of a TypedDict key declared in a base TypedDict.
+
+    A TypedDict drops its bases from ``__mro__``, so autodoc cannot find the
+    docs of inherited keys such as ``RunInfo.instances``. They are only in
+    ``__orig_bases__``.
+    """
+    comment = _get_attribute_comment(self, parent, attrname)
+    for base in getattr(parent, "__orig_bases__", ()):
+        if comment is not None:
+            break
+        if is_typeddict(base):
+            comment = _get_attribute_comment_from_typed_dict_bases(self, base, attrname)
+    return comment
+
+
+AttributeDocumenter.get_attribute_comment = _get_attribute_comment_from_typed_dict_bases
 
 
 def setup(app):

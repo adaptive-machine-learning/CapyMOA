@@ -109,7 +109,7 @@ if is_nb_fast():
 ## Test-then-train loop
 from capymoa.classifier import OnlineBagging
 from capymoa.datasets import Electricity
-from capymoa.evaluation import ClassificationEvaluator
+from capymoa.classifier.evaluate import ClassificationEvaluator
 
 ## Opening a file as a stream
 elec_stream = Electricity()
@@ -359,12 +359,12 @@ str(pipeline)
 # ### Alternative syntax
 #
 # * An alternative syntax to define the pipeline is shown below.
-# * Since the pipeline behaves like a learner, it can be used with high-level evaluation functions like `prequential_evaluation`.
+# * Since the pipeline behaves like a learner, it can be used with high-level evaluation functions like `evaluate_classifier`.
 
 # %%
 from capymoa.classifier import AdaptiveRandomForestClassifier
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 from capymoa.stream.preprocessing import (
     ClassifierPipelineElement,
     TransformerPipelineElement,
@@ -393,15 +393,15 @@ classifier_pe = ClassifierPipelineElement(
 ## then pass them as a list to the pipeline initialiser
 pipeline_arf = ClassifierPipeline([normalisation_transformer_pe, classifier_pe])
 
-results_arf_pipeline = prequential_evaluation(
+results_arf_pipeline = evaluate_classifier(
     stream=elec_stream, learner=pipeline_arf, window_size=4500
 )
-results_arf_baseline = prequential_evaluation(
+results_arf_baseline = evaluate_classifier(
     stream=elec_stream, learner=arf, window_size=4500
 )
 
-print(f"{arf}: {results_arf_baseline['cumulative'].accuracy()}")
-print(f"{pipeline_arf}: {results_arf_pipeline['cumulative'].accuracy()}")
+print(f"{arf}: {results_arf_baseline['accuracy']}")
+print(f"{pipeline_arf}: {results_arf_pipeline['accuracy']}")
 plot_windowed_results(
     results_arf_pipeline, results_arf_baseline, metric="accuracy", figure_path=None
 )
@@ -413,7 +413,7 @@ plot_windowed_results(
 
 # %%
 from capymoa.datasets import Fried
-from capymoa.evaluation import RegressionEvaluator
+from capymoa.regressor.evaluate import RegressionEvaluator
 from capymoa.regressor import AdaptiveRandomForestRegressor
 from capymoa.stream.preprocessing import RegressorPipeline
 

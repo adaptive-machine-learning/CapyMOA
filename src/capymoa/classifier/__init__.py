@@ -7,6 +7,7 @@ adapting to concept drift while making predictions in real time.
 
 from capymoa._optional import lazy_torch_attrs
 
+from . import evaluate
 from ._adaptive_random_forest import AdaptiveRandomForestClassifier
 from ._csmote import CSMOTE
 from ._dems import DynamicEnsembleMemberSelection
@@ -19,6 +20,7 @@ from ._efdt import EFDT
 # alphabetize these the other way, reintroducing that circular import,
 # hence `isort: skip`.
 from ._hoeffding_tree import HoeffdingTree  # isort: skip
+from ._evaluate import evaluate_classifier
 from ._hoeffding_adaptive_tree import HoeffdingAdaptiveTree
 from ._knn import KNN
 from ._last import LAST
@@ -68,6 +70,8 @@ __all__ = [
     "StreamingGradientBoostedTrees",
     "StreamingRandomPatches",
     "WeightedkNN",
+    "evaluate",
+    "evaluate_classifier",
 ]
 
 

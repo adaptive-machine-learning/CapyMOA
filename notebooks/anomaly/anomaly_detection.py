@@ -91,7 +91,7 @@ target_name = "class"
 
 # %%
 from capymoa.anomaly import HalfSpaceTrees
-from capymoa.evaluation import AnomalyDetectionEvaluator
+from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
 
 stream_ad = NumpyStream(
     X,
@@ -115,16 +115,16 @@ print(f"AUC: {auc:.2f}")
 # %% [markdown]
 # ## High-level evaluation functions
 #
-# * CapyMOA provides `prequential_evaluation_anomaly` as a high level function to assess anomaly detectors.
+# * CapyMOA provides `evaluate_anomaly` as a high level function to assess anomaly detectors.
 
 # %% [markdown]
-# ### `prequential_evaluation_anomaly`
-# In this example, we use the `prequential_evaluation_anomaly` function with `plot_windowed_results` to plot AUC for HalfSpaceTrees on the synthetic data stream.
+# ### `evaluate_anomaly`
+# In this example, we use the `evaluate_anomaly` function with `plot_windowed_results` to plot AUC for HalfSpaceTrees on the synthetic data stream.
 
 # %%
 from capymoa.anomaly import HalfSpaceTrees
-from capymoa.evaluation import prequential_evaluation_anomaly
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.anomaly import evaluate_anomaly
+from capymoa.evaluation.plot import plot_windowed_results
 
 stream_ad = NumpyStream(
     X,
@@ -136,12 +136,14 @@ stream_ad = NumpyStream(
 )
 hst = HalfSpaceTrees(schema=stream_ad.get_schema())
 
-results_hst = prequential_evaluation_anomaly(
+results_hst = evaluate_anomaly(
     stream=stream_ad, learner=hst, window_size=1000
 )
 
-print(f"AUC: {results_hst.auc()}")
-display(results_hst.windowed.metrics_per_window())
+print(f"AUC: {results_hst['auc']}")
+import pandas as pd
+
+display(pd.DataFrame(results_hst["windowed"]))
 plot_windowed_results(results_hst, metric="auc", save_only=False)
 
 # %% [markdown]
@@ -149,8 +151,8 @@ plot_windowed_results(results_hst, metric="auc", save_only=False)
 
 # %%
 from capymoa.anomaly import Autoencoder
-from capymoa.evaluation import prequential_evaluation_anomaly
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.anomaly import evaluate_anomaly
+from capymoa.evaluation.plot import plot_windowed_results
 
 stream_ad = NumpyStream(
     X,
@@ -162,12 +164,12 @@ stream_ad = NumpyStream(
 )
 ae = Autoencoder(schema=stream_ad.get_schema(), hidden_layer=1)
 
-results_ae = prequential_evaluation_anomaly(
+results_ae = evaluate_anomaly(
     stream=stream_ad, learner=ae, window_size=1000
 )
 
-print(f"AUC: {results_ae.auc()}")
-display(results_ae.windowed.metrics_per_window())
+print(f"AUC: {results_ae['auc']}")
+display(pd.DataFrame(results_ae["windowed"]))
 plot_windowed_results(results_ae, metric="auc", save_only=False)
 
 # %% [markdown]
@@ -175,8 +177,8 @@ plot_windowed_results(results_ae, metric="auc", save_only=False)
 
 # %%
 from capymoa.anomaly import OnlineIsolationForest
-from capymoa.evaluation import prequential_evaluation_anomaly
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.anomaly import evaluate_anomaly
+from capymoa.evaluation.plot import plot_windowed_results
 
 stream_ad = NumpyStream(
     X,
@@ -188,12 +190,12 @@ stream_ad = NumpyStream(
 )
 oif = OnlineIsolationForest(schema=stream_ad.get_schema(), num_trees=10)
 
-results_oif = prequential_evaluation_anomaly(
+results_oif = evaluate_anomaly(
     stream=stream_ad, learner=oif, window_size=1000
 )
 
-print(f"AUC: {results_oif.auc()}")
-display(results_oif.windowed.metrics_per_window())
+print(f"AUC: {results_oif['auc']}")
+display(pd.DataFrame(results_oif["windowed"]))
 plot_windowed_results(results_oif, metric="auc", save_only=False)
 
 # %% [markdown]

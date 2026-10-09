@@ -34,12 +34,12 @@ class SOKNL(MOARegressor):
 
     >>> from capymoa.datasets import Fried
         >>> from capymoa.regressor import SOKNL
-        >>> from capymoa.evaluation import prequential_evaluation
+        >>> from capymoa.regressor import evaluate_regressor
     >>> stream = Fried()
     >>> schema = stream.get_schema()
     >>> learner = SOKNL(schema)
-    >>> results = prequential_evaluation(stream, learner, max_instances=1000)
-    >>> results["cumulative"].rmse()
+    >>> results = evaluate_regressor(stream, learner, max_instances=1000)
+    >>> results["rmse"]
     3.3527490117282226
     """
 

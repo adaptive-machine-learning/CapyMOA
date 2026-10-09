@@ -48,7 +48,7 @@ from capymoa._nbmock import is_nb_fast
 
 # %%
 from capymoa.cluster import Clustream_with_kmeans as WithKmeans
-from capymoa.evaluation.visualization import plot_clustering_state
+from capymoa.cluster.plot import plot_clustering_state
 from capymoa.stream.generator import RandomRBFGeneratorDrift
 
 stream = RandomRBFGeneratorDrift(
@@ -89,7 +89,7 @@ while stream.has_more_instances() and instancesSeen < instances_limit:
 # ## Using the ClusteringEvaluator
 
 # %%
-from capymoa.evaluation import ClusteringEvaluator
+from capymoa.cluster.evaluate import ClusteringEvaluator
 
 stream = RandomRBFGeneratorDrift(
     number_of_attributes=2,
@@ -141,7 +141,7 @@ while stream.has_more_instances() and evaluator.get_instances_seen() < instances
 # - Default filename will be `<clusterer_name>_clustering_evolution.gif`
 
 # %%
-from capymoa.evaluation.visualization import plot_clustering_evolution
+from capymoa.cluster.plot import plot_clustering_evolution
 
 plot_clustering_evolution(evaluator, clean_up=True, frame_duration=1000)
 

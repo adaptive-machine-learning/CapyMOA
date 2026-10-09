@@ -32,21 +32,21 @@
 # %% [markdown]
 # ## Training and saving the model
 #
-# * We train the model on 5k instances from SEA using the `evaluate_prequential` function.
+# * We train the model on 5k instances from SEA using the `evaluate_classifier` function.
 # * We proceed to save the model with `save_model(learner, "capymoa_ARF_model.pkl")`.
 
 # %%
 from capymoa.classifier import AdaptiveRandomForestClassifier
 from capymoa.core.io import load_model, save_model
-from capymoa.evaluation import prequential_evaluation
+from capymoa.classifier import evaluate_classifier
 from capymoa.stream.generator import SEA
 
 stream = SEA()
 learner = AdaptiveRandomForestClassifier(schema=stream.get_schema(), ensemble_size=10)
 
-results = prequential_evaluation(stream=stream, learner=learner, max_instances=5000)
+results = evaluate_classifier(stream=stream, learner=learner, max_instances=5000)
 
-print(f"Accuracy: {results['cumulative'].accuracy():.2f}")
+print(f"Accuracy: {results['accuracy']:.2f}")
 
 with open("capymoa_ARF_model.pkl", "wb") as f:
     save_model(learner, f)
@@ -55,7 +55,7 @@ with open("capymoa_ARF_model.pkl", "wb") as f:
 # ## Loading and resuming training
 #
 # * We use `os.path.getsize()` to inspect the size (KB) of the saved file.
-# * We don't restart the synthetic stream, we just continue processing it through another call to `prequential_evaluation`.
+# * We don't restart the synthetic stream, we just continue processing it through another call to `evaluate_classifier`.
 # * Finally, we observe the accuracy.
 
 # %%
@@ -70,11 +70,11 @@ with open(model_file, "rb") as f:
     restored_learner = load_model(f)
 
 # Train for more 50k instances on the restored model
-results = prequential_evaluation(
+results = evaluate_classifier(
     stream=stream, learner=restored_learner, max_instances=5000
 )
 
-print(f"Updated accuracy: {results['cumulative'].accuracy():.2f}")
+print(f"Updated accuracy: {results['accuracy']:.2f}")
 
 # %% [markdown]
 # ## Cleanup 
