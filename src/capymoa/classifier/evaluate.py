@@ -5,7 +5,7 @@ uses the evaluators below, which wrap MOA's evaluators. You can also use them in
 own test-then-train loop.
 """
 
-from typing import NotRequired, TypedDict
+from typing import NotRequired
 
 import numpy as np
 import pandas as pd
@@ -16,6 +16,7 @@ from moa.evaluation import (
     BasicClassificationPerformanceEvaluator,
     WindowClassificationPerformanceEvaluator,
 )
+from typing_extensions import TypedDict
 
 from capymoa._utils import _translate_metric_name
 from capymoa.evaluation.results import RunInfo, Windows

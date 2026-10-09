@@ -8,6 +8,7 @@ from typing import Any, get_args, get_origin, get_type_hints
 import numpy as np
 import pandas as pd
 import pytest
+from typing_extensions import is_typeddict
 
 from capymoa.anomaly import HalfSpaceTrees, evaluate_anomaly
 from capymoa.anomaly.evaluate import AnomalyResults
@@ -36,7 +37,7 @@ def _matches(value: Any, hint: Any) -> bool:
         return any(_matches(value, arg) for arg in get_args(hint))
     if origin is list:
         return isinstance(value, list)
-    if typing.is_typeddict(hint):
+    if is_typeddict(hint):
         hints = get_type_hints(hint)
         return (
             isinstance(value, dict)

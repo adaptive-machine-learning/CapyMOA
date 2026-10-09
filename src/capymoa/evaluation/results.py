@@ -20,9 +20,10 @@ ht      84.4
 nb      84.8
 """
 
-from typing import NotRequired, TypedDict
+from typing import NotRequired
 
 import numpy as np
+from typing_extensions import TypedDict  # Keeps `__orig_bases__` on 3.11 (API docs).
 
 
 class Windows(TypedDict):
