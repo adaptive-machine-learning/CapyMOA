@@ -10,9 +10,9 @@ import re
 import shutil
 import sys
 from pathlib import Path
-from typing import is_typeddict
 
 from sphinx.ext.autodoc import AttributeDocumenter
+from typing_extensions import is_typeddict
 
 from capymoa.__about__ import __version__
 from docs.release_scripts import site_base_url
@@ -85,6 +85,7 @@ nitpick_ignore_regex = [
     ("py:class", r"sklearn\..*"),
     ("py:class", r"torch\..*"),
     ("py:class", r"tqdm\..*"),
+    ("py:class", r"typing_extensions\..*"),
     ("py:class", r"torchvision\..*"),
     ("py:class", r"Tensor"),
     ("py:class", r"nn\.Module"),

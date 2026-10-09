@@ -1,10 +1,11 @@
 """Results and metric helpers for OCL evaluation."""
 
 import itertools
-from typing import NotRequired, TypedDict
+from typing import NotRequired
 
 import numpy as np
 import torch
+from typing_extensions import TypedDict
 
 from capymoa.classifier.evaluate import ClassifierResults, ClassifierWindows
 
