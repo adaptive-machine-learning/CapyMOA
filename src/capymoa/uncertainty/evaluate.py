@@ -1,8 +1,8 @@
 """Evaluators and result types for prediction intervals.
 
-The result types are the output of
-:func:`~capymoa.uncertainty.evaluate_prediction_interval`. The evaluators wrap MOA's
-evaluators. Use them directly in a custom loop.
+:func:`~capymoa.uncertainty.evaluate_prediction_interval` returns a
+:class:`PredictionIntervalResults`. It uses the evaluators below, which wrap MOA's
+evaluators. You can also use them in your own test-then-train loop.
 """
 
 import warnings

@@ -1,8 +1,8 @@
 """Evaluators and result types for anomaly detection.
 
-The result types are the output of
-:func:`~capymoa.anomaly.evaluate_anomaly`. The evaluators wrap MOA's
-evaluators. Use them directly in a custom loop.
+:func:`~capymoa.anomaly.evaluate_anomaly` returns a :class:`AnomalyResults`. It uses the
+evaluators below, which wrap MOA's evaluators. You can also use them in your own test-
+then-train loop.
 """
 
 from typing import NotRequired

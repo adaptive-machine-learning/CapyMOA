@@ -1,8 +1,8 @@
 """Evaluators and result types for regression.
 
-The result types are the output of
-:func:`~capymoa.regressor.evaluate_regressor`. The evaluators wrap MOA's
-evaluators. Use them directly in a custom loop.
+:func:`~capymoa.regressor.evaluate_regressor` returns a :class:`RegressorResults`. It
+uses the evaluators below, which wrap MOA's evaluators. You can also use them in your
+own test-then-train loop.
 """
 
 from typing import NotRequired
