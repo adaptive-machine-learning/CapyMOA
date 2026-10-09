@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, overload
+from typing import overload
 
 from tqdm import tqdm
 
@@ -11,13 +11,11 @@ from capymoa.evaluation._loop import (
     _Run,
 )
 from capymoa.stream import Stream
-from capymoa.uncertainty._results import (
-    PredictionIntervalResults,
-    PredictionIntervalWindows,
-)
 from capymoa.uncertainty.evaluate import (
     PredictionIntervalEvaluator,
+    PredictionIntervalResults,
     PredictionIntervalWindowedEvaluator,
+    PredictionIntervalWindows,
 )
 
 
@@ -36,11 +34,25 @@ def _results(
 
 @overload
 def evaluate_prediction_interval(
-    stream: Stream, learner: PredictionIntervalLearner, **kwargs: Any
+    stream: Stream,
+    learner: PredictionIntervalLearner,
+    max_instances: int | None = None,
+    window_size: int | None = 1000,
+    store_predictions: bool = False,
+    store_y: bool = False,
+    restart_stream: bool = True,
+    progress_bar: bool | tqdm = False,
 ) -> PredictionIntervalResults: ...
 @overload
 def evaluate_prediction_interval(
-    stream: Stream, learner: Mapping[str, PredictionIntervalLearner], **kwargs: Any
+    stream: Stream,
+    learner: Mapping[str, PredictionIntervalLearner],
+    max_instances: int | None = None,
+    window_size: int | None = 1000,
+    store_predictions: bool = False,
+    store_y: bool = False,
+    restart_stream: bool = True,
+    progress_bar: bool | tqdm = False,
 ) -> dict[str, PredictionIntervalResults]: ...
 def evaluate_prediction_interval(
     stream: Stream,

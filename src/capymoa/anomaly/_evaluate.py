@@ -4,10 +4,11 @@ from typing import Any, overload
 from tqdm import tqdm
 from typing_extensions import override
 
-from capymoa.anomaly._results import AnomalyResults, AnomalyWindows
 from capymoa.anomaly.evaluate import (
     AnomalyDetectionEvaluator,
     AnomalyDetectionWindowedEvaluator,
+    AnomalyResults,
+    AnomalyWindows,
 )
 from capymoa.base import AnomalyDetector
 from capymoa.evaluation._loop import (
@@ -48,11 +49,27 @@ def _anomaly_results(
 
 @overload
 def evaluate_anomaly(
-    stream: Stream, learner: AnomalyDetector, **kwargs: Any
+    stream: Stream,
+    learner: AnomalyDetector,
+    max_instances: int | None = None,
+    window_size: int | None = 1000,
+    store_predictions: bool = False,
+    store_y: bool = False,
+    optimise: bool = True,
+    restart_stream: bool = True,
+    progress_bar: bool | tqdm = False,
 ) -> AnomalyResults: ...
 @overload
 def evaluate_anomaly(
-    stream: Stream, learner: Mapping[str, AnomalyDetector], **kwargs: Any
+    stream: Stream,
+    learner: Mapping[str, AnomalyDetector],
+    max_instances: int | None = None,
+    window_size: int | None = 1000,
+    store_predictions: bool = False,
+    store_y: bool = False,
+    optimise: bool = True,
+    restart_stream: bool = True,
+    progress_bar: bool | tqdm = False,
 ) -> dict[str, AnomalyResults]: ...
 def evaluate_anomaly(
     stream: Stream,

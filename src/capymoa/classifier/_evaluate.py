@@ -1,16 +1,18 @@
 import math
 import re
 from collections.abc import Mapping
-from typing import Any, overload
+from typing import overload
 
 import numpy as np
 from tqdm import tqdm
 
 from capymoa.base import Classifier
-from capymoa.classifier._results import ClassifierResults, ClassifierWindows, PerClass
 from capymoa.classifier.evaluate import (
     ClassificationEvaluator,
     ClassificationWindowedEvaluator,
+    ClassifierResults,
+    ClassifierWindows,
+    PerClass,
 )
 from capymoa.evaluation._loop import (
     _LoopOutput,
@@ -52,11 +54,29 @@ def _classifier_results(
 
 @overload
 def evaluate_classifier(
-    stream: Stream, learner: Classifier, **kwargs: Any
+    stream: Stream,
+    learner: Classifier,
+    max_instances: int | None = None,
+    window_size: int | None = 1000,
+    store_predictions: bool = False,
+    store_y: bool = False,
+    optimise: bool = True,
+    restart_stream: bool = True,
+    progress_bar: bool | tqdm = False,
+    batch_size: int = 1,
 ) -> ClassifierResults: ...
 @overload
 def evaluate_classifier(
-    stream: Stream, learner: Mapping[str, Classifier], **kwargs: Any
+    stream: Stream,
+    learner: Mapping[str, Classifier],
+    max_instances: int | None = None,
+    window_size: int | None = 1000,
+    store_predictions: bool = False,
+    store_y: bool = False,
+    optimise: bool = True,
+    restart_stream: bool = True,
+    progress_bar: bool | tqdm = False,
+    batch_size: int = 1,
 ) -> dict[str, ClassifierResults]: ...
 def evaluate_classifier(
     stream: Stream,
