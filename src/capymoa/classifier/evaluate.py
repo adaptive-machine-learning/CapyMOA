@@ -1,8 +1,8 @@
 """Evaluators and result types for classification.
 
-The result types are the output of
-:func:`~capymoa.classifier.evaluate_classifier`. The evaluators wrap MOA's
-evaluators. Use them directly in a custom loop.
+:func:`~capymoa.classifier.evaluate_classifier` returns a :class:`ClassifierResults`. It
+uses the evaluators below, which wrap MOA's evaluators. You can also use them in your
+own test-then-train loop.
 """
 
 from typing import NotRequired, TypedDict
