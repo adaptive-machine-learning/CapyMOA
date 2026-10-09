@@ -7,6 +7,7 @@ adapting to concept drift while making predictions in real time.
 
 from capymoa._optional import lazy_torch_attrs
 
+from . import evaluate
 from ._adaptive_random_forest import AdaptiveRandomForestClassifier
 from ._csmote import CSMOTE
 from ._dems import DynamicEnsembleMemberSelection
@@ -33,7 +34,6 @@ from ._online_smooth_boost import OnlineSmoothBoost
 from ._oza_boost import OzaBoost
 from ._passive_aggressive_classifier import PassiveAggressiveClassifier
 from ._plastic import PLASTIC
-from ._results import ClassifierResults, ClassifierWindows, PerClass
 from ._samknn import SAMkNN
 from ._sgbt import StreamingGradientBoostedTrees
 from ._sgd_classifier import SGDClassifier
@@ -49,8 +49,6 @@ __all__ = [
     "LAST",
     "PLASTIC",
     "AdaptiveRandomForestClassifier",
-    "ClassifierResults",
-    "ClassifierWindows",
     "DynamicEnsembleMemberSelection",
     "DynamicWeightedMajority",
     "Finetune",
@@ -65,7 +63,6 @@ __all__ = [
     "OnlineSmoothBoost",
     "OzaBoost",
     "PassiveAggressiveClassifier",
-    "PerClass",
     "SAMkNN",
     "SGDClassifier",
     "ShrubsClassifier",
@@ -73,6 +70,7 @@ __all__ = [
     "StreamingGradientBoostedTrees",
     "StreamingRandomPatches",
     "WeightedkNN",
+    "evaluate",
     "evaluate_classifier",
 ]
 

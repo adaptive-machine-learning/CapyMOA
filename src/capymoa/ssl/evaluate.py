@@ -1,10 +1,12 @@
-from capymoa.classifier import ClassifierResults
+"""The result type of :func:`~capymoa.ssl.evaluate_ssl`."""
+
+from capymoa.classifier.evaluate import ClassifierResults
 
 
 class SSLResults(ClassifierResults):
     """Results of evaluating a semi-supervised classifier.
 
-    See :func:`evaluate_ssl`.
+    See :func:`~capymoa.ssl.evaluate_ssl`.
     """
 
     #: Proportion of instances that had a label, from 0 to 1.

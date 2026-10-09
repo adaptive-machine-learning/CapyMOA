@@ -1,7 +1,11 @@
-"""Evaluators for anomaly detection, the engine behind :func:`evaluate_anomaly`.
+"""Evaluators and result types for anomaly detection.
 
-The evaluators wrap MOA's evaluators. Use them directly in a custom loop.
+The result types are the output of
+:func:`~capymoa.anomaly.evaluate_anomaly`. The evaluators wrap MOA's
+evaluators. Use them directly in a custom loop.
 """
+
+from typing import NotRequired
 
 import numpy as np
 import pandas as pd
@@ -14,7 +18,34 @@ from moa.evaluation import (
 )
 
 from capymoa._utils import _translate_metric_name
+from capymoa.evaluation.results import RunInfo, Windows
 from capymoa.stream import Schema
+
+
+class AnomalyWindows(Windows):
+    """The windowed metrics of an anomaly detector, one entry per window."""
+
+    #: Area under the ROC curve of the anomaly scores (0 to 1).
+    auc: np.ndarray
+    #: Area under the ROC curve over a sliding window of the stream (0 to 1).
+    s_auc: np.ndarray
+
+
+class AnomalyResults(RunInfo):
+    """Results of evaluating an anomaly detector. See :func:`~capymoa.anomaly.evaluate_anomaly`.
+
+    Metrics are over the whole stream.
+    """
+
+    #: Area under the ROC curve of the anomaly scores (0 to 1).
+    auc: float
+    #: Area under the ROC curve over a sliding window of the stream, averaged
+    #: (0 to 1).
+    s_auc: float
+    #: The metrics of each window (see
+    #: :class:`~capymoa.anomaly.evaluate.AnomalyWindows`). Absent if ``window_size`` is
+    #: absent.
+    windowed: NotRequired[AnomalyWindows]
 
 
 class AnomalyDetectionEvaluator:

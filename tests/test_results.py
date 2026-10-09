@@ -9,17 +9,16 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from capymoa.anomaly import AnomalyResults, HalfSpaceTrees, evaluate_anomaly
-from capymoa.classifier import (
-    ClassifierResults,
-    HoeffdingTree,
-    NaiveBayes,
-    evaluate_classifier,
-)
+from capymoa.anomaly import HalfSpaceTrees, evaluate_anomaly
+from capymoa.anomaly.evaluate import AnomalyResults
+from capymoa.classifier import HoeffdingTree, NaiveBayes, evaluate_classifier
+from capymoa.classifier.evaluate import ClassifierResults
 from capymoa.datasets import ElectricityTiny, Fried, FriedTiny
 from capymoa.evaluation import RunInfo
-from capymoa.regressor import FIMTDD, RegressorResults, evaluate_regressor
-from capymoa.ssl import SSLResults, evaluate_ssl
+from capymoa.regressor import FIMTDD, evaluate_regressor
+from capymoa.regressor.evaluate import RegressorResults
+from capymoa.ssl import evaluate_ssl
+from capymoa.ssl.evaluate import SSLResults
 from capymoa.stream.drift import (
     AbruptDrift,
     DriftStream,
@@ -27,11 +26,8 @@ from capymoa.stream.drift import (
     RecurrentConceptDriftStream,
 )
 from capymoa.stream.generator import SEA
-from capymoa.uncertainty import (
-    MVE,
-    PredictionIntervalResults,
-    evaluate_prediction_interval,
-)
+from capymoa.uncertainty import MVE, evaluate_prediction_interval
+from capymoa.uncertainty.evaluate import PredictionIntervalResults
 
 
 def _matches(value: Any, hint: Any) -> bool:
@@ -287,8 +283,9 @@ def test_pickle_round_trip(evaluate, result_type):
 
 @pytest.mark.torch
 def test_ocl_results():
-    from capymoa.ocl import OCLResults, OnlineResults, evaluate_ocl
+    from capymoa.ocl import evaluate_ocl
     from capymoa.ocl.datasets import TinySplitMNIST
+    from capymoa.ocl.evaluation import OCLResults, OnlineResults
 
     scenario = TinySplitMNIST()
     learner = NaiveBayes(scenario.schema)

@@ -113,7 +113,7 @@ def evaluate_ocl(
         rolling metrics, defaults to 1000.
     :param epochs: Number of epochs to train each task stream, defaults to 1.
     :param dispatcher: Optional event dispatcher. If None, a new dispatcher is created.
-    :return: The :class:`OCLResults` collected by the default metrics handler.
+    :return: The :class:`~capymoa.ocl.evaluation.OCLResults` collected by the default metrics handler.
     :raises ValueError: If train/test task counts differ, ``continual_evaluations
         < 1``, or a train stream has fewer batches than requested evaluations.
     :raises TypeError: If learner is not a classifier.
