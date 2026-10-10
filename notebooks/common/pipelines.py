@@ -16,7 +16,7 @@
 # %% [markdown]
 # # Pipelines and transformers
 #
-# This notebook showcases the current version of data processing pipelines in CapyMOA. 
+# This notebook showcases the current version of data processing pipelines in CapyMOA.
 #
 # * Includes examples of how preprocessing can be accomplished via pipelines and transformers.
 # * Transformers transform an instance, e.g., using standardisation, normalisation, etc.
@@ -92,7 +92,7 @@
 # %% [markdown]
 # ## Running online bagging without any preprocessing
 #
-# First, let us have a look at a simple test-then-train classification example without pipelines. 
+# First, let us have a look at a simple test-then-train classification example without pipelines.
 # - We loop over the instances of the data stream.
 # - Make a prediction.
 # - Update the evaluator with the prediction and label.
@@ -298,7 +298,7 @@ ob_evaluator.accuracy()
 # %% [markdown]
 # ## Online Bagging using pipelines and transformers
 #
-# Similar as classifiers, a `ClassifierPipeline` supports `train` and `test`. Hence, we can use it in the same way as we would use other capymoa classifiers. 
+# Similar as classifiers, a `ClassifierPipeline` supports `train` and `test`. Hence, we can use it in the same way as we would use other capymoa classifiers.
 #
 # - When calling `train`, the pipeline object internally calls `pass_forward` on all elements.
 # - When calling test, the pipeline object internally calls `pass_forward_predict` on all elements and then returns the resulting prediction.
@@ -451,16 +451,21 @@ print(arfreg_evaluator.rmse())
 #
 # Adding a drift detector to a pipeline requires the following steps:
 # 1. Create the drift detector.
-# 2. Define a function that prepares the input for the drift detector based on an instance and a prediction (which can be `None`).
+# 2. Choose what it should monitor. `capymoa.drift.monitors` supplies the common
+#    choices, or you can pass your own callable taking `(instance, prediction)`.
 # 3. Create and populate the pipeline.
 # 4. Run the pipeline.
+#
+# Where you place the detector decides what it sees, because an element only
+# receives what reaches it. A detector that monitors predictions has to come
+# after the learner; one that monitors an input feature can go anywhere.
 
 # %% [markdown]
 # ### Monitoring classifier accuracy
 
 # %%
-from capymoa.core import LabeledInstance, LabelIndex
 from capymoa.drift.detectors import ADWIN
+from capymoa.drift.monitors import prediction_is_correct
 
 elec_stream = Electricity()
 
@@ -478,23 +483,17 @@ ob_learner = OnlineBagging(schema=add_noise_transformer.get_schema(), ensemble_s
 # Creating a drift detector
 drift_detector = ADWIN()
 
-
-# Define a function that prepares the input of the drift detector
-def label_equals_prediction(
-    instance: LabeledInstance, prediction: LabelIndex
-) -> LabelIndex:
-    label = instance.y_index
-    return int(label == prediction)
-
-
-# Creating and populating the pipeline
+# Creating and populating the pipeline. `prediction_is_correct()` feeds the
+# detector a 1 for every correct prediction and a 0 otherwise, so ADWIN watches
+# the classifier's accuracy. The detector goes last, after the classifier, so
+# that a prediction has been made by the time it runs.
 pipeline = (
     ClassifierPipeline()
     .add_transformer(normalisation_transformer)
     .add_transformer(add_noise_transformer)
     .add_classifier(ob_learner)
     .add_drift_detector(
-        drift_detector, get_drift_detector_input_func=label_equals_prediction
+        drift_detector, prediction_is_correct()
     )
 )
 
@@ -516,13 +515,19 @@ ob_evaluator.accuracy()
 # %% [markdown]
 # ### Monitoring drift in the first input feature
 #
-# We now show how one can easily monitor an input feature by adapting `get_drift_detector_input_func` and the position of the drift detector in the pipeline. 
+# `feature_value(index)` monitors one input feature instead of the model, which
+# is unsupervised drift detection: it needs no prediction, so it can sit
+# anywhere in the pipeline. Here it goes straight after normalisation, so it
+# sees normalised values rather than raw ones -- the same index would give
+# different numbers elsewhere in the pipeline.
 #
-# For the sake of illustration, this example is very simple. However, one can easily think of more complex use cases of `get_drift_detector_input_func`. One can provide any object that implements `__call__(instance, prediction)`. For example, one could provide a class that monitors the correlation between a set of input features.
+# For anything these monitors do not cover, pass your own callable, or any
+# object implementing `__call__(instance, prediction)`. A class monitoring the
+# correlation between several features would work the same way.
 
 # %%
-from capymoa.core import LabeledInstance, LabelIndex
 from capymoa.drift.detectors import ADWIN
+from capymoa.drift.monitors import feature_value
 
 elec_stream = Electricity()
 
@@ -540,23 +545,12 @@ ob_learner = OnlineBagging(schema=add_noise_transformer.get_schema(), ensemble_s
 # Creating a drift detector
 drift_detector = ADWIN()
 
-
-# Define a function that prepares the input of the drift detector
-def first_feature_is_gt_zero(
-    instance: LabeledInstance, prediction: LabelIndex
-) -> LabelIndex:
-    feature_val = instance.x[0]
-    return int(feature_val > 0.0)
-
-
-# Creating and populating the pipeline
+# Creating and populating the pipeline. The detector sits after normalisation
+# and before the noise filter, so it monitors the normalised first feature.
 pipeline = (
     ClassifierPipeline()
     .add_transformer(normalisation_transformer)
-    # here, we add the drift detector after the normalization step
-    .add_drift_detector(
-        drift_detector, get_drift_detector_input_func=first_feature_is_gt_zero
-    )
+    .add_drift_detector(drift_detector, feature_value(0))
     .add_transformer(add_noise_transformer)
     .add_classifier(ob_learner)
 )
@@ -582,7 +576,6 @@ ob_evaluator.accuracy()
 # The following example is based on section 4.1 and shows how one can plug together multiple pipelines.
 
 # %%
-from capymoa.core import LabeledInstance, LabelIndex
 from capymoa.drift.detectors import ADWIN
 
 elec_stream = Electricity()
@@ -602,14 +595,6 @@ ob_learner = OnlineBagging(schema=add_noise_transformer.get_schema(), ensemble_s
 drift_detector = ADWIN()
 
 
-# Define a function that prepares the input of the drift detector
-def label_equals_prediction(
-    instance: LabeledInstance, prediction: LabelIndex
-) -> LabelIndex:
-    label = instance.y_index
-    return int(label == prediction)
-
-
 # Creating and populating the transformation pipeline
 trafo_pipeline = (
     BasePipeline()
@@ -622,7 +607,7 @@ prediction_pipeline = ClassifierPipeline().add_classifier(ob_learner)
 
 # Creating and populating the drift detection pipeline
 drift_pipeline = BasePipeline().add_drift_detector(
-    drift_detector, get_drift_detector_input_func=label_equals_prediction
+    drift_detector, prediction_is_correct()
 )
 
 # Since pipelines themselves are pipeline elements, we can pass them to the initializer of an overall pipeline object
