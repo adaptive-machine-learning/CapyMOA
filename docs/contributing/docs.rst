@@ -52,6 +52,10 @@ Release workflow publishes them:
 #. The Colab links point at that tag, so each docs version opens its own notebooks.
    They do not work until the release publishes the tag.
 
+If ``publish_colab_notebooks`` fails, do not make a new release. Use "Re-run failed
+jobs" on the same workflow run. The script skips work that is already done, so it is
+safe to run again.
+
 The download link is separate. ``docs/conf.py`` copies the executed notebooks (with
 outputs) into the built site.
 

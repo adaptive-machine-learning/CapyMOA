@@ -237,6 +237,7 @@ def publish_colab(
     The branch keeps the history of past releases. The notebooks have no
     outputs, so the history stays small. Creates the branch if it is missing.
     The commit is made even without changes, so every release has a tag.
+    Safe to run again: it does nothing if the tag is already published.
     """
     env = dict(os.environ)
     if token:
@@ -251,15 +252,20 @@ def publish_colab(
     def git(*args: str, cwd: Path = work_dir) -> subprocess.CompletedProcess:
         return subprocess.run(["git", *args], cwd=cwd, env=env, check=True)
 
-    branch_exists = (
-        subprocess.run(
-            ["git", "ls-remote", "--exit-code", "--heads", remote_url, COLAB_BRANCH],
+    def remote_has(*ref_args: str) -> bool:
+        result = subprocess.run(
+            ["git", "ls-remote", "--exit-code", *ref_args],
             env=env,
             check=False,
             capture_output=True,
-        ).returncode
-        == 0
-    )
+        )
+        return result.returncode == 0
+
+    colab_tag = f"colab-{tag}"
+    if remote_has("--tags", remote_url, colab_tag):
+        print(f"{colab_tag} is already published, nothing to do.")
+        return
+    branch_exists = remote_has("--heads", remote_url, COLAB_BRANCH)
     if branch_exists:
         git(
             "clone",
@@ -282,8 +288,9 @@ def publish_colab(
     git("config", "user.email", BOT_EMAIL)
     git("add", "-A")
     git("commit", "-q", "--allow-empty", "-m", f"Notebooks for {tag}")
-    git("tag", f"colab-{tag}")
-    git("push", remote_url, COLAB_BRANCH, f"colab-{tag}")
+    git("tag", colab_tag)
+    # Atomic: the branch and the tag land together or not at all.
+    git("push", "--atomic", remote_url, COLAB_BRANCH, colab_tag)
 
 
 def _cmd_publish_colab(args: argparse.Namespace) -> None:
