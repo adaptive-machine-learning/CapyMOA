@@ -342,7 +342,7 @@ def autodoc_skip_member(app, obj_type, name, obj, skip, options) -> bool | None:
 def add_colab_url(app, pagename, templatename, context, doctree):
     """Give notebook pages a `colab_url` for components/colab-button.html."""
     if is_notebook_page(pagename):
-        context["colab_url"] = colab_url(capymoa_github, pagename)
+        context["colab_url"] = colab_url(capymoa_github, __version__, pagename)
 
 
 def copy_notebooks(app, exception):

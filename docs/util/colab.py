@@ -2,8 +2,9 @@
 
 Colab opens `.ipynb` files from GitHub only, and ours are build artifacts (the
 sources are Jupytext `.py` files). `invoke docs.colab` writes a small copy of
-each notebook (no outputs, plus a setup cell). The Release workflow publishes
-the copies to the `colab-notebooks` branch, and the notebook pages link there.
+each notebook (no outputs, plus a setup cell that pins `version`). The Release workflow publishes
+the copies to the `colab-notebooks` branch, tagged per release, and the notebook
+pages link to that tag.
 """
 
 from pathlib import Path
@@ -12,9 +13,15 @@ import nbformat
 
 COLAB_BRANCH = "colab-notebooks"
 
+
+def colab_tag(version: str) -> str:
+    """Tag on the Colab branch for the notebooks of release `version`."""
+    return f"colab-v{version}"
+
+
 _SETUP_SOURCE = """\
 # Install CapyMOA (https://capymoa.org/setup/)
-%pip install -q capymoa"""
+%pip install -q capymoa=={version}"""
 
 
 def is_notebook_page(pagename: str) -> bool:
@@ -23,8 +30,8 @@ def is_notebook_page(pagename: str) -> bool:
     return parts[0] == "notebooks" and len(parts) == 3 and parts[-1] != "index"
 
 
-def colab_url(github_url: str, pagename: str) -> str:
-    """Colab link for the notebook page `pagename`.
+def colab_url(github_url: str, version: str, pagename: str) -> str:
+    """Colab link for the notebook page `pagename` of release `version`.
 
     `github_url` is the repo URL, e.g. `https://github.com/owner/repo`.
     """
@@ -32,14 +39,15 @@ def colab_url(github_url: str, pagename: str) -> str:
     path = pagename.removeprefix("notebooks/")
     return (
         "https://colab.research.google.com/github/"
-        f"{repo}/blob/{COLAB_BRANCH}/{path}.ipynb"
+        f"{repo}/blob/{colab_tag(version)}/{path}.ipynb"
     )
 
 
-def write_colab_notebooks(src_dir: Path, out_dir: Path) -> list[Path]:
+def write_colab_notebooks(src_dir: Path, out_dir: Path, version: str) -> list[Path]:
     """Write a Colab copy of each `src_dir/*/*.ipynb` to `out_dir/*/`.
 
-    Copies have no outputs (keeps them small) and get a setup cell on top.
+    Copies have no outputs (keeps them small) and get a setup cell on top that
+    installs CapyMOA `version`.
     Returns the paths written.
     """
     written = []
@@ -49,7 +57,9 @@ def write_colab_notebooks(src_dir: Path, out_dir: Path) -> list[Path]:
             if cell.cell_type == "code":
                 cell.outputs = []
                 cell.execution_count = None
-        nb.cells.insert(0, nbformat.v4.new_code_cell(_SETUP_SOURCE))
+        nb.cells.insert(
+            0, nbformat.v4.new_code_cell(_SETUP_SOURCE.format(version=version))
+        )
         nbformat.validator.normalize(nb)
         dest = out_dir / src.parent.name / src.name
         dest.parent.mkdir(parents=True, exist_ok=True)

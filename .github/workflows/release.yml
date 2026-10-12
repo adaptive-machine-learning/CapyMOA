@@ -181,7 +181,7 @@ jobs:
           --repo "$GITHUB_REPOSITORY"
 
   # Publishes the output-free notebooks that the "Open in Colab" links open. Each release
-  # adds a commit to the branch. The files are small, so history stays cheap.
+  # adds a commit and a `colab-<tag>` tag to the branch, which the links use.
   publish_colab_notebooks:
     name: Publish Colab Notebooks
     if: needs.release_pypi.outputs.released == 'true'
@@ -190,6 +190,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: colab-notebooks
@@ -197,25 +198,11 @@ jobs:
 
       - name: Push to colab-notebooks branch
         env:
-          REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Start from the branch if it exists, else create it with no parent.
-          if git clone -q --branch colab-notebooks --single-branch "$REPO_URL" branch; then
-            find branch -mindepth 1 -maxdepth 1 -not -name .git -exec rm -rf {} +
-          else
-            git init -q -b colab-notebooks branch
-          fi
-          cp -r colab-notebooks/. branch/
-          cd branch
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No notebook changes."
-          else
-            git commit -q -m "Notebooks for ${{ needs.release_pypi.outputs.tag }}"
-            git push "$REPO_URL" colab-notebooks
-          fi
+          python3 docs/release_scripts.py publish-colab \
+            --repo "$GITHUB_REPOSITORY" --tag "${{ needs.release_pypi.outputs.tag }}" \
+            --notebooks-dir colab-notebooks
 
   release_docker:
     name: Release / Docker

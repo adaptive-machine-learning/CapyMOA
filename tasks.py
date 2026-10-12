@@ -194,9 +194,10 @@ def docs_colab(ctx: Context, out: str = "colab-notebooks"):
     Run `invoke docs.nb` first. The Release workflow publishes `out` to the
     `colab-notebooks` branch, which the "Open in Colab" links point at.
     """
+    from capymoa.__about__ import __version__
     from docs.util.colab import write_colab_notebooks
 
-    written = write_colab_notebooks(NOTEBOOKS_DIR, Path(out))
+    written = write_colab_notebooks(NOTEBOOKS_DIR, Path(out), __version__)
     print(f"Wrote {len(written)} notebooks to {out}")
 
 

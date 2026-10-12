@@ -9,12 +9,16 @@ Subcommands:
   version, and only the latest release of every earlier major version).
 * ``assemble`` downloads each listed release's docs asset and extracts it into its
   own /vX.Y.Z/ folder, copying the newest into the site root.
+* ``publish-colab`` commits the output-free Colab notebooks to the
+  ``colab-notebooks`` branch and tags the commit for the release.
 * ``build-switcher`` writes switcher.json for the pydata-sphinx-theme version
   switcher (https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/version-dropdown.html).
 """
 
 import argparse
+import base64
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -218,6 +222,81 @@ def _cmd_build_switcher(args: argparse.Namespace) -> None:
     args.output.write_text(json.dumps(switcher, indent=2) + "\n")
 
 
+# -- publish-colab ----------------------------------------------------------------
+
+COLAB_BRANCH = "colab-notebooks"
+BOT_NAME = "github-actions[bot]"
+BOT_EMAIL = "github-actions[bot]@users.noreply.github.com"
+
+
+def publish_colab(
+    notebooks_dir: Path, tag: str, remote_url: str, work_dir: Path, token: str = ""
+) -> None:
+    """Commit `notebooks_dir` to the Colab branch and tag the commit `colab-<tag>`.
+
+    The branch keeps the history of past releases. The notebooks have no
+    outputs, so the history stays small. Creates the branch if it is missing.
+    The commit is made even without changes, so every release has a tag.
+    """
+    env = dict(os.environ)
+    if token:
+        # Pass the token through the environment, so it never shows in a command line.
+        basic = base64.b64encode(f"x-access-token:{token}".encode()).decode()
+        env |= {
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
+            "GIT_CONFIG_VALUE_0": f"AUTHORIZATION: basic {basic}",
+        }
+
+    def git(*args: str, cwd: Path = work_dir) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", *args], cwd=cwd, env=env, check=True)
+
+    branch_exists = (
+        subprocess.run(
+            ["git", "ls-remote", "--exit-code", "--heads", remote_url, COLAB_BRANCH],
+            env=env,
+            check=False,
+            capture_output=True,
+        ).returncode
+        == 0
+    )
+    if branch_exists:
+        git(
+            "clone",
+            "-q",
+            "--branch",
+            COLAB_BRANCH,
+            remote_url,
+            str(work_dir),
+            cwd=Path("."),
+        )
+        for path in work_dir.iterdir():
+            if path.name != ".git":
+                shutil.rmtree(path) if path.is_dir() else path.unlink()
+    else:
+        work_dir.mkdir(parents=True)
+        git("init", "-q", "-b", COLAB_BRANCH)
+    shutil.copytree(notebooks_dir, work_dir, dirs_exist_ok=True)
+
+    git("config", "user.name", BOT_NAME)
+    git("config", "user.email", BOT_EMAIL)
+    git("add", "-A")
+    git("commit", "-q", "--allow-empty", "-m", f"Notebooks for {tag}")
+    git("tag", f"colab-{tag}")
+    git("push", remote_url, COLAB_BRANCH, f"colab-{tag}")
+
+
+def _cmd_publish_colab(args: argparse.Namespace) -> None:
+    remote_url = args.remote_url or f"https://github.com/{args.repo}.git"
+    publish_colab(
+        args.notebooks_dir,
+        args.tag,
+        remote_url,
+        args.work_dir,
+        os.environ.get("GH_TOKEN", ""),
+    )
+
+
 # -- CLI --------------------------------------------------------------------------
 
 
@@ -303,6 +382,38 @@ def main() -> None:
         help="Path to write switcher.json to.",
     )
     p_switcher.set_defaults(func=_cmd_build_switcher)
+
+    p_colab = subparsers.add_parser(
+        "publish-colab",
+        help="Commit the Colab notebooks to the colab-notebooks branch and tag them.",
+    )
+    p_colab.add_argument(
+        "--repo", required=True, help="GitHub repository to push to, e.g. owner/repo."
+    )
+    p_colab.add_argument(
+        "--tag",
+        required=True,
+        help="Release tag, e.g. v0.15.0 (the Colab tag is colab-<tag>).",
+    )
+    p_colab.add_argument(
+        "--notebooks-dir",
+        type=Path,
+        required=True,
+        help="Directory with the notebooks (see `invoke docs.colab`).",
+    )
+    p_colab.add_argument(
+        "--work-dir",
+        type=Path,
+        default=Path("colab-branch"),
+        help="Scratch directory for the branch checkout. Must not exist.",
+    )
+    p_colab.add_argument(
+        "--remote-url",
+        default=None,
+        help="Git remote to push to. Defaults to the GitHub URL of --repo. "
+        "Uses GH_TOKEN for authentication.",
+    )
+    p_colab.set_defaults(func=_cmd_publish_colab)
 
     args = parser.parse_args()
     args.func(args)

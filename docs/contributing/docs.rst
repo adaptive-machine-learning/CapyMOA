@@ -45,12 +45,12 @@ Release workflow publishes them:
 
 #. ``invoke docs.nb`` runs the notebooks.
 #. ``invoke docs.colab`` writes a copy of each one with no outputs and a first cell
-   that runs ``%pip install capymoa`` (see ``docs/util/colab.py``).
-#. The ``publish_colab_notebooks`` job commits the copies to the ``colab-notebooks``
-   branch. Each release adds one commit. Do not edit this branch by hand.
-#. The Colab links point at that branch, so they always open the newest release's
-   notebooks, also from older docs versions. They do not work until the first release
-   creates the branch.
+   that runs ``%pip install capymoa==X.Y.Z`` (see ``docs/util/colab.py``).
+#. The ``publish_colab_notebooks`` job runs ``docs/release_scripts.py publish-colab``.
+   It commits the copies to the ``colab-notebooks`` branch and tags the commit
+   ``colab-vX.Y.Z``. Do not edit this branch by hand.
+#. The Colab links point at that tag, so each docs version opens its own notebooks.
+   They do not work until the release publishes the tag.
 
 The download link is separate. ``docs/conf.py`` copies the executed notebooks (with
 outputs) into the built site.
