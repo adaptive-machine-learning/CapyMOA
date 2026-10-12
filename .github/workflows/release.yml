@@ -136,6 +136,9 @@ jobs:
       with:
         name: rendered-notebooks
         path: notebooks
+    - name: Build Colab Notebooks
+      # Output-free copies for the `colab-notebooks` branch (see publish_colab_notebooks).
+      run: uv run invoke docs.colab
     - name: Build Documentation
       run: uv run invoke docs.build --ignore-warnings
     - name: Upload artifact
@@ -143,6 +146,11 @@ jobs:
       with:
         name: docs-build
         path: docs/_build
+    - name: Upload Colab notebooks
+      uses: actions/upload-artifact@v4
+      with:
+        name: colab-notebooks
+        path: colab-notebooks
 
   # Packages this release's built docs and attaches them to the GitHub Release as a
   # download-able asset. This is the only place a version's docs are stored, so this
