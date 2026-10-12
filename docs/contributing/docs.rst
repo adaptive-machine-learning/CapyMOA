@@ -49,14 +49,17 @@ Colab opens only ``.ipynb`` files from GitHub. Ours are build artifacts, so the
    ``colab-notebooks`` branch and tags the commit ``colab-vX.Y.Z``. Do not edit this
    branch by hand.
 #. The Colab links point at that tag, so each docs version opens its own notebooks.
-   They do not work until the tag is published.
+   Only release docs have them (``CAPYMOA_COLAB_LINKS=true``). PR and local builds
+   do not, since their tag may not exist.
 
-The Release workflow runs it after each release. If that job fails, do not make a new
-release. Use "Re-run failed jobs", or run ``Colab Notebooks`` by hand from the Actions
-tab with the release tag. It is safe to run again, and it also backfills old releases.
+The Release workflow runs it after each release, and deploys the site only once it
+passes. If that job fails, do not make a new release. Use "Re-run failed jobs", or run
+``Colab Notebooks`` by hand from the Actions tab with the release tag. It is safe to run
+again. It does not work for releases made before Colab support was added.
 
-The download link is separate. ``docs/conf.py`` copies the executed notebooks (with
-outputs) into the built site.
+The download link is separate. ``docs/conf.py`` copies the notebooks into the built
+site as they are. They have outputs only if ``invoke docs.nb`` ran before the build
+(CI always does this).
 
 Versioned Releases
 -------------------

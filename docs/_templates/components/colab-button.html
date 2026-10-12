@@ -5,6 +5,8 @@
     <i class="fa-solid fa-flask"></i> {{ _("Open in Colab") }}
   </a>
 </div>
+{% endif %}
+{% if notebook_download %}
 <div class="tocsection colab-button">
   <a href="{{ pathto(pagename + '.ipynb', 1) }}" download>
     <i class="fa-solid fa-download"></i> {{ _("Download notebook") }}

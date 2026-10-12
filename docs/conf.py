@@ -339,10 +339,17 @@ def autodoc_skip_member(app, obj_type, name, obj, skip, options) -> bool | None:
     return None
 
 
+# Set by the release docs build. Colab links point at a tag published after the
+# release, so other builds (PRs, local) would link to notebooks that may not exist.
+colab_links = os.environ.get("CAPYMOA_COLAB_LINKS") == "true"
+
+
 def add_colab_url(app, pagename, templatename, context, doctree):
-    """Give notebook pages a `colab_url` for components/colab-button.html."""
+    """Set the links for components/colab-button.html on notebook pages."""
     if is_notebook_page(pagename):
-        context["colab_url"] = colab_url(capymoa_github, __version__, pagename)
+        context["notebook_download"] = True
+        if colab_links:
+            context["colab_url"] = colab_url(capymoa_github, __version__, pagename)
 
 
 def copy_notebooks(app, exception):

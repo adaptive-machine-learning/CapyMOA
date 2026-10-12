@@ -137,6 +137,9 @@ jobs:
         name: rendered-notebooks
         path: notebooks
     - name: Build Documentation
+      env:
+        # Show "Open in Colab" links. publish_colab_notebooks publishes their target.
+        CAPYMOA_COLAB_LINKS: "true"
       run: uv run invoke docs.build --ignore-warnings
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -172,8 +175,8 @@ jobs:
           "docs-${{ needs.release_pypi.outputs.tag }}.tar.gz"
           --repo "$GITHUB_REPOSITORY"
 
-  # Publishes the notebooks that the "Open in Colab" links open. Nothing else needs this
-  # job, so if it fails, re-run it (or run the Colab Notebooks workflow by hand).
+  # Publishes the notebooks that the "Open in Colab" links open. `website` waits for
+  # it, so the links work once the site is live. If it fails, re-run it.
   publish_colab_notebooks:
     name: Publish Colab Notebooks
     if: needs.release_pypi.outputs.released == 'true'
@@ -232,7 +235,8 @@ jobs:
     runs-on: ubuntu-latest
     # Must run after publish_docs_asset: the current release's docs asset needs to
     # already be attached before we enumerate "every release with a docs asset" below.
-    needs: [release_pypi, publish_docs_asset]
+    # Must run after publish_colab_notebooks, or the Colab links 404.
+    needs: [release_pypi, publish_docs_asset, publish_colab_notebooks]
     steps:
       - uses: actions/checkout@v4
 
