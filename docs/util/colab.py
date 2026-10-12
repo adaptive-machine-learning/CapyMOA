@@ -13,11 +13,8 @@ import nbformat
 COLAB_BRANCH = "colab-notebooks"
 
 _SETUP_SOURCE = """\
-# Colab only: install CapyMOA. Other environments skip this cell.
-import sys
-
-if "google.colab" in sys.modules:
-    %pip install -q capymoa"""
+# Install CapyMOA (https://capymoa.org/setup/)
+%pip install -q capymoa"""
 
 
 def is_notebook_page(pagename: str) -> bool:

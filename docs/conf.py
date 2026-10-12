@@ -7,6 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -344,8 +345,19 @@ def add_colab_url(app, pagename, templatename, context, doctree):
         context["colab_url"] = colab_url(capymoa_github, pagename)
 
 
+def copy_notebooks(app, exception):
+    """Put the executed notebooks in the site, for the download link."""
+    if exception is not None or app.builder.format != "html":
+        return
+    for nb in sorted((Path(app.confdir).parent / "notebooks").glob("*/*.ipynb")):
+        dest = Path(app.outdir) / "notebooks" / nb.parent.name / nb.name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(nb, dest)
+
+
 def setup(app):
     app.connect("autodoc-skip-member", autodoc_skip_member)
+    app.connect("build-finished", copy_notebooks)
     app.connect("html-page-context", add_colab_url)
 
     # Patches for sphinx_llm extension.
