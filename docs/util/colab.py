@@ -2,8 +2,8 @@
 
 Colab opens `.ipynb` files from GitHub only, and ours are build artifacts (the
 sources are Jupytext `.py` files). `invoke docs.colab` writes a small copy of
-each notebook (no outputs, plus a setup cell that pins `version`). The Release workflow publishes
-the copies to the `colab-notebooks` branch, tagged per release, and the notebook
+each notebook (no outputs, plus a setup cell that pins `version`). The Release
+workflow publishes the copies to the `colab-notebooks` branch, tagged per release, and the notebook
 pages link to that tag.
 """
 
@@ -12,6 +12,9 @@ from pathlib import Path
 import nbformat
 
 from docs.release_scripts import colab_tag
+
+# Notebook metadata Colab needs. The rest (widget state, ...) is dropped.
+KEEP_METADATA = ("kernelspec", "language_info")
 
 _SETUP_SOURCE = """\
 # Install CapyMOA (https://capymoa.org/setup/)
@@ -40,18 +43,17 @@ def colab_url(github_url: str, version: str, pagename: str) -> str:
 def write_colab_notebooks(src_dir: Path, out_dir: Path, version: str) -> list[Path]:
     """Write a Colab copy of each `src_dir/*/*.ipynb` to `out_dir/*/`.
 
-    Copies have no outputs, widget state or timings (keeps them small), and get a
-    setup cell on top that
-    installs CapyMOA `version`. Colab opens only the notebook, so each `.json` file
+    Copies have no outputs or metadata (keeps them small), and get a setup cell on
+    top that installs CapyMOA `version`. Colab opens only the notebook, so each `.json` file
     next to it is written by a `%%writefile` cell after the setup cell.
     Returns the paths written.
     """
     written = []
     for src in sorted(src_dir.glob("*/*.ipynb")):
         nb = nbformat.read(src, as_version=4)
-        nb.metadata.pop("widgets", None)  # Widget state saved by nbclient.
+        nb.metadata = {k: v for k, v in nb.metadata.items() if k in KEEP_METADATA}
         for cell in nb.cells:
-            cell.metadata.pop("execution", None)  # Timings saved by nbmake.
+            cell.metadata = {}
             if cell.cell_type == "code":
                 cell.outputs = []
                 cell.execution_count = None

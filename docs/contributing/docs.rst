@@ -35,30 +35,6 @@ workflow.
 
     `Downloading Workflow Artifact <https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/downloading-workflow-artifacts>`_
 
-Open in Colab
--------------
-
-Notebook pages have "Open in Colab" and "Download notebook" links in the right sidebar.
-
-Colab opens only ``.ipynb`` files from GitHub. Ours are build artifacts, so the
-Release workflow (``.github/workflows/release.yml``) publishes them:
-
-#. ``invoke docs.colab`` writes a copy of each notebook with no outputs and a first
-   cell that runs ``%pip install capymoa==X.Y.Z`` (see ``docs/util/colab.py``).
-#. ``docs/release_scripts.py publish-colab`` commits the copies to the
-   ``colab-notebooks`` branch and tags the commit ``colab-vX.Y.Z``. Do not edit this
-   branch by hand.
-#. The Colab links point at that tag, so each docs version opens its own notebooks.
-   Only release docs have them (``CAPYMOA_COLAB_LINKS=true``). PR and local builds
-   do not, since their tag may not exist.
-
-If the ``Publish Colab Notebooks`` job fails, do not make a new release. Use "Re-run
-failed jobs". It is safe to run again.
-
-The download link is separate. ``docs/conf.py`` copies the notebooks into the built
-site as they are. They have outputs only if ``invoke docs.nb`` ran before the build
-(CI always does this).
-
 Versioned Releases
 -------------------
 

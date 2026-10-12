@@ -224,8 +224,6 @@ def _cmd_build_switcher(args: argparse.Namespace) -> None:
 # -- publish-colab ----------------------------------------------------------------
 
 COLAB_BRANCH = "colab-notebooks"
-BOT_NAME = "github-actions[bot]"
-BOT_EMAIL = "github-actions[bot]@users.noreply.github.com"
 
 
 def colab_tag(tag: str) -> str:
@@ -258,80 +256,57 @@ def remote_has(remote_url: str, kind: str, ref: str) -> bool:
     return True
 
 
-def check_no_outputs(notebooks_dir: Path) -> None:
-    """Raise if a notebook in `notebooks_dir` has outputs or widget state.
-
-    Every notebook is published to the Colab branch, and its history keeps them.
-    """
-    notebooks = sorted(notebooks_dir.rglob("*.ipynb"))
-    if not notebooks:
-        raise ValueError(f"No notebooks in {notebooks_dir}")
-    for path in notebooks:
-        nb = json.loads(path.read_text())
-        has_outputs = any(
-            cell.get("outputs") or cell.get("execution_count") is not None
-            for cell in nb["cells"]
-        )
-        if has_outputs or "widgets" in nb.get("metadata", {}):
-            raise ValueError(f"{path} has outputs. Use `invoke docs.colab`.")
-
-
-def publish_colab(
-    notebooks_dir: Path, tag: str, remote_url: str, work_dir: Path
-) -> None:
+def publish_colab(notebooks_dir: Path, tag: str, remote_url: str) -> None:
     """Commit `notebooks_dir` to the Colab branch and tag the commit `colab-<tag>`.
 
     The branch keeps the history of past releases. The notebooks have no
     outputs, so the history stays small. Creates the branch if it is missing.
     The commit is made even without changes, so every release has a tag.
     Safe to run again: it does nothing if the tag is already published.
-    Git must be able to push to `remote_url` (in CI, see `gh auth setup-git`).
+    Git must have a user and be able to push to `remote_url` (in CI, see the
+    release workflow).
     """
-    if work_dir.exists():
-        raise FileExistsError(f"{work_dir} must not exist")
-    check_no_outputs(notebooks_dir)
-
-    def git(*args: str, cwd: Path = work_dir) -> subprocess.CompletedProcess:
-        return subprocess.run(["git", *args], cwd=cwd, check=True)
-
     tag_name = colab_tag(tag)
     if remote_has(remote_url, "--tags", tag_name):
         print(f"{tag_name} is already published, nothing to do.")
         return
-    if remote_has(remote_url, "--heads", COLAB_BRANCH):
-        git(
-            "clone",
-            "-q",
-            "--branch",
-            COLAB_BRANCH,
-            remote_url,
-            str(work_dir),
-            cwd=Path("."),
-        )
-        for path in work_dir.iterdir():
-            if path.name != ".git":
-                shutil.rmtree(path) if path.is_dir() else path.unlink()
-    else:
-        work_dir.mkdir(parents=True)
-        git("init", "-q", "-b", COLAB_BRANCH)
-    shutil.copytree(notebooks_dir, work_dir, dirs_exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        work_dir = Path(tmp) / "branch"
 
-    git("config", "user.name", BOT_NAME)
-    git("config", "user.email", BOT_EMAIL)
-    git("add", "-A")
-    git("commit", "-q", "--allow-empty", "-m", f"Notebooks for {tag}")
-    git("tag", tag_name)
-    # Atomic: the branch and the tag land together or not at all.
-    git("push", "--atomic", remote_url, COLAB_BRANCH, tag_name)
+        def git(*args: str, cwd: Path = work_dir) -> None:
+            subprocess.run(["git", *args], cwd=cwd, check=True)
+
+        if remote_has(remote_url, "--heads", COLAB_BRANCH):
+            git(
+                "clone",
+                "-q",
+                "--branch",
+                COLAB_BRANCH,
+                remote_url,
+                str(work_dir),
+                cwd=Path(tmp),
+            )
+            for path in work_dir.iterdir():
+                if path.name == ".git":
+                    continue
+                if path.is_dir():
+                    shutil.rmtree(path)
+                else:
+                    path.unlink()
+        else:
+            work_dir.mkdir()
+            git("init", "-q", "-b", COLAB_BRANCH)
+        shutil.copytree(notebooks_dir, work_dir, dirs_exist_ok=True)
+        git("add", "-A")
+        git("commit", "-q", "--allow-empty", "-m", f"Notebooks for {tag}")
+        git("tag", tag_name)
+        # Atomic: the branch and the tag land together or not at all.
+        git("push", "--atomic", remote_url, COLAB_BRANCH, tag_name)
 
 
 def _cmd_publish_colab(args: argparse.Namespace) -> None:
-    remote_url = args.remote_url or f"https://github.com/{args.repo}.git"
-    if args.work_dir:
-        publish_colab(args.notebooks_dir, args.tag, remote_url, args.work_dir)
-        return
-    with tempfile.TemporaryDirectory() as tmp:
-        publish_colab(args.notebooks_dir, args.tag, remote_url, Path(tmp) / "branch")
+    remote_url = f"https://github.com/{args.repo}.git"
+    publish_colab(args.notebooks_dir, args.tag, remote_url)
 
 
 # -- CLI --------------------------------------------------------------------------
@@ -437,18 +412,6 @@ def main() -> None:
         type=Path,
         required=True,
         help="Directory with the notebooks (see `invoke docs.colab`).",
-    )
-    p_colab.add_argument(
-        "--work-dir",
-        type=Path,
-        default=None,
-        help="Scratch directory for the branch checkout. Must not exist. "
-        "Defaults to a temporary directory.",
-    )
-    p_colab.add_argument(
-        "--remote-url",
-        default=None,
-        help="Git remote to push to. Defaults to the GitHub URL of --repo.",
     )
     p_colab.set_defaults(func=_cmd_publish_colab)
 

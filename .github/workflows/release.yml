@@ -205,6 +205,8 @@ jobs:
         # gh gives git the token, also in the branch clone outside this checkout.
         run: |
           gh auth setup-git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           python3 docs/release_scripts.py publish-colab \
             --repo "$GITHUB_REPOSITORY" --tag "${{ needs.release_pypi.outputs.tag }}" \
             --notebooks-dir colab-notebooks
