@@ -1,7 +1,7 @@
 # Publishes the output-free notebooks that the "Open in Colab" links open to the
 # `colab-notebooks` branch, tagged `colab-<tag>`. Called by release.yml after a
-# release. Run it by hand (Actions > Colab Notebooks > Run workflow) to retry or to
-# backfill a release. It is safe to run again for the same tag.
+# release. Run it by hand (Actions > Colab Notebooks > Run workflow) to retry. It is
+# safe to run again for the same tag. Tags made before Colab support do not work.
 
 name: Colab Notebooks
 
@@ -31,6 +31,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag }}
+          # publish-colab does its own auth. A saved header would be sent twice.
+          persist-credentials: false
+      - name: Check tag has Colab support
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          test -f docs/util/colab.py || {
+            echo "::error::$TAG predates Colab support"
+            exit 1
+          }
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.11"

@@ -24,6 +24,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 import tomllib
 from pathlib import Path
 
@@ -225,8 +226,40 @@ def _cmd_build_switcher(args: argparse.Namespace) -> None:
 # -- publish-colab ----------------------------------------------------------------
 
 COLAB_BRANCH = "colab-notebooks"
+_GITHUB_AUTH_KEY = "http.https://github.com/.extraheader"
 BOT_NAME = "github-actions[bot]"
 BOT_EMAIL = "github-actions[bot]@users.noreply.github.com"
+
+
+def colab_tag(tag: str) -> str:
+    """Tag on the Colab branch for the notebooks of release `tag`.
+
+    >>> colab_tag("v1.2.3")
+    'colab-v1.2.3'
+    """
+    return f"colab-{tag}"
+
+
+def remote_has(remote_url: str, kind: str, ref: str, env: dict | None = None) -> bool:
+    """Does `remote_url` have `ref`? `kind` is "--heads" or "--tags".
+
+    Raises on any git error other than "not found".
+    """
+    result = subprocess.run(
+        ["git", "ls-remote", "--exit-code", kind, remote_url, ref],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 2:  # Ref not found.
+        return False
+    if result.returncode != 0:
+        print(result.stderr, file=sys.stderr)
+        raise subprocess.CalledProcessError(
+            result.returncode, result.args, result.stdout, result.stderr
+        )
+    return True
 
 
 def publish_colab(
@@ -239,34 +272,30 @@ def publish_colab(
     The commit is made even without changes, so every release has a tag.
     Safe to run again: it does nothing if the tag is already published.
     """
+    if work_dir.exists():
+        raise FileExistsError(f"{work_dir} must not exist")
     env = dict(os.environ)
     if token:
         # Pass the token through the environment, so it never shows in a command line.
+        # The empty value first clears any header saved by actions/checkout, or git
+        # sends two and GitHub rejects the request.
         basic = base64.b64encode(f"x-access-token:{token}".encode()).decode()
         env |= {
-            "GIT_CONFIG_COUNT": "1",
-            "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
-            "GIT_CONFIG_VALUE_0": f"AUTHORIZATION: basic {basic}",
+            "GIT_CONFIG_COUNT": "2",
+            "GIT_CONFIG_KEY_0": _GITHUB_AUTH_KEY,
+            "GIT_CONFIG_VALUE_0": "",
+            "GIT_CONFIG_KEY_1": _GITHUB_AUTH_KEY,
+            "GIT_CONFIG_VALUE_1": f"AUTHORIZATION: basic {basic}",
         }
 
     def git(*args: str, cwd: Path = work_dir) -> subprocess.CompletedProcess:
         return subprocess.run(["git", *args], cwd=cwd, env=env, check=True)
 
-    def remote_has(*ref_args: str) -> bool:
-        result = subprocess.run(
-            ["git", "ls-remote", "--exit-code", *ref_args],
-            env=env,
-            check=False,
-            capture_output=True,
-        )
-        return result.returncode == 0
-
-    colab_tag = f"colab-{tag}"
-    if remote_has("--tags", remote_url, colab_tag):
-        print(f"{colab_tag} is already published, nothing to do.")
+    tag_name = colab_tag(tag)
+    if remote_has(remote_url, "--tags", tag_name, env=env):
+        print(f"{tag_name} is already published, nothing to do.")
         return
-    branch_exists = remote_has("--heads", remote_url, COLAB_BRANCH)
-    if branch_exists:
+    if remote_has(remote_url, "--heads", COLAB_BRANCH, env=env):
         git(
             "clone",
             "-q",
@@ -288,20 +317,21 @@ def publish_colab(
     git("config", "user.email", BOT_EMAIL)
     git("add", "-A")
     git("commit", "-q", "--allow-empty", "-m", f"Notebooks for {tag}")
-    git("tag", colab_tag)
+    git("tag", tag_name)
     # Atomic: the branch and the tag land together or not at all.
-    git("push", "--atomic", remote_url, COLAB_BRANCH, colab_tag)
+    git("push", "--atomic", remote_url, COLAB_BRANCH, tag_name)
 
 
 def _cmd_publish_colab(args: argparse.Namespace) -> None:
     remote_url = args.remote_url or f"https://github.com/{args.repo}.git"
-    publish_colab(
-        args.notebooks_dir,
-        args.tag,
-        remote_url,
-        args.work_dir,
-        os.environ.get("GH_TOKEN", ""),
-    )
+    token = os.environ.get("GH_TOKEN", "")
+    if args.work_dir:
+        publish_colab(args.notebooks_dir, args.tag, remote_url, args.work_dir, token)
+        return
+    with tempfile.TemporaryDirectory() as tmp:
+        publish_colab(
+            args.notebooks_dir, args.tag, remote_url, Path(tmp) / "branch", token
+        )
 
 
 # -- CLI --------------------------------------------------------------------------
@@ -411,8 +441,9 @@ def main() -> None:
     p_colab.add_argument(
         "--work-dir",
         type=Path,
-        default=Path("colab-branch"),
-        help="Scratch directory for the branch checkout. Must not exist.",
+        default=None,
+        help="Scratch directory for the branch checkout. Must not exist. "
+        "Defaults to a temporary directory.",
     )
     p_colab.add_argument(
         "--remote-url",
