@@ -35,6 +35,15 @@ workflow.
 
     `Downloading Workflow Artifact <https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/downloading-workflow-artifacts>`_
 
+Open in Colab
+-------------
+
+Each notebook page has an "Open in Colab" link in the right sidebar. Colab opens
+only `.ipynb` files, so the docs build writes a copy of every notebook to
+``colab/`` in the site (see ``docs/util/colab.py``). The copy has a first cell
+that runs ``%pip install capymoa==X.Y.Z`` on Colab only. Run ``invoke docs.nb``
+before ``invoke docs.build``, or no copies are made.
+
 Versioned Releases
 -------------------
 

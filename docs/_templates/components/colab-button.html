@@ -1,0 +1,8 @@
+{# "Open in Colab" link, set by add_colab_url in docs/conf.py on notebook pages. #}
+{% if colab_url %}
+<div class="tocsection colab-button">
+  <a href="{{ colab_url }}" target="_blank" rel="noopener">
+    <i class="fa-solid fa-flask"></i> {{ _("Open in Colab") }}
+  </a>
+</div>
+{% endif %}
