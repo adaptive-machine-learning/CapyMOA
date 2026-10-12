@@ -258,6 +258,24 @@ def remote_has(remote_url: str, kind: str, ref: str) -> bool:
     return True
 
 
+def check_no_outputs(notebooks_dir: Path) -> None:
+    """Raise if a notebook in `notebooks_dir` has outputs or widget state.
+
+    Every notebook is published to the Colab branch, and its history keeps them.
+    """
+    notebooks = sorted(notebooks_dir.rglob("*.ipynb"))
+    if not notebooks:
+        raise ValueError(f"No notebooks in {notebooks_dir}")
+    for path in notebooks:
+        nb = json.loads(path.read_text())
+        has_outputs = any(
+            cell.get("outputs") or cell.get("execution_count") is not None
+            for cell in nb["cells"]
+        )
+        if has_outputs or "widgets" in nb.get("metadata", {}):
+            raise ValueError(f"{path} has outputs. Use `invoke docs.colab`.")
+
+
 def publish_colab(
     notebooks_dir: Path, tag: str, remote_url: str, work_dir: Path
 ) -> None:
@@ -271,6 +289,7 @@ def publish_colab(
     """
     if work_dir.exists():
         raise FileExistsError(f"{work_dir} must not exist")
+    check_no_outputs(notebooks_dir)
 
     def git(*args: str, cwd: Path = work_dir) -> subprocess.CompletedProcess:
         return subprocess.run(["git", *args], cwd=cwd, check=True)

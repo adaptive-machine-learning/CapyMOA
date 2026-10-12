@@ -40,7 +40,8 @@ def colab_url(github_url: str, version: str, pagename: str) -> str:
 def write_colab_notebooks(src_dir: Path, out_dir: Path, version: str) -> list[Path]:
     """Write a Colab copy of each `src_dir/*/*.ipynb` to `out_dir/*/`.
 
-    Copies have no outputs (keeps them small) and get a setup cell on top that
+    Copies have no outputs, widget state or timings (keeps them small), and get a
+    setup cell on top that
     installs CapyMOA `version`. Colab opens only the notebook, so each `.json` file
     next to it is written by a `%%writefile` cell after the setup cell.
     Returns the paths written.
@@ -48,7 +49,9 @@ def write_colab_notebooks(src_dir: Path, out_dir: Path, version: str) -> list[Pa
     written = []
     for src in sorted(src_dir.glob("*/*.ipynb")):
         nb = nbformat.read(src, as_version=4)
+        nb.metadata.pop("widgets", None)  # Widget state saved by nbclient.
         for cell in nb.cells:
+            cell.metadata.pop("execution", None)  # Timings saved by nbmake.
             if cell.cell_type == "code":
                 cell.outputs = []
                 cell.execution_count = None
