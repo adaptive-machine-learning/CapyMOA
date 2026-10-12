@@ -43,15 +43,20 @@ def colab_url(github_url: str, version: str, pagename: str) -> str:
 def write_colab_notebooks(src_dir: Path, out_dir: Path, version: str) -> list[Path]:
     """Write a Colab copy of each `src_dir/*/*.ipynb` to `out_dir/*/`.
 
-    Copies have no outputs or metadata (keeps them small), and get a setup cell on
-    top that installs CapyMOA `version`. Colab opens only the notebook, so each `.json` file
-    next to it is written by a `%%writefile` cell after the setup cell.
+    Copies have no outputs or metadata (keeps them small) and lack the cells tagged
+    `remove-cell` (hidden in the docs). A setup cell on top installs CapyMOA
+    `version`. Colab opens only the notebook, so each `.json` file next to it is
+    written by a `%%writefile` cell after the setup cell.
     Returns the paths written.
     """
     written = []
     for src in sorted(src_dir.glob("*/*.ipynb")):
         nb = nbformat.read(src, as_version=4)
         nb.metadata = {k: v for k, v in nb.metadata.items() if k in KEEP_METADATA}
+        # Drop the cells the docs site hides.
+        nb.cells = [
+            c for c in nb.cells if "remove-cell" not in c.metadata.get("tags", [])
+        ]
         for cell in nb.cells:
             cell.metadata = {}
             if cell.cell_type == "code":
