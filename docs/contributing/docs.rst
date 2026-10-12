@@ -41,20 +41,19 @@ Open in Colab
 Notebook pages have "Open in Colab" and "Download notebook" links in the right sidebar.
 
 Colab opens only ``.ipynb`` files from GitHub. Ours are build artifacts, so the
-Release workflow publishes them:
+``Colab Notebooks`` workflow (``.github/workflows/colab-notebooks.yml``) publishes them:
 
-#. ``invoke docs.nb`` runs the notebooks.
-#. ``invoke docs.colab`` writes a copy of each one with no outputs and a first cell
-   that runs ``%pip install capymoa==X.Y.Z`` (see ``docs/util/colab.py``).
-#. The ``publish_colab_notebooks`` job runs ``docs/release_scripts.py publish-colab``.
-   It commits the copies to the ``colab-notebooks`` branch and tags the commit
-   ``colab-vX.Y.Z``. Do not edit this branch by hand.
+#. ``invoke docs.colab`` writes a copy of each notebook with no outputs and a first
+   cell that runs ``%pip install capymoa==X.Y.Z`` (see ``docs/util/colab.py``).
+#. ``docs/release_scripts.py publish-colab`` commits the copies to the
+   ``colab-notebooks`` branch and tags the commit ``colab-vX.Y.Z``. Do not edit this
+   branch by hand.
 #. The Colab links point at that tag, so each docs version opens its own notebooks.
-   They do not work until the release publishes the tag.
+   They do not work until the tag is published.
 
-If ``publish_colab_notebooks`` fails, do not make a new release. Use "Re-run failed
-jobs" on the same workflow run. The script skips work that is already done, so it is
-safe to run again.
+The Release workflow runs it after each release. If that job fails, do not make a new
+release. Use "Re-run failed jobs", or run ``Colab Notebooks`` by hand from the Actions
+tab with the release tag. It is safe to run again, and it also backfills old releases.
 
 The download link is separate. ``docs/conf.py`` copies the executed notebooks (with
 outputs) into the built site.

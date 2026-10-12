@@ -1,0 +1,44 @@
+# Publishes the output-free notebooks that the "Open in Colab" links open to the
+# `colab-notebooks` branch, tagged `colab-<tag>`. Called by release.yml after a
+# release. Run it by hand (Actions > Colab Notebooks > Run workflow) to retry or to
+# backfill a release. It is safe to run again for the same tag.
+
+name: Colab Notebooks
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish notebooks for, e.g. v0.15.0"
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+
+jobs:
+  publish:
+    name: Publish Colab Notebooks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - name: Install Dependencies
+        run: uv sync --extra dev --extra doc
+      - name: Build Colab Notebooks
+        run: uv run invoke docs.colab
+      - name: Push to colab-notebooks branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 docs/release_scripts.py publish-colab \
+            --repo "$GITHUB_REPOSITORY" --tag "${{ inputs.tag }}" \
+            --notebooks-dir colab-notebooks
