@@ -178,6 +178,7 @@ notebooks/**/*.png
 # Notebooks are stored as Jupytext `py:percent` scripts (notebooks/*/*.py);
 # the .ipynb files are generated build artifacts (see `invoke test.nb`).
 notebooks/**/*.ipynb
+colab-notebooks/
 docs/notebooks
 *tfevents*
 

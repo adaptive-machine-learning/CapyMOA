@@ -39,10 +39,14 @@ Open in Colab
 -------------
 
 Each notebook page has an "Open in Colab" link in the right sidebar. Colab opens
-only `.ipynb` files, so the docs build writes a copy of every notebook to
-``colab/`` in the site (see ``docs/util/colab.py``). The copy has a first cell
-that runs ``%pip install capymoa==X.Y.Z`` on Colab only. Run ``invoke docs.nb``
-before ``invoke docs.build``, or no copies are made.
+only `.ipynb` files from GitHub, and ours are build artifacts. So ``invoke docs.colab``
+writes a small copy of each notebook (no outputs, plus a first cell that runs
+``%pip install capymoa`` on Colab only; see ``docs/util/colab.py``). Run ``invoke docs.nb``
+first.
+
+On release, the ``publish_colab_notebooks`` job force-pushes the copies as one commit
+to the ``colab-notebooks`` branch, so it never grows. The links always open the newest
+release's notebooks, also from the pages of older docs versions.
 
 Versioned Releases
 -------------------

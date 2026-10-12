@@ -12,12 +12,7 @@ from pathlib import Path
 
 from capymoa.__about__ import __version__
 from docs.release_scripts import site_base_url
-from docs.util.colab import (
-    COLAB_DIR,
-    colab_url,
-    is_notebook_page,
-    write_colab_notebooks,
-)
+from docs.util.colab import colab_url, is_notebook_page
 from docs.util.github_link import make_linkcode_resolve
 from docs.util.sphinx_llm import (
     fix_markdown_image,
@@ -346,23 +341,12 @@ def autodoc_skip_member(app, obj_type, name, obj, skip, options) -> bool | None:
 def add_colab_url(app, pagename, templatename, context, doctree):
     """Give notebook pages a `colab_url` for components/colab-button.html."""
     if is_notebook_page(pagename):
-        context["colab_url"] = colab_url(SITE_BASE_URL, version_match, pagename)
-
-
-def write_colab(app, exception):
-    """Ship Colab copies of the executed notebooks (made by `invoke docs.nb`)."""
-    if exception is None and app.builder.format == "html":
-        write_colab_notebooks(
-            Path(__file__).parent.parent / "notebooks",
-            Path(app.outdir) / COLAB_DIR / "notebooks",
-            __version__,
-        )
+        context["colab_url"] = colab_url(capymoa_github, pagename)
 
 
 def setup(app):
     app.connect("autodoc-skip-member", autodoc_skip_member)
     app.connect("html-page-context", add_colab_url)
-    app.connect("build-finished", write_colab)
 
     # Patches for sphinx_llm extension.
     fix_notebook_output_markdown(app)
