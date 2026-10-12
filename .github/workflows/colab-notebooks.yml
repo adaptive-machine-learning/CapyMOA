@@ -18,6 +18,9 @@ on:
         required: true
         type: string
 
+# One run at a time: they all push to the same branch.
+concurrency: colab-notebooks
+
 jobs:
   publish:
     name: Publish Colab Notebooks
