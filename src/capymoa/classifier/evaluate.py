@@ -26,20 +26,48 @@ from capymoa.stream import Schema
 class ClassifierWindows(Windows):
     """The windowed metrics of a classifier, one entry per window."""
 
-    #: Percent of correct predictions in each window.
     accuracy: np.ndarray
+    r"""Percent of correct predictions in each window.
+
+    .. math::
+
+       \text{accuracy} = \frac{\text{correct predictions}}{\text{all predictions}}
+
+    Counts are per window.
+    """
     #: Cohen's kappa in percent.
     kappa: np.ndarray
     #: Kappa temporal in percent.
     kappa_t: np.ndarray
     #: Kappa M in percent.
     kappa_m: np.ndarray
-    #: Micro-averaged F1 score in percent (equals accuracy).
     f1_score: np.ndarray
-    #: Micro-averaged precision in percent (equals accuracy).
+    r"""Micro-averaged F1 score in percent (equals accuracy).
+
+    .. math::
+
+       F_1 = \frac{2 \\cdot \text{precision} \\cdot \text{recall}}{\text{precision} + \text{recall}}
+
+    TP, FP and FN are counts over all classes (per window).
+    """
     precision: np.ndarray
-    #: Micro-averaged recall in percent (equals accuracy).
+    r"""Micro-averaged precision in percent (equals accuracy).
+
+    .. math::
+
+       \text{precision} = \frac{TP}{TP + FP}
+
+    TP, FP and FN are counts over all classes (per window).
+    """
     recall: np.ndarray
+    r"""Micro-averaged recall in percent (equals accuracy).
+
+    .. math::
+
+       \text{recall} = \frac{TP}{TP + FN}
+
+    TP, FP and FN are counts over all classes (per window).
+    """
     #: Area under the ROC curve (0 to 1).
     roc_auc: np.ndarray
 
@@ -63,8 +91,15 @@ class ClassifierResults(RunInfo):
     Metrics are over the whole stream.
     """
 
-    #: Percent of correct predictions.
     accuracy: float
+    r"""Percent of correct predictions.
+
+    .. math::
+
+       \text{accuracy} = \frac{\text{correct predictions}}{\text{all predictions}}
+
+    Counts are over the whole stream.
+    """
     #: Cohen's kappa in percent.
     kappa: float
     #: Kappa temporal in percent. Compares with a classifier that predicts the
@@ -73,12 +108,33 @@ class ClassifierResults(RunInfo):
     #: Kappa M in percent. Compares with a classifier that predicts the
     #: majority label.
     kappa_m: float
-    #: Micro-averaged F1 score in percent (equals accuracy).
     f1_score: float
-    #: Micro-averaged precision in percent (equals accuracy).
+    r"""Micro-averaged F1 score in percent (equals accuracy).
+
+    .. math::
+
+       F_1 = \frac{2 \\cdot \text{precision} \\cdot \text{recall}}{\text{precision} + \text{recall}}
+
+    TP, FP and FN are counts over all classes (whole stream).
+    """
     precision: float
-    #: Micro-averaged recall in percent (equals accuracy).
+    r"""Micro-averaged precision in percent (equals accuracy).
+
+    .. math::
+
+       \text{precision} = \frac{TP}{TP + FP}
+
+    TP, FP and FN are counts over all classes (whole stream).
+    """
     recall: float
+    r"""Micro-averaged recall in percent (equals accuracy).
+
+    .. math::
+
+       \text{recall} = \frac{TP}{TP + FN}
+
+    TP, FP and FN are counts over all classes (whole stream).
+    """
     #: Area under the ROC curve (0 to 1). Absent if it is not defined.
     roc_auc: NotRequired[float]
     #: The metrics of each class in columns (see
