@@ -34,11 +34,11 @@ class ClassifierWindows(Windows):
     kappa_t: np.ndarray
     #: Kappa M in percent.
     kappa_m: np.ndarray
-    #: Class-weighted F1 score in percent.
+    #: Micro-averaged F1 score in percent (equals accuracy).
     f1_score: np.ndarray
-    #: Class-weighted precision in percent.
+    #: Micro-averaged precision in percent (equals accuracy).
     precision: np.ndarray
-    #: Class-weighted recall in percent.
+    #: Micro-averaged recall in percent (equals accuracy).
     recall: np.ndarray
     #: Area under the ROC curve (0 to 1).
     roc_auc: np.ndarray
@@ -73,11 +73,11 @@ class ClassifierResults(RunInfo):
     #: Kappa M in percent. Compares with a classifier that predicts the
     #: majority label.
     kappa_m: float
-    #: Class-weighted F1 score in percent.
+    #: Micro-averaged F1 score in percent (equals accuracy).
     f1_score: float
-    #: Class-weighted precision in percent.
+    #: Micro-averaged precision in percent (equals accuracy).
     precision: float
-    #: Class-weighted recall in percent.
+    #: Micro-averaged recall in percent (equals accuracy).
     recall: float
     #: Area under the ROC curve (0 to 1). Absent if it is not defined.
     roc_auc: NotRequired[float]
