@@ -41,7 +41,7 @@ Open in Colab
 Notebook pages have "Open in Colab" and "Download notebook" links in the right sidebar.
 
 Colab opens only ``.ipynb`` files from GitHub. Ours are build artifacts, so the
-``Colab Notebooks`` workflow (``.github/workflows/colab-notebooks.yml``) publishes them:
+Release workflow (``.github/workflows/release.yml``) publishes them:
 
 #. ``invoke docs.colab`` writes a copy of each notebook with no outputs and a first
    cell that runs ``%pip install capymoa==X.Y.Z`` (see ``docs/util/colab.py``).
@@ -52,10 +52,8 @@ Colab opens only ``.ipynb`` files from GitHub. Ours are build artifacts, so the
    Only release docs have them (``CAPYMOA_COLAB_LINKS=true``). PR and local builds
    do not, since their tag may not exist.
 
-The Release workflow runs it after each release, and deploys the site only once it
-passes. If that job fails, do not make a new release. Use "Re-run failed jobs", or run
-``Colab Notebooks`` by hand from the Actions tab with the release tag. It is safe to run
-again. It does not work for releases made before Colab support was added.
+If the ``Publish Colab Notebooks`` job fails, do not make a new release. Use "Re-run
+failed jobs". It is safe to run again.
 
 The download link is separate. ``docs/conf.py`` copies the notebooks into the built
 site as they are. They have outputs only if ``invoke docs.nb`` ran before the build

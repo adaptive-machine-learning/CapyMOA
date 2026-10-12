@@ -136,6 +136,9 @@ jobs:
       with:
         name: rendered-notebooks
         path: notebooks
+    - name: Build Colab Notebooks
+      # Output-free copies for the `colab-notebooks` branch (see publish_colab_notebooks).
+      run: uv run invoke docs.colab
     - name: Build Documentation
       env:
         # Show "Open in Colab" links. publish_colab_notebooks publishes their target.
@@ -146,6 +149,11 @@ jobs:
       with:
         name: docs-build
         path: docs/_build
+    - name: Upload Colab notebooks
+      uses: actions/upload-artifact@v4
+      with:
+        name: colab-notebooks
+        path: colab-notebooks
 
   # Packages this release's built docs and attaches them to the GitHub Release as a
   # download-able asset. This is the only place a version's docs are stored, so this
@@ -175,17 +183,32 @@ jobs:
           "docs-${{ needs.release_pypi.outputs.tag }}.tar.gz"
           --repo "$GITHUB_REPOSITORY"
 
-  # Publishes the notebooks that the "Open in Colab" links open. `website` waits for
-  # it, so the links work once the site is live. If it fails, re-run it.
+  # Publishes the output-free notebooks that the "Open in Colab" links open. Each release
+  # adds a commit and a `colab-<tag>` tag to the branch, which the links use.
   publish_colab_notebooks:
     name: Publish Colab Notebooks
     if: needs.release_pypi.outputs.released == 'true'
-    needs: [release_pypi]
+    runs-on: ubuntu-latest
+    needs: [documentation, release_pypi]
     permissions:
       contents: write
-    uses: ./.github/workflows/colab-notebooks.yml
-    with:
-      tag: ${{ needs.release_pypi.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # publish-colab does its own auth. A saved header would be sent twice.
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: colab-notebooks
+          path: colab-notebooks
+
+      - name: Push to colab-notebooks branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 docs/release_scripts.py publish-colab \
+            --repo "$GITHUB_REPOSITORY" --tag "${{ needs.release_pypi.outputs.tag }}" \
+            --notebooks-dir colab-notebooks
 
   release_docker:
     name: Release / Docker
@@ -235,8 +258,7 @@ jobs:
     runs-on: ubuntu-latest
     # Must run after publish_docs_asset: the current release's docs asset needs to
     # already be attached before we enumerate "every release with a docs asset" below.
-    # Must run after publish_colab_notebooks, or the Colab links 404.
-    needs: [release_pypi, publish_docs_asset, publish_colab_notebooks]
+    needs: [release_pypi, publish_docs_asset]
     steps:
       - uses: actions/checkout@v4
 
