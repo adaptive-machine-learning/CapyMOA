@@ -11,13 +11,7 @@ from pathlib import Path
 
 import nbformat
 
-COLAB_BRANCH = "colab-notebooks"
-
-
-def colab_tag(version: str) -> str:
-    """Tag on the Colab branch for the notebooks of release `version`."""
-    return f"colab-v{version}"
-
+from docs.release_scripts import colab_tag
 
 _SETUP_SOURCE = """\
 # Install CapyMOA (https://capymoa.org/setup/)
@@ -39,7 +33,7 @@ def colab_url(github_url: str, version: str, pagename: str) -> str:
     path = pagename.removeprefix("notebooks/")
     return (
         "https://colab.research.google.com/github/"
-        f"{repo}/blob/{colab_tag(version)}/{path}.ipynb"
+        f"{repo}/blob/{colab_tag(f'v{version}')}/{path}.ipynb"
     )
 
 
@@ -47,7 +41,8 @@ def write_colab_notebooks(src_dir: Path, out_dir: Path, version: str) -> list[Pa
     """Write a Colab copy of each `src_dir/*/*.ipynb` to `out_dir/*/`.
 
     Copies have no outputs (keeps them small) and get a setup cell on top that
-    installs CapyMOA `version`.
+    installs CapyMOA `version`. Colab opens only the notebook, so each `.json` file
+    next to it is written by a `%%writefile` cell after the setup cell.
     Returns the paths written.
     """
     written = []
@@ -57,10 +52,15 @@ def write_colab_notebooks(src_dir: Path, out_dir: Path, version: str) -> list[Pa
             if cell.cell_type == "code":
                 cell.outputs = []
                 cell.execution_count = None
-        nb.cells.insert(
-            0, nbformat.v4.new_code_cell(_SETUP_SOURCE.format(version=version))
-        )
-        nbformat.validator.normalize(nb)
+        setup = [nbformat.v4.new_code_cell(_SETUP_SOURCE.format(version=version))]
+        for data in sorted(src.parent.glob("*.json")):
+            setup.append(
+                nbformat.v4.new_code_cell(
+                    f"%%writefile {data.name}\n{data.read_text()}"
+                )
+            )
+        nb.cells[:0] = setup
+        nbformat.validate(nb)
         dest = out_dir / src.parent.name / src.name
         dest.parent.mkdir(parents=True, exist_ok=True)
         nbformat.write(nb, dest)
