@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.mark.torch
+
 
 def _torch_api():
     torch = pytest.importorskip("torch")

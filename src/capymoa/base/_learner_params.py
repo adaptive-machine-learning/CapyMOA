@@ -50,10 +50,23 @@ class LearnerRegistry(Generic[TClass]):
     def require(self, name: str) -> TClass:
         cls = self.get(name)
         if cls is None:
+            cls = self._import_lazy(name)
+        if cls is None:
             raise ValueError(
                 f"Unknown learner {name!r}. Known learners: {self.list_names()}."
             )
         return cls
+
+    def _import_lazy(self, name: str) -> TClass | None:
+        """Import a lazy export (e.g. torch-backed) so it can register itself."""
+        module_name, _, attr = name.rpartition(".")
+        if not module_name:
+            return None
+        try:
+            getattr(import_module(module_name), attr)
+        except (ImportError, AttributeError):
+            return None
+        return self.get(name)
 
     def list_names(self) -> list[str]:
         return list(self._registered)
