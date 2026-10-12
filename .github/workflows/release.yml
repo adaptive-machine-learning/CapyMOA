@@ -194,9 +194,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          # publish-colab does its own auth. A saved header would be sent twice.
-          persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           name: colab-notebooks
@@ -205,7 +202,9 @@ jobs:
       - name: Push to colab-notebooks branch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # gh gives git the token, also in the branch clone outside this checkout.
         run: |
+          gh auth setup-git
           python3 docs/release_scripts.py publish-colab \
             --repo "$GITHUB_REPOSITORY" --tag "${{ needs.release_pypi.outputs.tag }}" \
             --notebooks-dir colab-notebooks

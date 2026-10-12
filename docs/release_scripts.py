@@ -16,9 +16,7 @@ Subcommands:
 """
 
 import argparse
-import base64
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -226,7 +224,6 @@ def _cmd_build_switcher(args: argparse.Namespace) -> None:
 # -- publish-colab ----------------------------------------------------------------
 
 COLAB_BRANCH = "colab-notebooks"
-_GITHUB_AUTH_KEY = "http.https://github.com/.extraheader"
 BOT_NAME = "github-actions[bot]"
 BOT_EMAIL = "github-actions[bot]@users.noreply.github.com"
 
@@ -240,14 +237,13 @@ def colab_tag(tag: str) -> str:
     return f"colab-{tag}"
 
 
-def remote_has(remote_url: str, kind: str, ref: str, env: dict | None = None) -> bool:
+def remote_has(remote_url: str, kind: str, ref: str) -> bool:
     """Does `remote_url` have `ref`? `kind` is "--heads" or "--tags".
 
     Raises on any git error other than "not found".
     """
     result = subprocess.run(
         ["git", "ls-remote", "--exit-code", kind, remote_url, ref],
-        env=env,
         check=False,
         capture_output=True,
         text=True,
@@ -263,7 +259,7 @@ def remote_has(remote_url: str, kind: str, ref: str, env: dict | None = None) ->
 
 
 def publish_colab(
-    notebooks_dir: Path, tag: str, remote_url: str, work_dir: Path, token: str = ""
+    notebooks_dir: Path, tag: str, remote_url: str, work_dir: Path
 ) -> None:
     """Commit `notebooks_dir` to the Colab branch and tag the commit `colab-<tag>`.
 
@@ -271,31 +267,19 @@ def publish_colab(
     outputs, so the history stays small. Creates the branch if it is missing.
     The commit is made even without changes, so every release has a tag.
     Safe to run again: it does nothing if the tag is already published.
+    Git must be able to push to `remote_url` (in CI, see `gh auth setup-git`).
     """
     if work_dir.exists():
         raise FileExistsError(f"{work_dir} must not exist")
-    env = dict(os.environ)
-    if token:
-        # Pass the token through the environment, so it never shows in a command line.
-        # The empty value first clears any header saved by actions/checkout, or git
-        # sends two and GitHub rejects the request.
-        basic = base64.b64encode(f"x-access-token:{token}".encode()).decode()
-        env |= {
-            "GIT_CONFIG_COUNT": "2",
-            "GIT_CONFIG_KEY_0": _GITHUB_AUTH_KEY,
-            "GIT_CONFIG_VALUE_0": "",
-            "GIT_CONFIG_KEY_1": _GITHUB_AUTH_KEY,
-            "GIT_CONFIG_VALUE_1": f"AUTHORIZATION: basic {basic}",
-        }
 
     def git(*args: str, cwd: Path = work_dir) -> subprocess.CompletedProcess:
-        return subprocess.run(["git", *args], cwd=cwd, env=env, check=True)
+        return subprocess.run(["git", *args], cwd=cwd, check=True)
 
     tag_name = colab_tag(tag)
-    if remote_has(remote_url, "--tags", tag_name, env=env):
+    if remote_has(remote_url, "--tags", tag_name):
         print(f"{tag_name} is already published, nothing to do.")
         return
-    if remote_has(remote_url, "--heads", COLAB_BRANCH, env=env):
+    if remote_has(remote_url, "--heads", COLAB_BRANCH):
         git(
             "clone",
             "-q",
@@ -324,14 +308,11 @@ def publish_colab(
 
 def _cmd_publish_colab(args: argparse.Namespace) -> None:
     remote_url = args.remote_url or f"https://github.com/{args.repo}.git"
-    token = os.environ.get("GH_TOKEN", "")
     if args.work_dir:
-        publish_colab(args.notebooks_dir, args.tag, remote_url, args.work_dir, token)
+        publish_colab(args.notebooks_dir, args.tag, remote_url, args.work_dir)
         return
     with tempfile.TemporaryDirectory() as tmp:
-        publish_colab(
-            args.notebooks_dir, args.tag, remote_url, Path(tmp) / "branch", token
-        )
+        publish_colab(args.notebooks_dir, args.tag, remote_url, Path(tmp) / "branch")
 
 
 # -- CLI --------------------------------------------------------------------------
@@ -448,8 +429,7 @@ def main() -> None:
     p_colab.add_argument(
         "--remote-url",
         default=None,
-        help="Git remote to push to. Defaults to the GitHub URL of --repo. "
-        "Uses GH_TOKEN for authentication.",
+        help="Git remote to push to. Defaults to the GitHub URL of --repo.",
     )
     p_colab.set_defaults(func=_cmd_publish_colab)
 
