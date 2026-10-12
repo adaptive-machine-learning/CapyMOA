@@ -44,8 +44,8 @@ writes a small copy of each notebook (no outputs, plus a first cell that runs
 ``%pip install capymoa`` on Colab only; see ``docs/util/colab.py``). Run ``invoke docs.nb``
 first.
 
-On release, the ``publish_colab_notebooks`` job force-pushes the copies as one commit
-to the ``colab-notebooks`` branch, so it never grows. The links always open the newest
+On release, the ``publish_colab_notebooks`` job commits the copies to the
+``colab-notebooks`` branch (no outputs, so history stays small). The links always open the newest
 release's notebooks, also from the pages of older docs versions.
 
 Versioned Releases
