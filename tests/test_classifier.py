@@ -84,8 +84,29 @@ class Case:
     comparison) for everything else."""
 
     def new_learner(self, schema: Schema, random_seed: int = RANDOM_SEED) -> Classifier:
-        spec = LearnerSpec(learner=self.learner, params=self.params)
+        params = _names_to_torch_objects(self.learner, self.params)
+        spec = LearnerSpec(learner=self.learner, params=params)
         return learner_from_params(spec, schema, random_seed=random_seed)
+
+
+def _names_to_torch_objects(learner: str, params: dict[str, Any]) -> dict[str, Any]:
+    """Swap the string ``model``/``optimizer`` of ``Finetune`` for real classes.
+
+    The library does not map names to torch classes, so the YAML uses names
+    and this helper looks them up. Other learners are returned unchanged.
+    """
+    if learner != "capymoa.classifier.Finetune":
+        return params
+    import torch
+
+    from capymoa.core.torch import ann
+
+    params = dict(params)
+    if isinstance(params.get("model"), str):
+        params["model"] = getattr(ann, params["model"])
+    if isinstance(params.get("optimizer"), str):
+        params["optimizer"] = getattr(torch.optim, params["optimizer"])
+    return params
 
 
 def _load_cases() -> list[Case]:
@@ -119,9 +140,10 @@ class TestClassifier:
         )
         params = learner.get_params()
 
+        expected = _names_to_torch_objects(case.learner, case.params)
         missing = {
             k: (v, params.get(k, "<missing>"))
-            for k, v in case.params.items()
+            for k, v in expected.items()
             if k not in params or params[k] != v
         }
         assert not missing, (

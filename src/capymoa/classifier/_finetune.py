@@ -5,7 +5,6 @@ from torch import Tensor, device, nn, optim
 from torch.optim.optimizer import Optimizer
 
 from capymoa.base import BatchClassifier
-from capymoa.core.torch import resolve_model, resolve_optimizer
 from capymoa.stream import Schema
 
 
@@ -48,8 +47,8 @@ class Finetune(BatchClassifier):
     def __init__(
         self,
         schema: Schema,
-        model: nn.Module | type[nn.Module] | str,
-        optimizer: Optimizer | type[Optimizer] | str = optim.Adam,
+        model: nn.Module | type[nn.Module],
+        optimizer: Optimizer | type[Optimizer] = optim.Adam,
         model_params: dict[str, Any] | None = None,
         optimizer_params: dict[str, Any] | None = None,
         criterion: nn.Module | None = None,
@@ -61,18 +60,16 @@ class Finetune(BatchClassifier):
         :param schema: Describes streaming data types and shapes.
         :param model: A classifier model that takes a ``(bs, input_dim)`` matrix
             and returns a ``(bs, num_classes)`` matrix. Alternatively, a model
-            class (e.g. :class:`~capymoa.core.torch.ann.Perceptron`) or the
-            name of one as a string, constructed with ``schema`` and
-            ``model_params``.
+            class (e.g. :class:`~capymoa.core.torch.ann.Perceptron`),
+            constructed with ``schema`` and ``model_params``.
         :param optimizer: A PyTorch gradient descent optimizer. Alternatively,
-            an optimizer class (e.g. :class:`torch.optim.Adam`) or the name of
-            one as a string, constructed with the model's parameters and
-            ``optimizer_params``.
+            an optimizer class (e.g. :class:`torch.optim.Adam`), constructed
+            with the model's parameters and ``optimizer_params``.
         :param model_params: Extra keyword arguments passed when constructing
-            ``model`` from a class or name. Ignored if ``model`` is already a
+            ``model`` from a class. Ignored if ``model`` is already a
             model instance.
         :param optimizer_params: Extra keyword arguments passed when
-            constructing ``optimizer`` from a class or name. Ignored if
+            constructing ``optimizer`` from a class. Ignored if
             ``optimizer`` is already an optimizer instance.
         :param criterion: Loss function to use for training. Defaults to
             :class:`torch.nn.CrossEntropyLoss`.
@@ -85,7 +82,6 @@ class Finetune(BatchClassifier):
         # seed for reproducibility
         torch.manual_seed(random_seed)
         #: The model to be trained.
-        model = resolve_model(model)
         self.model: nn.Module = (
             model
             if isinstance(model, nn.Module)
@@ -93,7 +89,6 @@ class Finetune(BatchClassifier):
         )
         self.model.to(device)
         #: The optimizer to be used for training.
-        optimizer = resolve_optimizer(optimizer)
         self.optimizer: Optimizer = (
             optimizer
             if isinstance(optimizer, Optimizer)

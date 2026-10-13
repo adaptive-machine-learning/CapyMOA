@@ -53,16 +53,17 @@ tests for classifiers, regressors, and semi-supervised classifiers. You should
 not need to write any new test code. Instead, you should add your test's
 parameters to the appropriate test file:
 
-- `tests/resources/classifier.yml` and `tests/test_classifiers.py` for classifiers.
+- `tests/resources/classifier.yml` for classifiers (tests in `tests/test_classifier.py`).
 - `tests/test_ssl_classifiers.py` for semi-supervised classifiers.
-- `tests/ocl/test_learners.py` for online continual learning learners.
+- `tests/ocl/test_strategy.py` for online continual learning learners.
 - `tests/test_regressors.py` for regressors.
 - `tests/test_anomaly_detectors.py` for anomaly detectors.
 
-Run a classifier case by its ID:
+To run your tests, use the following command:
 ```bash
 pytest -q tests/test_classifier.py -k MyNewLearner
 ```
+The `-k MyNewLearner` flag tells PyTest to run tests containing `MyNewLearner` in the test ID.
 
 * If you want to add documented exemplar usage of your learner, you can add doctests.
 See the [testing guide](tests.rst) for more information.
