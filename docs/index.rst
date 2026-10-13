@@ -4,6 +4,7 @@
    setup/index
    tutorials
    api/index
+   release_notes
    about
    contributing/index
 
