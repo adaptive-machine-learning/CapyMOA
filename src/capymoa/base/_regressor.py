@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from sklearn.base import RegressorMixin as _SKRegressorMixin
 
@@ -26,7 +27,12 @@ class Regressor(LearnerParamsMixin, ABC):
 
 class MOARegressor(Regressor):
     def __init__(
-        self, schema=None, CLI=None, random_seed=1, moa_learner=None, java_options=None
+        self,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        moa_learner=None,
+        java_options: dict[str, Any] | None = None,
     ):
         """
         :param java_options: Map from MOA option name to a Java object, set after

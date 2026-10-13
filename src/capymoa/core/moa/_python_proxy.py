@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-from jpype import JArray, JDouble, JImplements, JOverride
+from jpype import JArray, JDouble, JProxy
 from moa.core import InstanceExample
 
 from capymoa.base import Classifier, MOAClassifier, MOARegressor, Regressor
@@ -26,9 +26,6 @@ from capymoa.core import Instance, LabeledInstance, RegressionInstance
 from capymoa.core.moa._cli import cli_str_classifier, cli_str_regressor
 from capymoa.drift.base_detector import BaseDriftDetector, MOADriftDetector
 from capymoa.stream import Schema
-
-_PLACEHOLDER_CLI = "(trees.HoeffdingTree)"
-"""CLI value used for an option whose real value is set as a Java object."""
 
 
 def _as_example(instance):
@@ -38,23 +35,18 @@ def _as_example(instance):
     return InstanceExample(instance)
 
 
-def _java_proxy(*interfaces: str):
-    """Like ``JImplements`` but also takes the methods of :class:`_LearnerProxy`.
+def _java(obj):
+    """Return a Java proxy of ``obj`` for the interfaces in ``obj._interfaces``.
 
-    JPype only looks at the methods a class defines itself, not inherited ones.
+    JPype calls the methods of ``obj`` by name when Java calls the proxy.
     """
-
-    def decorate(cls):
-        for name, value in vars(_LearnerProxy).items():
-            if name not in vars(cls) and not name.startswith("__"):
-                setattr(cls, name, value)
-        return JImplements(*interfaces)(cls)
-
-    return decorate
+    return JProxy(obj._interfaces, inst=obj)
 
 
 class _LearnerProxy:
-    """Shared code of the learner proxies. Not a Java interface by itself."""
+    """Shared code of the learner proxies. Use :func:`_java` to get the proxy."""
+
+    _interfaces: tuple[str, ...]
 
     def __init__(self, learner: Classifier | Regressor):
         self._template = learner
@@ -74,7 +66,6 @@ class _LearnerProxy:
 
     # Methods with logic.
 
-    @JOverride
     def copy(self):
         proxy = type(self)(self._template)
         proxy._schema, proxy._seed, proxy._header = (
@@ -82,114 +73,92 @@ class _LearnerProxy:
             self._seed,
             self._header,
         )
-        return proxy
+        return _java(proxy)
 
-    @JOverride
     def setModelContext(self, header):
         self._header = header
         self._schema = Schema(header)
         self._learner = None
 
-    @JOverride
     def getModelContext(self):
         return self._header
 
-    @JOverride
     def setRandomSeed(self, seed):
         self._seed = int(seed)
         self._learner = None
 
-    @JOverride
     def resetLearning(self):
         self._learner = None
         self._seen = 0
 
-    @JOverride
     def trainOnInstance(self, instance):
         self._train(_as_example(instance))
         self._seen += 1
 
-    @JOverride
     def getVotesForInstance(self, instance):
         return JArray(JDouble)(self._votes(_as_example(instance)))
 
-    @JOverride
     def trainingHasStarted(self):
         return self._seen > 0
 
-    @JOverride
     def trainingWeightSeenByModel(self):
         return float(self._seen)
 
-    @JOverride
     def isRandomizable(self):
         return True
 
     # Interface stubs.
 
-    @JOverride
     def correctlyClassifies(self, instance):
         votes = self.getVotesForInstance(instance)
         return len(votes) > 0 and int(np.argmax(list(votes))) == int(
             instance.classValue()
         )
 
-    @JOverride
     def getPredictionForInstance(self, instance):
         return None
 
-    @JOverride
     def getConfidenceForPrediction(self, instance, prediction):
         return 0.0
 
-    @JOverride
     def getSubClassifiers(self):
         return None
 
-    @JOverride
     def getSublearners(self):
         return None
 
-    @JOverride
     def getModel(self):
         return None
 
-    @JOverride
     def getModelMeasurements(self):
         return None
 
-    @JOverride
     def getOptions(self):
         return None
 
-    @JOverride
     def getPurposeString(self):
         return str(self._template)
 
-    @JOverride
     def getCLICreationString(self, requiredType):
         return str(self._template)
 
-    @JOverride
     def getAWTRenderer(self):
         return None
 
-    @JOverride
     def prepareForUse(self, *args):
         pass
 
-    @JOverride
     def getDescription(self, builder, indent):
         builder.append(str(self._template))
 
-    @JOverride
     def measureByteSize(self):
         return 0
 
 
-@_java_proxy("moa.classifiers.Classifier")
 class PythonClassifierProxy(_LearnerProxy):
     """A MOA ``Classifier`` that forwards to a CapyMOA :class:`Classifier`."""
+
+    _interfaces = ("moa.classifiers.Classifier",)
 
     def _train(self, example):
         self._get().train(LabeledInstance(self._schema, example))
@@ -200,13 +169,14 @@ class PythonClassifierProxy(_LearnerProxy):
         return [] if proba is None else np.asarray(proba, dtype=float).tolist()
 
 
-@_java_proxy("moa.classifiers.Classifier", "moa.classifiers.Regressor")
 class PythonRegressorProxy(_LearnerProxy):
     """A MOA regressor that forwards to a CapyMOA :class:`Regressor`.
 
     MOA regressors are ``Classifier`` objects that also implement the
     ``Regressor`` marker. They return the predicted value as the only vote.
     """
+
+    _interfaces = ("moa.classifiers.Classifier", "moa.classifiers.Regressor")
 
     def _train(self, example):
         self._get().train(RegressionInstance(self._schema, example))
@@ -216,9 +186,10 @@ class PythonRegressorProxy(_LearnerProxy):
         return [] if value is None else [float(value)]
 
 
-@JImplements("moa.classifiers.core.driftdetection.ChangeDetector")
 class PythonDriftDetectorProxy:
     """A MOA ``ChangeDetector`` that forwards to a CapyMOA drift detector."""
+
+    _interfaces = ("moa.classifiers.core.driftdetection.ChangeDetector",)
 
     def __init__(self, detector: BaseDriftDetector):
         self._template = detector
@@ -232,74 +203,60 @@ class PythonDriftDetectorProxy:
             self._detector = type(t).from_params(None, t.get_params())
         return self._detector
 
-    @JOverride
     def copy(self):
-        return PythonDriftDetectorProxy(self._template)
+        return _java(PythonDriftDetectorProxy(self._template))
 
-    @JOverride
     def resetLearning(self):
         self._detector = None
         self._estimation, self._n = 0.0, 0
 
-    @JOverride
     def input(self, value):
         self._get().add_element(float(value))
         self._n += 1
         self._estimation += (float(value) - self._estimation) / self._n
 
-    @JOverride
     def getChange(self):
         return bool(self._get().detected_change())
 
-    @JOverride
     def getWarningZone(self):
         return bool(self._get().detected_warning())
 
-    @JOverride
     def getEstimation(self):
         return self._estimation
 
-    @JOverride
     def getDelay(self):
         return 0.0
 
-    @JOverride
     def getOutput(self):
         return JArray(JDouble)([])
 
-    @JOverride
     def getOptions(self):
         return None
 
-    @JOverride
     def getPurposeString(self):
         return str(self._template)
 
-    @JOverride
     def getCLICreationString(self, requiredType):
         return str(self._template)
 
-    @JOverride
     def prepareForUse(self, *args):
         pass
 
-    @JOverride
     def getDescription(self, builder, indent):
         builder.append(str(self._template))
 
-    @JOverride
     def measureByteSize(self):
         return 0
 
 
 def resolve_base_learner(
     learner: Any, option: str = "baseLearner"
-) -> tuple[str, dict[str, Any]]:
+) -> tuple[str | None, dict[str, Any]]:
     """Turn a base learner into a CLI string and Java option values.
 
     MOA learners give their CLI string and no Java options. A Python learner gives
-    a placeholder CLI string and a proxy to set on ``option`` before MOA prepares
-    the ensemble (see ``java_options`` of :class:`~capymoa.base.MOAClassifier`).
+    ``None`` (leave it out of the CLI string) and a proxy to set on ``option``
+    before MOA prepares the ensemble (see ``java_options`` of :class:`~capymoa.base.MOAClassifier`).
 
     >>> from capymoa.classifier import HoeffdingTree, PassiveAggressiveClassifier
     >>> from capymoa.datasets import ElectricityTiny
@@ -308,16 +265,17 @@ def resolve_base_learner(
     >>> cli.startswith('(trees.HoeffdingTree'), options
     (True, {})
     >>> cli, options = resolve_base_learner(PassiveAggressiveClassifier(schema))
-    >>> sorted(options)
-    ['baseLearner']
+    >>> cli, sorted(options)
+    (None, ['baseLearner'])
 
     :param learner: A MOA or Python classifier.
     :param option: Name of the MOA class option that holds the base learner.
-    :return: A CLI string and a mapping from option name to Java object.
+    :return: A CLI string (``None`` for a Python object) and a mapping from option
+        name to Java object.
     :raises TypeError: If ``learner`` is not a classifier.
     """
     if isinstance(learner, Classifier) and not isinstance(learner, MOAClassifier):
-        return _PLACEHOLDER_CLI, {option: PythonClassifierProxy(learner)}
+        return None, {option: _java(PythonClassifierProxy(learner))}
     try:
         return cli_str_classifier(learner), {}
     except TypeError:
@@ -340,7 +298,7 @@ def resolve_drift_detector(
     if isinstance(detector, BaseDriftDetector) and not isinstance(
         detector, MOADriftDetector
     ):
-        return None, {option: PythonDriftDetectorProxy(detector)}
+        return None, {option: _java(PythonDriftDetectorProxy(detector))}
     try:
         return cli_str_drift_detector(detector), {}
     except TypeError:
@@ -352,16 +310,17 @@ def resolve_drift_detector(
 
 def resolve_base_regressor(
     learner: Any, option: str = "baseLearner"
-) -> tuple[str, dict[str, Any]]:
+) -> tuple[str | None, dict[str, Any]]:
     """Like :func:`resolve_base_learner` for a regressor.
 
     :param learner: A MOA or Python regressor.
     :param option: Name of the MOA class option that holds the learner.
-    :return: A CLI string and a mapping from option name to Java object.
+    :return: A CLI string (``None`` for a Python object) and a mapping from option
+        name to Java object.
     :raises TypeError: If ``learner`` is not a regressor.
     """
     if isinstance(learner, Regressor) and not isinstance(learner, MOARegressor):
-        return _PLACEHOLDER_CLI, {option: PythonRegressorProxy(learner)}
+        return None, {option: _java(PythonRegressorProxy(learner))}
     try:
         return cli_str_regressor(learner), {}
     except TypeError:

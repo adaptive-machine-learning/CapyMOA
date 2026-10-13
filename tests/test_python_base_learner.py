@@ -1,6 +1,8 @@
 """Tests for the proxies that let MOA ensembles hold Python learners."""
 
 import pytest
+from jpype import JObject
+from moa.classifiers import Classifier
 from moa.classifiers.meta import AdaptiveRandomForest as _ARF
 from moa.classifiers.meta import LeveragingBag as _LeveragingBag
 from moa.classifiers.meta import OzaBag as _OzaBag
@@ -25,7 +27,7 @@ def _ensemble(java_class, schema, learner, option="baseLearner", seed=1):
     return MOAClassifier(
         java_class(),
         schema=schema,
-        CLI=f"-l {cli} -s 5",
+        CLI=f"{f'-l {cli} ' if cli else ''}-s 5",
         random_seed=seed,
         java_options=java_options,
     )
@@ -99,9 +101,9 @@ def test_python_regressor_proxy():
 def test_copy_makes_an_untrained_learner():
     schema = ElectricityTiny().get_schema()
     _, java_options = resolve_base_learner(PassiveAggressiveClassifier(schema))
-    proxy = java_options["baseLearner"]
+    proxy = JObject(java_options["baseLearner"], Classifier)
     proxy.setModelContext(schema.get_moa_header())
-    copy = proxy.copy()
+    copy = JObject(proxy.copy(), Classifier)
     assert copy is not proxy
     assert not copy.trainingHasStarted()
 

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 import numpy as np
 from jpype import _jpype
@@ -79,7 +80,12 @@ class MOAClassifier(Classifier):
     """
 
     def __init__(
-        self, moa_learner, schema=None, CLI=None, random_seed=1, java_options=None
+        self,
+        moa_learner,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        java_options: dict[str, Any] | None = None,
     ):
         """
         :param java_options: Map from MOA option name to a Java object, set after
