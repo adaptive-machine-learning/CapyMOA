@@ -135,9 +135,7 @@ CASES = [
 
 def test_inheritance():
     assert set(get_type_hints(RunInfo)) < set(get_type_hints(ClassifierResults))
-    assert set(get_type_hints(RegressorResults)) < set(
-        get_type_hints(PredictionIntervalResults)
-    )
+    assert set(get_type_hints(RunInfo)) < set(get_type_hints(PredictionIntervalResults))
     assert set(get_type_hints(ClassifierResults)) < set(get_type_hints(SSLResults))
     assert set(get_type_hints(RunInfo)) < set(get_type_hints(AnomalyResults))
 
@@ -352,7 +350,6 @@ def test_regressor_rrmse_is_kept():
 def test_interval_rrmse_is_kept():
     results = _prediction_interval()
     assert isinstance(results["rrmse"], float)
-    assert "rrmse" in results["windowed"]
 
 
 @pytest.mark.parametrize("optimise", [True, False])

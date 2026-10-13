@@ -16,20 +16,20 @@ from moa.core import InstanceExample
 from moa.evaluation import (
     BasicPredictionIntervalEvaluator,
     WindowPredictionIntervalEvaluator,
-    WindowRegressionPerformanceEvaluator,
 )
 
 from capymoa._utils import _translate_metric_name
-from capymoa.regressor.evaluate import (
-    RegressionEvaluator,
-    RegressorResults,
-    RegressorWindows,
-)
+from capymoa.evaluation.results import RunInfo, Windows
+from capymoa.regressor.evaluate import RegressionEvaluator
 
 
-class PredictionIntervalWindows(RegressorWindows):
+class PredictionIntervalWindows(Windows):
     """The windowed metrics of a prediction interval learner."""
 
+    #: Mean absolute error of the point prediction, in units of the target.
+    mae: np.ndarray
+    #: Root mean squared error of the point prediction, in units of the target.
+    rmse: np.ndarray
     #: Percent of targets inside the interval in each window.
     coverage: np.ndarray
     #: Mean width of the interval, in units of the target.
@@ -38,13 +38,29 @@ class PredictionIntervalWindows(RegressorWindows):
     nmpiw: np.ndarray
 
 
-class PredictionIntervalResults(RegressorResults):
+class PredictionIntervalResults(RunInfo):
     """Results of evaluating a prediction interval learner.
 
-    See :func:`~capymoa.uncertainty.evaluate_prediction_interval`. The regression metrics score the
-    point prediction, which is the middle of the interval.
+    See :func:`~capymoa.uncertainty.evaluate_prediction_interval`.
+
+    .. warning::
+
+       ``mae``, ``rmse``, ``rmae`` and ``rrmse`` over the whole stream are
+       wrong, because of a bug in MOA's ``BasicPredictionIntervalEvaluator``. It
+       counts each instance twice, and ``mae``, ``rmae`` and ``rrmse`` score the
+       lower bound, not the point. So ``mae`` is half the mean error of the lower
+       bound, and ``rmse`` is the RMSE of the point divided by
+       :math:`\\sqrt{2}`. The windowed values are right.
     """
 
+    #: Mean absolute error. Wrong, see the warning above.
+    mae: float
+    #: Root mean squared error. Wrong, see the warning above.
+    rmse: float
+    #: Relative absolute error. Wrong, see the warning above.
+    rmae: float
+    #: Relative root mean squared error. Wrong, see the warning above.
+    rrmse: float
     #: Percent of targets inside the interval.
     coverage: float
     #: Mean width of the interval, in units of the target.
@@ -58,11 +74,11 @@ class PredictionIntervalResults(RegressorResults):
 
 
 class PredictionIntervalEvaluator(RegressionEvaluator):
-    """Scores a prediction interval and its point prediction.
+    """Wraps MOA's prediction interval evaluator.
 
-    A prediction is ``[lower, point, upper]``. ``coverage``, ``average_length``
-    and ``nmpiw`` score the interval. The regression metrics (``mae``,
-    ``rmse`` ...) score the point.
+    A prediction is ``[lower, point, upper]``. See
+    :class:`PredictionIntervalResults` for a known MOA bug in ``mae``,
+    ``rmse``, ``rmae`` and ``rrmse``.
     """
 
     def __init__(
@@ -70,7 +86,6 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
         schema=None,
         window_size=None,
         moa_evaluator=None,
-        moa_point_evaluator=None,
     ):
         """
         :param schema: The schema of the stream.
@@ -78,8 +93,6 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
             :meth:`metrics_per_window`. ``None`` to keep none.
         :param moa_evaluator: MOA interval evaluator. Defaults to a
             ``BasicPredictionIntervalEvaluator``.
-        :param moa_point_evaluator: MOA regression evaluator for the point.
-            Defaults to a ``BasicRegressionPerformanceEvaluator``.
         """
         self.instances_seen = 0
         self.result_windows = []
@@ -118,10 +131,6 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
         self._instance = DenseInstance(self.schema.get_num_attributes() + 1)
         self._instance.setDataset(self._header)
 
-        # Scores the point prediction. No ``window_size``, so it keeps no
-        # windows of its own.
-        self._point = RegressionEvaluator(schema, moa_evaluator=moa_point_evaluator)
-
     def update(self, y, y_pred):
         if y is None:
             raise ValueError(f"Invalid ground-truth y = {y}")
@@ -146,22 +155,17 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
             self.pred_template[i] = y_pred[i]
 
         self.moa_basic_evaluator.addResult(example, self.pred_template)
-        self._point.update(y, self.pred_template[1])
         self.instances_seen += 1
 
         # If the window_size is set, then check if it should record the intermediary results.
         if self.window_size is not None and self.instances_seen % self.window_size == 0:
             self.result_windows.append(self.metrics())
 
-    def _interval_metrics(self) -> dict:
+    def metrics_dict(self):
         return {
             _translate_metric_name("".join(m.getName()), to="capymoa"): m.getValue()
             for m in self.moa_basic_evaluator.getPerformanceMeasurements()
         }
-
-    def metrics_dict(self):
-        # MOA's regression metrics are wrong, so the point ones replace them.
-        return {**self._interval_metrics(), **self._point.metrics_dict()}
 
     def metrics_header(self):
         return list(self.metrics_dict())
@@ -189,14 +193,11 @@ class PredictionIntervalWindowedEvaluator(PredictionIntervalEvaluator):
     def __init__(self, schema=None, window_size=1000):
         self.moa_evaluator = WindowPredictionIntervalEvaluator()
         self.moa_evaluator.widthOption.setValue(window_size)
-        moa_point_evaluator = WindowRegressionPerformanceEvaluator()
-        moa_point_evaluator.widthOption.setValue(window_size)
 
         super().__init__(
             schema=schema,
             window_size=window_size,
             moa_evaluator=self.moa_evaluator,
-            moa_point_evaluator=moa_point_evaluator,
         )
 
     def coverage(self):

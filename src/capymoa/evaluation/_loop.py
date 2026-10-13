@@ -311,6 +311,7 @@ def _results_body(
     cumulative,
     windowed,
     windows: type,
+    whole_stream_only: Sequence[str] = (),
 ) -> dict[str, Any]:
     """Run info, then the metrics named by ``windows``.
 
@@ -321,6 +322,8 @@ def _results_body(
     :param windowed: The windowed evaluator, or ``None`` if windows are off.
     :param windows: The ``*Windows`` TypedDict. Its keys, except ``instances``,
         are the metrics to take from both evaluators.
+    :param whole_stream_only: Metrics that only the whole stream evaluator
+        reports, so they are not in ``windows``.
     """
     # The metrics are the array keys, except ``instances``. Nested keys, such as
     # ``per_class``, are built by the domain.
@@ -355,4 +358,5 @@ def _results_body(
     # A metric that only the windowed evaluator reports is not in the whole
     # stream values, so it is left out of the top level.
     values = cumulative.metrics_dict()
-    return {**info, **{key: float(values[key]) for key in metrics if key in values}}
+    keys = [*metrics, *whole_stream_only]
+    return {**info, **{key: float(values[key]) for key in keys if key in values}}

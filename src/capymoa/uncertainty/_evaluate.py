@@ -27,7 +27,14 @@ def _results(
     windowed: PredictionIntervalWindowedEvaluator | None,
 ) -> PredictionIntervalResults:
     body = _results_body(
-        name, stream, out, cumulative, windowed, PredictionIntervalWindows
+        name,
+        stream,
+        out,
+        cumulative,
+        windowed,
+        PredictionIntervalWindows,
+        # MOA's windowed interval evaluator has no relative errors.
+        whole_stream_only=("rmae", "rrmse"),
     )
     return PredictionIntervalResults(**body)  # type: ignore[typeddict-item]
 

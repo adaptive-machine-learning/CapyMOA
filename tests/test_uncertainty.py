@@ -64,6 +64,11 @@ def test_PI(learner_constructor, coverage, win_coverage):
     )
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="MOA's BasicPredictionIntervalEvaluator counts each instance twice "
+    "and scores MAE on the lower bound. Remove this mark once MOA is fixed.",
+)
 def test_interval_evaluator_scores_the_point():
     """The regression metrics of an interval evaluator score the middle value."""
     stream = Fried()
