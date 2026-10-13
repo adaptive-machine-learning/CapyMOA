@@ -7,6 +7,7 @@ This part of the documentation is for developers and contributors.
    :maxdepth: 1
 
    architecture
+   backends
    tests
    docs
    git
