@@ -68,6 +68,33 @@ class ClassifierWindows(Windows):
 
     TP, FP and FN are counts over all classes (per window).
     """
+    precision_macro: np.ndarray
+    r"""Macro-averaged precision in percent: the mean of the precision of each class.
+
+    .. math::
+
+       \text{precision}_{macro} = \frac{1}{C} \sum_{c=1}^{C} \frac{TP_c}{TP_c + FP_c}
+
+    ``C`` is the number of classes. TP, FP and FN are counts per class.
+    """
+    recall_macro: np.ndarray
+    r"""Macro-averaged recall in percent: the mean of the recall of each class.
+
+    .. math::
+
+       \text{recall}_{macro} = \frac{1}{C} \sum_{c=1}^{C} \frac{TP_c}{TP_c + FN_c}
+
+    ``C`` is the number of classes. TP, FP and FN are counts per class.
+    """
+    f1_score_macro: np.ndarray
+    r"""Macro-averaged F1 score in percent: the mean of the F1 score of each class.
+
+    .. math::
+
+       F_{1,macro} = \frac{1}{C} \sum_{c=1}^{C} \frac{2 \cdot P_c \cdot R_c}{P_c + R_c}
+
+    ``P_c`` and ``R_c`` are the precision and recall of class ``c``.
+    """
     #: Area under the ROC curve (0 to 1).
     roc_auc: np.ndarray
 
@@ -75,6 +102,25 @@ class ClassifierWindows(Windows):
 class PerClass(TypedDict):
     """Metrics of each class, one entry per class (in columns)."""
 
+    #: The label of the class.
+    label: np.ndarray
+    #: Precision in percent.
+    precision: np.ndarray
+    #: Recall in percent.
+    recall: np.ndarray
+    #: F1 score in percent.
+    f1_score: np.ndarray
+
+
+class PerClassWindows(TypedDict):
+    """Metrics of each class in each window, in columns.
+
+    One row per window and class, so ``pd.DataFrame(windows)`` makes a long
+    table. Rows are sorted by window, then by class.
+    """
+
+    #: The number of instances seen at the end of the window.
+    instances: np.ndarray
     #: The label of the class.
     label: np.ndarray
     #: Precision in percent.
@@ -135,6 +181,35 @@ class ClassifierResults(RunInfo):
 
     TP, FP and FN are counts over all classes (whole stream).
     """
+    precision_macro: float
+    r"""Macro-averaged precision in percent: the mean of the precision of each class.
+
+    .. math::
+
+       \text{precision}_{macro} = \frac{1}{C} \sum_{c=1}^{C} \frac{TP_c}{TP_c + FP_c}
+
+    ``C`` is the number of classes. TP, FP and FN are counts per class over
+    the whole stream.
+    """
+    recall_macro: float
+    r"""Macro-averaged recall in percent: the mean of the recall of each class.
+
+    .. math::
+
+       \text{recall}_{macro} = \frac{1}{C} \sum_{c=1}^{C} \frac{TP_c}{TP_c + FN_c}
+
+    ``C`` is the number of classes. TP, FP and FN are counts per class over
+    the whole stream.
+    """
+    f1_score_macro: float
+    r"""Macro-averaged F1 score in percent: the mean of the F1 score of each class.
+
+    .. math::
+
+       F_{1,macro} = \frac{1}{C} \sum_{c=1}^{C} \frac{2 \cdot P_c \cdot R_c}{P_c + R_c}
+
+    ``P_c`` and ``R_c`` are the precision and recall of class ``c``.
+    """
     #: Area under the ROC curve (0 to 1). Absent if it is not defined.
     roc_auc: NotRequired[float]
     #: The metrics of each class in columns (see
@@ -144,6 +219,10 @@ class ClassifierResults(RunInfo):
     #: :class:`~capymoa.classifier.evaluate.ClassifierWindows`). Absent if
     #: ``window_size`` is absent.
     windowed: NotRequired[ClassifierWindows]
+    #: The metrics of each class in each window, one row per window and class
+    #: (see :class:`~capymoa.classifier.evaluate.PerClassWindows`). Absent if
+    #: ``window_size`` is absent.
+    windowed_per_class: NotRequired[PerClassWindows]
 
 
 class ClassificationEvaluator:

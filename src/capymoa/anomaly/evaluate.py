@@ -21,6 +21,29 @@ from capymoa._utils import _translate_metric_name
 from capymoa.evaluation.results import RunInfo, Windows
 from capymoa.stream import Schema
 
+#: MOA metric names that clash with the classifier names, or have no
+#: translation. Keys are the MOA names. Values are the names used here.
+_MOA_NAMES = {
+    "Accuracy": "accuracy",
+    "Kappa": "kappa",
+    "KappaM": "kappa_m",
+    "Recall": "recall",
+    "G-Mean": "g_mean",
+    "Pos/Neg ratio": "pos_neg_ratio",
+    "Periodical holdout AUC": "periodical_auc",
+}
+
+
+def _metric_names(moa_names) -> list[str]:
+    """The names used here for the metrics MOA reports, in order."""
+    names = []
+    for moa_name in moa_names:
+        moa_name = "".join(moa_name)
+        names.append(
+            _MOA_NAMES.get(moa_name) or _translate_metric_name(moa_name, to="capymoa")
+        )
+    return names
+
 
 class AnomalyWindows(Windows):
     """The windowed metrics of an anomaly detector, one entry per window."""
@@ -29,6 +52,20 @@ class AnomalyWindows(Windows):
     auc: np.ndarray
     #: Area under the ROC curve over a sliding window of the stream (0 to 1).
     s_auc: np.ndarray
+    #: Accuracy as MOA computes it.
+    accuracy: np.ndarray
+    #: Cohen's kappa as MOA computes it.
+    kappa: np.ndarray
+    #: Kappa M as MOA computes it.
+    kappa_m: np.ndarray
+    #: Recall as MOA computes it.
+    recall: np.ndarray
+    #: G-mean as MOA computes it.
+    g_mean: np.ndarray
+    #: Ratio of positive to negative instances in the window.
+    pos_neg_ratio: np.ndarray
+    #: Area under the ROC curve of a holdout over the stream, in each window.
+    periodical_auc: np.ndarray
 
 
 class AnomalyResults(RunInfo):
@@ -42,6 +79,18 @@ class AnomalyResults(RunInfo):
     #: Area under the ROC curve over a sliding window of the stream, averaged
     #: (0 to 1).
     s_auc: float
+    #: Accuracy as MOA computes it.
+    accuracy: float
+    #: Cohen's kappa as MOA computes it.
+    kappa: float
+    #: Kappa M as MOA computes it.
+    kappa_m: float
+    #: Recall as MOA computes it.
+    recall: float
+    #: G-mean as MOA computes it.
+    g_mean: float
+    #: Ratio of positive to negative instances.
+    pos_neg_ratio: float
     #: The metrics of each window (see
     #: :class:`~capymoa.anomaly.evaluate.AnomalyWindows`). Absent if ``window_size`` is
     #: absent.
@@ -127,11 +176,7 @@ class AnomalyDetectionEvaluator:
 
     def metrics_header(self):
         performance_measurements = self.moa_basic_evaluator.getPerformanceMeasurements()
-        performance_names = [
-            _translate_metric_name("".join(measurement.getName()), to="capymoa")
-            for measurement in performance_measurements
-        ]
-        return performance_names
+        return _metric_names(m.getName() for m in performance_measurements)
 
     def metrics(self):
         return [
@@ -235,11 +280,7 @@ class AnomalyDetectionWindowedEvaluator:
 
     def metrics_header(self):
         performance_measurements = self.moa_evaluator.getPerformanceMeasurements()
-        performance_names = [
-            _translate_metric_name("".join(measurement.getName()), to="capymoa")
-            for measurement in performance_measurements
-        ]
-        return performance_names
+        return _metric_names(m.getName() for m in performance_measurements)
 
     def metrics(self):
         return [

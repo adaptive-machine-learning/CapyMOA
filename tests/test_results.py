@@ -65,7 +65,7 @@ def assert_is_result(results: dict, result_type: type) -> None:
         assert _matches(value, hints[key]), (
             f"{key}={value!r} is not {hints[key]} in {result_type.__name__}"
         )
-    for key in ("windowed", "per_class"):
+    for key in ("windowed", "per_class", "windowed_per_class"):
         if key in results:
             lengths = {len(column) for column in results[key].values()}
             assert len(lengths) == 1, f"{key} columns have different lengths"
@@ -162,6 +162,8 @@ def test_keys_and_types(evaluate, result_type, stored):
 def test_fast_and_python_loops_have_the_same_keys(evaluate, result_type):
     fast = evaluate(optimise=True)
     slow = evaluate(optimise=False)
+    # Only the Java loop reports pseudo label accuracy (see SSLResults).
+    fast.pop("pseudo_label_accuracy", None)
     assert list(fast) == list(slow)
     assert_is_result(slow, result_type)
     assert list(fast["windowed"]) == list(slow["windowed"])
@@ -301,3 +303,70 @@ def test_ocl_results():
     assert_is_result(results["ttt"], OnlineResults)
 
     assert_same(pickle.loads(pickle.dumps(results)), results)
+
+
+def test_classifier_macro_metrics_are_kept():
+    results = _classifier(window_size=100)
+    for key in ("precision_macro", "recall_macro", "f1_score_macro"):
+        assert isinstance(results[key], float)
+        assert key in results["windowed"]
+    # The macro metrics are the mean of the per-class values.
+    per_class = results["per_class"]
+    assert results["recall_macro"] == pytest.approx(np.mean(per_class["recall"]))
+    assert results["precision_macro"] == pytest.approx(np.mean(per_class["precision"]))
+
+
+def test_windowed_per_class():
+    results = _classifier(window_size=100)
+    windows = len(results["windowed"]["instances"])
+    labels = results["per_class"]["label"]
+    per_class = results["windowed_per_class"]
+    assert "per_class" not in results["windowed"]
+    frame = pd.DataFrame(per_class)
+    assert list(frame.columns) == [
+        "instances",
+        "label",
+        "precision",
+        "recall",
+        "f1_score",
+    ]
+    assert len(frame) == windows * len(labels)
+    assert list(frame["label"][: len(labels)]) == list(labels)
+    # Each window's macro recall is the mean of its per-class recall.
+    mean_recall = frame.groupby("instances", sort=False)["recall"].mean()
+    np.testing.assert_allclose(
+        mean_recall.to_numpy(), results["windowed"]["recall_macro"]
+    )
+
+
+def test_windowed_per_class_absent_without_windows():
+    assert "windowed_per_class" not in _classifier(window_size=None)
+
+
+def test_regressor_rrmse_is_kept():
+    results = _regressor()
+    assert isinstance(results["rrmse"], float)
+    assert "rrmse" in results["windowed"]
+
+
+def test_interval_rrmse_is_kept():
+    results = _prediction_interval()
+    assert isinstance(results["rrmse"], float)
+    assert "rrmse" in results["windowed"]
+
+
+@pytest.mark.parametrize("optimise", [True, False])
+def test_anomaly_metrics_are_kept(optimise):
+    results = _anomaly(optimise=optimise)
+    for key in ("accuracy", "kappa", "kappa_m", "recall", "g_mean", "pos_neg_ratio"):
+        assert isinstance(results[key], float), key
+    assert "periodical_auc" not in results
+    assert "periodical_auc" in results["windowed"]
+    assert "Accuracy" not in results and "KappaM" not in results
+
+
+def test_ssl_pseudo_label_accuracy_only_from_java_loop():
+    fast = _ssl(label_probability=0.1)
+    assert 0.0 <= fast["pseudo_label_accuracy"] <= 1.0
+    slow = _ssl(label_probability=0.1, optimise=False)
+    assert "pseudo_label_accuracy" not in slow

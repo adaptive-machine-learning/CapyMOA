@@ -1,6 +1,5 @@
 import math
-import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import overload
 
 import numpy as np
@@ -13,6 +12,7 @@ from capymoa.classifier.evaluate import (
     ClassifierResults,
     ClassifierWindows,
     PerClass,
+    PerClassWindows,
 )
 from capymoa.evaluation._loop import (
     _LoopOutput,
@@ -22,20 +22,54 @@ from capymoa.evaluation._loop import (
     _Run,
     _use_java_loop,
 )
-from capymoa.stream import Schema, Stream
+from capymoa.stream import Stream
 
 _PER_CLASS_METRICS = [key for key in PerClass.__annotations__ if key != "label"]
-_PER_CLASS = re.compile(rf"^({'|'.join(_PER_CLASS_METRICS)})_(\d+)$")
 
 
-def _per_class(metrics: Mapping[str, float], schema: Schema) -> PerClass:
-    labels = list(schema.get_label_values())
-    columns = {name: np.full(len(labels), np.nan) for name in _PER_CLASS_METRICS}
-    for key, value in metrics.items():
-        match = _PER_CLASS.match(key)
-        if match and int(match.group(2)) < len(labels):
-            columns[match.group(1)][int(match.group(2))] = value
-    return PerClass(label=np.array(labels), **columns)  # type: ignore[typeddict-item]
+def _per_class_columns(
+    header: Sequence[str], rows: Sequence[Sequence[float]], classes: int
+) -> dict[str, np.ndarray]:
+    """Per-class metrics from columns such as ``f1_score_3``.
+
+    Each array has shape ``(rows, classes)``. A missing column is ``NaN``.
+    """
+    table = np.asarray(rows, dtype=float).reshape(len(rows), len(header))
+    position = {name: i for i, name in enumerate(header)}
+    columns = {}
+    for metric in _PER_CLASS_METRICS:
+        values = np.full((len(rows), classes), np.nan)
+        for index in range(classes):
+            column = position.get(f"{metric}_{index}")
+            if column is not None:
+                values[:, index] = table[:, column]
+        columns[metric] = values
+    return columns
+
+
+def _per_class(evaluator: ClassificationEvaluator) -> PerClass:
+    """The per-class metrics over the whole stream."""
+    labels = np.array(list(evaluator.schema.get_label_values()))
+    columns = _per_class_columns(
+        evaluator.metrics_header(), [evaluator.metrics()], len(labels)
+    )
+    return PerClass(
+        label=labels, **{name: values[0] for name, values in columns.items()}
+    )  # type: ignore[typeddict-item]
+
+
+def _per_class_windows(evaluator: ClassificationWindowedEvaluator) -> PerClassWindows:
+    """The per-class metrics of each window, one row per window and class."""
+    labels = np.array(list(evaluator.schema.get_label_values()))
+    header = evaluator.metrics_header()
+    rows = evaluator.result_windows
+    instances = np.array([row[header.index("instances")] for row in rows], dtype=int)
+    columns = _per_class_columns(header, rows, len(labels))
+    return PerClassWindows(
+        instances=np.repeat(instances, len(labels)),
+        label=np.tile(labels, len(instances)),
+        **{name: values.ravel() for name, values in columns.items()},
+    )  # type: ignore[typeddict-item]
 
 
 def _classifier_results(
@@ -48,7 +82,9 @@ def _classifier_results(
     body = _results_body(name, stream, out, cumulative, windowed, ClassifierWindows)
     if math.isnan(body["roc_auc"]):
         del body["roc_auc"]
-    body["per_class"] = _per_class(cumulative.metrics_dict(), cumulative.schema)
+    body["per_class"] = _per_class(cumulative)
+    if windowed is not None:
+        body["windowed_per_class"] = _per_class_windows(windowed)
     return ClassifierResults(**body)  # type: ignore[typeddict-item]
 
 

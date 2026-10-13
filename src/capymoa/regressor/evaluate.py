@@ -30,6 +30,8 @@ class RegressorWindows(Windows):
     rmse: np.ndarray
     #: Relative absolute error.
     rmae: np.ndarray
+    #: Relative root mean squared error. Like ``rmae``, but for the RMSE.
+    rrmse: np.ndarray
     #: Coefficient of determination.
     r2: np.ndarray
     #: R2 adjusted for the number of attributes.
@@ -49,6 +51,8 @@ class RegressorResults(RunInfo):
     #: Relative absolute error: the MAE divided by the MAE of predicting the
     #: previous target. Below 1 is better than that baseline.
     rmae: float
+    #: Relative root mean squared error. Like ``rmae``, but for the RMSE.
+    rrmse: float
     #: Coefficient of determination. 1 is perfect, 0 is no better than the mean.
     r2: float
     #: R2 adjusted for the number of attributes.
@@ -169,6 +173,10 @@ class RegressionEvaluator:
 
     def rmae(self):
         index = self.metrics_header().index("rmae")
+        return self.metrics()[index]
+
+    def rrmse(self):
+        index = self.metrics_header().index("rrmse")
         return self.metrics()[index]
 
     def r2(self):

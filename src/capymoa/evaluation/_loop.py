@@ -322,7 +322,13 @@ def _results_body(
     :param windows: The ``*Windows`` TypedDict. Its keys, except ``instances``,
         are the metrics to take from both evaluators.
     """
-    metrics = [key for key in windows.__annotations__ if key != "instances"]
+    # The metrics are the array keys, except ``instances``. Nested keys, such as
+    # ``per_class``, are built by the domain.
+    metrics = [
+        key
+        for key, kind in windows.__annotations__.items()
+        if kind is np.ndarray and key != "instances"
+    ]
     info = RunInfo(
         learner=name,
         stream=stream if isinstance(stream, str) else str(stream),
@@ -335,7 +341,9 @@ def _results_body(
         info["window_size"] = windowed.window_size
         info["windowed"] = {
             "instances": frame["instances"].to_numpy().astype(int),
-            **{key: frame[key].to_numpy(dtype=float) for key in metrics},
+            **{
+                key: frame[key].to_numpy(dtype=float) for key in metrics if key in frame
+            },
         }
     if out.y_true is not None:
         info["y_true"] = out.y_true
@@ -343,5 +351,7 @@ def _results_body(
         info["y_pred"] = out.y_pred
     if not isinstance(stream, str):
         info.update(_drift_info(stream))  # type: ignore[typeddict-item]
+    # A metric that only the windowed evaluator reports is not in the whole
+    # stream values, so it is left out of the top level.
     values = cumulative.metrics_dict()
-    return {**info, **{key: float(values[key]) for key in metrics}}
+    return {**info, **{key: float(values[key]) for key in metrics if key in values}}
