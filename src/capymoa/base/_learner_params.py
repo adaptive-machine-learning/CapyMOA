@@ -5,6 +5,7 @@ from __future__ import annotations
 import functools
 import inspect
 from collections.abc import Callable
+from importlib import import_module
 from typing import (
     Any,
     Concatenate,
@@ -49,10 +50,23 @@ class LearnerRegistry(Generic[TClass]):
     def require(self, name: str) -> TClass:
         cls = self.get(name)
         if cls is None:
+            cls = self._import_lazy(name)
+        if cls is None:
             raise ValueError(
                 f"Unknown learner {name!r}. Known learners: {self.list_names()}."
             )
         return cls
+
+    def _import_lazy(self, name: str) -> TClass | None:
+        """Import a lazy export (e.g. torch-backed) so it can register itself."""
+        module_name, _, attr = name.rpartition(".")
+        if not module_name:
+            return None
+        try:
+            getattr(import_module(module_name), attr)
+        except (ImportError, AttributeError):
+            return None
+        return self.get(name)
 
     def list_names(self) -> list[str]:
         return list(self._registered)
@@ -144,6 +158,9 @@ def learner_from_params(spec: LearnerSpec, schema: Any, random_seed: int = 1) ->
     See :class:`~capymoa.base.LearnerParamsMixin` for the parameter capture
     and serialization support used by learners.
     """
+    module, class_name = spec["learner"].rsplit(".", 1)
+    # Accessing a lazy module attribute triggers its import and registration.
+    getattr(import_module(module), class_name)
     return _LEARNER_REGISTRY.build(spec, schema, random_seed)
 
 

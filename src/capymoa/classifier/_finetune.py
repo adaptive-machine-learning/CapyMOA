@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterator
+from typing import Any
 
 import torch
 from torch import Tensor, device, nn, optim
@@ -17,13 +17,13 @@ class Finetune(BatchClassifier):
     >>> from capymoa.core.torch.ann import Perceptron
     >>> from torch import nn
     >>> from torch.optim import Adam
-    >>> from functools import partial
     >>>
     >>> stream = ElectricityTiny()
     >>> learner = Finetune(
     ...     stream.get_schema(),
     ...     model=Perceptron,
-    ...     optimizer=partial(Adam, lr=0.01)
+    ...     optimizer=Adam,
+    ...     optimizer_params={"lr": 0.01},
     ... )
     >>> results = prequential_evaluation(stream, learner, batch_size=32)
     >>> print(f"{results['cumulative'].accuracy():.1f}")
@@ -47,8 +47,10 @@ class Finetune(BatchClassifier):
     def __init__(
         self,
         schema: Schema,
-        model: nn.Module | Callable[[Schema], nn.Module],
-        optimizer: Optimizer | Callable[[Iterator[Tensor]], Optimizer] = optim.Adam,
+        model: nn.Module | type[nn.Module],
+        optimizer: Optimizer | type[Optimizer] = optim.Adam,
+        model_params: dict[str, Any] | None = None,
+        optimizer_params: dict[str, Any] | None = None,
         criterion: nn.Module | None = None,
         device: device | str = "cpu",
         random_seed: int = 0,
@@ -57,10 +59,18 @@ class Finetune(BatchClassifier):
 
         :param schema: Describes streaming data types and shapes.
         :param model: A classifier model that takes a ``(bs, input_dim)`` matrix
-            and returns a ``(bs, num_classes)`` matrix. Alternatively, a
-            constructor function that takes a schema and returns a model.
-        :param optimizer: A PyTorch gradient descent optimizer or a constructor
-            function that takes the model parameters and returns an optimizer.
+            and returns a ``(bs, num_classes)`` matrix. Alternatively, a model
+            class (e.g. :class:`~capymoa.core.torch.ann.Perceptron`),
+            constructed with ``schema`` and ``model_params``.
+        :param optimizer: A PyTorch gradient descent optimizer. Alternatively,
+            an optimizer class (e.g. :class:`torch.optim.Adam`), constructed
+            with the model's parameters and ``optimizer_params``.
+        :param model_params: Extra keyword arguments passed when constructing
+            ``model`` from a class. Ignored if ``model`` is already a
+            model instance.
+        :param optimizer_params: Extra keyword arguments passed when
+            constructing ``optimizer`` from a class. Ignored if
+            ``optimizer`` is already an optimizer instance.
         :param criterion: Loss function to use for training. Defaults to
             :class:`torch.nn.CrossEntropyLoss`.
         :param device: Hardware for training.
@@ -72,13 +82,17 @@ class Finetune(BatchClassifier):
         # seed for reproducibility
         torch.manual_seed(random_seed)
         #: The model to be trained.
-        self.model: nn.Module = model if isinstance(model, nn.Module) else model(schema)
+        self.model: nn.Module = (
+            model
+            if isinstance(model, nn.Module)
+            else model(schema, **(model_params or {}))
+        )
         self.model.to(device)
         #: The optimizer to be used for training.
         self.optimizer: Optimizer = (
             optimizer
             if isinstance(optimizer, Optimizer)
-            else optimizer(self.model.parameters())
+            else optimizer(self.model.parameters(), **(optimizer_params or {}))
         )
         #: The loss function to be used for training.
         self.criterion: nn.Module = criterion
