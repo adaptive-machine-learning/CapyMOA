@@ -337,13 +337,14 @@ def _results_body(
         cpu_time=out.cpu_time,
     )  # type: ignore[typeddict-item]
     if windowed is not None:
-        frame = windowed.metrics_per_window()
+        header = windowed.metrics_header()
+        rows = windowed.result_windows
+        table = np.asarray(rows, dtype=float).reshape(len(rows), len(header))
+        column = {name: table[:, i] for i, name in enumerate(header)}
         info["window_size"] = windowed.window_size
         info["windowed"] = {
-            "instances": frame["instances"].to_numpy().astype(int),
-            **{
-                key: frame[key].to_numpy(dtype=float) for key in metrics if key in frame
-            },
+            "instances": column["instances"].astype(int),
+            **{key: column[key] for key in metrics if key in column},
         }
     if out.y_true is not None:
         info["y_true"] = out.y_true
