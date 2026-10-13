@@ -46,7 +46,7 @@ class ClassifierWindows(Windows):
 
     .. math::
 
-       F_1 = \frac{2 \\cdot \text{precision} \\cdot \text{recall}}{\text{precision} + \text{recall}}
+       F_1 = \frac{2 \cdot \text{precision} \cdot \text{recall}}{\text{precision} + \text{recall}}
 
     TP, FP and FN are counts over all classes (per window).
     """
@@ -159,7 +159,7 @@ class ClassifierResults(RunInfo):
 
     .. math::
 
-       F_1 = \frac{2 \\cdot \text{precision} \\cdot \text{recall}}{\text{precision} + \text{recall}}
+       F_1 = \frac{2 \cdot \text{precision} \cdot \text{recall}}{\text{precision} + \text{recall}}
 
     TP, FP and FN are counts over all classes (whole stream).
     """
