@@ -40,8 +40,10 @@ def evaluate_prediction_interval(
     window_size: int | None = 1000,
     store_predictions: bool = False,
     store_y: bool = False,
+    optimise: bool = True,
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
+    batch_size: int = 1,
 ) -> PredictionIntervalResults: ...
 @overload
 def evaluate_prediction_interval(
@@ -51,8 +53,10 @@ def evaluate_prediction_interval(
     window_size: int | None = 1000,
     store_predictions: bool = False,
     store_y: bool = False,
+    optimise: bool = True,
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
+    batch_size: int = 1,
 ) -> dict[str, PredictionIntervalResults]: ...
 def evaluate_prediction_interval(
     stream: Stream,
@@ -61,8 +65,10 @@ def evaluate_prediction_interval(
     window_size: int | None = 1000,
     store_predictions: bool = False,
     store_y: bool = False,
+    optimise: bool = True,
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
+    batch_size: int = 1,
 ) -> PredictionIntervalResults | dict[str, PredictionIntervalResults]:
     """Test-then-train a prediction interval learner, or many on one pass over a stream.
 
@@ -95,9 +101,12 @@ def evaluate_prediction_interval(
         ``None``, there are no windowed results.
     :param store_predictions: Keep the predictions in ``y_pred``.
     :param store_y: Keep the ground truth in ``y_true``.
+    :param optimise: Kept for the same signature as the other domains. Prediction
+        intervals have no Java loop, so this does nothing.
     :param restart_stream: If ``False``, continue from the current position in the
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
+    :param batch_size: Instances per mini-batch, for batch learners.
     :return: The results, or a dict of results by name for a mapping.
     """
     many = isinstance(learner, Mapping)
@@ -127,6 +136,7 @@ def evaluate_prediction_interval(
         runs,
         max_instances=max_instances,
         progress_bar=progress_bar,
+        batch_size=batch_size,
     )
     results = {
         n: _results(n, stream, out, runs[n].cumulative, runs[n].windowed)

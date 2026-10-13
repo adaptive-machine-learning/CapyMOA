@@ -58,6 +58,7 @@ def evaluate_anomaly(
     optimise: bool = True,
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
+    batch_size: int = 1,
 ) -> AnomalyResults: ...
 @overload
 def evaluate_anomaly(
@@ -70,6 +71,7 @@ def evaluate_anomaly(
     optimise: bool = True,
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
+    batch_size: int = 1,
 ) -> dict[str, AnomalyResults]: ...
 def evaluate_anomaly(
     stream: Stream,
@@ -81,6 +83,7 @@ def evaluate_anomaly(
     optimise: bool = True,
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
+    batch_size: int = 1,
 ) -> AnomalyResults | dict[str, AnomalyResults]:
     """Test-then-train an anomaly detector, or many on one pass over a stream.
 
@@ -118,6 +121,7 @@ def evaluate_anomaly(
     :param restart_stream: If ``False``, continue from the current position in the
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
+    :param batch_size: Instances per mini-batch, for batch detectors.
     :return: The results, or a dict of results by name for a mapping.
     """
     many = isinstance(learner, Mapping)
@@ -132,7 +136,11 @@ def evaluate_anomaly(
     schema = stream.get_schema()
 
     if not many and _use_java_loop(
-        stream, learner, optimise=optimise, window_size=window_size
+        stream,
+        learner,
+        optimise=optimise,
+        window_size=window_size,
+        batch_size=batch_size,
     ):
         run = _Run(
             learner,
@@ -165,6 +173,7 @@ def evaluate_anomaly(
         max_instances=max_instances,
         progress_bar=progress_bar,
         progress_prefix="AD Eval",
+        batch_size=batch_size,
     )
     results = {
         n: _anomaly_results(n, stream, out, runs[n].cumulative, runs[n].windowed)
