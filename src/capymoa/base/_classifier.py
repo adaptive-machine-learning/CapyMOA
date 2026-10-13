@@ -116,22 +116,16 @@ class MOAClassifier(Classifier):
 
     def predict_proba(self, instance) -> LabelProbabilities | None:
         votes = np.array(self.moa_learner.getVotesForInstance(instance.java_instance))
-        # MOA sizes the vote array by the classes seen so far, not by the
-        # schema, so it can be shorter than `schema.get_num_classes()`. Votes
-        # are indexed by class index, so pad with trailing zeros to line the
-        # array up with the schema (padding an empty array still yields all
-        # zeros, so the "no prediction" case below is unaffected).
+        total = votes.sum()
+        # MOA returns unnormalised scores. Their scale depends on the learner
+        # (counts for majority class, tiny likelihood products for Naive Bayes).
+        # Reject only votes that carry no prediction: empty, non-finite or all zero.
+        if votes.size == 0 or not np.isfinite(total) or total <= 0.0:
+            return None
+        # MOA sizes votes by the classes seen so far. Pad with zeros to match the schema.
         num_classes = self.schema.get_num_classes()
         if votes.size < num_classes:
             votes = np.pad(votes, (0, num_classes - votes.size))
-        total = votes.sum() if votes.size else 0.0
-        # MOA returns unnormalised scores, and their scale depends on the
-        # learner: majority-class leaves give integer counts, while Naive Bayes
-        # gives products of likelihoods that are routinely below 1e-2 without
-        # being any less valid. Only reject votes that carry no prediction at
-        # all -- an empty array, a non-finite total, or nothing but zeros.
-        if votes.size == 0 or not np.isfinite(total) or total <= 0.0:
-            return None
         return votes / total
 
 
