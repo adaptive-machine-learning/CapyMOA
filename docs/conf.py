@@ -7,11 +7,13 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
 from capymoa.__about__ import __version__
 from docs.release_scripts import site_base_url
+from docs.util.colab import colab_url, is_notebook_page
 from docs.util.github_link import make_linkcode_resolve
 from docs.util.sphinx_llm import (
     fix_markdown_image,
@@ -298,6 +300,7 @@ html_theme_options = {
         "page-toc",
         "edit-this-page",
         "sourcelink",
+        "components/colab-button.html",
         "components/llm-page-actions.html",
     ],
     "switcher": {
@@ -336,8 +339,33 @@ def autodoc_skip_member(app, obj_type, name, obj, skip, options) -> bool | None:
     return None
 
 
+# Set by the release docs build. Colab links point at a tag published after the
+# release, so other builds (PRs, local) would link to notebooks that may not exist.
+colab_links = os.environ.get("CAPYMOA_COLAB_LINKS") == "true"
+
+
+def add_colab_url(app, pagename, templatename, context, doctree):
+    """Set the links for components/colab-button.html on notebook pages."""
+    if is_notebook_page(pagename):
+        context["notebook_download"] = True
+        if colab_links:
+            context["colab_url"] = colab_url(capymoa_github, __version__, pagename)
+
+
+def copy_notebooks(app, exception):
+    """Put the executed notebooks in the site, for the download link."""
+    if exception is not None or app.builder.format != "html":
+        return
+    for nb in sorted((Path(app.confdir).parent / "notebooks").glob("*/*.ipynb")):
+        dest = Path(app.outdir) / "notebooks" / nb.parent.name / nb.name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(nb, dest)
+
+
 def setup(app):
     app.connect("autodoc-skip-member", autodoc_skip_member)
+    app.connect("build-finished", copy_notebooks)
+    app.connect("html-page-context", add_colab_url)
 
     # Patches for sphinx_llm extension.
     fix_notebook_output_markdown(app)

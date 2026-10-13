@@ -9,6 +9,8 @@ Subcommands:
   version, and only the latest release of every earlier major version).
 * ``assemble`` downloads each listed release's docs asset and extracts it into its
   own /vX.Y.Z/ folder, copying the newest into the site root.
+* ``publish-colab`` commits the output-free Colab notebooks to the
+  ``colab-notebooks`` branch and tags the commit for the release.
 * ``build-switcher`` writes switcher.json for the pydata-sphinx-theme version
   switcher (https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/version-dropdown.html).
 """
@@ -20,6 +22,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 import tomllib
 from pathlib import Path
 
@@ -218,6 +221,94 @@ def _cmd_build_switcher(args: argparse.Namespace) -> None:
     args.output.write_text(json.dumps(switcher, indent=2) + "\n")
 
 
+# -- publish-colab ----------------------------------------------------------------
+
+COLAB_BRANCH = "colab-notebooks"
+
+
+def colab_tag(tag: str) -> str:
+    """Tag on the Colab branch for the notebooks of release `tag`.
+
+    >>> colab_tag("v1.2.3")
+    'colab-v1.2.3'
+    """
+    return f"colab-{tag}"
+
+
+def remote_has(remote_url: str, kind: str, ref: str) -> bool:
+    """Does `remote_url` have `ref`? `kind` is "--heads" or "--tags".
+
+    Raises on any git error other than "not found".
+    """
+    result = subprocess.run(
+        ["git", "ls-remote", "--exit-code", kind, remote_url, ref],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 2:  # Ref not found.
+        return False
+    if result.returncode != 0:
+        print(result.stderr, file=sys.stderr)
+        raise subprocess.CalledProcessError(
+            result.returncode, result.args, result.stdout, result.stderr
+        )
+    return True
+
+
+def publish_colab(notebooks_dir: Path, tag: str, remote_url: str) -> None:
+    """Commit `notebooks_dir` to the Colab branch and tag the commit `colab-<tag>`.
+
+    The branch keeps the history of past releases. The notebooks have no
+    outputs, so the history stays small. Creates the branch if it is missing.
+    The commit is made even without changes, so every release has a tag.
+    Safe to run again: it does nothing if the tag is already published.
+    Git must have a user and be able to push to `remote_url` (in CI, see the
+    release workflow).
+    """
+    tag_name = colab_tag(tag)
+    if remote_has(remote_url, "--tags", tag_name):
+        print(f"{tag_name} is already published, nothing to do.")
+        return
+    with tempfile.TemporaryDirectory() as tmp:
+        work_dir = Path(tmp) / "branch"
+
+        def git(*args: str, cwd: Path = work_dir) -> None:
+            subprocess.run(["git", *args], cwd=cwd, check=True)
+
+        if remote_has(remote_url, "--heads", COLAB_BRANCH):
+            git(
+                "clone",
+                "-q",
+                "--branch",
+                COLAB_BRANCH,
+                remote_url,
+                str(work_dir),
+                cwd=Path(tmp),
+            )
+            for path in work_dir.iterdir():
+                if path.name == ".git":
+                    continue
+                if path.is_dir():
+                    shutil.rmtree(path)
+                else:
+                    path.unlink()
+        else:
+            work_dir.mkdir()
+            git("init", "-q", "-b", COLAB_BRANCH)
+        shutil.copytree(notebooks_dir, work_dir, dirs_exist_ok=True)
+        git("add", "-A")
+        git("commit", "-q", "--allow-empty", "-m", f"Notebooks for {tag}")
+        git("tag", tag_name)
+        # Atomic: the branch and the tag land together or not at all.
+        git("push", "--atomic", remote_url, COLAB_BRANCH, tag_name)
+
+
+def _cmd_publish_colab(args: argparse.Namespace) -> None:
+    remote_url = f"https://github.com/{args.repo}.git"
+    publish_colab(args.notebooks_dir, args.tag, remote_url)
+
+
 # -- CLI --------------------------------------------------------------------------
 
 
@@ -303,6 +394,26 @@ def main() -> None:
         help="Path to write switcher.json to.",
     )
     p_switcher.set_defaults(func=_cmd_build_switcher)
+
+    p_colab = subparsers.add_parser(
+        "publish-colab",
+        help="Commit the Colab notebooks to the colab-notebooks branch and tag them.",
+    )
+    p_colab.add_argument(
+        "--repo", required=True, help="GitHub repository to push to, e.g. owner/repo."
+    )
+    p_colab.add_argument(
+        "--tag",
+        required=True,
+        help="Release tag, e.g. v0.15.0 (the Colab tag is colab-<tag>).",
+    )
+    p_colab.add_argument(
+        "--notebooks-dir",
+        type=Path,
+        required=True,
+        help="Directory with the notebooks (see `invoke docs.colab`).",
+    )
+    p_colab.set_defaults(func=_cmd_publish_colab)
 
     args = parser.parse_args()
     args.func(args)

@@ -140,13 +140,24 @@ jobs:
       with:
         name: rendered-notebooks
         path: notebooks
+    - name: Build Colab Notebooks
+      # Output-free copies for the `colab-notebooks` branch (see publish_colab_notebooks).
+      run: uv run invoke docs.colab
     - name: Build Documentation
+      env:
+        # Show "Open in Colab" links. publish_colab_notebooks publishes their target.
+        CAPYMOA_COLAB_LINKS: "true"
       run: uv run invoke docs.build --ignore-warnings
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: docs-build
         path: docs/_build
+    - name: Upload Colab notebooks
+      uses: actions/upload-artifact@v4
+      with:
+        name: colab-notebooks
+        path: colab-notebooks
 
   # Packages this release's built docs and attaches them to the GitHub Release as a
   # download-able asset. This is the only place a version's docs are stored, so this
@@ -175,6 +186,34 @@ jobs:
           gh release upload "${{ needs.release_pypi.outputs.tag }}"
           "docs-${{ needs.release_pypi.outputs.tag }}.tar.gz"
           --repo "$GITHUB_REPOSITORY"
+
+  # Publishes the output-free notebooks that the "Open in Colab" links open. Each release
+  # adds a commit and a `colab-<tag>` tag to the branch, which the links use.
+  publish_colab_notebooks:
+    name: Publish Colab Notebooks
+    if: needs.release_pypi.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    needs: [documentation, release_pypi]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: colab-notebooks
+          path: colab-notebooks
+
+      - name: Push to colab-notebooks branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # gh gives git the token, also in the branch clone outside this checkout.
+        run: |
+          gh auth setup-git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          python3 docs/release_scripts.py publish-colab \
+            --repo "$GITHUB_REPOSITORY" --tag "${{ needs.release_pypi.outputs.tag }}" \
+            --notebooks-dir colab-notebooks
 
   release_docker:
     name: Release / Docker
