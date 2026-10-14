@@ -4,8 +4,8 @@
    setup/index
    tutorials
    api/index
-   about
    contributing/index
+   about
    release_notes
 
 CapyMOA

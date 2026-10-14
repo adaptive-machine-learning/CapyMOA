@@ -301,8 +301,9 @@ html_theme_options = {
             "type": "fontawesome",
         },
     ],
-    # Show five links, then put Release Notes in a "More" dropdown.
-    "header_links_before_dropdown": 5,
+    # Show four links, then put the rest in a "More" dropdown. The theme only makes
+    # a dropdown when more than this number plus one links exist.
+    "header_links_before_dropdown": 4,
     "secondary_sidebar_items": [
         "page-toc",
         "edit-this-page",
