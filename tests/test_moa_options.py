@@ -30,7 +30,8 @@ def test_options_match_cli_string():
     )
 
 
-def test_online_bagging_with_java_base_learner_matches_capymoa_base_learner():
+def test_online_bagging_java_base_learner():
+    """A raw Java base learner gives the same accuracy as the same CapyMOA one."""
     ensemble_size = 7
     grace_period = 33
     max_instances = 300

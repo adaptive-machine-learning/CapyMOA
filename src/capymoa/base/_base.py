@@ -302,8 +302,6 @@ class MOAClusterer(Clusterer):
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())
 
-        # If the CLI and options are None, we assume the object has already been
-        # configured or that default values should be used.
         set_moa_options(self.moa_learner, self.CLI, options)
 
         self.moa_learner.prepareForUse()

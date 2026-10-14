@@ -33,22 +33,38 @@ def set_moa_options(
     if cli is not None:
         moa_object.getOptions().setViaCLIString(cli)
     if options is not None:
-        all_options = list(moa_object.getOptions().getOptionArray())
-        for key, value in options.items():
-            option = next((o for o in all_options if str(o.getName()) == key), None)
-            if option is None:
-                valid = sorted(str(o.getName()) for o in all_options)
-                raise ValueError(f"Unknown MOA option {key!r}. Valid names: {valid}")
-            _set_option_value(option, value)
+        all_options = {
+            str(o.getName()): o for o in moa_object.getOptions().getOptionArray()
+        }
+        unknown = options.keys() - all_options.keys()
+        if unknown:
+            raise ValueError(
+                f"Unknown MOA options {sorted(unknown)}. "
+                f"Valid names: {sorted(all_options)}"
+            )
+        for name, option in all_options.items():
+            if name in options:
+                _set_option_value(option, options[name])
 
 
 def _set_option_value(option: Any, value: Any) -> None:
+    # Imported here to avoid a circular import, since these modules use this one.
+    from capymoa.base import (
+        MOAAnomalyDetector,
+        MOAClassifier,
+        MOAClusterer,
+        MOARegressor,
+    )
+    from capymoa.drift.base_detector import MOADriftDetector
+
     if isinstance(option, (_MoaAbstractClassOption, _JclAbstractClassOption)):
         if isinstance(value, str):
             option.setValueViaCLIString(value)
-        elif hasattr(value, "moa_learner"):
+        elif isinstance(
+            value, (MOAClassifier, MOARegressor, MOAAnomalyDetector, MOAClusterer)
+        ):
             option.setCurrentObject(value.moa_learner)
-        elif hasattr(value, "moa_detector"):
+        elif isinstance(value, MOADriftDetector):
             option.setCurrentObject(value.moa_detector)
         else:
             option.setCurrentObject(value)
