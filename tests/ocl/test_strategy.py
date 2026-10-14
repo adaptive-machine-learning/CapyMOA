@@ -1,4 +1,3 @@
-import os
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from functools import partial
@@ -229,10 +228,6 @@ TEST_CASES: list[Case] = [
 
 @pytest.mark.parametrize("case", TEST_CASES, ids=[test.name for test in TEST_CASES])
 def test_ocl_classifier(case: Case):
-    if os.environ.get("CI") == "true" and (
-        "SLDA" in case.name or "RanPAC" in case.name
-    ):
-        pytest.skip("Skipping SLDA case on CI due to unreliable dataset download")
     scenario = TinySplitMNIST()
 
     # Set random seeds for reproducibility
