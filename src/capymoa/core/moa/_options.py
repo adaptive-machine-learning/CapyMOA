@@ -63,11 +63,20 @@ def _set_option_value(option: Any, value: Any) -> None:
         elif isinstance(
             value, (MOAClassifier, MOARegressor, MOAAnomalyDetector, MOAClusterer)
         ):
-            option.setCurrentObject(value.moa_learner)
+            # Copy so MOA does not reset or change the user's learner.
+            option.setCurrentObject(value.moa_learner.copy())
         elif isinstance(value, MOADriftDetector):
-            option.setCurrentObject(value.moa_detector)
+            # Copy so MOA does not reset or change the user's detector.
+            option.setCurrentObject(value.moa_detector.copy())
         else:
-            option.setCurrentObject(value)
+            try:
+                option.setCurrentObject(value)
+            except TypeError as e:
+                raise TypeError(
+                    f"Cannot set MOA option {str(option.getName())!r} to a "
+                    f"{type(value).__name__}. Expected a CLI string, a CapyMOA MOA "
+                    "wrapper, or a Java object."
+                ) from e
     elif isinstance(option, _FlagOption):
         option.setValue(bool(value))
     else:

@@ -107,7 +107,12 @@ class Option:
 def get_options(abstract_options: AbstractOptionHandler) -> Sequence[Option]:
     """Get the options of an object as a list."""
     options = abstract_options.getOptions().getOptionArray()
-    return [Option.from_javacliparser(opt) for opt in options]
+    # Skip random_seed: the template has its own random_seed parameter.
+    return [
+        Option.from_javacliparser(opt)
+        for opt in options
+        if camel_to_snake(str(opt.getName())) != "random_seed"
+    ]
 
 
 @click.command()

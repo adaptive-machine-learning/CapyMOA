@@ -41,6 +41,7 @@ class MOARegressor(Regressor):
     def __init__(
         self,
         schema=None,
+        CLI: None = None,
         random_seed=1,
         moa_learner=None,
         *,
@@ -61,7 +62,6 @@ class MOARegressor(Regressor):
         """
         super().__init__(schema=schema, random_seed=random_seed)
         self.CLI = CLI
-        self.options = options
         self.moa_learner = moa_learner
 
         if random_seed is not None:

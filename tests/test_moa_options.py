@@ -1,4 +1,6 @@
+import numpy as np
 import pytest
+from moa.classifiers.meta import OzaBag as JOzaBag
 from moa.classifiers.trees import HoeffdingTree as JHoeffdingTree
 
 import capymoa  # noqa: F401 (initializes JPype with MOA)
@@ -65,6 +67,48 @@ def test_online_bagging_java_base_learner():
     assert java_results.cumulative.accuracy() == capymoa_results.cumulative.accuracy()
 
 
-def test_online_bagging_minibatch_builds():
+def test_wrapper_base_learner_not_mutated():
+    """A CapyMOA wrapper used as base learner keeps its predictions."""
+    stream = ElectricityTiny()
+    schema = stream.get_schema()
+    tree = HoeffdingTree(schema)
+    for _ in range(200):
+        tree.train(stream.next_instance())
+    test_instances = [stream.next_instance() for _ in range(20)]
+    before = [tree.predict_proba(i) for i in test_instances]
+
+    OnlineBagging(schema, base_learner=tree, ensemble_size=3)
+    after = [tree.predict_proba(i) for i in test_instances]
+
+    for b, a in zip(before, after):
+        np.testing.assert_allclose(b, a)
+
+
+def test_bad_class_option_value_raises():
+    """A value that is not a CLI string, wrapper or Java object raises TypeError."""
+    with pytest.raises(TypeError, match="Cannot set MOA option"):
+        set_moa_options(JOzaBag(), options={"baseLearner": object()})
+
+
+def test_multichoice_option():
+    """A multichoice option accepts a label name and stores it."""
+    ht = JHoeffdingTree()
+    set_moa_options(ht, options={"leafprediction": "MC"})
+    assert str(ht.getOptions().getOption("leafprediction").getChosenLabel()) == "MC"
+
+
+def test_online_bagging_minibatch_trains():
+    """OnlineBagging with number_of_jobs trains and beats 50% accuracy."""
     schema = ElectricityTiny().get_schema()
-    OnlineBagging(schema, ensemble_size=3, number_of_jobs=2)
+    learner = OnlineBagging(schema, ensemble_size=3, number_of_jobs=2)
+    assert learner.minibatch_size == 25
+    results = prequential_evaluation(ElectricityTiny(), learner, max_instances=100)
+    # Shut down MOA's thread pool, or its threads keep the JVM alive at exit.
+    learner.moa_learner.trainingHasEnded()
+    assert results.cumulative.accuracy() > 50
+
+    learner = OnlineBagging(schema, ensemble_size=3, number_of_jobs=2, minibatch_size=5)
+    results = prequential_evaluation(ElectricityTiny(), learner, max_instances=100)
+    # Shut down MOA's thread pool, or its threads keep the JVM alive at exit.
+    learner.moa_learner.trainingHasEnded()
+    assert results.cumulative.accuracy() > 50

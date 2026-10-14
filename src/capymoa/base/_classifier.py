@@ -95,6 +95,7 @@ class MOAClassifier(Classifier):
         self,
         moa_learner,
         schema=None,
+        CLI: None = None,
         random_seed=1,
         *,
         options: Mapping[str, Any],
@@ -114,7 +115,6 @@ class MOAClassifier(Classifier):
         """
         super().__init__(schema=schema, random_seed=random_seed)
         self.CLI = CLI
-        self.options = options
         # If moa_learner is a class identifier instead of an object
         if isinstance(moa_learner, type):
             if isinstance(moa_learner, _jpype._JClass):
