@@ -42,24 +42,15 @@ class PredictionIntervalResults(RunInfo):
     """Results of evaluating a prediction interval learner.
 
     See :func:`~capymoa.uncertainty.evaluate_prediction_interval`.
-
-    .. warning::
-
-       ``mae``, ``rmse``, ``rmae`` and ``rrmse`` over the whole stream are
-       wrong, because of a bug in MOA's ``BasicPredictionIntervalEvaluator``. It
-       counts each instance twice, and ``mae``, ``rmae`` and ``rrmse`` score the
-       lower bound, not the point. So ``mae`` is half the mean error of the lower
-       bound, and ``rmse`` is the RMSE of the point divided by
-       :math:`\\sqrt{2}`. The windowed values are right.
     """
 
-    #: Mean absolute error. Wrong, see the warning above.
+    #: Mean absolute error.
     mae: float
-    #: Root mean squared error. Wrong, see the warning above.
+    #: Root mean squared error.
     rmse: float
-    #: Relative absolute error. Wrong, see the warning above.
+    #: Relative absolute error.
     rmae: float
-    #: Relative root mean squared error. Wrong, see the warning above.
+    #: Relative root mean squared error.
     rrmse: float
     #: Percent of targets inside the interval.
     coverage: float

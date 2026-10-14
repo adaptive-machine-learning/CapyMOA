@@ -27,19 +27,6 @@ Breaking changes
   ``write_to_file`` is gone. Results are plain dicts, so save them with
   :mod:`pickle`.
 
-Known issue
-~~~~~~~~~~~
-
-For prediction intervals, ``mae``, ``rmse``, ``rmae`` and ``rrmse`` over the
-whole stream are wrong. This is a bug in MOA's
-``BasicPredictionIntervalEvaluator``, and it is the same as in 0.15. In each
-call to ``addResult`` it counts the instance twice, and ``mae``, ``rmae`` and
-``rrmse`` score the lower bound, not the point. So ``mae`` is half the mean
-error of the lower bound, and ``rmse`` is the point RMSE divided by
-:math:`\sqrt{2}`. The windowed values and the interval metrics
-(``coverage``, ``average_length`` and ``nmpiw``) are right. The fix will come
-in a future MOA release.
-
 New metrics
 ~~~~~~~~~~~
 
