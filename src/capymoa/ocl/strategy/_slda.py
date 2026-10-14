@@ -202,8 +202,16 @@ class RanPAC(SLDA):
     ``ridge`` together with ``projection_dim``.
 
     Unlike the original, this version does not adapt the backbone on the first
-    task, and it uses an SLDA head in place of a ridge regression head (a close
-    relative of LDA).
+    task. The head also differs. The original solves ridge regression with the
+    uncentred Gram matrix of the random features :math:`H` and one-hot labels
+    :math:`Y`:
+
+    ..  math::
+
+        W_o = (H^\top H + \lambda I)^{-1} H^\top Y
+
+    This version uses the SLDA head, which inverts the shared covariance
+    :math:`\Sigma + \lambda I` and adds a class prior bias.
 
     >>> from capymoa.ocl.strategy import RanPAC
     >>> from capymoa.ocl.datasets import TinySplitMNIST
