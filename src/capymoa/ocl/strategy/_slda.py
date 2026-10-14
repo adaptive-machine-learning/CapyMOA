@@ -201,11 +201,9 @@ class RanPAC(SLDA):
     more linearly separable, which helps the linear SLDA head [#f0]_. Tune
     ``ridge`` together with ``projection_dim``.
 
-    .. note::
-
-        This follows the PAKDD 2025 tutorial [#f1]_. The original RanPAC also
-        adapts the backbone on the first task and uses a ridge regression head
-        (a close relative of LDA). Both are left out here.
+    Unlike the original, this version does not adapt the backbone on the first
+    task, and it uses an SLDA head in place of a ridge regression head (a close
+    relative of LDA).
 
     >>> from capymoa.ocl.strategy import RanPAC
     >>> from capymoa.ocl.datasets import TinySplitMNIST
@@ -223,8 +221,6 @@ class RanPAC(SLDA):
     .. [#f0] `McDonnell, M. D., Gong, D., Parvaneh, A., Abbasnejad, E., & van den
               Hengel, A. (2023). RanPAC: Random Projections and Pre-trained Models for
               Continual Learning. NeurIPS 2023. <https://arxiv.org/abs/2307.02251>`_
-    .. [#f1] `PAKDD 2025 tutorial, notebook 03 "Pretrained Models and Prototypes".
-              <https://github.com/adaptive-machine-learning/PAKDD2025/blob/main/notebooks/03_prototype.ipynb>`_
     """
 
     def __init__(
