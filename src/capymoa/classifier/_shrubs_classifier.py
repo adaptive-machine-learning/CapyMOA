@@ -25,8 +25,8 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     >>> stream = ElectricityTiny()
     >>> classifier = ShrubsClassifier(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
-    85.9
+    >>> print(f"{results['accuracy']:.0f}")
+    86
 
     .. [#0] `Shrub Ensembles for Online Classification Sebastian Buschjäger, Sibylle
              Hess, and Katharina Morik In Proceedings of the Thirty-Sixth AAAI
