@@ -2,6 +2,7 @@
 
 from . import l2p
 from ._der import DER
+from ._derpp import DERPP
 from ._ewc import EWC
 from ._experience_replay import ExperienceReplay
 from ._gdumb import GDumb
@@ -15,6 +16,7 @@ from ._slda import SLDA
 
 __all__ = [
     "DER",
+    "DERPP",
     "EWC",
     "LWF",
     "MAS",
