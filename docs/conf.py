@@ -301,6 +301,8 @@ html_theme_options = {
             "type": "fontawesome",
         },
     ],
+    # Show five links, then put Release Notes in a "More" dropdown.
+    "header_links_before_dropdown": 5,
     "secondary_sidebar_items": [
         "page-toc",
         "edit-this-page",
