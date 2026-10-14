@@ -40,9 +40,10 @@ class SLDA(BatchClassifier):
 
     Streaming Linear Discriminant Analysis (SLDA) [#f0]_ is a prototype classifier.
     It keeps a running mean per class and one shared covariance matrix for all
-    classes. Used on top of a frozen pre-trained model, it does continual learning
-    with no forgetting [#f0]_. It does not forget old data, so it may not handle
-    concept drift well.
+    classes. Used on top of a frozen pre-trained model, it learns incrementally
+    without forgetting [#f0]_. However, it cannot learn a deep representation
+    online, so it relies on the quality of the pre-trained features. It also never
+    forgets old data, so it may not handle concept drift well.
 
     Other streaming Gaussian discriminant methods for continual learning are
     RanPAC [#f1]_ (see :class:`RanPAC`), FeCAM [#f2]_, RanDumb [#f3]_, and the
@@ -201,9 +202,9 @@ class RanPAC(SLDA):
     more linearly separable, which helps the linear SLDA head [#f0]_. Tune
     ``ridge`` together with ``projection_dim``.
 
-    Unlike the original, this version does not adapt the backbone on the first
-    task. Its head also inverts the class-shared covariance (as in LDA) rather
-    than the uncentred Gram matrix of the random features.
+    Unlike the original RanPAC, this version does not adapt the backbone on the
+    first task. Its head also inverts the class-shared covariance (as in LDA)
+    rather than the uncentred Gram matrix of the random features.
 
     >>> from capymoa.ocl.strategy import RanPAC
     >>> from capymoa.ocl.datasets import TinySplitMNIST
