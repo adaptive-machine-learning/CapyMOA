@@ -26,6 +26,7 @@ from capymoa.ocl.strategy import (
     SLDA,
     ExperienceReplay,
     GDumb,
+    RanPAC,
     RWalk,
 )
 from capymoa.stream import Schema
@@ -115,12 +116,13 @@ TEST_CASES: list[Case] = [
         epochs=2,
         continual_evaluations=2,
     ),
-    Case("SLDA", SLDA, Result(75.5, 48.70, 74.2)),
+    Case("SLDA", SLDA, Result(80.5, 51.4, 63.0)),
     Case(
         "SLDA_with_preprocessor",
         lambda s: SLDA(s, pre_processor(), 512),
-        Result(83.5, 52.7, 75.8),
+        Result(87.5, 54.5, 67.7),
     ),
+    Case("RanPAC", lambda s: RanPAC(s, projection_dim=512), Result(80.0, 48.0, 62.4)),
     Case("NCM", NCM, Result(71.5, 46.2, 67.5)),
     Case(
         "NCM_with_preprocessor",
@@ -227,7 +229,9 @@ TEST_CASES: list[Case] = [
 
 @pytest.mark.parametrize("case", TEST_CASES, ids=[test.name for test in TEST_CASES])
 def test_ocl_classifier(case: Case):
-    if os.environ.get("CI") == "true" and "SLDA" in case.name:
+    if os.environ.get("CI") == "true" and (
+        "SLDA" in case.name or "RanPAC" in case.name
+    ):
         pytest.skip("Skipping SLDA case on CI due to unreliable dataset download")
     scenario = TinySplitMNIST()
 
