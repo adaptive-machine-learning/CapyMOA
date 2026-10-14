@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from typing import Any, overload
 
 import numpy as np
 from jpype import _jpype
@@ -6,6 +8,7 @@ from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
 from capymoa.core import Instance, LabeledInstance, LabelIndex, LabelProbabilities
+from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
 
 
@@ -78,9 +81,40 @@ class MOAClassifier(Classifier):
     - moa_learner: The MOA learner object or class identifier.
     """
 
-    def __init__(self, moa_learner, schema=None, CLI=None, random_seed=1):
+    @overload
+    def __init__(
+        self,
+        moa_learner,
+        schema=None,
+        CLI: str | None = None,
+        random_seed=1,
+    ): ...
+
+    @overload
+    def __init__(
+        self,
+        moa_learner,
+        schema=None,
+        random_seed=1,
+        *,
+        options: Mapping[str, Any],
+    ): ...
+
+    def __init__(
+        self,
+        moa_learner,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        options: Mapping[str, Any] | None = None,
+    ):
+        """
+        :param options: MOA option names mapped to values. Use instead of CLI for values
+            with no CLI string, such as Java objects.
+        """
         super().__init__(schema=schema, random_seed=random_seed)
         self.CLI = CLI
+        self.options = options
         # If moa_learner is a class identifier instead of an object
         if isinstance(moa_learner, type):
             if isinstance(moa_learner, _jpype._JClass):
@@ -94,10 +128,9 @@ class MOAClassifier(Classifier):
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())
 
-        # If the CLI is None, we assume the object has already been configured
-        # or that default values should be used.
-        if self.CLI is not None:
-            self.moa_learner.getOptions().setViaCLIString(CLI)
+        # If the CLI and options are None, we assume the object has already been
+        # configured or that default values should be used.
+        set_moa_options(self.moa_learner, self.CLI, options)
 
         self.moa_learner.prepareForUse()
         self.moa_learner.resetLearningImpl()

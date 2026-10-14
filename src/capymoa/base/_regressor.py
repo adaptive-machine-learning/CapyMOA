@@ -1,9 +1,12 @@
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from typing import Any, overload
 
 from sklearn.base import RegressorMixin as _SKRegressorMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
 from capymoa.core import Instance, RegressionInstance, TargetValue
+from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
 
 
@@ -25,9 +28,40 @@ class Regressor(LearnerParamsMixin, ABC):
 
 
 class MOARegressor(Regressor):
-    def __init__(self, schema=None, CLI=None, random_seed=1, moa_learner=None):
+    @overload
+    def __init__(
+        self,
+        schema=None,
+        CLI: str | None = None,
+        random_seed=1,
+        moa_learner=None,
+    ): ...
+
+    @overload
+    def __init__(
+        self,
+        schema=None,
+        random_seed=1,
+        moa_learner=None,
+        *,
+        options: Mapping[str, Any],
+    ): ...
+
+    def __init__(
+        self,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        moa_learner=None,
+        options: Mapping[str, Any] | None = None,
+    ):
+        """
+        :param options: MOA option names mapped to values. Use instead of CLI for values
+            with no CLI string, such as Java objects.
+        """
         super().__init__(schema=schema, random_seed=random_seed)
         self.CLI = CLI
+        self.options = options
         self.moa_learner = moa_learner
 
         if random_seed is not None:
@@ -36,8 +70,7 @@ class MOARegressor(Regressor):
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())
 
-        if self.CLI is not None:
-            self.moa_learner.getOptions().setViaCLIString(CLI)
+        set_moa_options(self.moa_learner, self.CLI, options)
 
         self.moa_learner.prepareForUse()
         self.moa_learner.resetLearning()

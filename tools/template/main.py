@@ -6,12 +6,15 @@ from typing import Literal
 
 import click
 import jpype
-from com.github import javacliparser
 from jinja2 import Environment, FileSystemLoader
+
+# isort: off
+import capymoa  # Needed to initialize JPype with MOA #noqa: F401
+from com.github import javacliparser
 from moa.options import AbstractOptionHandler
 from moa.options import ClassOption as MoaClassOption
 
-import capymoa  # Needed to initialize JPype with MOA #noqa: F401
+# isort: on
 
 
 def camel_to_snake(name: str) -> str:
@@ -23,6 +26,8 @@ def camel_to_snake(name: str) -> str:
 class Option:
     name: str
     """Variable name in snake case."""
+    java_name: str
+    """Name of the option in MOA, used as the key in the options dict."""
     doc: str
     """Documentation string for the option."""
     cli_char: str
@@ -46,7 +51,8 @@ class Option:
     @staticmethod
     def from_javacliparser(option: javacliparser.Option) -> "Option":
         """Convert a ``javacliparser.Option`` to an ``Option`` dataclass."""
-        name = camel_to_snake(str(option.getName()))
+        java_name = str(option.getName())
+        name = camel_to_snake(java_name)
         doc = str(option.getPurpose())
         cli_char = str(option.getCLIChar())
         type_ = "Any"
@@ -77,7 +83,7 @@ class Option:
             doc += "\n\n" + "\n".join(definition_list)
             option_type = "MultiChoiceOption"
         elif isinstance(option, MoaClassOption):
-            type_ = "str | MOAClassifier"
+            type_ = "str | Any"
             default = f'"{option.getValueAsCLIString()}"'
             option_type = "MoaClassOption"
         else:
@@ -89,6 +95,7 @@ class Option:
 
         return Option(
             name=name,
+            java_name=java_name,
             cli_char=cli_char,
             doc=doc,
             type=type_,
