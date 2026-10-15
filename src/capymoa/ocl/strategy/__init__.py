@@ -11,7 +11,7 @@ from ._ncm import NCM
 from ._rar import RAR
 from ._rwalk import RWalk
 from ._si import SI
-from ._slda import SLDA
+from ._slda import SLDA, RanPAC
 
 __all__ = [
     "DER",
@@ -25,5 +25,6 @@ __all__ = [
     "ExperienceReplay",
     "GDumb",
     "RWalk",
+    "RanPAC",
     "l2p",
 ]
