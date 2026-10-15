@@ -2,7 +2,16 @@
 
 from typing import NotRequired
 
-from capymoa.classifier.evaluate import ClassifierResults
+from capymoa.classifier.evaluate import ClassifierCumulative, ClassifierResults
+
+
+class SSLCumulative(ClassifierCumulative):
+    """The metrics over the whole stream of a semi-supervised classifier."""
+
+    #: Accuracy of the pseudo labels that the learner gave to unlabeled
+    #: instances, from 0 to 1. Only set by the Java loop, if the learner
+    #: makes pseudo labels.
+    pseudo_label_accuracy: NotRequired[float]
 
 
 class SSLResults(ClassifierResults):
@@ -22,7 +31,6 @@ class SSLResults(ClassifierResults):
     unlabeled: int
     #: ``unlabeled`` divided by ``instances``.
     unlabeled_ratio: float
-    #: Accuracy of the pseudo labels that the learner gave to unlabeled
-    #: instances, from 0 to 1. Only set by the Java loop, if the learner
-    #: makes pseudo labels.
-    pseudo_label_accuracy: NotRequired[float]
+    #: The metrics over the whole stream (see
+    #: :class:`~capymoa.ssl.evaluate.SSLCumulative`).
+    cumulative: SSLCumulative

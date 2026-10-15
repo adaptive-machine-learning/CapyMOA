@@ -22,7 +22,7 @@ class OnlineSmoothBoost(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = OnlineSmoothBoost(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     87.8
 
     .. [#0] `An Online Boosting Algorithm with Theoretical Justifications. Shang-Tse

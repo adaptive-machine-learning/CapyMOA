@@ -327,7 +327,7 @@ def test_pipeline_matches_equivalent_manual_loop(elec):
     )
     results = evaluate_classifier(stream_b, pipeline, optimise=False)
 
-    assert results["accuracy"] == pytest.approx(expected)
+    assert results["cumulative"]["accuracy"] == pytest.approx(expected)
 
 
 def test_transformer_pipeline_matches_equivalent_manual_loop():
@@ -358,7 +358,7 @@ def test_transformer_pipeline_matches_equivalent_manual_loop():
     )
     results = evaluate_classifier(stream_b, pipeline, optimise=False)
 
-    assert results["accuracy"] == pytest.approx(expected)
+    assert results["cumulative"]["accuracy"] == pytest.approx(expected)
 
 
 # ============================================================================

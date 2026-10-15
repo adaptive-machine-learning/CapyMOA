@@ -17,7 +17,7 @@ class SAMkNN(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = SAMkNN(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     78.6
 
     .. [#0] `Losing, V., Hammer, B., & Wersing, H. (2016, December). KNN classifier with

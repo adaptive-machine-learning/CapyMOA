@@ -37,7 +37,7 @@ class HoeffdingTree(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = HoeffdingTree(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     84.4
 
     .. [#0] `G. Hulten, L. Spencer, and P. Domingos. Mining time-changing data streams.

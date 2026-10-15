@@ -66,7 +66,7 @@ HAT = MOAClassifier(schema=stream.get_schema(), moa_learner=HoeffdingAdaptiveTre
 results_HAT = evaluate_classifier(stream=stream, learner=HAT, window_size=500)
 
 print(
-    f"Cumulative accuracy = {results_HAT['accuracy']}, wall-clock time: {results_HAT['wallclock']}"
+    f"Cumulative accuracy = {results_HAT['cumulative']['accuracy']}, wall-clock time: {results_HAT['wallclock']}"
 )
 import pandas as pd
 
@@ -129,9 +129,9 @@ ob_results_norm = evaluate_classifier(
 ob_results = evaluate_classifier(stream=stream, learner=ob_learner)
 
 print(
-    f"\tAccuracy with online normalisation: {ob_results_norm['accuracy']}"
+    f"\tAccuracy with online normalisation: {ob_results_norm['cumulative']['accuracy']}"
 )
-print(f"\tAccuracy without normalisation: {ob_results['accuracy']}")
+print(f"\tAccuracy without normalisation: {ob_results['cumulative']['accuracy']}")
 
 # %% [markdown]
 # ## Comparing a MOA and sklearn models
@@ -261,7 +261,7 @@ results_NEW_OB = evaluate_classifier(
     stream=elec_stream, learner=NEW_OB, window_size=4500
 )
 
-print(f"Accuracy: {results_NEW_OB['accuracy']}")
+print(f"Accuracy: {results_NEW_OB['cumulative']['accuracy']}")
 
 # %% [markdown]
 # ## Using TensorBoard with PyTorch in CapyMOA
@@ -649,7 +649,7 @@ results = evaluate_classifier(
     stream=SEA3drifts, learner=arf, window_size=5000, max_instances=50000
 )
 
-print(f"Cumulative accuracy = {results['accuracy']}")
+print(f"Cumulative accuracy = {results['cumulative']['accuracy']}")
 print(f"Wallclock = {results['wallclock']} seconds")
 display(pd.DataFrame(results["windowed"]))
 plot_windowed_results(results, metric="accuracy")
@@ -700,16 +700,16 @@ results_autoclass = evaluate_classifier(
 )
 
 print(
-    f"[HT] Cumulative accuracy = {results_ht['accuracy']}, wall-clock time: {results_ht['wallclock']}"
+    f"[HT] Cumulative accuracy = {results_ht['cumulative']['accuracy']}, wall-clock time: {results_ht['wallclock']}"
 )
 print(
-    f"[HAT] Cumulative accuracy = {results_hat['accuracy']}, wall-clock time: {results_hat['wallclock']}"
+    f"[HAT] Cumulative accuracy = {results_hat['cumulative']['accuracy']}, wall-clock time: {results_hat['wallclock']}"
 )
 print(
-    f"[KNN] Cumulative accuracy = {results_knn['accuracy']}, wall-clock time: {results_knn['wallclock']}"
+    f"[KNN] Cumulative accuracy = {results_knn['cumulative']['accuracy']}, wall-clock time: {results_knn['wallclock']}"
 )
 print(
-    f"[AUTOCLASS] Cumulative accuracy = {results_autoclass['accuracy']}, wall-clock time: {results_autoclass['wallclock']}"
+    f"[AUTOCLASS] Cumulative accuracy = {results_autoclass['cumulative']['accuracy']}, wall-clock time: {results_autoclass['wallclock']}"
 )
 plot_windowed_results(
     results_ht, results_knn, results_hat, results_autoclass, metric="accuracy"

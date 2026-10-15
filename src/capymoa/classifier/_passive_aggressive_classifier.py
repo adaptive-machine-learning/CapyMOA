@@ -27,7 +27,7 @@ class PassiveAggressiveClassifier(SKClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = PassiveAggressiveClassifier(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     84.3
 
     .. [#0] `Online Passive-Aggressive Algorithms K. Crammer, O. Dekel, J. Keshat, S.

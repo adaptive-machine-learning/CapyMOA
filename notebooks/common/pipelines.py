@@ -400,8 +400,8 @@ results_arf_baseline = evaluate_classifier(
     stream=elec_stream, learner=arf, window_size=4500
 )
 
-print(f"{arf}: {results_arf_baseline['accuracy']}")
-print(f"{pipeline_arf}: {results_arf_pipeline['accuracy']}")
+print(f"{arf}: {results_arf_baseline['cumulative']['accuracy']}")
+print(f"{pipeline_arf}: {results_arf_pipeline['cumulative']['accuracy']}")
 plot_windowed_results(
     results_arf_pipeline, results_arf_baseline, metric="accuracy", figure_path=None
 )

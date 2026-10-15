@@ -131,11 +131,8 @@ class PerClassWindows(TypedDict):
     f1_score: np.ndarray
 
 
-class ClassifierResults(RunInfo):
-    """Results of evaluating a classifier. See :func:`~capymoa.classifier.evaluate_classifier`.
-
-    Metrics are over the whole stream.
-    """
+class ClassifierCumulative(TypedDict):
+    """The metrics over the whole stream of a classifier."""
 
     accuracy: float
     r"""Percent of correct predictions.
@@ -212,9 +209,18 @@ class ClassifierResults(RunInfo):
     """
     #: Area under the ROC curve (0 to 1). Absent if it is not defined.
     roc_auc: NotRequired[float]
-    #: The metrics of each class in columns (see
+
+
+class ClassifierResults(RunInfo):
+    """Results of evaluating a classifier. See :func:`~capymoa.classifier.evaluate_classifier`."""
+
+    #: The metrics over the whole stream (see
+    #: :class:`~capymoa.classifier.evaluate.ClassifierCumulative`).
+    cumulative: ClassifierCumulative
+    #: The metrics of each class over the whole stream, in columns (see
     #: :class:`~capymoa.classifier.evaluate.PerClass`).
-    per_class: PerClass
+    cumulative_per_class: PerClass
+
     #: The metrics of each window (see
     #: :class:`~capymoa.classifier.evaluate.ClassifierWindows`). Absent if
     #: ``window_size`` is absent.

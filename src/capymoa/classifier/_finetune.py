@@ -26,7 +26,7 @@ class Finetune(BatchClassifier):
     ...     optimizer_params={"lr": 0.01},
     ... )
     >>> results = evaluate_classifier(stream, learner, batch_size=32)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     62.4
 
     Alternatively, you can use a custom model and optimizer:
@@ -39,7 +39,7 @@ class Finetune(BatchClassifier):
     ...     optimizer=optimizer,
     ... )
     >>> results = evaluate_classifier(stream, learner, batch_size=32)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     60.4
 
     """

@@ -32,7 +32,7 @@ def plot_prediction_interval(
 ):
     # check if the results are all prequential
     for result in results:
-        if "coverage" not in result:
+        if "coverage" not in result["cumulative"]:
             raise ValueError(
                 "Cannot process results that do not include prediction interval results."
             )

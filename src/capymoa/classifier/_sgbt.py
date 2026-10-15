@@ -24,7 +24,7 @@ class StreamingGradientBoostedTrees(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = StreamingGradientBoostedTrees(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     86.3
     >>> learner = StreamingGradientBoostedTrees(
     ...     stream.get_schema(),
@@ -32,7 +32,7 @@ class StreamingGradientBoostedTrees(MOAClassifier):
     ...     boosting_iterations=10
     ... )
     >>> results = evaluate_classifier(stream, learner, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     86.8
 
     .. [#0] `Gradient boosted trees for evolving data streams. Nuwan Gunasekara,

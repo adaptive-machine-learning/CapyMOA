@@ -46,7 +46,7 @@ learner = AdaptiveRandomForestClassifier(schema=stream.get_schema(), ensemble_si
 
 results = evaluate_classifier(stream=stream, learner=learner, max_instances=5000)
 
-print(f"Accuracy: {results['accuracy']:.2f}")
+print(f"Accuracy: {results['cumulative']['accuracy']:.2f}")
 
 with open("capymoa_ARF_model.pkl", "wb") as f:
     save_model(learner, f)
@@ -74,7 +74,7 @@ results = evaluate_classifier(
     stream=stream, learner=restored_learner, max_instances=5000
 )
 
-print(f"Updated accuracy: {results['accuracy']:.2f}")
+print(f"Updated accuracy: {results['cumulative']['accuracy']:.2f}")
 
 # %% [markdown]
 # ## Cleanup 

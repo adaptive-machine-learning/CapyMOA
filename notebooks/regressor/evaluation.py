@@ -62,8 +62,8 @@ ARF_results = evaluate_regressor(
 )
 
 print(
-    f"{kNN_results['learner']} [cumulative] RMSE = {kNN_results['rmse']} and \
-    {ARF_results['learner']}  [cumulative] RMSE = {ARF_results['rmse']}"
+    f"{kNN_results['learner']} [cumulative] RMSE = {kNN_results['cumulative']['rmse']} and \
+    {ARF_results['learner']}  [cumulative] RMSE = {ARF_results["cumulative"]['rmse']}"
 )
 
 plot_windowed_results(kNN_results, ARF_results, metric="rmse")
@@ -93,13 +93,17 @@ for learner_id in learners:
     if learner_id in results:
         result = results[learner_id]
         print(
-            f"{learner_id}, RMSE: {result['rmse']:.2f}, adjusted R2: {result['adjusted_r2']:.2f}"
+            f"{learner_id}, RMSE: {result['cumulative']['rmse']:.2f}, adjusted R2: {result['cumulative']['adjusted_r2']:.2f}"
         )
 
 # Tip: a list of results makes a table with one row per learner.
 import pandas as pd
 
-display(pd.DataFrame(list(results.values()))[["learner", "rmse", "adjusted_r2"]])
+display(
+    pd.DataFrame(
+        [{"learner": r["learner"], **r["cumulative"]} for r in results.values()]
+    )[["learner", "rmse", "adjusted_r2"]]
+)
 plot_windowed_results(
     results["kNNReg_k5"],
     results["kNNReg_k2"],

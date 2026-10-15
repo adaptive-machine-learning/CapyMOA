@@ -28,7 +28,7 @@ class OzaBoost(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = OzaBoost(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     88.8
 
     .. [#0] `Online bagging and boosting. Nikunj Oza, Stuart Russell. Artiﬁcial

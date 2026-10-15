@@ -119,7 +119,7 @@ results_sklearn_SGD = evaluate_classifier(
     stream=elec_stream, learner=sklearn_SGD, window_size=4500
 )
 
-results_sklearn_SGD["accuracy"]
+results_sklearn_SGD["cumulative"]["accuracy"]
 
 # %% [markdown]
 # ## Further abstractions

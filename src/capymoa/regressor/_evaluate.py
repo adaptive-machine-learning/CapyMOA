@@ -80,7 +80,7 @@ def evaluate_regressor(
     >>> results = evaluate_regressor(
     ...     stream, FIMTDD(stream.get_schema()), max_instances=1000
     ... )
-    >>> print(f"{results['rmse']:.2f}")
+    >>> print(f"{results['cumulative']['rmse']:.2f}")
     7.36
 
     Give a mapping of names to learners to get a dict of results by name. The

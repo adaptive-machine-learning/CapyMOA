@@ -134,13 +134,13 @@ results_ob_ht = evaluate_classifier(
     stream=elec_stream, learner=ob_ht, window_size=4500
 )
 print(
-    f"CustomOnlineBagging(HT) accuracy: {results_ob_ht['accuracy']}, wallclock: {results_ob_ht['wallclock']}"
+    f"CustomOnlineBagging(HT) accuracy: {results_ob_ht['cumulative']['accuracy']}, wallclock: {results_ob_ht['wallclock']}"
 )
 results_ob_sgd = evaluate_classifier(
     stream=elec_stream, learner=ob_ht, window_size=4500
 )
 print(
-    f"CustomOnlineBagging(SGD) accuracy: {results_ob_sgd['accuracy']}, wallclock: {results_ob_sgd['wallclock']}"
+    f"CustomOnlineBagging(SGD) accuracy: {results_ob_sgd['cumulative']['accuracy']}, wallclock: {results_ob_sgd['wallclock']}"
 )
 
 results_ob_ht["learner"] = "OB(HT)"

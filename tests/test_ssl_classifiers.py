@@ -37,7 +37,7 @@ def assert_ssl_evaluation(
         max_instances=max_instances,
     )
 
-    assert results["accuracy"] == pytest.approx(expectation), (
+    assert results["cumulative"]["accuracy"] == pytest.approx(expectation), (
         f"Expected accuracy of {expectation} but got {results['cumulative'].accuracy()}"
         + f" for learner {learner} on stream {stream}"
     )
@@ -138,7 +138,7 @@ def test_ssl_delay_length_in_python_loop():
             delay_length=delay,
             optimise=False,
         )
-        assert results["accuracy"] > 0
+        assert results["cumulative"]["accuracy"] > 0
         calls[delay] = learner.labeled_train_calls
 
     # Labels queued within ``delay`` of the end are never delivered, so a delay

@@ -145,7 +145,7 @@ def plot_regression_results(
 ):
     # check if the results are prequential regression results
     for result in results:
-        if "rmse" not in result:
+        if "rmse" not in result["cumulative"]:
             raise ValueError(
                 "Cannot process results that do not include regression results."
             )

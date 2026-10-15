@@ -554,7 +554,7 @@ def capymoa_experiment(
             )
             chunk_results.append(result)
             processed_instances += chunk_size
-            total_correct += (result["accuracy"] / 100.0) * chunk_size
+            total_correct += (result["cumulative"]["accuracy"] / 100.0) * chunk_size
             total_wallclock += result["wallclock"]
             total_cpu_time += result["cpu_time"]
             if pulse_recorder is not None:
@@ -580,8 +580,12 @@ def capymoa_experiment(
         repetition += 1
 
     # Calculate average and std for accuracy, wallclock, and cpu_time
-    avg_accuracy = sum(result["accuracy"] for result in raw_results) / repetitions
-    std_accuracy = pd.Series([result["accuracy"] for result in raw_results]).std()
+    avg_accuracy = (
+        sum(result["cumulative"]["accuracy"] for result in raw_results) / repetitions
+    )
+    std_accuracy = pd.Series(
+        [result["cumulative"]["accuracy"] for result in raw_results]
+    ).std()
     avg_wallclock = sum(result["wallclock"] for result in raw_results) / repetitions
     std_wallclock = pd.Series([result["wallclock"] for result in raw_results]).std()
     avg_cpu_time = sum(result["cpu_time"] for result in raw_results) / repetitions
@@ -717,8 +721,12 @@ def river_experiment(
         repetition += 1
 
     # Calculate average and std for accuracy, wallclock, and cpu_time
-    avg_accuracy = sum(result["accuracy"] for result in raw_results) / repetitions
-    std_accuracy = pd.Series([result["accuracy"] for result in raw_results]).std()
+    avg_accuracy = (
+        sum(result["cumulative"]["accuracy"] for result in raw_results) / repetitions
+    )
+    std_accuracy = pd.Series(
+        [result["cumulative"]["accuracy"] for result in raw_results]
+    ).std()
     avg_wallclock = sum(result["wallclock"] for result in raw_results) / repetitions
     std_wallclock = pd.Series([result["wallclock"] for result in raw_results]).std()
     avg_cpu_time = sum(result["cpu_time"] for result in raw_results) / repetitions

@@ -83,7 +83,7 @@ def plot_accuracy(results: OCLResults, ax: Axes | None = None) -> Axes:
             ttt["windowed"]["accuracy"] / 100,  # percentage to proportion
             label="Online Win. Acc.",
         )
-    hline(ttt["accuracy"] / 100, "Online Avg. Acc.", cmap(2))
+    hline(ttt["cumulative"]["accuracy"] / 100, "Online Avg. Acc.", cmap(2))
 
     ax.legend(ncol=3, frameon=False)
     ax.set_xlabel("Task")

@@ -62,7 +62,7 @@ Refer to the :ref:`setup` guide for other options, including CPU-only and dev de
    results = evaluate_classifier(stream, model)
 
    # 3. Success!
-   print(f"Accuracy: {results['accuracy']:.2f}%")
+   print(f"Accuracy: {results['cumulative']['accuracy']:.2f}%")
 
 Next, we recomend the :ref:`tutorials`.
 

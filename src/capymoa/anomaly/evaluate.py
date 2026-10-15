@@ -16,6 +16,7 @@ from moa.evaluation import (
     BasicAUCImbalancedPerformanceEvaluator,
     WindowAUCImbalancedPerformanceEvaluator,
 )
+from typing_extensions import TypedDict
 
 from capymoa._utils import _translate_metric_name
 from capymoa.evaluation.results import RunInfo, Windows
@@ -68,11 +69,8 @@ class AnomalyWindows(Windows):
     periodical_auc: np.ndarray
 
 
-class AnomalyResults(RunInfo):
-    """Results of evaluating an anomaly detector. See :func:`~capymoa.anomaly.evaluate_anomaly`.
-
-    Metrics are over the whole stream.
-    """
+class AnomalyCumulative(TypedDict):
+    """The metrics over the whole stream of an anomaly detector."""
 
     #: Area under the ROC curve of the anomaly scores (0 to 1).
     auc: float
@@ -91,6 +89,15 @@ class AnomalyResults(RunInfo):
     g_mean: float
     #: Ratio of positive to negative instances.
     pos_neg_ratio: float
+
+
+class AnomalyResults(RunInfo):
+    """Results of evaluating an anomaly detector. See :func:`~capymoa.anomaly.evaluate_anomaly`."""
+
+    #: The metrics over the whole stream (see
+    #: :class:`~capymoa.anomaly.evaluate.AnomalyCumulative`).
+    cumulative: AnomalyCumulative
+
     #: The metrics of each window (see
     #: :class:`~capymoa.anomaly.evaluate.AnomalyWindows`). Absent if ``window_size`` is
     #: absent.

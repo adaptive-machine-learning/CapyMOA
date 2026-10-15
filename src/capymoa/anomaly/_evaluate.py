@@ -96,7 +96,7 @@ def evaluate_anomaly(
     >>> results = evaluate_anomaly(
     ...     stream, HalfSpaceTrees(stream.get_schema()), max_instances=1000
     ... )
-    >>> print(f"{results['auc']:.2f}")
+    >>> print(f"{results['cumulative']['auc']:.2f}")
     0.38
 
     Give a mapping of names to detectors to get a dict of results by name. The

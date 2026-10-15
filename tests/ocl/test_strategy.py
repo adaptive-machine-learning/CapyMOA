@@ -260,7 +260,7 @@ def test_ocl_classifier(case: Case):
     actual = Result(
         r["accuracy_final"] * 100,
         r["anytime_accuracy_all_avg"] * 100,
-        r["ttt"]["accuracy"],
+        r["ttt"]["cumulative"]["accuracy"],
     )
     assert asdict(actual) == approx(asdict(case.expected)), f"Case {case.name} failed."
 

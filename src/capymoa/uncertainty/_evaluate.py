@@ -87,7 +87,7 @@ def evaluate_prediction_interval(
     >>> results = evaluate_prediction_interval(
     ...     stream, MVE(stream.get_schema()), max_instances=1000
     ... )
-    >>> print(f"{results['coverage']:.1f}")
+    >>> print(f"{results['cumulative']['coverage']:.1f}")
     97.8
 
     Give a mapping of names to learners to get a dict of results by name. The

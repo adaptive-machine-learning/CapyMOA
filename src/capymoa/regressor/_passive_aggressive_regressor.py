@@ -38,7 +38,7 @@ class PassiveAggressiveRegressor(SKRegressor):
     >>> schema = stream.get_schema()
     >>> learner = PassiveAggressiveRegressor(schema)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
-    >>> results["rmse"]
+    >>> results["cumulative"]["rmse"]
     3.700...
     """
 

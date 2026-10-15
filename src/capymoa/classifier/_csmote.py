@@ -25,7 +25,7 @@ class CSMOTE(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = CSMOTE(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     83.1
 
     .. [#0] `Alessio Bernardo, Heitor Murilo Gomes, Jacob Montiel, Bernhard Pfahringer,

@@ -23,7 +23,7 @@ class SGDClassifier(SKClassifier):
     >>> schema = stream.get_schema()
     >>> learner = SGDClassifier(schema)
     >>> results = evaluate_classifier(stream, learner, max_instances=1000)
-    >>> results["accuracy"]
+    >>> results["cumulative"]["accuracy"]
     84.2
     """
 

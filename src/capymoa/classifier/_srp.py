@@ -28,7 +28,7 @@ class StreamingRandomPatches(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = StreamingRandomPatches(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     89.7
 
     .. [#0] `Streaming Random Patches for Evolving Data Stream Classification. Heitor

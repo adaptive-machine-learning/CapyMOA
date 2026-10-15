@@ -46,7 +46,7 @@ model = HoeffdingTree(stream.get_schema())
 results = evaluate_classifier(stream, model)
 
 # 4. Success!
-print(f"Accuracy: {results['accuracy']:.2f}%")
+print(f"Accuracy: {results['cumulative']['accuracy']:.2f}%")
 ```
 
 Next, we recommend the [Tutorials](https://capymoa.org/tutorials).

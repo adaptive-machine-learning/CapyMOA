@@ -20,7 +20,7 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = DynamicEnsembleMemberSelection(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     90.6
 
     .. [#0] `Dynamic Ensemble Member Selection for Data Stream Classification.

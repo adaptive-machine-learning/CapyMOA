@@ -129,7 +129,7 @@ Here is an example of how to write a docstring for a classifier in CapyMOA:
         >>> stream = ElectricityTiny()
         >>> learner = ExampleClassifier(stream.get_schema())
         >>> results = evaluate_classifier(stream, learner, max_instances=1000)
-        >>> results["accuracy"]
+        >>> results["cumulative"]["accuracy"]
         87.9
 
         You may include a see also section with links to related classes or

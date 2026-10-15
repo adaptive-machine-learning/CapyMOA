@@ -164,7 +164,7 @@ class TestClassifier:
             )
 
         # Check accuracy.
-        accuracy = results["accuracy"]
+        accuracy = results["cumulative"]["accuracy"]
         win_accuracy = results["windowed"]["accuracy"][-1]
         abs_tol = case.accuracy_abs_tolerance
         assert accuracy == pytest.approx(case.accuracy, abs=abs_tol), (
@@ -191,7 +191,7 @@ class TestClassifier:
         fast_results = evaluate_classifier(
             stream, fast_learner, window_size=WINDOW_SIZE, batch_size=case.batch_size
         )
-        fast_accuracy = fast_results["accuracy"]
+        fast_accuracy = fast_results["cumulative"]["accuracy"]
         fast_win_accuracy = fast_results["windowed"]["accuracy"][-1]
 
         slow_learner = case.new_learner(stream.schema)
@@ -202,7 +202,7 @@ class TestClassifier:
             optimise=False,
             batch_size=case.batch_size,
         )
-        slow_accuracy = slow_results["accuracy"]
+        slow_accuracy = slow_results["cumulative"]["accuracy"]
         slow_win_accuracy = slow_results["windowed"]["accuracy"][-1]
         assert slow_accuracy == pytest.approx(fast_accuracy), (
             "Slow (optimise=False) loop cumulative accuracy does not match "

@@ -34,7 +34,7 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
     >>> schema = stream.get_schema()
     >>> learner = ShrubsRegressor(schema)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
-    >>> results["rmse"]
+    >>> results["cumulative"]["rmse"]
     5.21...
 
     """

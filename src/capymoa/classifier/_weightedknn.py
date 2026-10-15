@@ -17,7 +17,7 @@ class WeightedkNN(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = WeightedkNN(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     74.7
 
     .. [#0] `Effective Weighted k-Nearest Neighbors for Dynamic Data Streams’ Maroua

@@ -16,6 +16,7 @@ from moa.evaluation import (
     BasicRegressionPerformanceEvaluator,
     WindowRegressionPerformanceEvaluator,
 )
+from typing_extensions import TypedDict
 
 from capymoa._utils import _translate_metric_name
 from capymoa.evaluation.results import RunInfo, Windows
@@ -38,11 +39,8 @@ class RegressorWindows(Windows):
     adjusted_r2: np.ndarray
 
 
-class RegressorResults(RunInfo):
-    """Results of evaluating a regressor. See :func:`~capymoa.regressor.evaluate_regressor`.
-
-    Metrics are over the whole stream.
-    """
+class RegressorCumulative(TypedDict):
+    """The metrics over the whole stream of a regressor."""
 
     #: Mean absolute error, in units of the target.
     mae: float
@@ -57,6 +55,15 @@ class RegressorResults(RunInfo):
     r2: float
     #: R2 adjusted for the number of attributes.
     adjusted_r2: float
+
+
+class RegressorResults(RunInfo):
+    """Results of evaluating a regressor. See :func:`~capymoa.regressor.evaluate_regressor`."""
+
+    #: The metrics over the whole stream (see
+    #: :class:`~capymoa.regressor.evaluate.RegressorCumulative`).
+    cumulative: RegressorCumulative
+
     #: The metrics of each window (see
     #: :class:`~capymoa.regressor.evaluate.RegressorWindows`). Absent if ``window_size``
     #: is absent.

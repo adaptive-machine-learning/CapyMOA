@@ -26,7 +26,7 @@ class StochasticGradientTree(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = StochasticGradientTree(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     50.6
 
     .. [#f1] Gouk, Henry, Bernhard Pfahringer, and Eibe Frank. "Stochastic Gradient

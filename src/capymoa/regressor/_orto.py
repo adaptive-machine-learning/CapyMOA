@@ -29,7 +29,7 @@ class ORTO(MOARegressor):
     >>> schema = stream.get_schema()
     >>> learner = ORTO(schema)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
-    >>> results["rmse"]
+    >>> results["cumulative"]["rmse"]
     9.228075678265904
     """
 

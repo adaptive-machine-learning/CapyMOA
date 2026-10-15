@@ -17,6 +17,7 @@ from moa.evaluation import (
     BasicPredictionIntervalEvaluator,
     WindowPredictionIntervalEvaluator,
 )
+from typing_extensions import TypedDict
 
 from capymoa._utils import _translate_metric_name
 from capymoa.evaluation.results import RunInfo, Windows
@@ -38,11 +39,8 @@ class PredictionIntervalWindows(Windows):
     nmpiw: np.ndarray
 
 
-class PredictionIntervalResults(RunInfo):
-    """Results of evaluating a prediction interval learner.
-
-    See :func:`~capymoa.uncertainty.evaluate_prediction_interval`.
-    """
+class PredictionIntervalCumulative(TypedDict):
+    """The metrics over the whole stream of a prediction interval learner."""
 
     #: Mean absolute error.
     mae: float
@@ -58,6 +56,18 @@ class PredictionIntervalResults(RunInfo):
     average_length: float
     #: Mean width of the interval divided by the range of the target, in percent.
     nmpiw: float
+
+
+class PredictionIntervalResults(RunInfo):
+    """Results of evaluating a prediction interval learner.
+
+    See :func:`~capymoa.uncertainty.evaluate_prediction_interval`.
+    """
+
+    #: The metrics over the whole stream (see
+    #: :class:`~capymoa.uncertainty.evaluate.PredictionIntervalCumulative`).
+    cumulative: PredictionIntervalCumulative
+
     #: The metrics of each window (see
     #: :class:`~capymoa.uncertainty.evaluate.PredictionIntervalWindows`). Absent if
     #: ``window_size`` is absent.

@@ -100,7 +100,7 @@ ht = HoeffdingTree(schema=elec_stream.get_schema(), grace_period=50)
 results_ht = evaluate_classifier(stream=elec_stream, learner=ht, window_size=4500)
 
 print(
-    f"Cumulative accuracy = {results_ht['accuracy']}, wall-clock time: {results_ht['wallclock']}"
+    f"Cumulative accuracy = {results_ht['cumulative']['accuracy']}, wall-clock time: {results_ht['wallclock']}"
 )
 
 # The windowed results are conveniently stored in a pandas DataFrame.
@@ -136,9 +136,9 @@ results_HT = evaluate_classifier(stream=elec_stream, learner=HT, window_size=450
 results_ARF = evaluate_classifier(stream=elec_stream, learner=ARF, window_size=4500)
 
 # Comparing models based on their cumulative accuracy.
-print(f"HAT accuracy = {results_HAT['accuracy']}")
-print(f"HT accuracy = {results_HT['accuracy']}")
-print(f"ARF accuracy = {results_ARF['accuracy']}")
+print(f"HAT accuracy = {results_HAT['cumulative']['accuracy']}")
+print(f"HT accuracy = {results_HT['cumulative']['accuracy']}")
+print(f"ARF accuracy = {results_ARF['cumulative']['accuracy']}")
 
 # Plotting the results. Note that we ovewrote the ylabel, but that doesn't change the metric.
 plot_windowed_results(

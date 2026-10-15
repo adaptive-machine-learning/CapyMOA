@@ -30,7 +30,7 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = AdaptiveRandomForestClassifier(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     87.9
 
     .. [#0] `Gomes, H. M., Bifet, A., Read, J., Barddal, J. P., Enembreck, F.,

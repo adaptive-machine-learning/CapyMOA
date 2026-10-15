@@ -26,7 +26,7 @@ class HoeffdingAdaptiveTree(HoeffdingTree):
     >>> schema = stream.get_schema()
     >>> learner = HoeffdingAdaptiveTree(schema)
     >>> results = evaluate_classifier(stream, learner, max_instances=1000)
-    >>> results["accuracy"]
+    >>> results["cumulative"]["accuracy"]
     84.1
 
     ..  [#bifet2009] Bifet, A. and Gavalda, R., 2009. Adaptive learning from

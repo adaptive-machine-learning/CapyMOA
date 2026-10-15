@@ -51,8 +51,8 @@ def test_evaluate_classifier():
 
     assert eleventh_instance_1st_run == pytest.approx(eleventh_instance_2nd_run)
     assert results_1st_run["stream"] == results_2nd_run["stream"] == str(stream)
-    assert results_1st_run["accuracy"] == pytest.approx(
-        results_2nd_run["accuracy"], abs=0.001
+    assert results_1st_run["cumulative"]["accuracy"] == pytest.approx(
+        results_2nd_run["cumulative"]["accuracy"], abs=0.001
     )
 
 
@@ -80,8 +80,8 @@ def test_evaluate_classifier_mapping():
         for name, learner in learners.items()
     }
     for name in learners:
-        assert together[name]["accuracy"] == pytest.approx(
-            alone[name]["accuracy"], abs=0.001
+        assert together[name]["cumulative"]["accuracy"] == pytest.approx(
+            alone[name]["cumulative"]["accuracy"], abs=0.001
         )
     stream.restart()
     for _ in range(100):
@@ -101,8 +101,8 @@ def test_evaluate_ssl():
     eleventh_instance_2nd_run = stream.next_instance().x
 
     assert eleventh_instance_1st_run == pytest.approx(eleventh_instance_2nd_run)
-    assert results_1st_run["accuracy"] == pytest.approx(
-        results_2nd_run["accuracy"], abs=0.001
+    assert results_1st_run["cumulative"]["accuracy"] == pytest.approx(
+        results_2nd_run["cumulative"]["accuracy"], abs=0.001
     )
     assert results_1st_run["label_probability"] == 0.01
 
@@ -113,13 +113,13 @@ def test_prequential_evaluation_dispatches_on_learner_type():
     results = prequential_evaluation(
         classification, NaiveBayes(classification.get_schema()), max_instances=50
     )
-    assert "accuracy" in results and "per_class" in results
+    assert "accuracy" in results["cumulative"] and "cumulative_per_class" in results
 
     regression = HyperPlaneRegression()
     results = prequential_evaluation(
         regression, KNNRegressor(regression.get_schema()), max_instances=50
     )
-    assert "rmse" in results and "accuracy" not in results
+    assert "rmse" in results["cumulative"] and "accuracy" not in results["cumulative"]
 
     with pytest.raises(TypeError):
         prequential_evaluation(classification, object(), max_instances=50)
@@ -131,7 +131,7 @@ def test_learner_or_mapping():
     single = evaluate_classifier(
         stream, NaiveBayes(stream.get_schema()), max_instances=100
     )
-    assert "accuracy" in single
+    assert "accuracy" in single["cumulative"]
 
     many = evaluate_classifier(
         stream, {"nb": NaiveBayes(stream.get_schema())}, max_instances=100
@@ -139,7 +139,7 @@ def test_learner_or_mapping():
     assert isinstance(many, dict)
     assert list(many) == ["nb"]
     assert many["nb"]["learner"] == "nb"
-    assert "accuracy" in many["nb"]
+    assert "accuracy" in many["nb"]["cumulative"]
 
     with pytest.raises(ValueError, match="No learners to evaluate\\."):
         evaluate_classifier(stream, {}, max_instances=100)
@@ -194,7 +194,9 @@ def test_evaluate_anomaly():
     assert results_1st_run["windowed"]["auc"][-1] == pytest.approx(
         results_2nd_run["windowed"]["auc"][-1], abs=0.001
     )
-    assert results_1st_run["auc"] == pytest.approx(results_2nd_run["auc"], abs=0.001)
+    assert results_1st_run["cumulative"]["auc"] == pytest.approx(
+        results_2nd_run["cumulative"]["auc"], abs=0.001
+    )
 
 
 @pytest.mark.parametrize(
@@ -351,7 +353,7 @@ def test_optimise_flag_does_not_change_results(make_stream):
             max_instances=2000,
             optimise=optimise,
         )
-        accuracies.append(results["accuracy"])
+        accuracies.append(results["cumulative"]["accuracy"])
 
     assert accuracies[0] == pytest.approx(accuracies[1], abs=0.01)
 

@@ -313,7 +313,7 @@ def _results_body(
     windows: type,
     whole_stream_only: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """Run info, then the metrics named by ``windows``.
+    """Run info, then the whole stream metrics under ``cumulative``.
 
     The stream may be a name only. Optional keys are left out when there is
     nothing to put in them.
@@ -326,7 +326,7 @@ def _results_body(
         reports, so they are not in ``windows``.
     """
     # The metrics are the array keys, except ``instances``. Nested keys, such as
-    # ``per_class``, are built by the domain.
+    # ``cumulative_per_class``, are built by the domain.
     metrics = [
         key
         for key, kind in windows.__annotations__.items()
@@ -356,7 +356,10 @@ def _results_body(
     if not isinstance(stream, str):
         info.update(_drift_info(stream))  # type: ignore[typeddict-item]
     # A metric that only the windowed evaluator reports is not in the whole
-    # stream values, so it is left out of the top level.
+    # stream values, so it is left out of ``cumulative``.
     values = cumulative.metrics_dict()
     keys = [*metrics, *whole_stream_only]
-    return {**info, **{key: float(values[key]) for key in keys if key in values}}
+    return {
+        **info,
+        "cumulative": {key: float(values[key]) for key in keys if key in values},
+    }

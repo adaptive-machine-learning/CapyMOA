@@ -43,7 +43,7 @@ class AdaptiveRandomForestRegressor(MOARegressor):
     >>> schema = stream.get_schema()
     >>> learner = AdaptiveRandomForestRegressor(schema)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
-    >>> results["rmse"]
+    >>> results["cumulative"]["rmse"]
     4.146151270393789
     """
 

@@ -185,7 +185,7 @@ class AlwaysPositiveClassifier(MOAClassifier):
 stream = ElectricityTiny()
 learner = AlwaysPositiveClassifier(stream.get_schema(), target_class=1)
 results = evaluate_classifier(stream, learner, max_instances=1000)
-print(results["accuracy"])
+print(results["cumulative"]["accuracy"])
 ```
 
 From here, follow the [FAQ](faq.md) for where the permanent wrapper file

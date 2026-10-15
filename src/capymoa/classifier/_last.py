@@ -33,7 +33,7 @@ class LAST(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = LAST(stream.get_schema(), change_detector=HDDMAverage())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     88.6
 
     .. [#l1] Daniel Nowak Assis, Jean Paul Barddal, and Fabrício Enembreck.

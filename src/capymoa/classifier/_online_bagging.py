@@ -26,7 +26,7 @@ class OnlineBagging(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = OnlineBagging(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     85.3
 
     .. [#0] `Oza, N. C., & Russell, S. J. (2001, January). Online bagging and boosting.

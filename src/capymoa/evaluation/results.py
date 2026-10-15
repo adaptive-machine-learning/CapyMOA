@@ -14,7 +14,7 @@ compared and put in a :class:`pandas.DataFrame`.
 ...     {"ht": HoeffdingTree(stream.get_schema()), "nb": NaiveBayes(stream.get_schema())},
 ...     max_instances=1000,
 ... )
->>> pd.DataFrame(list(results.values()), index=list(results))[["accuracy"]].round(1)
+>>> pd.DataFrame([r["cumulative"] for r in results.values()], index=list(results))[["accuracy"]].round(1)
     accuracy
 ht      84.4
 nb      84.8

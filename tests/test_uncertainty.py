@@ -82,4 +82,4 @@ def test_interval_evaluator_scores_the_point():
     results = evaluate_prediction_interval(
         stream, MVE(schema=schema), max_instances=500
     )
-    assert results["mae"] == pytest.approx(evaluator.mae())
+    assert results["cumulative"]["mae"] == pytest.approx(evaluator.mae())

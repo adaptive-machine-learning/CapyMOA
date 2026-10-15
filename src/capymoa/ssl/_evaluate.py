@@ -177,12 +177,11 @@ def evaluate_ssl(
             str(learner), stream, out, run.cumulative, run.windowed
         )
         unlabeled = int(out.other.get("num_unlabeled_instances", 0))
-        pseudo = {}
         if "pseudo_label_accuracy" in out.other:
-            pseudo["pseudo_label_accuracy"] = out.other["pseudo_label_accuracy"]
-        return SSLResults(
-            **base, **extra, **_unlabeled(unlabeled, out.instances), **pseudo
-        )  # type: ignore[typeddict-item]
+            base["cumulative"]["pseudo_label_accuracy"] = out.other[  # type: ignore[typeddict-item]
+                "pseudo_label_accuracy"
+            ]
+        return SSLResults(**base, **extra, **_unlabeled(unlabeled, out.instances))  # type: ignore[typeddict-item]
 
     # `initial_window_size` is only implemented in MOA, for the Java loop.
     if initial_window_size != 0:

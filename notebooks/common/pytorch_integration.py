@@ -286,7 +286,7 @@ evaluator = evaluate_classifier(
     optimise=False,
 )
 
-print(f"Accuracy: {evaluator['accuracy']}")
+print(f"Accuracy: {evaluator['cumulative']['accuracy']}")
 
 # %% [markdown] jupyter={"outputs_hidden": false}
 # ## How to use a PyTorch dataset with a CapyMOA classifier
@@ -320,7 +320,7 @@ results_ob_learner = evaluate_classifier(
     stream=pytorch_stream, learner=ob_learner, window_size=100, max_instances=1000
 )
 
-print(f"Accuracy: {results_ob_learner['accuracy']}")
+print(f"Accuracy: {results_ob_learner['cumulative']['accuracy']}")
 import pandas as pd
 
 display(pd.DataFrame(results_ob_learner["windowed"]))

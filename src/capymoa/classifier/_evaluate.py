@@ -80,9 +80,9 @@ def _classifier_results(
     windowed: ClassificationWindowedEvaluator | None,
 ) -> ClassifierResults:
     body = _results_body(name, stream, out, cumulative, windowed, ClassifierWindows)
-    if math.isnan(body["roc_auc"]):
-        del body["roc_auc"]
-    body["per_class"] = _per_class(cumulative)
+    if math.isnan(body["cumulative"]["roc_auc"]):
+        del body["cumulative"]["roc_auc"]
+    body["cumulative_per_class"] = _per_class(cumulative)
     if windowed is not None:
         body["windowed_per_class"] = _per_class_windows(windowed)
     return ClassifierResults(**body)  # type: ignore[typeddict-item]
@@ -136,7 +136,7 @@ def evaluate_classifier(
     >>> results = evaluate_classifier(
     ...     stream, HoeffdingTree(stream.get_schema()), max_instances=1000
     ... )
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     84.4
 
     Give a mapping of names to learners to get a dict of results by name. The
@@ -152,7 +152,7 @@ def evaluate_classifier(
     ...     "nb": NaiveBayes(stream.get_schema()),
     ... }
     >>> results = evaluate_classifier(stream, learners, max_instances=1000)
-    >>> print(f"{results['ht']['accuracy']:.1f} {results['nb']['accuracy']:.1f}")
+    >>> print(f"{results['ht']['cumulative']['accuracy']:.1f} {results['nb']['cumulative']['accuracy']:.1f}")
     84.4 84.8
 
     :param stream: The stream to evaluate on. Restarted if ``restart_stream``.

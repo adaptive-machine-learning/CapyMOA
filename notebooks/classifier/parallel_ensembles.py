@@ -109,9 +109,9 @@ result_par["learner"] = "OnlineBagging(Par)"
 
 # %%
 # decoupling the running and plotting to allow more flexibility
-print(f"Cumulative accuracy = {result_seq['accuracy']}")
+print(f"Cumulative accuracy = {result_seq['cumulative']['accuracy']}")
 print(f"wallclock = {result_seq['wallclock']} seconds\n")
-print(f"Cumulative accuracy = {result_par['accuracy']}")
+print(f"Cumulative accuracy = {result_par['cumulative']['accuracy']}")
 print(f"wallclock = {result_par['wallclock']} seconds\n")
 plot_windowed_results(result_seq, result_par, metric="accuracy")
 
@@ -143,9 +143,9 @@ result_par100["learner"] = "OnlineBagging100(Par)"
 
 # %%
 # decoupling the running and plotting to allow more flexibility
-print(f"Cumulative accuracy = {result_seq100['accuracy']}")
+print(f"Cumulative accuracy = {result_seq100['cumulative']['accuracy']}")
 print(f"wallclock = {result_seq100['wallclock']} seconds\n")
-print(f"Cumulative accuracy = {result_par100['accuracy']}")
+print(f"Cumulative accuracy = {result_par100['cumulative']['accuracy']}")
 print(f"wallclock = {result_par100['wallclock']} seconds\n")
 plot_windowed_results(result_seq100, result_par100, metric="accuracy")
 
@@ -179,16 +179,16 @@ result_incPar["learner"] = "OnlineBagging(inc_par)"
 # %%
 # decoupling the running and plotting to allow more flexibility
 print("Incremental Sequential ")
-print(f"Cumulative accuracy = {result_seq['accuracy']}")
+print(f"Cumulative accuracy = {result_seq['cumulative']['accuracy']}")
 print(f"wallclock = {result_seq['wallclock']} seconds\n")
 print("Mini-batch Parallel")
-print(f"Cumulative accuracy = {result_par['accuracy']}")
+print(f"Cumulative accuracy = {result_par['cumulative']['accuracy']}")
 print(f"wallclock = {result_par['wallclock']} seconds\n")
 print("Mini-batch Sequential")
-print(f"Cumulative accuracy = {result_mbSeq['accuracy']}")
+print(f"Cumulative accuracy = {result_mbSeq['cumulative']['accuracy']}")
 print(f"wallclock = {result_mbSeq['wallclock']} seconds\n")
 print("Incremental Parallel ")
-print(f"Cumulative accuracy = {result_incPar['accuracy']}")
+print(f"Cumulative accuracy = {result_incPar['cumulative']['accuracy']}")
 print(f"wallclock = {result_incPar['wallclock']} seconds\n")
 plot_windowed_results(
     result_seq, result_par, result_mbSeq, result_incPar, metric="accuracy"
@@ -226,10 +226,10 @@ results_arf = evaluate_classifier(
 
 # %%
 print(
-    f"Accuracy {results_ob_adwin['learner']}: {results_ob_adwin['accuracy']}"
+    f"Accuracy {results_ob_adwin['learner']}: {results_ob_adwin['cumulative']['accuracy']}"
 )
-print(f"Accuracy {results_lb['learner']}: {results_lb['accuracy']}")
-print(f"Accuracy {results_arf['learner']}: {results_arf['accuracy']}")
+print(f"Accuracy {results_lb['learner']}: {results_lb['cumulative']['accuracy']}")
+print(f"Accuracy {results_arf['learner']}: {results_arf['cumulative']['accuracy']}")
 
 plot_windowed_results(results_ob_adwin, results_lb, results_arf, metric="accuracy")
 
@@ -278,15 +278,15 @@ results_ob_adwin_mb500["learner"] = "Mini-batch size 500"
 
 # %%
 print(
-    f"Accuracy {results_ob_adwin_mb50['learner']}: {results_ob_adwin_mb50['accuracy']}"
+    f"Accuracy {results_ob_adwin_mb50['learner']}: {results_ob_adwin_mb50['cumulative']['accuracy']}"
 )
 print(f"wallclock = {results_ob_adwin_mb50['wallclock']} seconds\n")
 print(
-    f"Accuracy {results_ob_adwin_mb100['learner']}: {results_ob_adwin_mb100['accuracy']}"
+    f"Accuracy {results_ob_adwin_mb100['learner']}: {results_ob_adwin_mb100['cumulative']['accuracy']}"
 )
 print(f"wallclock = {results_ob_adwin_mb100['wallclock']} seconds\n")
 print(
-    f"Accuracy {results_ob_adwin_mb500['learner']}: {results_ob_adwin_mb500['accuracy']}"
+    f"Accuracy {results_ob_adwin_mb500['learner']}: {results_ob_adwin_mb500['cumulative']['accuracy']}"
 )
 print(f"wallclock = {results_ob_adwin_mb500['wallclock']} seconds\n")
 

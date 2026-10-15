@@ -65,7 +65,7 @@ results_osnn = evaluate_ssl(
 display(results_osnn)
 
 print(
-    results_osnn["accuracy"]
+    results_osnn["cumulative"]["accuracy"]
 )  # Test-then-train accuracy, i.e. cumulatively, not windowed.
 
 # Plotting over time (default: classifications correct (percent) i.e. accuracy)
@@ -89,7 +89,7 @@ results_srp10 = evaluate_ssl(
     window_size=100,
     max_instances=2000,
 )
-print(results_srp10["accuracy"])
+print(results_srp10["cumulative"]["accuracy"])
 
 # %% [markdown]
 # ## SLEADE
@@ -111,7 +111,7 @@ results_sleade = evaluate_ssl(
     max_instances=2000,
 )
 
-print(results_sleade["accuracy"])
+print(results_sleade["cumulative"]["accuracy"])
 
 # %% [markdown]
 # ## Comparing a SSL classifier to a supervised classifier
@@ -171,9 +171,9 @@ results_ht_delayed_1000 = evaluate_ssl(
 results_ht_immediate["learner"] = "HT_immediate"
 results_ht_delayed_1000["learner"] = "HT_delayed_1000"
 
-print(f"Accuracy immediate: {results_ht_immediate['accuracy']}")
+print(f"Accuracy immediate: {results_ht_immediate['cumulative']['accuracy']}")
 print(
-    f"Accuracy delayed by 1000 instances: {results_ht_delayed_1000['accuracy']}"
+    f"Accuracy delayed by 1000 instances: {results_ht_delayed_1000['cumulative']['accuracy']}"
 )
 
 plot_windowed_results(results_ht_immediate, results_ht_delayed_1000, metric="accuracy")

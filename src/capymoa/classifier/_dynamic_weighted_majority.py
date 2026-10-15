@@ -17,7 +17,7 @@ class DynamicWeightedMajority(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = DynamicWeightedMajority(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     85.7
 
     .. [#0] `J. Zico Kolter and Marcus A. Maloof. Dynamic weighted majority: An ensemble

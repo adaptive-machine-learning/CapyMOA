@@ -140,7 +140,7 @@ results_hst = evaluate_anomaly(
     stream=stream_ad, learner=hst, window_size=1000
 )
 
-print(f"AUC: {results_hst['auc']}")
+print(f"AUC: {results_hst['cumulative']['auc']}")
 import pandas as pd
 
 display(pd.DataFrame(results_hst["windowed"]))
@@ -168,7 +168,7 @@ results_ae = evaluate_anomaly(
     stream=stream_ad, learner=ae, window_size=1000
 )
 
-print(f"AUC: {results_ae['auc']}")
+print(f"AUC: {results_ae['cumulative']['auc']}")
 display(pd.DataFrame(results_ae["windowed"]))
 plot_windowed_results(results_ae, metric="auc", save_only=False)
 
@@ -194,7 +194,7 @@ results_oif = evaluate_anomaly(
     stream=stream_ad, learner=oif, window_size=1000
 )
 
-print(f"AUC: {results_oif['auc']}")
+print(f"AUC: {results_oif['cumulative']['auc']}")
 display(pd.DataFrame(results_oif["windowed"]))
 plot_windowed_results(results_oif, metric="auc", save_only=False)
 

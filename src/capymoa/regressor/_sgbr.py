@@ -24,7 +24,7 @@ class StreamingGradientBoostedRegression(MOARegressor):
     >>> schema = stream.get_schema()
     >>> learner = StreamingGradientBoostedRegression(schema)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
-    >>> round(results["r2"], 2)
+    >>> round(results["cumulative"]["r2"], 2)
     0.61
 
     .. [#0] `Gradient boosted bagging for evolving data stream regression. Nuwan Gunasekara,

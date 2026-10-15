@@ -128,9 +128,9 @@ print(
 #
 # The `evaluate_classifier()` function performs a windowed evaluation and a cumulative evaluation at once. Internally, it maintains a `ClassificationWindowedEvaluator` (for the windowed metrics) and `ClassificationEvaluator` (for the cumulative metrics). This allows us to have access to the **cumulative** and **windowed** results without running two separate evaluation functions.
 #
-# * The metrics over the whole stream (**cumulative**) are keys of the results, for example `results["accuracy"]`.
+# * The metrics over the whole stream (**cumulative**) are keys of the results, for example `results["cumulative"]["accuracy"]`.
 #
-# * The `windowed` key holds the metrics of each window in columns: a dictionary with an `instances` entry and one entry per metric, each an array with one value per window. `pd.DataFrame(results["windowed"])` makes a table from it. `per_class` works the same way, with one value per class.
+# * The `windowed` key holds the metrics of each window in columns: a dictionary with an `instances` entry and one entry per metric, each an array with one value per window. `pd.DataFrame(results["windowed"])` makes a table from it. `cumulative_per_class` and `windowed_per_class` work the same way, with one row per class (and window).
 #
 # * `run info` keys such as `learner`, `stream`, `instances`, `wallclock` and `cpu_time` are in every result.
 #
@@ -162,12 +162,12 @@ print(f"results_ht['wallclock']: {results_ht['wallclock']}")
 print(f"results_ht['cpu_time']: {results_ht['cpu_time']}")
 
 print("\n\tThe cumulative metrics:")
-print(f"results_ht['accuracy'] = {results_ht['accuracy']}")
+print(f"results_ht['cumulative']['accuracy'] = {results_ht['cumulative']['accuracy']}")
 
 print("\n\tPer class metrics:")
 import pandas as pd
 
-display(pd.DataFrame(results_ht["per_class"]))
+display(pd.DataFrame(results_ht["cumulative_per_class"]))
 
 print("\n\tAll the windowed results:")
 display(pd.DataFrame(results_ht["windowed"]))
@@ -202,7 +202,7 @@ learners = {
 results = evaluate_classifier(stream, learners, window_size=4500)
 
 print(
-    f"OB final accuracy = {results['OB']['accuracy']} and ARF final accuracy = {results['ARF']['accuracy']}"
+    f"OB final accuracy = {results['OB']['cumulative']['accuracy']} and ARF final accuracy = {results['ARF']['cumulative']['accuracy']}"
 )
 plot_windowed_results(results["OB"], results["ARF"], metric="accuracy")
 
@@ -219,7 +219,11 @@ plot_windowed_results(results["OB"], results["ARF"], metric="accuracy")
 import pandas as pd
 
 # One row per learner.
-display(pd.DataFrame(list(results.values()))[["learner", "accuracy", "kappa"]])
+display(
+    pd.DataFrame(
+        [{"learner": r["learner"], **r["cumulative"]} for r in results.values()]
+    )[["learner", "accuracy", "kappa"]]
+)
 
 # One row per learner and window.
 windows = pd.concat(
@@ -236,4 +240,4 @@ sns.lineplot(windows, x="instances", y="accuracy", hue="learner");
 import pickle
 
 restored = pickle.loads(pickle.dumps(results["OB"]))
-print(restored["accuracy"] == results["OB"]["accuracy"])
+print(restored["cumulative"]["accuracy"] == results["OB"]["cumulative"]["accuracy"])

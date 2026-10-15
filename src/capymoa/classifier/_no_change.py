@@ -21,7 +21,7 @@ class NoChange(MOAClassifier):
     >>> schema = stream.get_schema()
     >>> learner = NoChange(schema)
     >>> results = evaluate_classifier(stream, learner, max_instances=1000)
-    >>> results["accuracy"]
+    >>> results["cumulative"]["accuracy"]
     85.9
     """
 

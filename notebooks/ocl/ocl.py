@@ -200,7 +200,7 @@ r = evaluate_ocl(
 print(f"Forward Transfer  {r['forward_transfer']:.2f}")
 print(f"Backward Transfer {r['backward_transfer']:.2f}")
 print(f"Accuracy          {r['accuracy_final']:.2f}")
-print(f"Prequential Acc.  {r['ttt']['accuracy'] / 100:.2f}")
+print(f"Prequential Acc.  {r['ttt']['cumulative']['accuracy'] / 100:.2f}")
 
 # %% [markdown]
 # ## Evaluation

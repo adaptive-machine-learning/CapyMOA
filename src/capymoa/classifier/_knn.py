@@ -18,7 +18,7 @@ class KNN(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = KNN(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     80.7
 
     ..  seealso::

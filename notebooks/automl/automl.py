@@ -82,7 +82,7 @@ drift_stream = DriftStream(
 # %%
 def print_summary(label: str, results):
     print(
-        f"{label.ljust(10)} Cumulative accuracy = {results['accuracy']:.2f}, "
+        f"{label.ljust(10)} Cumulative accuracy = {results['cumulative']['accuracy']:.2f}, "
         f"wall-clock time: {results['wallclock']:.3f}"
     )
 
@@ -105,8 +105,8 @@ def stream_learning_model_selection(model_list, window_size, max_instances):
             max_instances=max_instances,
         )
         all_results[model] = results
-        if results["accuracy"] > best_accuracy:
-            best_accuracy = results["accuracy"]
+        if results["cumulative"]["accuracy"] > best_accuracy:
+            best_accuracy = results["cumulative"]["accuracy"]
             model_b = model
 
     print_summary(f"Best ({model_b})", all_results[model_b])
@@ -356,21 +356,21 @@ def test_successive_halving_and_bandit(
     # Print results
     print("\nEvaluation Results:")
     print(
-        f"[SuccessiveHalving with {len(ht_models)} HT configs] Accuracy = {results_shc_ht['accuracy']:.3f}, "
+        f"[SuccessiveHalving with {len(ht_models)} HT configs] Accuracy = {results_shc_ht['cumulative']['accuracy']:.3f}, "
         f"Time: {results_shc_ht['wallclock']:.3f}s"
     )
     print(
-        f"[BanditClassifier with {len(ht_models)} HT configs] Accuracy = {results_bandit_ht['accuracy']:.3f}, "
+        f"[BanditClassifier with {len(ht_models)} HT configs] Accuracy = {results_bandit_ht['cumulative']['accuracy']:.3f}, "
         f"Time: {results_bandit_ht['wallclock']:.3f}s"
     )
     print(
-        f"[Default HoeffdingTree] Accuracy = {results_default_ht['accuracy']:.3f}, "
+        f"[Default HoeffdingTree] Accuracy = {results_default_ht['cumulative']['accuracy']:.3f}, "
         f"Time: {results_default_ht['wallclock']:.3f}s"
     )
 
     # Calculate improvements
-    improvement_shc = results_shc_ht["accuracy"] - results_default_ht["accuracy"]
-    improvement_bandit = results_bandit_ht["accuracy"] - results_default_ht["accuracy"]
+    improvement_shc = results_shc_ht["cumulative"]["accuracy"] - results_default_ht["cumulative"]["accuracy"]
+    improvement_bandit = results_bandit_ht["cumulative"]["accuracy"] - results_default_ht["cumulative"]["accuracy"]
     print("Improvement over default parameters:")
     print(f"SuccessiveHalving: {improvement_shc:.2f}% absolute")
     print(f"BanditClassifier: {improvement_bandit:.2f}% absolute")
@@ -601,39 +601,39 @@ def test_autoclass_vs_successive_halving_and_bandit(
     # Print results
     print("\nEvaluation Results:")
     print(
-        f"[Enhanced AutoClass] Accuracy = {results_autoclass_enhanced['accuracy']:.3f}, "
+        f"[Enhanced AutoClass] Accuracy = {results_autoclass_enhanced['cumulative']['accuracy']:.3f}, "
         f"Time: {results_autoclass_enhanced['wallclock']:.3f}s"
     )
     print(
-        f"[SuccessiveHalving] Accuracy = {results_shc['accuracy']:.3f}, "
+        f"[SuccessiveHalving] Accuracy = {results_shc['cumulative']['accuracy']:.3f}, "
         f"Time: {results_shc['wallclock']:.3f}s"
     )
     print(
-        f"[BanditClassifier] Accuracy = {results_bandit['accuracy']:.3f}, "
+        f"[BanditClassifier] Accuracy = {results_bandit['cumulative']['accuracy']:.3f}, "
         f"Time: {results_bandit['wallclock']:.3f}s"
     )
     print(
-        f"[Default HoeffdingTree] Accuracy = {results_ht['accuracy']:.3f}, "
+        f"[Default HoeffdingTree] Accuracy = {results_ht['cumulative']['accuracy']:.3f}, "
         f"Time: {results_ht['wallclock']:.3f}s"
     )
     print(
-        f"[Default KNN] Accuracy = {results_knn['accuracy']:.3f}, "
+        f"[Default KNN] Accuracy = {results_knn['cumulative']['accuracy']:.3f}, "
         f"Time: {results_knn['wallclock']:.3f}s"
     )
     print(
-        f"[Default AdaptiveRandomForest] Accuracy = {results_arf['accuracy']:.3f}, "
+        f"[Default AdaptiveRandomForest] Accuracy = {results_arf['cumulative']['accuracy']:.3f}, "
         f"Time: {results_arf['wallclock']:.3f}s"
     )
     print(
-        f"[Default HoeffdingAdaptiveTree] Accuracy = {results_hat['accuracy']:.3f}, "
+        f"[Default HoeffdingAdaptiveTree] Accuracy = {results_hat['cumulative']['accuracy']:.3f}, "
         f"Time: {results_hat['wallclock']:.3f}s"
     )
     print(
-        f"[Default LeveragingBagging] Accuracy = {results_lb['accuracy']:.3f}, "
+        f"[Default LeveragingBagging] Accuracy = {results_lb['cumulative']['accuracy']:.3f}, "
         f"Time: {results_lb['wallclock']:.3f}s"
     )
     print(
-        f"[Default StreamingRandomPatches] Accuracy = {results_srp['accuracy']:.3f}, "
+        f"[Default StreamingRandomPatches] Accuracy = {results_srp['cumulative']['accuracy']:.3f}, "
         f"Time: {results_srp['wallclock']:.3f}s"
     )
 

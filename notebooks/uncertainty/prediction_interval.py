@@ -133,10 +133,10 @@ adapi_results = evaluate_prediction_interval(
 
 # show overall results
 print(
-    f"MVE coverage: {mve_results['coverage']}, NMPIW: {mve_results['nmpiw']}"
+    f"MVE coverage: {mve_results['cumulative']['coverage']}, NMPIW: {mve_results['cumulative']['nmpiw']}"
 )
 print(
-    f"AdaPI coverage: {adapi_results['coverage']}, NMPIW: {adapi_results['nmpiw']}"
+    f"AdaPI coverage: {adapi_results['cumulative']['coverage']}, NMPIW: {adapi_results['cumulative']['nmpiw']}"
 )
 
 # %% [markdown]

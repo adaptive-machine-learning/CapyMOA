@@ -35,7 +35,7 @@ class EFDT(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = EFDT(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     84.4
 
     .. [#0] `Extremely fast decision tree. Manapragada, Chaitanya, G. I. Webb, M.

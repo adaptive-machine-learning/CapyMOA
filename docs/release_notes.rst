@@ -7,7 +7,7 @@ Version 0.16
 Results are now typed dictionaries. Every ``evaluate_*`` function returns a
 plain :class:`dict`. Each domain has its own result type, for example
 :class:`~capymoa.classifier.evaluate.ClassifierResults`. Read a metric with a
-key, such as ``results["accuracy"]``, instead of a method.
+key, such as ``results["cumulative"]["accuracy"]``, instead of a method.
 
 Breaking changes
 ~~~~~~~~~~~~~~~~
@@ -23,6 +23,9 @@ Breaking changes
   instead, with one row per window and class. ``pd.DataFrame`` turns it into a
   long table with ``instances``, ``label``, ``precision``, ``recall`` and
   ``f1_score`` columns.
+* **Whole-stream metrics moved** under ``results["cumulative"]``, for example
+  ``results["cumulative"]["accuracy"]``. Per-class metrics are in
+  ``results["cumulative_per_class"]``, like ``windowed_per_class``.
 * **Plot helpers moved** to the domain modules, see the table below.
   ``write_to_file`` is gone. Results are plain dicts, so save them with
   :mod:`pickle`.
@@ -66,7 +69,7 @@ Migration guide
      - :func:`capymoa.ocl.evaluate_ocl` (same arguments). It returns an
        ``OCLResults`` dict, not ``OCLMetrics``.
    * - ``results.cumulative.accuracy()``
-     - ``results["accuracy"]``
+     - ``results["cumulative"]["accuracy"]``
    * - ``results.windowed.accuracy()``
      - ``results["windowed"]["accuracy"]``
    * - ``results.wallclock()``, ``results.cpu_time()``

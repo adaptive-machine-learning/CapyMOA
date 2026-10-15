@@ -48,7 +48,7 @@ class OnlineAdwinBagging(MOAClassifier):
     >>> stream = ElectricityTiny()
     >>> classifier = OnlineAdwinBagging(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
-    >>> print(f"{results['accuracy']:.1f}")
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     85.3
 
     ..  [#f0] `Bifet, A., Holmes, G., Pfahringer, B., Kirkby, R., & Gavalda, R. (2009,
