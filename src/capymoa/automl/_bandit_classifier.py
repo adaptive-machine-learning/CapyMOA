@@ -30,17 +30,32 @@ class EpsilonGreedy:
         :class:`~capymoa.automl.BanditClassifier`
     """
 
-    def __init__(self, epsilon: float = 0.1, burn_in: int = 100):
+    def __init__(
+        self, epsilon: float = 0.1, burn_in: int = 100, rng: random.Random | None = None
+    ):
         """Construct a new Epsilon-Greedy policy.
 
         :param epsilon: Probability of exploring a random model (default: ``0.1``).
         :param burn_in: Number of initial rounds dedicated to exploration (default: ``100``).
+        :param rng: Random generator used for exploration. Defaults to a new
+            ``random.Random`` instance; pass a seeded instance to make the
+            exploration reproducible.
         """
         self.epsilon = epsilon
         """Probability of exploring a random model."""
 
         self.burn_in = burn_in
         """Number of initial rounds where all models are explored to collect initial statistics."""
+
+        self.rng = rng
+        """Random generator used for exploration draws; lazily created from
+        system entropy on first use if not provided. ``BanditClassifier``
+        seeds this from its ``random_seed``, leaving a generator the caller
+        supplied as it is."""
+
+        self._seeded_rng = None
+        """The generator :meth:`_seed` last installed, so a policy reused by
+        another classifier is re-seeded while a caller's own generator is not."""
 
         self.n_arms = 0
         """Number of available models (arms)."""
@@ -53,6 +68,16 @@ class EpsilonGreedy:
 
         self.total_pulls = 0
         """Total number of model selections performed."""
+
+    def _seed(self, random_seed: int) -> None:
+        """Seed exploration from ``random_seed``.
+
+        Seeds a policy that has no generator, and re-seeds one still holding
+        the generator a classifier installed. A generator the caller put
+        there is left alone.
+        """
+        if self.rng is None or self.rng is self._seeded_rng:
+            self.rng = self._seeded_rng = random.Random(random_seed)
 
     def initialize(self, n_arms):
         """Initialize the policy with a given number of arms."""
@@ -75,8 +100,10 @@ class EpsilonGreedy:
             return available_arms
 
         # With probability epsilon, explore a random arm
-        if random.random() < self.epsilon:
-            return [random.choice(available_arms)]
+        if self.rng is None:
+            self.rng = random.Random()
+        if self.rng.random() < self.epsilon:
+            return [self.rng.choice(available_arms)]
 
         # Otherwise, exploit the best arm
         best_arm = max(
@@ -163,6 +190,11 @@ class BanditClassifier(Classifier):
         # Initialize policy if not provided
         if self.policy is None:
             self.policy = EpsilonGreedy(epsilon=0.1, burn_in=100)
+        # Exploration must be reproducible under the classifier's seed.
+        # ``initialize()`` below resets the policy's statistics, so a generator
+        # left over from an earlier classifier would carry stale exploration
+        # draws into this run and has to be re-seeded with them.
+        self.policy._seed(self.random_seed)
 
         # Initialize models based on configuration
         self._initialize_models()
