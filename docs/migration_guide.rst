@@ -1,9 +1,12 @@
-Migrating to Results Dicts
-==========================
+Migration Guide
+===============
 
-This page covers one change in 0.16, the move to typed dictionary results. For
-all other changes, see the `GitHub changelog
+This page covers breaking changes that need code edits. For all other changes,
+see the `GitHub changelog
 <https://github.com/adaptive-machine-learning/CapyMOA/releases>`__.
+
+v0.16 Migrating to Results Dicts
+--------------------------------
 
 Results are now typed dictionaries. Every ``evaluate_*`` function returns a
 plain :class:`dict`. Each domain has its own result type, for example
