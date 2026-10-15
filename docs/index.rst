@@ -4,8 +4,9 @@
    setup/index
    tutorials
    api/index
-   about
    contributing/index
+   about
+   migration_guide
 
 CapyMOA
 =======
@@ -49,8 +50,7 @@ Refer to the :ref:`setup` guide for other options, including CPU-only and dev de
 .. code-block:: python
 
    from capymoa.datasets import Electricity
-   from capymoa.classifier import HoeffdingTree
-   from capymoa.evaluation import prequential_evaluation
+   from capymoa.classifier import HoeffdingTree, evaluate_classifier
 
    # 1. Load a streaming dataset
    stream = Electricity()
@@ -59,10 +59,10 @@ Refer to the :ref:`setup` guide for other options, including CPU-only and dev de
    model = HoeffdingTree(stream.get_schema())
 
    # 3. Run with test-then-train evaluation
-   results = prequential_evaluation(stream, model)
+   results = evaluate_classifier(stream, model)
 
    # 3. Success!
-   print(f"Accuracy: {results.accuracy():.2f}%")
+   print(f"Accuracy: {results['cumulative']['accuracy']:.2f}%")
 
 Next, we recomend the :ref:`tutorials`.
 

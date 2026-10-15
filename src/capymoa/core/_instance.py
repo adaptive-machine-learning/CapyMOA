@@ -459,7 +459,7 @@ class RegressionInstance(Instance):
         if self._y_value is not None:
             return self._y_value
         elif self._java_instance is not None:
-            self._y_value = self.java_instance.getData().classValue()
+            self._y_value = float(self.java_instance.getData().classValue())
             return self._y_value
         else:
             raise ValueError(f"{self.__class__.__name__} must have a y_value.")

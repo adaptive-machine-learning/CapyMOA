@@ -8,8 +8,9 @@ in real time.
 
 from capymoa._optional import lazy_torch_attrs
 
-from . import datasets
+from . import datasets, evaluate
 from ._adaptive_isolation_forest import AdaptiveIsolationForest
+from ._evaluate import evaluate_anomaly
 from ._half_space_trees import HalfSpaceTrees
 from ._iforest_asd import IForestASD
 from ._loda import Loda
@@ -31,6 +32,8 @@ __all__ = [
     "StreamRHF",
     "StreamingIsolationForest",
     "datasets",
+    "evaluate",
+    "evaluate_anomaly",
 ]
 
 

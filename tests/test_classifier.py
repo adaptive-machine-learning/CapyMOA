@@ -14,11 +14,11 @@ import pytest
 import yaml
 
 from capymoa.base import Classifier, LearnerSpec, MOAClassifier, learner_from_params
+from capymoa.classifier import evaluate_classifier
 from capymoa.core.io import load_model, save_model
 from capymoa.core.moa._cli import cli_str_classifier
 from capymoa.datasets import ElectricityTiny
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.evaluation import _is_fast_mode_compilable
+from capymoa.evaluation._loop import _use_java_loop
 from capymoa.stream import Schema
 from capymoa.stream.generator import RandomTreeGenerator
 
@@ -135,7 +135,7 @@ class TestClassifier:
         """Check ``accuracy`` has not changed from expectation. Not a benchmark."""
         stream = ElectricityTiny()
         learner = case.new_learner(stream.schema)
-        results = prequential_evaluation(
+        results = evaluate_classifier(
             stream, learner, window_size=WINDOW_SIZE, batch_size=case.batch_size
         )
         params = learner.get_params()
@@ -164,8 +164,8 @@ class TestClassifier:
             )
 
         # Check accuracy.
-        accuracy = results.cumulative.accuracy()  # type: ignore
-        win_accuracy = results.windowed.accuracy()[-1]  # type: ignore
+        accuracy = results["cumulative"]["accuracy"]
+        win_accuracy = results["windowed"]["accuracy"][-1]
         abs_tol = case.accuracy_abs_tolerance
         assert accuracy == pytest.approx(case.accuracy, abs=abs_tol), (
             "Unexpected cumulative accuracy, "
@@ -183,25 +183,27 @@ class TestClassifier:
 
         stream = ElectricityTiny()
         fast_learner = case.new_learner(stream.schema)
-        if not _is_fast_mode_compilable(stream, fast_learner):
+        if not _use_java_loop(
+            stream, fast_learner, optimise=True, window_size=WINDOW_SIZE
+        ):
             pytest.skip("Learner does not support the fast prequential loop.")
 
-        fast_results = prequential_evaluation(
+        fast_results = evaluate_classifier(
             stream, fast_learner, window_size=WINDOW_SIZE, batch_size=case.batch_size
         )
-        fast_accuracy = fast_results.cumulative.accuracy()  # type: ignore
-        fast_win_accuracy = fast_results.windowed.accuracy()[-1]  # type: ignore
+        fast_accuracy = fast_results["cumulative"]["accuracy"]
+        fast_win_accuracy = fast_results["windowed"]["accuracy"][-1]
 
         slow_learner = case.new_learner(stream.schema)
-        slow_results = prequential_evaluation(
+        slow_results = evaluate_classifier(
             stream,
             slow_learner,
             window_size=WINDOW_SIZE,
             optimise=False,
             batch_size=case.batch_size,
         )
-        slow_accuracy = slow_results.cumulative.accuracy()  # type: ignore
-        slow_win_accuracy = slow_results.windowed.accuracy()[-1]  # type: ignore
+        slow_accuracy = slow_results["cumulative"]["accuracy"]
+        slow_win_accuracy = slow_results["windowed"]["accuracy"][-1]
         assert slow_accuracy == pytest.approx(fast_accuracy), (
             "Slow (optimise=False) loop cumulative accuracy does not match "
             f"the fast loop, expected {fast_accuracy} but got {slow_accuracy}."

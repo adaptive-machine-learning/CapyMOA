@@ -10,10 +10,16 @@ prediction interval gives a range of plausible values around a point
 prediction.
 """
 
+from . import evaluate
 from ._adaptive_prediction_interval import AdaPI
+from ._evaluate import evaluate_prediction_interval
 from ._mean_and_standard_deviation_estimation import MVE
 
 __all__ = [
     "MVE",
     "AdaPI",
+    "evaluate",
+    "evaluate_prediction_interval",
+    # Not imported here, so importing the domain does not load matplotlib.
+    "plot",
 ]

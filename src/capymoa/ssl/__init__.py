@@ -7,9 +7,16 @@ learners must exploit the abundant unlabeled data to improve predictions.
 
 from capymoa._optional import lazy_torch_attrs
 
+from . import evaluate
+from ._evaluate import evaluate_ssl
 from ._sleade import SLEADE
 
-__all__ = ["OSNN", "SLEADE"]
+__all__ = [
+    "OSNN",
+    "SLEADE",
+    "evaluate",
+    "evaluate_ssl",
+]
 
 
 #: Names that need PyTorch. Imported on first access so ``import capymoa`` stays

@@ -10,7 +10,7 @@ python -m cProfile -o profile.pstats your_script.py
 
 In CapyMOA you can do this automatically by adding the `--profile` flag to invoke:
 ```bash
-invoke test.pytest --profile profile.pstats -- tests/test_classifiers.py -k ShrubsClassifier
+invoke test.pytest --profile profile.pstats -- tests/test_classifier.py -k ShrubsClassifier
 ```
 
 Now that we have a profile file, we can analyse it.
@@ -39,7 +39,7 @@ Another tool for visualising profiles is [gprof2dot](https://github.com/jrfonsec
 ```bash
 pip install gprof2dot
 gprof2dot -f pstats profile.pstats \
-    --root=test_classifiers:296:test_classifiers \
+    --root=test_classifier:134:test_accuracy \
     --node-thres=5 | dot -Tpng -o profile.png
 ```
 * `--root` specifies the function to start the graph from. This is useful for focusing
