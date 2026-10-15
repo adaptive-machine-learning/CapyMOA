@@ -18,6 +18,7 @@ from capymoa.ocl.datasets import TinySplitMNIST
 from capymoa.ocl.evaluation import ocl_train_eval_loop
 from capymoa.ocl.strategy import (
     DER,
+    DERPP,
     EWC,
     LWF,
     MAS,
@@ -142,6 +143,15 @@ TEST_CASES: list[Case] = [
         "DER",
         _new_der,
         Result(29.5, 20.5, 2.9),
+    ),
+    Case(
+        "DERPP",
+        new_constructor(
+            DERPP,
+            lr=0.001,
+            optimiser_type=torch.optim.Adam,
+        ),
+        Result(28.5, 20.0, 3.1),
     ),
     Case(
         "GDumb",
