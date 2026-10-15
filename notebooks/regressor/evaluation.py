@@ -63,7 +63,7 @@ ARF_results = evaluate_regressor(
 
 print(
     f"{kNN_results['learner']} [cumulative] RMSE = {kNN_results['cumulative']['rmse']} and \
-    {ARF_results['learner']}  [cumulative] RMSE = {ARF_results["cumulative"]['rmse']}"
+    {ARF_results['learner']}  [cumulative] RMSE = {ARF_results['cumulative']['rmse']}"
 )
 
 plot_windowed_results(kNN_results, ARF_results, metric="rmse")
