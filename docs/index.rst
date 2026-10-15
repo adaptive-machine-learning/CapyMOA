@@ -6,7 +6,7 @@
    api/index
    contributing/index
    about
-   release_notes
+   migration_guide
 
 CapyMOA
 =======

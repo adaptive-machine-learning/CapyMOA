@@ -1,8 +1,9 @@
-Release Notes
-=============
+Migrating to Results Dicts
+==========================
 
-Version 0.16
-------------
+This page covers one change in 0.16, the move to typed dictionary results. For
+all other changes, see the `GitHub changelog
+<https://github.com/adaptive-machine-learning/CapyMOA/releases>`__.
 
 Results are now typed dictionaries. Every ``evaluate_*`` function returns a
 plain :class:`dict`. Each domain has its own result type, for example
@@ -26,6 +27,12 @@ Breaking changes
 * **Whole-stream metrics moved** under ``results["cumulative"]``, for example
   ``results["cumulative"]["accuracy"]``. Per-class metrics are in
   ``results["cumulative_per_class"]``, like ``windowed_per_class``.
+* **Prediction interval** ``mae`` **and** ``rmse`` **change.** In 0.15, the
+  whole-stream values were wrong. This was a bug in MOA's
+  ``BasicPredictionIntervalEvaluator``. The new MOA fixes it, so the values
+  now score the point prediction. Expect different numbers than 0.15.
+  Interval results no longer have ``r2`` and ``adjusted_r2``, and the windowed
+  results no longer have ``rmae`` and ``rrmse``.
 * **Plot helpers moved** to the domain modules, see the table below.
   ``write_to_file`` is gone. Results are plain dicts, so save them with
   :mod:`pickle`.
