@@ -152,6 +152,10 @@ class SLDA(BatchClassifier):
         self._covariance = torch.eye(self._n_feats, device=device)
         self._ridge = torch.eye(self._n_feats, device=device) * ridge
 
+        # Cached weights and bias, cleared after each update
+        self._weights: Tensor | None = None
+        self._bias: Tensor | None = None
+
     @torch.no_grad()
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         x = self._pre_processor(x)
@@ -166,6 +170,8 @@ class SLDA(BatchClassifier):
         self._count, self._mean, self._covariance = _batch_cumulative_covariance(
             x, self._count, self._mean, self._covariance
         )
+        self._weights = None
+        self._bias = None
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
@@ -179,11 +185,12 @@ class SLDA(BatchClassifier):
             )
 
         x = self._pre_processor(x)
-        covariance = self._covariance + self._ridge
-        weights: Tensor = torch.linalg.solve(covariance, self._class_means.T).T
-        bias = -0.5 * (self._class_means * weights).sum(1)
-        bias += torch.log(self._class_counts / self._count)
-        scores = x @ weights.T + bias
+        if self._weights is None or self._bias is None:
+            covariance = self._covariance + self._ridge
+            self._weights = torch.linalg.solve(covariance, self._class_means.T).T
+            bias = -0.5 * (self._class_means * self._weights).sum(1)
+            self._bias = bias + torch.log(self._class_counts / self._count)
+        scores = x @ self._weights.T + self._bias
         return torch.softmax(scores, dim=1)
 
 
@@ -242,7 +249,9 @@ class RanPAC(SLDA):
         :param random_seed: Seed for the random projection, defaults to 1.
         """
         generator = torch.Generator().manual_seed(random_seed)
-        projection = nn.Linear(schema.get_num_attributes(), projection_dim, bias=False)
+        projection = nn.utils.skip_init(
+            nn.Linear, schema.get_num_attributes(), projection_dim, bias=False
+        )
         with torch.no_grad():
             projection.weight.normal_(generator=generator)
         super().__init__(
