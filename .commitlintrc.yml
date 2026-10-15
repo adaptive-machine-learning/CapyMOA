@@ -1,0 +1,5 @@
+extends:
+  - "@commitlint/config-conventional"
+rules:
+  # Allow long trailers such as `Assisted-by: ...`.
+  footer-max-line-length: [0]
