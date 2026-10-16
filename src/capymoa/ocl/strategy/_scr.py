@@ -44,9 +44,9 @@ class _SupervisedContrastiveLoss(nn.Module):
 
 
 class SCR(BatchClassifier, Handler):
-    """Supervised Contrastive Replay (SCR) [#scr]_.
+    """Supervised Contrastive Replay (SCR).
 
-    Trains an encoder and projection head on current and replay examples, using
+    SCR [#scr]_ trains an encoder and projection head on current and replay examples, using
     each example and an augmented view. At inference, normalized encoder features
     are compared with normalized class means recomputed from reservoir memory.
     The projection head is used for training only.
