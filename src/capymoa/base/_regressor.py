@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from sklearn.base import RegressorMixin as _SKRegressorMixin
 
@@ -25,7 +26,19 @@ class Regressor(LearnerParamsMixin, ABC):
 
 
 class MOARegressor(Regressor):
-    def __init__(self, schema=None, CLI=None, random_seed=1, moa_learner=None):
+    def __init__(
+        self,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        moa_learner=None,
+        java_options: dict[str, Any] | None = None,
+    ):
+        """
+        :param java_options: Map from MOA option name to a Java object, set after
+            the CLI and before the learner is prepared. Used to give an ensemble
+            members that have no CLI string, such as Python learners.
+        """
         super().__init__(schema=schema, random_seed=random_seed)
         self.CLI = CLI
         self.moa_learner = moa_learner
@@ -38,6 +51,9 @@ class MOARegressor(Regressor):
 
         if self.CLI is not None:
             self.moa_learner.getOptions().setViaCLIString(CLI)
+
+        for name, value in (java_options or {}).items():
+            self.moa_learner.getOptions().getOption(name).setCurrentObject(value)
 
         self.moa_learner.prepareForUse()
         self.moa_learner.resetLearning()

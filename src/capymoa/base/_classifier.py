@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 import numpy as np
 from jpype import _jpype
@@ -78,7 +79,19 @@ class MOAClassifier(Classifier):
     - moa_learner: The MOA learner object or class identifier.
     """
 
-    def __init__(self, moa_learner, schema=None, CLI=None, random_seed=1):
+    def __init__(
+        self,
+        moa_learner,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        java_options: dict[str, Any] | None = None,
+    ):
+        """
+        :param java_options: Map from MOA option name to a Java object, set after
+            the CLI and before the learner is prepared. Used to give an ensemble
+            members that have no CLI string, such as Python learners.
+        """
         super().__init__(schema=schema, random_seed=random_seed)
         self.CLI = CLI
         # If moa_learner is a class identifier instead of an object
@@ -98,6 +111,9 @@ class MOAClassifier(Classifier):
         # or that default values should be used.
         if self.CLI is not None:
             self.moa_learner.getOptions().setViaCLIString(CLI)
+
+        for name, value in (java_options or {}).items():
+            self.moa_learner.getOptions().getOption(name).setCurrentObject(value)
 
         self.moa_learner.prepareForUse()
         self.moa_learner.resetLearningImpl()
