@@ -11,6 +11,7 @@ from ._mas import MAS
 from ._ncm import NCM
 from ._rar import RAR
 from ._rwalk import RWalk
+from ._scr import SCR
 from ._si import SI
 from ._slda import SLDA, RanPAC
 
@@ -22,6 +23,7 @@ __all__ = [
     "MAS",
     "NCM",
     "RAR",
+    "SCR",
     "SI",
     "SLDA",
     "ExperienceReplay",
