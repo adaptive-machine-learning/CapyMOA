@@ -157,7 +157,6 @@ def _cases():
 
 
 ALL_CASES = _cases()
-BY_NAME = {case.name: case for case in ALL_CASES}
 
 
 def _ids(cases):
