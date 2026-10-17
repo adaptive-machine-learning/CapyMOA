@@ -154,7 +154,9 @@ class RSHash(AnomalyDetector):
         self.p = p
         self.d = schema.get_num_attributes()
 
-        self.rng = np.random.default_rng(seed)
+        # Read the instance attribute rather than the `seed` argument, so the
+        # generator cannot drift from the seed the instance reports.
+        self.rng = np.random.default_rng(self.random_seed)
 
         self.components: list[RSHashComponent] = []
         self.window: list[Instance] = []
