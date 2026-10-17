@@ -97,15 +97,18 @@ class Loda(AnomalyDetector):
         :param window_size: Number of recent instances used to fit each histogram.
         :param max_bins: Upper bound on bins per histogram. ``"auto"`` uses ``floor(n / log n)``
             via the Birge-Rozenholc criterion; an integer caps the search at that value.
-        :param random_state: Random seed for reproducibility.
+        :param random_state: Random seed for reproducibility. `None` draws from system entropy.
         """
 
         super().__init__(schema=schema, random_seed=random_state)
         self.n_projections = n_projections
         self.window_size = window_size
         self.max_bins = max_bins
-        self.random_state = random_state
-        self.rng = np.random.default_rng(random_state)
+        # Both read the instance attribute rather than the `random_state`
+        # argument, so the generator cannot drift from the seed the instance
+        # reports.
+        self.random_state = self.random_seed
+        self.rng = np.random.default_rng(self.random_seed)
         self.n = 0  # number of instances seen
         self._setup()
 

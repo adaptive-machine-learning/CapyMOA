@@ -240,7 +240,7 @@ class AdaptiveIsolationForest(AnomalyDetector):
     >>> from capymoa.evaluation import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
-    >>> learner = AdaptiveIsolationForest(schema, window_size=256, n_trees=100)
+    >>> learner = AdaptiveIsolationForest(schema, window_size=256, n_trees=100, seed=1)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -268,12 +268,12 @@ class AdaptiveIsolationForest(AnomalyDetector):
         :param window_size: Size of the sliding window for training trees.
         :param n_trees: Number of trees in the ensemble.
         :param height: Maximum height of trees. If None, calculated as ceil(log2(window_size)).
-        :param seed: Random seed for reproducibility.
+        :param seed: Random seed for reproducibility. `None` draws from system entropy.
         :param m_trees: Number of candidate trees to generate when replacing.
         :param weights: Weight for combining tree size and max mass scores (0-1).
         :param skip_default_strategy: If True, skip default replacement when quality score doesn't improve.
         """
-        super().__init__(schema=schema, random_seed=seed if seed is not None else 1)
+        super().__init__(schema=schema, random_seed=seed)
         self.n_trees = n_trees
         self._trees: list[IsolationTree] = []
         self.height_limit = height or math.ceil(math.log2(window_size))
