@@ -45,7 +45,7 @@ class ASER(BatchClassifier):
 
     ASER [#aser]_ uses KNN-Shapley values of latent features for both replay
     retrieval and memory replacement. This implementation follows the authors'
-    released ASER retrieval and update policies [#aser_code]_, including balanced
+    released ASER retrieval and update policies, including balanced
     candidates drawn before the disjoint cooperative evaluation set, and the
     random minority-class threshold used in memory updates.
 
