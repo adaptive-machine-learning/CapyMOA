@@ -2,6 +2,8 @@ import sys
 
 import pytest
 
+pytestmark = pytest.markskip("torch")
+
 
 def test_old_events_path_warns_and_reexports():
     for name in list(sys.modules):
