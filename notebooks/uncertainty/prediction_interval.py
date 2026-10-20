@@ -111,7 +111,7 @@ print(
 # * Prediction interval tasks also can be wrapped into prequential evaluation in CapyMOA.
 
 # %%
-from capymoa.uncertainty import evaluate_prediction_interval
+from capymoa.uncertainty import evaluate_uncertainty
 from capymoa.uncertainty import AdaPI
 
 # restart stream
@@ -124,10 +124,10 @@ adapi_learner = AdaPI(
     schema=fried_stream.get_schema(), base_learner=regressive_learner, limit=0.001
 )
 # gather results
-mve_results = evaluate_prediction_interval(
+mve_results = evaluate_uncertainty(
     stream=fried_stream, learner=mve_learner, window_size=1000
 )
-adapi_results = evaluate_prediction_interval(
+adapi_results = evaluate_uncertainty(
     stream=fried_stream, learner=adapi_learner, window_size=1000
 )
 
@@ -172,7 +172,7 @@ new_mve_learner = MVE(
     schema=fried_stream.get_schema(),
     base_learner=SOKNL(schema=fried_stream.get_schema(), ensemble_size=10),
 )
-new_mve_results = evaluate_prediction_interval(
+new_mve_results = evaluate_uncertainty(
     stream=fried_stream,
     learner=new_mve_learner,
     window_size=1000,
@@ -198,7 +198,7 @@ new_adapi_learner = AdaPI(
     base_learner=SOKNL(schema=fried_stream.get_schema(), ensemble_size=10),
     limit=0.001,
 )
-new_adapi_results = evaluate_prediction_interval(
+new_adapi_results = evaluate_uncertainty(
     stream=fried_stream,
     learner=new_adapi_learner,
     window_size=1000,
