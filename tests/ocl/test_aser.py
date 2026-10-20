@@ -1,5 +1,6 @@
 """ASER scoring, memory updates and classifier API checks."""
 
+import copy
 from itertools import permutations
 from math import factorial
 
@@ -144,16 +145,16 @@ def test_aser_warmup_sampling_and_small_memory(monkeypatch):
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-def test_aser_reference_passes_and_prediction(dtype):
+def test_aser_single_training_pass_and_prediction(dtype):
     model = nn.Sequential(
         nn.Linear(2, 4), nn.BatchNorm1d(4), nn.ReLU(), nn.Linear(4, 3)
     ).to(dtype)
     learner = _tiny_aser(model=model)
     x, y = torch.eye(2).repeat(2, 1), torch.tensor([0, 1, 0, 1])
     learner.batch_train(x, y)
-    assert int(model[1].num_batches_tracked) == 2
+    assert int(model[1].num_batches_tracked) == 1
     learner.batch_train(x, y)
-    assert int(model[1].num_batches_tracked) == 5
+    assert int(model[1].num_batches_tracked) == 2
     model[1].eval()
     modes = [m.training for m in model.modules()]
     state = {name: value.clone() for name, value in model.state_dict().items()}
@@ -167,10 +168,63 @@ def test_aser_reference_passes_and_prediction(dtype):
     np.testing.assert_allclose(
         learner.predict_proba(instance), probabilities[0].numpy(), rtol=1e-5
     )
-    # A batch-normalized encoder cannot train on a singleton, as in the reference.
+    # With empty memory, a batch-normalized encoder still cannot train a singleton.
     single = _tiny_aser(model=nn.Linear(2, 3).to(dtype))
     single.train(LabeledInstance.from_array(single.schema, x[0].numpy(), 0))
     assert single._seen == 1
+
+
+@pytest.mark.parametrize("substeps", [1, 2])
+def test_aser_combined_update_with_singleton_and_replay(substeps, monkeypatch):
+    """A singleton plus replay must match one combined SGD update, including state."""
+    torch.manual_seed(7)
+    model = nn.Sequential(
+        nn.Linear(2, 4), nn.BatchNorm1d(4), nn.ReLU(), nn.Dropout(0.2), nn.Linear(4, 3)
+    )
+    expected_model = copy.deepcopy(model)
+    optimiser = torch.optim.SGD(model.parameters(), lr=0.03, momentum=0.9)
+    expected_optimiser = torch.optim.SGD(
+        expected_model.parameters(), lr=0.03, momentum=0.9
+    )
+    learner = _tiny_aser(model=model, optimiser=optimiser, substeps=substeps)
+    replay_x = torch.tensor([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
+    replay_y = torch.tensor([0, 1, 0])
+    learner._update_memory(replay_x, replay_y)
+    x, y = torch.tensor([[0.2, 0.3]]), torch.tensor([2])
+
+    def retrieve(current_x, current_y):
+        # Current data must not enter memory between substeps.
+        assert learner._buffer.count == len(replay_y)
+        return {"x": replay_x, "y": replay_y}
+
+    monkeypatch.setattr(learner, "_retrieve", retrieve)
+    combined_x = torch.cat((replay_x, x))
+    combined_y = torch.cat((replay_y, y))
+    rng = torch.random.get_rng_state().clone()
+    expected_losses = []
+    for _ in range(substeps):
+        expected_optimiser.zero_grad()
+        loss = nn.functional.cross_entropy(expected_model(combined_x), combined_y)
+        loss.backward()
+        expected_optimiser.step()
+        expected_losses.append(loss.detach())
+    expected_rng = torch.random.get_rng_state().clone()
+
+    # Replay selection is fixed so dropout consumes exactly the same random draws.
+    torch.random.set_rng_state(rng)
+    learner.batch_train(x, y)
+    torch.testing.assert_close(torch.random.get_rng_state(), expected_rng)
+    for name, value in model.state_dict().items():
+        torch.testing.assert_close(value, expected_model.state_dict()[name])
+    for actual, expected in zip(model.parameters(), expected_model.parameters()):
+        torch.testing.assert_close(
+            optimiser.state[actual]["momentum_buffer"],
+            expected_optimiser.state[expected]["momentum_buffer"],
+        )
+    assert learner.last_loss == pytest.approx(
+        torch.stack(expected_losses).mean().item()
+    )
+    assert learner._buffer.count == learner._seen == len(combined_y)
 
 
 def test_aser_reproducibility_and_private_cache():

@@ -64,11 +64,12 @@ class ASER(BatchClassifier):
     once and replays the available candidates. Warm-up and small-memory random
     retrieval instead draw from the whole available memory.
 
-    Training retains the reference learner's preliminary current and replay
-    forward/backward passes, whose gradients are discarded before the combined
-    mean cross-entropy update. These passes can affect dropout and batch
-    normalization. Memory is updated once, after all substeps, using the updated
-    encoder. Input normalization belongs in the stream or supplied model.
+    Each substep retrieves replay, then minimizes mean cross entropy on the
+    combined replay and current batch with one training forward/backward pass.
+    The reference learner's preliminary passes are omitted to avoid discarded
+    work. This changes dropout random draws and batch-normalization statistics
+    relative to that implementation. Memory is updated once, after all substeps,
+    using the updated encoder. Input normalization belongs in the stream or model.
 
     A private CPU generator replaces the reference's global NumPy/Torch random
     generators; seeds therefore do not reproduce its exact random sequence.
@@ -343,7 +344,7 @@ class ASER(BatchClassifier):
         self._seen += len(x)
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        """Train using reference ASER ordering, then update memory once."""
+        """Retrieve history, train once per substep, then update memory once."""
         x = self._prepare_x(x)
         y = y.to(device=self.device, dtype=self.y_dtype)
         if y.shape != (len(x),) or ((y < 0) | (y >= self._num_classes)).any():
@@ -352,13 +353,7 @@ class ASER(BatchClassifier):
         losses = []
         for _ in range(self._substeps):
             self._optimiser.zero_grad()
-            F.cross_entropy(self._model(x.reshape(-1, *self._shape)), y).backward()
             replay = self._retrieve(x, y)
-            if len(replay["y"]):
-                F.cross_entropy(
-                    self._model(replay["x"].reshape(-1, *self._shape)), replay["y"]
-                ).backward()
-            self._optimiser.zero_grad()
             combined = torch.cat((replay["x"], x)).reshape(-1, *self._shape)
             loss = F.cross_entropy(self._model(combined), torch.cat((replay["y"], y)))
             loss.backward()
