@@ -11,7 +11,7 @@ from capymoa.classifier.evaluate import (
     ClassificationWindowedEvaluator,
 )
 from capymoa.evaluation._loop import _LoopOutput
-from capymoa.ocl.evaluation.events import (
+from capymoa.ocl.evaluate.events import (
     TrainBatchPredict,
     TrainBegin,
     TrainEnd,
