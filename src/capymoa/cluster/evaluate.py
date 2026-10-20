@@ -1,6 +1,24 @@
-"""Evaluator for clustering."""
+"""Evaluator and result types for clustering.
 
-from capymoa.base import Clusterer
+:func:`~capymoa.cluster.evaluate_cluster` returns a :class:`ClusterResults`. You can
+also use :class:`ClusteringEvaluator` in your own training loop.
+"""
+
+from capymoa.base import Clusterer, ClusteringResult
+from capymoa.evaluation.results import RunInfo
+
+
+class ClusterResults(RunInfo):
+    """Results of evaluating a clusterer. See :func:`~capymoa.cluster.evaluate_cluster`.
+
+    The snapshots are taken every ``update_interval`` instances. A list is empty
+    if the clusterer does not implement that kind of clusters.
+    """
+
+    #: Macro-cluster snapshots, one per update.
+    macro: list[ClusteringResult]
+    #: Micro-cluster snapshots, one per update.
+    micro: list[ClusteringResult]
 
 
 class ClusteringEvaluator:
