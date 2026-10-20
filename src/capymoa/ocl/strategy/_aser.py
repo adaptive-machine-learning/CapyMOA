@@ -1,5 +1,6 @@
 """Adversarial Shapley Value Experience Replay."""
 
+import warnings
 from collections.abc import Callable
 
 import torch
@@ -56,6 +57,12 @@ class ASER(BatchClassifier):
     observed. All draws are without replacement and capped at available data.
     Memory first fills in stream order; once full it uses Shapley replacement,
     rather than reservoir replacement. No task labels or boundaries are needed.
+
+    ``replay_batch_size`` is an upper bound. Balanced retrieval can select at
+    most ``samples_per_class`` examples per class currently in memory, and fewer
+    for classes with less data. If that candidate pool is too small, ASER warns
+    once and replays the available candidates. Warm-up and small-memory random
+    retrieval instead draw from the whole available memory.
 
     Training retains the reference learner's preliminary current and replay
     forward/backward passes, whose gradients are discarded before the combined
@@ -114,8 +121,13 @@ class ASER(BatchClassifier):
             the model's children with the last child removed, as in the reference.
             Supply this explicitly if the last fallback does not fit the model.
         :param buffer_capacity: Maximum number of examples and labels in memory.
-        :param replay_batch_size: Maximum number of replay examples per step.
+        :param replay_batch_size: Maximum number of replay examples per step,
+            capped at the available candidate count. Balanced retrieval warns
+            once per learner if its candidate pool is smaller than this limit.
         :param samples_per_class: Maximum samples per class for balanced draws.
+            Controls the candidate and evaluation pools, rather than the number
+            selected for replay. The retrieval pool contains up to this many
+            examples per class currently in memory.
             Update candidates include up to this times all schema classes.
         :param knn_k: Number of neighbors for the reference KNN-SV recurrence.
         :param score_type: ``asv`` (ASER), ``asvm`` (ASER-mu), or ``neg_sv``.
@@ -155,11 +167,15 @@ class ASER(BatchClassifier):
         self._num_features = schema.get_num_attributes()
         self._num_classes = schema.get_num_classes()
         if feature_extractor is None:
-            feature_extractor = getattr(model, "features", None)
-        if feature_extractor is None:
-            feature_extractor = getattr(model, "forward_features", None)
-        if feature_extractor is None:
-            feature_extractor = nn.Sequential(*list(model.children())[:-1])
+            # Prefer a model feature method before the reference's head removal.
+            features = getattr(model, "features", None)
+            forward_features = getattr(model, "forward_features", None)
+            if callable(features):
+                feature_extractor = features
+            elif callable(forward_features):
+                feature_extractor = forward_features
+            else:
+                feature_extractor = nn.Sequential(*list(model.children())[:-1])
         self._feature_extractor = feature_extractor
         self._rng = torch.Generator().manual_seed(seed)
         # Reuse named storage and sequential filling, never Algorithm R replacement.
@@ -171,6 +187,7 @@ class ASER(BatchClassifier):
         self._class_indices: dict[int, set[int]] = {}
         self._seen = 0
         self._replay_batch_size = replay_batch_size
+        self._warned_replay_cap = False
         self._samples_per_class = samples_per_class
         self._knn_k = knn_k
         self._score_type = score_type
@@ -179,6 +196,7 @@ class ASER(BatchClassifier):
         self.last_loss: float | None = None
 
     def _prepare_x(self, x: Tensor) -> Tensor:
+        """Flatten and move inputs after checking their schema width."""
         if x.ndim < 2 or x.shape[0] == 0:
             raise ValueError("x must contain a non-empty batch")
         flat = x.reshape(x.shape[0], -1)
@@ -188,6 +206,7 @@ class ASER(BatchClassifier):
 
     @torch.no_grad()
     def _features(self, x: Tensor) -> Tensor:
+        """Encode chunks without changing gradients or model training modes."""
         modes = {module: module.training for module in self._model.modules()}
         self._model.eval()
         try:
@@ -203,6 +222,7 @@ class ASER(BatchClassifier):
                 module.training = training
 
     def _shapley(self, ex: Tensor, ey: Tensor, cx: Tensor, cy: Tensor) -> Tensor:
+        """Score candidates against evaluation points in the same feature space."""
         features = self._features(torch.cat((ex, cx)))
         if features.dtype in (torch.float16, torch.bfloat16):
             features = features.float()
@@ -211,6 +231,7 @@ class ASER(BatchClassifier):
         )
 
     def _random_indices(self, count: int, excluded: Tensor | None = None) -> Tensor:
+        """Draw up to count memory indices without replacement, omitting exclusions."""
         available = torch.ones(self._buffer.count, dtype=torch.bool)
         if excluded is not None:
             available[excluded.cpu()] = False
@@ -220,6 +241,7 @@ class ASER(BatchClassifier):
         )
 
     def _balanced_indices(self, excluded: Tensor | None = None) -> Tensor:
+        """Draw up to samples_per_class indices from each remaining class."""
         omit = set() if excluded is None else set(excluded.cpu().tolist())
         selected = []
         for members in self._class_indices.values():
@@ -230,6 +252,7 @@ class ASER(BatchClassifier):
         return indices.to(self.device)
 
     def _retrieve(self, x: Tensor, y: Tensor) -> dict[str, Tensor]:
+        """Use random warm-up, then rank a balanced candidate pool for replay."""
         memory = self._buffer.array()
         if self._seen <= self._buffer.capacity:
             chosen = self._random_indices(self._replay_batch_size)
@@ -254,12 +277,26 @@ class ASER(BatchClassifier):
                     if self._score_type == "asv"
                     else coop.mean(0) - adv.mean(0)
                 )
+            if (
+                len(candidates) < self._replay_batch_size
+                and not self._warned_replay_cap
+            ):
+                warnings.warn(
+                    f"ASER's balanced replay pool contains {len(candidates)} examples, "
+                    f"fewer than replay_batch_size={self._replay_batch_size}. "
+                    f"Replay is capped at {len(candidates)}; "
+                    f"samples_per_class={self._samples_per_class} limits the pool per class.",
+                    UserWarning,
+                    stacklevel=3,
+                )
+                self._warned_replay_cap = True
             chosen = candidates[
                 scores.argsort(descending=True)[: self._replay_batch_size]
             ]
         return {key: value[chosen] for key, value in memory.items()}
 
     def _write(self, indices: Tensor, x: Tensor, y: Tensor) -> None:
+        """Replace memory rows and keep their class-index cache in sync."""
         memory = self._buffer.array()
         for index, label in zip(indices.cpu().tolist(), y.cpu().tolist()):
             old = int(memory["y"][index])
@@ -270,6 +307,7 @@ class ASER(BatchClassifier):
 
     @torch.no_grad()
     def _update_memory(self, x: Tensor, y: Tensor) -> None:
+        """Fill free slots, then replace candidates using cooperative Shapley values."""
         fill = min(self._buffer.capacity - self._buffer.count, len(x))
         start = self._buffer.count
         if fill:
@@ -279,6 +317,7 @@ class ASER(BatchClassifier):
         remaining_x, remaining_y = x[fill:], y[fill:]
         if self._buffer.count == self._buffer.capacity:
             memory = self._buffer.array()
+            # Include underrepresented incoming classes so they can enter memory.
             threshold = torch.rand((), generator=self._rng).item() / self._num_classes
             counts = torch.zeros(self._num_classes, device=self.device)
             for label, indices in self._class_indices.items():
@@ -287,6 +326,7 @@ class ASER(BatchClassifier):
             evaluation = self._balanced_indices()
             ex = torch.cat((memory["x"][evaluation], remaining_x[minority]))
             ey = torch.cat((memory["y"][evaluation], remaining_y[minority]))
+            # Protect evaluation rows from replacement; score the other candidates.
             candidates = self._random_indices(
                 self._samples_per_class * self._num_classes, evaluation
             )
@@ -296,6 +336,7 @@ class ASER(BatchClassifier):
                 cy = torch.cat((memory["y"][candidates], remaining_y))
                 order = self._shapley(ex, ey, cx, cy).sum(0).argsort(descending=True)
                 keep, discard = order[:n_old], order[n_old:]
+                # Each retained incoming row replaces one discarded memory row.
                 new = keep[keep >= n_old] - n_old
                 old = candidates[discard[discard < n_old]]
                 self._write(old, remaining_x[new], remaining_y[new])
@@ -328,7 +369,11 @@ class ASER(BatchClassifier):
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        """Return class probabilities while preserving the model's modes."""
+        """Return class probabilities while preserving the model's modes.
+
+        The OCL loop delegates mode handling to the learner. Restoring each
+        submodule's flag also keeps standalone predictions safe between updates.
+        """
         modes = {module: module.training for module in self._model.modules()}
         self._model.eval()
         try:
