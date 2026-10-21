@@ -1,6 +1,6 @@
+import hashlib
 import math
 import sys
-import zlib
 
 import numpy as np
 
@@ -32,11 +32,17 @@ class RSHashCountMinSketch:
 
     def _indices(self, x: np.ndarray) -> list[int]:
         payload = x.tobytes()
-        # crc32 seeds its register with the table key, so the key (and with it
-        # the detector seed) still picks the slot, but unlike hash() the result
-        # is identical in every process regardless of PYTHONHASHSEED.
+        # Python's builtin hash() is randomized per process, so seed keys alone
+        # do not make the sketch reproducible across runs. Digest the payload
+        # under the key instead: a stable, keyed hash.
         return [
-            zlib.crc32(payload, (key ^ (key >> 32)) & 0xFFFFFFFF) % self.p
+            int.from_bytes(
+                hashlib.blake2b(
+                    payload, key=key.to_bytes(8, "big"), digest_size=8
+                ).digest(),
+                "big",
+            )
+            % self.p
             for key in self.hash_keys
         ]
 
