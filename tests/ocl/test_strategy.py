@@ -19,6 +19,7 @@ from capymoa.ocl.strategy import (
     DER,
     DERPP,
     EWC,
+    LPR,
     LWF,
     MAS,
     NCM,
@@ -107,6 +108,7 @@ Use the `partial` function to create a new function with hyperparameters already
 set.
 """
 TEST_CASES: list[Case] = [
+    Case("LPR", new_constructor(LPR, lr=0.1, update_every=10), Result(25.5, 21.6, 9.4)),
     # These improved when `MOAClassifier.predict_proba` stopped discarding
     # predictions whose unnormalised vote total was below 1e-2. HoeffdingTree
     # uses Naive Bayes at its leaves, whose likelihood products fall below that
