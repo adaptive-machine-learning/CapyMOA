@@ -49,8 +49,7 @@ class AnomalyDetector(ABC):
 
     Attributes:
     - schema: The schema representing the instances. Defaults to None.
-    - random_seed: The random seed for reproducibility. Defaults to 1. `None`
-      means "do not seed", so the component draws from system entropy.
+    - random_seed: The random seed for reproducibility. Defaults to 1. `None` means "do not seed", so the component draws from system entropy.
     """
 
     def __init__(self, schema: Schema, random_seed: int | None = 1):
