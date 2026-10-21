@@ -112,9 +112,9 @@ def test_table_keys_keep_the_tables_independent():
 
     ``hash()`` took the key as part of the tuple it hashed, so dropping the key
     would collapse every table onto the same slots and quietly turn the sketch
-    into ``w`` copies of one table. ``zlib.crc32`` takes the key as its initial
-    register, which preserves that, and this test is what keeps it that way:
-    a seed-blind ``zlib.crc32(payload, 0)`` passes both other tests in this
+    into ``w`` copies of one table. ``hashlib.blake2b`` is keyed by the table
+    key, which preserves that, and this test is what keeps it that way:
+    a seed-blind ``hashlib.blake2b(payload)`` passes both other tests in this
     file, so only this assertion can see the difference.
     """
     sketch = RSHashCountMinSketch(p=10_000, w=4, rng=np.random.default_rng(42))
