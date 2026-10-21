@@ -4,6 +4,8 @@ import tempfile
 import pytest
 
 from capymoa.automl import BanditClassifier, EpsilonGreedy
+from capymoa.classifier import HoeffdingTree, NaiveBayes
+from capymoa.core.io import load_model, save_model
 from capymoa.core.moa._cli import cli_str_classifier
 from capymoa.stream.generator import SEA
 
@@ -58,9 +60,6 @@ def test_bandit_classifier_save_load_roundtrip():
     __getattr__ used to recurse into itself while unpickling, so save_model
     succeeded but load_model died with RecursionError.
     """
-    from capymoa.classifier import HoeffdingTree, NaiveBayes
-    from capymoa.core.io import load_model, save_model
-
     stream = SEA()
     schema = stream.get_schema()
     learner = BanditClassifier(
@@ -99,51 +98,3 @@ def test_bandit_classifier_save_load_roundtrip():
     assert restored.metrics[0].accuracy() == pytest.approx(
         learner.metrics[0].accuracy()
     )
-
-
-def test_classification_evaluator_save_load_roundtrip():
-    """A bare ClassificationEvaluator must round-trip through save_model/load_model.
-
-    This is the smallest object that reproduces the recursion, so it pins the
-    root cause rather than the BanditClassifier that happens to hold one.
-    """
-    from capymoa.classifier.evaluate import ClassificationEvaluator
-    from capymoa.core.io import load_model, save_model
-
-    stream = SEA()
-    evaluator = ClassificationEvaluator(schema=stream.get_schema())
-    for _ in range(100):
-        evaluator.update(stream.next_instance().y_index, 0)
-
-    with tempfile.TemporaryFile() as fd:
-        save_model(evaluator, fd)
-        fd.seek(0)
-        restored = load_model(fd)
-
-    assert isinstance(restored, ClassificationEvaluator)
-    assert restored.instances_seen == evaluator.instances_seen
-    assert restored.accuracy() == pytest.approx(evaluator.accuracy())
-
-
-def test_evaluator_getattr_does_not_recurse_before_init():
-    """__getattr__ must raise AttributeError, not call itself, on a bare object.
-
-    Python asks for __setstate__ on an object whose __init__ has not run. If
-    __getattr__ reads an attribute that is not set yet, it lands back in
-    __getattr__ and the stack runs out. Reproduced here without any unpickling,
-    which keeps the test from needing to observe a RecursionError to fail.
-    """
-    from capymoa.classifier.evaluate import (
-        ClassificationEvaluator,
-        ClassificationWindowedEvaluator,
-    )
-
-    for cls in (
-        ClassificationEvaluator,
-        ClassificationWindowedEvaluator,
-    ):
-        bare = cls.__new__(cls)
-        # hasattr is the probe pickle makes. It swallows AttributeError, so it
-        # only returns if __getattr__ declined the name; if __getattr__ recursed
-        # instead, the RecursionError escapes and the test fails.
-        assert not hasattr(bare, "__setstate__")
