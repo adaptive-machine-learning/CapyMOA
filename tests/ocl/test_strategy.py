@@ -12,6 +12,7 @@ from torch import nn
 
 from capymoa.base import Classifier
 from capymoa.classifier import Finetune, HoeffdingTree
+from capymoa.core import Instance, LabeledInstance
 from capymoa.core.torch.ann import Perceptron
 from capymoa.ocl import evaluate_ocl
 from capymoa.ocl.datasets import TinySplitMNIST
@@ -22,6 +23,7 @@ from capymoa.ocl.strategy import (
     LWF,
     MAS,
     NCM,
+    PCR,
     RAR,
     SI,
     SLDA,
@@ -30,6 +32,7 @@ from capymoa.ocl.strategy import (
     RanPAC,
     RWalk,
 )
+from capymoa.ocl.strategy._pcr import _ProxyContrastiveLoss
 from capymoa.stream import Schema
 
 # PyTorch is notorious for non-deterministic behavior between versions and platforms.
@@ -100,6 +103,19 @@ def _new_der(schema: Schema) -> DER:
     return DER(schema, model, torch.optim.Adam(model.parameters(), lr=0.001))
 
 
+def _new_pcr(schema: Schema) -> PCR:
+    encoder = nn.Sequential(
+        nn.Flatten(), nn.Linear(schema.get_num_attributes(), 64), nn.ReLU()
+    )
+    return PCR(
+        schema,
+        encoder,
+        feature_dim=64,
+        augment=nn.Dropout(p=0.2),
+        replay_batch_size=32,
+    )
+
+
 """
 Add new test cases here.
 
@@ -107,6 +123,7 @@ Use the `partial` function to create a new function with hyperparameters already
 set.
 """
 TEST_CASES: list[Case] = [
+    Case("PCR", _new_pcr, Result(69.5, 46.5, 46.6)),
     # These improved when `MOAClassifier.predict_proba` stopped discarding
     # predictions whose unnormalised vote total was below 1e-2. HoeffdingTree
     # uses Naive Bayes at its leaves, whose likelihood products fall below that
@@ -307,3 +324,174 @@ def test_ocl_classifier(case: Case):
     ]
     assert len(r["anytime"]["task"]) == total_eval
     assert "task" in r["ttt"]["windowed"]
+
+
+def _tiny_pcr(**kwargs) -> PCR:
+    schema = Schema.from_custom(
+        ["x0", "x1", "class"], "class", {"class": ["a", "b", "c"]}
+    )
+    model = kwargs.pop("model", None)
+    if model is None:
+        model = nn.Linear(2, 2, bias=False)
+    defaults = {
+        "schema": schema,
+        "model": model,
+        "feature_dim": 2,
+        "augment": lambda x: x.flip(-1),
+        "buffer_capacity": 8,
+        "replay_batch_size": 2,
+        "seed": 4,
+    }
+    defaults.update(kwargs)
+    return PCR(**defaults)
+
+
+def test_pcr_proxy_loss():
+    """Repeated labels weight the denominator; absent proxies get no gradient."""
+    features = torch.tensor(
+        [[1.0, 0.2], [0.3, 1.0], [-1.0, 0.4]], dtype=torch.float64, requires_grad=True
+    )
+    proxies = torch.tensor(
+        [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]], dtype=torch.float64, requires_grad=True
+    )
+    labels = torch.tensor([0, 0, 1])
+    temperature = 0.3
+    # Independent scalar calculation, including one proxy entry per example.
+    expected = []
+    for feature, label in zip(features, labels):
+        similarities = [
+            (feature @ proxy / (feature.norm() * proxy.norm())) / temperature
+            for proxy in proxies
+        ]
+        denominator = sum(similarities[int(y)].exp() for y in labels)
+        expected.append(denominator.log() - similarities[int(label)])
+    loss = _ProxyContrastiveLoss(temperature)(features, labels, proxies)
+    torch.testing.assert_close(loss, torch.stack(expected).mean())
+    loss.backward()
+    assert proxies.grad[:2].abs().sum() > 0
+    torch.testing.assert_close(proxies.grad[2], torch.zeros(2, dtype=torch.float64))
+    assert features.grad.abs().sum() > 0
+    # Keeping the own-label proxy makes a one-class batch finite and constant.
+    one_class = _ProxyContrastiveLoss(temperature)(
+        features.detach(), torch.zeros(3, dtype=torch.long), proxies.detach()
+    )
+    torch.testing.assert_close(one_class, torch.tensor(3.0, dtype=torch.float64).log())
+
+
+def test_pcr_replay_order_and_updates(monkeypatch):
+    """First fill memory, then train both encoder and proxies on history only."""
+    learner = _tiny_pcr(substeps=2, augment=lambda x: x.add_(0.25))
+    x, y = torch.eye(2), torch.tensor([0, 1])
+    before_encoder = learner._model.weight.detach().clone()
+    before_proxies = learner._proxies.weight.detach().clone()
+    learner.batch_train(x, y)
+    assert learner.last_loss == 0.0
+    torch.testing.assert_close(learner._model.weight, before_encoder)
+    torch.testing.assert_close(learner._proxies.weight, before_proxies)
+    counts = []
+    original_sample = learner._buffer.sample
+
+    def sample(n):
+        counts.append(learner._buffer.count)
+        return original_sample(n)
+
+    monkeypatch.setattr(learner._buffer, "sample", sample)
+    learner.batch_train(x + 2, torch.tensor([1, 2]))
+    assert counts == [2, 2]
+    assert learner._buffer.count == 4
+    assert learner.last_loss > 0
+    assert not torch.allclose(learner._model.weight, before_encoder)
+    assert not torch.allclose(learner._proxies.weight, before_proxies)
+    # In-place augmentation must not overwrite raw input views or stored data.
+    torch.testing.assert_close(x, torch.eye(2))
+    torch.testing.assert_close(learner._buffer.array()["x"], torch.cat((x, x + 2)))
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_pcr_inference_and_instance_api(dtype):
+    learner = _tiny_pcr(model=nn.Linear(2, 2, bias=False).to(dtype))
+    with torch.no_grad():
+        learner._model.weight.copy_(torch.eye(2, dtype=dtype))
+        learner._proxies.weight.copy_(
+            torch.tensor([[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]], dtype=dtype)
+        )
+    x = torch.tensor([[3.0, 0.1], [-3.0, 0.1]], dtype=dtype)
+    learner._model.train()
+    probabilities = learner.batch_predict_proba(x)
+    assert learner._model.training
+    expected = (
+        nn.functional.normalize(x, dim=1) @ learner._proxies.weight.T / 0.09
+    ).softmax(1)
+    torch.testing.assert_close(probabilities, expected)
+    assert probabilities.argmax(1).tolist() == [0, 2]
+    instance = Instance.from_array(learner.schema, x[0].numpy())
+    np.testing.assert_allclose(
+        learner.predict_proba(instance), probabilities[0].numpy(), rtol=1e-5
+    )
+    learner.train(LabeledInstance.from_array(learner.schema, x[0].numpy(), 0))
+    assert learner._buffer.count == 1
+
+
+def test_pcr_optimizer_and_seed():
+    model = nn.Linear(2, 2)
+    optimiser = torch.optim.Adam(model.parameters(), lr=0.003)
+    state = torch.random.get_rng_state().clone()
+    learner = _tiny_pcr(model=model, optimiser=optimiser)
+    torch.testing.assert_close(torch.random.get_rng_state(), state)
+    owned = {id(p) for g in optimiser.param_groups for p in g["params"]}
+    assert all(id(p) in owned for p in learner._proxies.parameters())
+    factory_learner = _tiny_pcr(
+        optimiser=lambda params: torch.optim.Adam(params, lr=0.003)
+    )
+    assert isinstance(factory_learner._optimiser, torch.optim.Adam)
+    torch.testing.assert_close(learner._proxies.weight, factory_learner._proxies.weight)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"feature_dim": 0},
+        {"buffer_capacity": 0},
+        {"substeps": 0},
+        {"replay_batch_size": 0},
+        {"temperature": 0},
+        {"temperature": float("nan")},
+    ],
+)
+def test_pcr_invalid_configuration(kwargs):
+    with pytest.raises(ValueError):
+        _tiny_pcr(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "interface", ["forward", "forward_features", "features", "custom"]
+)
+def test_pcr_shaped_encoder_interfaces(interface):
+    class Encoder(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.embedding = nn.Sequential(nn.Flatten(), nn.Linear(2, 4))
+
+        def forward(self, x):
+            assert x.shape[1:] == (1, 1, 2)
+            return self.embedding(x)
+
+    model = Encoder()
+    kwargs = {}
+    if interface in ("forward_features", "features"):
+        setattr(model, interface, model.forward)
+    elif interface == "custom":
+        kwargs["feature_extractor"] = model.forward
+    learner = _tiny_pcr(model=model, feature_dim=4, replay_batch_size=None, **kwargs)
+    learner.schema.shape = (1, 1, 2)
+    # Shape is fixed when a learner is constructed.
+    learner = PCR(
+        learner.schema, model, 4, lambda x: x.flip(-1), replay_batch_size=None, **kwargs
+    )
+    x, y = torch.eye(2), torch.tensor([0, 1])
+    learner.batch_train(x, y)
+    learner.batch_train(x.reshape(2, 1, 1, 2), y)
+    assert learner.last_loss > 0
+    probabilities = learner.batch_predict_proba(x)
+    assert probabilities.shape == (2, 3)
+    torch.testing.assert_close(probabilities.sum(1), torch.ones(2))
