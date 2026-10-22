@@ -5,7 +5,7 @@ import torch
 
 from capymoa.classifier.evaluate import ClassifierResults
 from capymoa.core import LabelIndex
-from capymoa.ocl.evaluation import events
+from capymoa.ocl.evaluate import events
 from capymoa.ocl.events import Dispatcher, Handler
 
 from ._results import (
