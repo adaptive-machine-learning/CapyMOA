@@ -21,6 +21,7 @@ from capymoa.ocl.strategy import (
     EWC,
     LWF,
     MAS,
+    MIR,
     NCM,
     RAR,
     SI,
@@ -107,6 +108,7 @@ Use the `partial` function to create a new function with hyperparameters already
 set.
 """
 TEST_CASES: list[Case] = [
+    Case("MIR", new_constructor(MIR, lr=0.01), Result(18.0, 16.0, 6.3)),
     # These improved when `MOAClassifier.predict_proba` stopped discarding
     # predictions whose unnormalised vote total was below 1e-2. HoeffdingTree
     # uses Naive Bayes at its leaves, whose likelihood products fall below that
@@ -307,3 +309,56 @@ def test_ocl_classifier(case: Case):
     ]
     assert len(r["anytime"]["task"]) == total_eval
     assert "task" in r["ttt"]["windowed"]
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {},
+        {"momentum": 0.9, "weight_decay": 0.1},
+        {"momentum": 0.8, "dampening": 0.2},
+        {"momentum": 0.9, "nesterov": True, "weight_decay": 0.2},
+        {"maximize": True},
+    ],
+)
+@pytest.mark.parametrize("history", [False, True])
+def test_mir_virtual_sgd(options, history):
+    """Retrieval must predict the configured SGD step without changing its state."""
+    schema = Schema.from_custom(["x0", "x1", "class"], "class", {"class": ["a", "b"]})
+    torch.manual_seed(12)
+    model = nn.Sequential(nn.Linear(2, 4), nn.Tanh(), nn.Linear(4, 2))
+    optimiser = torch.optim.SGD(
+        [
+            {"params": model[0].parameters(), "lr": 0.03},
+            {"params": model[2].parameters(), "lr": 0.12},
+        ],
+        **options,
+    )
+    learner = MIR(schema, model, optimiser)
+    x, y = torch.randn(8, 2), torch.arange(8) % 2
+    if history:
+        nn.functional.cross_entropy(model(x), y).backward()
+        optimiser.step()
+        optimiser.zero_grad()
+    for p in model.parameters():
+        p.grad = torch.ones_like(p)
+    before = {name: tensor.clone() for name, tensor in model.state_dict().items()}
+    momentum = {
+        p: state["momentum_buffer"].clone()
+        for p, state in optimiser.state.items()
+        if "momentum_buffer" in state
+    }
+    virtual = learner._virtual_parameters(x, y)
+    assert len(optimiser.state) == len(momentum)
+    for name, p in model.named_parameters():
+        torch.testing.assert_close(p, before[name], rtol=0, atol=0)
+        torch.testing.assert_close(p.grad, torch.ones_like(p), rtol=0, atol=0)
+    for p, velocity in momentum.items():
+        torch.testing.assert_close(
+            optimiser.state[p]["momentum_buffer"], velocity, rtol=0, atol=0
+        )
+    optimiser.zero_grad()
+    nn.functional.cross_entropy(model(x), y).backward()
+    optimiser.step()
+    for name, p in model.named_parameters():
+        torch.testing.assert_close(p, virtual[name])
