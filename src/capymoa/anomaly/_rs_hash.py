@@ -1,3 +1,4 @@
+import hashlib
 import math
 import sys
 
@@ -31,7 +32,19 @@ class RSHashCountMinSketch:
 
     def _indices(self, x: np.ndarray) -> list[int]:
         payload = x.tobytes()
-        return [hash((key, payload)) % self.p for key in self.hash_keys]
+        # Python's builtin hash() is randomized per process, so seed keys alone
+        # do not make the sketch reproducible across runs. Digest the payload
+        # under the key instead: a stable, keyed hash.
+        return [
+            int.from_bytes(
+                hashlib.blake2b(
+                    payload, key=key.to_bytes(8, "big"), digest_size=8
+                ).digest(),
+                "big",
+            )
+            % self.p
+            for key in self.hash_keys
+        ]
 
     def add(self, x: np.ndarray) -> None:
         for k, i in enumerate(self._indices(x)):
