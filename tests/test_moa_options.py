@@ -64,7 +64,10 @@ def test_online_bagging_java_base_learner():
         stream, capymoa_learner, max_instances=max_instances
     )
 
-    assert java_results.cumulative.accuracy() == capymoa_results.cumulative.accuracy()
+    assert (
+        java_results["cumulative"]["accuracy"]
+        == capymoa_results["cumulative"]["accuracy"]
+    )
 
 
 def test_wrapper_base_learner_not_mutated():
@@ -105,10 +108,10 @@ def test_online_bagging_minibatch_trains():
     results = prequential_evaluation(ElectricityTiny(), learner, max_instances=100)
     # Shut down MOA's thread pool, or its threads keep the JVM alive at exit.
     learner.moa_learner.trainingHasEnded()
-    assert results.cumulative.accuracy() > 50
+    assert results["cumulative"]["accuracy"] > 50
 
     learner = OnlineBagging(schema, ensemble_size=3, number_of_jobs=2, minibatch_size=5)
     results = prequential_evaluation(ElectricityTiny(), learner, max_instances=100)
     # Shut down MOA's thread pool, or its threads keep the JVM alive at exit.
     learner.moa_learner.trainingHasEnded()
-    assert results.cumulative.accuracy() > 50
+    assert results["cumulative"]["accuracy"] > 50
