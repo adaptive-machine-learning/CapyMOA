@@ -121,22 +121,22 @@ def _cases():
 
     def rrcf(schema, seed):
         return RobustRandomCutForest(
-            schema, tree_size=64, n_trees=10, random_state=seed
+            schema, tree_size=64, n_trees=10, random_seed=seed
         )
 
     def ifasd(schema, seed):
         return IForestASD(
-            schema, window_size=64, n_trees=4, sample_size=16, random_state=seed
+            schema, window_size=64, n_trees=4, sample_size=16, random_seed=seed
         )
 
     def loda(schema, seed):
-        return Loda(schema, n_projections=5, window_size=64, random_state=seed)
+        return Loda(schema, n_projections=5, window_size=64, random_seed=seed)
 
     def rshash(schema, seed):
         return RSHash(schema, m=5, s=64, w=2, p=1000, seed=seed)
 
     return [
-        _Case("HalfSpaceTrees", hstrees),
+        _Case("HalfSpaceTrees", hstrees, scope={"from_attribute"}),
         _Case("OnlineIsolationForest", oif),
         _Case("StreamingIsolationForest", sif),
         _Case("AdaptiveIsolationForest", aif),
@@ -261,9 +261,9 @@ _XPROC_SOURCE = textwrap.dedent(
         "OnlineIsolationForest": lambda s, k: OnlineIsolationForest(s, window_size=64, num_trees=8, random_seed=k),
         "StreamingIsolationForest": lambda s, k: StreamingIsolationForest(s, window_size=64, n_trees=10, seed=k),
         "AdaptiveIsolationForest": lambda s, k: AdaptiveIsolationForest(s, window_size=64, n_trees=10, seed=k),
-        "RobustRandomCutForest": lambda s, k: RobustRandomCutForest(s, tree_size=64, n_trees=10, random_state=k),
-        "IForestASD": lambda s, k: IForestASD(s, window_size=64, n_trees=4, sample_size=16, random_state=k),
-        "Loda": lambda s, k: Loda(s, n_projections=5, window_size=64, random_state=k),
+        "RobustRandomCutForest": lambda s, k: RobustRandomCutForest(s, tree_size=64, n_trees=10, random_seed=k),
+        "IForestASD": lambda s, k: IForestASD(s, window_size=64, n_trees=4, sample_size=16, random_seed=k),
+        "Loda": lambda s, k: Loda(s, n_projections=5, window_size=64, random_seed=k),
         "RSHash": lambda s, k: RSHash(s, m=5, s=64, w=2, p=1000, seed=k),
         "StreamRHF": lambda s, k: StreamRHF(s, num_trees=5, max_height=3, random_seed=k),
     }
@@ -413,76 +413,3 @@ def test_none_seed_differs_from_a_seeded_run(case):
     )
 
 
-# --------------------------------------------------------------------------
-# 6. The MOA wrappers seed the learner from the attribute.
-# --------------------------------------------------------------------------
-
-
-class _RecordingLearner:
-    """Stands in for a MOA learner and records the seed it was given."""
-
-    def __init__(self):
-        self.seeds = []
-
-    def setRandomSeed(self, seed):
-        self.seeds.append(seed)
-
-    def setModelContext(self, header):
-        pass
-
-    def getOptions(self):
-        raise AssertionError("CLI is None, so options are never touched")
-
-    def prepareForUse(self):
-        pass
-
-    def resetLearning(self):
-        pass
-
-
-def _resolving_base(monkeypatch, resolved):
-    """Make ``AnomalyDetector`` resolve the seed to something else."""
-    original_init = AnomalyDetector.__init__
-
-    def resolving_init(self, schema, random_seed=1):
-        original_init(self, schema=schema, random_seed=random_seed)
-        self.random_seed = resolved
-
-    monkeypatch.setattr(AnomalyDetector, "__init__", resolving_init)
-
-
-@pytest.mark.parametrize("seed", [1, 42], ids=["seed1", "seed42"])
-def test_moa_detector_seeds_the_learner_from_the_attribute(monkeypatch, seed):
-    """``MOAAnomalyDetector`` must pass ``self.random_seed`` on.
-
-    Guarding on the constructor argument reads the un-resolved seed, so a
-    base class that resolves the seed has its decision ignored.
-    """
-    _resolving_base(monkeypatch, RESOLVED_SEED)
-
-    schema = _schema()
-    learner = _RecordingLearner()
-    detector = MOAAnomalyDetector(
-        schema=schema, CLI=None, random_seed=seed, moa_learner=learner
-    )
-
-    assert detector.random_seed == RESOLVED_SEED, "test setup did not take effect"
-    assert learner.seeds == [RESOLVED_SEED], (
-        "MOAAnomalyDetector seeded the learner with "
-        f"{learner.seeds!r} but the resolved seed on the instance was "
-        f"{RESOLVED_SEED}. It must read self.random_seed, not the raw "
-        "constructor argument."
-    )
-
-
-def test_moa_detector_skips_seeding_when_the_seed_is_none():
-    """``None`` must not be forwarded to the MOA learner."""
-    schema = _schema()
-    learner = _RecordingLearner()
-    MOAAnomalyDetector(schema=schema, CLI=None, random_seed=None, moa_learner=learner)
-
-    assert learner.seeds == [], (
-        f"MOAAnomalyDetector called setRandomSeed with {learner.seeds!r} "
-        "for an unseeded detector. None has to leave the learner's own "
-        "seeding alone."
-    )

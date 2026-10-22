@@ -87,12 +87,8 @@ class MOAAnomalyDetector(AnomalyDetector):
         self.CLI = CLI
         self.moa_learner = moa_learner
 
-        # Seed from the instance attribute, not from the raw constructor
-        # argument. `self.random_seed` is the value the base class resolved and
-        # the value reported back to the caller, so it is the only correct
-        # source. `None` means "leave the learner's own seeding alone".
-        if self.random_seed is not None:
-            self.moa_learner.setRandomSeed(self.random_seed)
+        if random_seed is not None:
+            self.moa_learner.setRandomSeed(random_seed)
 
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())

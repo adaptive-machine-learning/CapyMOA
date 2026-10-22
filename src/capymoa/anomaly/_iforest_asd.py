@@ -156,7 +156,7 @@ class IForestASD(AnomalyDetector):
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = IForestASD(schema, window_size=256, n_trees=100,
-    ...                      sample_size=64, random_state=42)
+    ...                      sample_size=64, random_seed=42)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -177,7 +177,7 @@ class IForestASD(AnomalyDetector):
         n_trees: int = 100,
         sample_size: int = 256,
         height_limit: int | None = None,
-        random_state: int | None = None,
+        random_seed: int | None = None,
     ):
         """Initialize the IForestASD anomaly detector.
         :param schema: The schema of the data stream.
@@ -185,18 +185,13 @@ class IForestASD(AnomalyDetector):
         :param n_trees: The number of isolation trees to build.
         :param sample_size: The number of instances to sample for each tree.
         :param height_limit: The maximum height of the isolation trees. If None, it will be set to ceil(log2(sample_size)).
-        :param random_state: The seed for the random number generator. `None` draws from system entropy.
+        :param random_seed: The seed for the random number generator. `None` draws from system entropy.
         """
-        super().__init__(schema=schema, random_seed=random_state)
+        super().__init__(schema=schema, random_seed=random_seed)
         self.window_size = window_size
         self.n_trees = n_trees
         self.sample_size = sample_size
         self.height_limit = height_limit
-        # Aliased from the attribute, so the generator drawn in `train` can
-        # never drift from the seed the instance reports. Building it from the
-        # `random_state` argument instead let `self.random_seed` advertise one
-        # seed while the generator used another.
-        self.random_state = self.random_seed
         self.instances = []
         self._trees: list[IsolationTree] = []
         self.id_counter = count(start=0)
@@ -229,7 +224,7 @@ class IForestASD(AnomalyDetector):
         if len(self.instances) < self.window_size:
             return
 
-        rng = random.Random(self.random_state)
+        rng = random.Random(self.random_seed)
         self._trees = []
         for _ in range(self.n_trees):
             sample = rng.sample(self.instances, self.sample_size)
