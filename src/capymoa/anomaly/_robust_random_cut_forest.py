@@ -512,7 +512,7 @@ class RobustRandomCutForest(AnomalyDetector):
 
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
-    >>> learner = RobustRandomCutForest(schema, tree_size=50, n_trees=10, random_state=42)
+    >>> learner = RobustRandomCutForest(schema, tree_size=50, n_trees=10, random_seed=42)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -529,14 +529,11 @@ class RobustRandomCutForest(AnomalyDetector):
         machine learning (pp. 2712-2721). PMLR.
     """
 
-    def __init__(self, schema: Schema, tree_size=1000, n_trees=100, random_state=42):
-        super().__init__(schema, random_state)
+    def __init__(self, schema: Schema, tree_size=1000, n_trees=100, random_seed=42):
+        super().__init__(schema, random_seed)
         self.tree_size = tree_size
         self.n_trees = n_trees
-        if random_state is not None:
-            self.rng = random.Random(random_state)
-        else:
-            self.rng = random.Random()
+        self.rng = random.Random(self.random_seed)
         self._trees: list[RCTree] = [
             RCTree(
                 X=None,

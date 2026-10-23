@@ -46,12 +46,17 @@ class AnomalyDetector(LearnerParamsMixin, ABC):
     """
     Abstract base class for anomaly detector.
 
+    `random_seed` is stored unchanged on the instance, so every subclass
+    must read `self.random_seed` when it builds a generator. Reading the
+    constructor argument instead lets the two drift apart as soon as the
+    base class checks, defaults, or transforms the value.
+
     Attributes:
     - schema: The schema representing the instances. Defaults to None.
-    - random_seed: The random seed for reproducibility. Defaults to 1.
+    - random_seed: The random seed for reproducibility. Defaults to 1. `None` means "do not seed", so the component draws from system entropy.
     """
 
-    def __init__(self, schema: Schema, random_seed=1):
+    def __init__(self, schema: Schema, random_seed: int | None = 1):
         self.random_seed = random_seed
         self.schema = schema
         if self.schema is None:
