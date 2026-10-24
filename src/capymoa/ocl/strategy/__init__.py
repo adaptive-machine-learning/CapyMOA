@@ -3,6 +3,7 @@
 from . import l2p
 from ._der import DER
 from ._derpp import DERPP
+from ._eec import EEC
 from ._ewc import EWC
 from ._experience_replay import ExperienceReplay
 from ._gdumb import GDumb
@@ -17,6 +18,7 @@ from ._slda import SLDA, RanPAC
 __all__ = [
     "DER",
     "DERPP",
+    "EEC",
     "EWC",
     "LWF",
     "MAS",

@@ -18,6 +18,7 @@ from capymoa.ocl.datasets import TinySplitMNIST
 from capymoa.ocl.strategy import (
     DER,
     DERPP,
+    EEC,
     EWC,
     LWF,
     MAS,
@@ -100,6 +101,21 @@ def _new_der(schema: Schema) -> DER:
     return DER(schema, model, torch.optim.Adam(model.parameters(), lr=0.001))
 
 
+def _new_eec(schema: Schema) -> EEC:
+    features = nn.Sequential(nn.Conv2d(1, 4, 3, padding=1), nn.ReLU())
+    model = nn.Sequential(features, nn.Flatten(), nn.Linear(4 * 16 * 16, 10))
+    return EEC(
+        schema,
+        model,
+        torch.optim.SGD(model.parameters(), lr=0.01),
+        feature_extractor=features,
+        reshape_input=True,
+        epochs=5,
+        subsequent_epochs=5,
+        autoencoder_epochs=2,
+    )
+
+
 """
 Add new test cases here.
 
@@ -107,6 +123,7 @@ Use the `partial` function to create a new function with hyperparameters already
 set.
 """
 TEST_CASES: list[Case] = [
+    Case("EEC", _new_eec, Result(22.5, 20.4, 0.0)),
     # These improved when `MOAClassifier.predict_proba` stopped discarding
     # predictions whose unnormalised vote total was below 1e-2. HoeffdingTree
     # uses Naive Bayes at its leaves, whose likelihood products fall below that
