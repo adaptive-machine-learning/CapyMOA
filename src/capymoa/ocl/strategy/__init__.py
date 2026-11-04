@@ -9,6 +9,7 @@ from ._gdumb import GDumb
 from ._lwf import LWF
 from ._mas import MAS
 from ._ncm import NCM
+from ._pcr import PCR
 from ._rar import RAR
 from ._rwalk import RWalk
 from ._si import SI
@@ -21,6 +22,7 @@ __all__ = [
     "LWF",
     "MAS",
     "NCM",
+    "PCR",
     "RAR",
     "SI",
     "SLDA",
