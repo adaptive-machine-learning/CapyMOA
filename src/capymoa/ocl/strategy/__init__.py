@@ -8,6 +8,7 @@ from ._experience_replay import ExperienceReplay
 from ._gdumb import GDumb
 from ._lwf import LWF
 from ._mas import MAS
+from ._mir import MIR
 from ._ncm import NCM
 from ._rar import RAR
 from ._rwalk import RWalk
@@ -20,6 +21,7 @@ __all__ = [
     "EWC",
     "LWF",
     "MAS",
+    "MIR",
     "NCM",
     "RAR",
     "SI",
