@@ -1,7 +1,7 @@
 """Evaluators and result types for prediction intervals.
 
-:func:`~capymoa.uncertainty.evaluate_prediction_interval` returns a
-:class:`PredictionIntervalResults`. It uses the evaluators below, which wrap MOA's
+:func:`~capymoa.uncertainty.evaluate_uncertainty` returns a
+:class:`UncertaintyResults`. It uses the evaluators below, which wrap MOA's
 evaluators. You can also use them in your own test-then-train loop.
 """
 
@@ -58,10 +58,10 @@ class PredictionIntervalCumulative(TypedDict):
     nmpiw: float
 
 
-class PredictionIntervalResults(RunInfo):
+class UncertaintyResults(RunInfo):
     """Results of evaluating a prediction interval learner.
 
-    See :func:`~capymoa.uncertainty.evaluate_prediction_interval`.
+    See :func:`~capymoa.uncertainty.evaluate_uncertainty`.
     """
 
     #: The metrics over the whole stream (see
@@ -74,11 +74,15 @@ class PredictionIntervalResults(RunInfo):
     windowed: NotRequired[PredictionIntervalWindows]
 
 
+#: Deprecated alias of :class:`UncertaintyResults`. Use the new name.
+PredictionIntervalResults = UncertaintyResults
+
+
 class PredictionIntervalEvaluator(RegressionEvaluator):
     """Wraps MOA's prediction interval evaluator.
 
     A prediction is ``[lower, point, upper]``. See
-    :class:`PredictionIntervalResults` for a known MOA bug in ``mae``,
+    :class:`UncertaintyResults` for a known MOA bug in ``mae``,
     ``rmse``, ``rmae`` and ``rrmse``.
     """
 

@@ -9,7 +9,7 @@ from capymoa.regressor.evaluate import RegressionEvaluator
 from capymoa.uncertainty import (
     MVE,
     AdaPI,
-    evaluate_prediction_interval,
+    evaluate_uncertainty,
 )
 from capymoa.uncertainty.evaluate import (
     PredictionIntervalEvaluator,
@@ -79,7 +79,21 @@ def test_interval_evaluator_scores_the_point():
     assert evaluator.mae() == pytest.approx(point.mae())
     assert evaluator.rmse() == pytest.approx(point.rmse())
 
-    results = evaluate_prediction_interval(
-        stream, MVE(schema=schema), max_instances=500
-    )
+    results = evaluate_uncertainty(stream, MVE(schema=schema), max_instances=500)
     assert results["cumulative"]["mae"] == pytest.approx(evaluator.mae())
+
+
+def test_deprecated_names_still_work():
+    from capymoa.uncertainty import evaluate_prediction_interval
+    from capymoa.uncertainty.evaluate import (
+        PredictionIntervalResults,
+        UncertaintyResults,
+    )
+
+    assert PredictionIntervalResults is UncertaintyResults
+    stream = Fried()
+    with pytest.deprecated_call():
+        results = evaluate_prediction_interval(
+            stream, MVE(stream.get_schema()), max_instances=50
+        )
+    assert "cumulative" in results

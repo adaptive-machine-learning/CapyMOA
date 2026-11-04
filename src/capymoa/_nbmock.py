@@ -28,6 +28,7 @@ def override_prequential_evaluation(max_instances: int = 100):
         ("capymoa.evaluation", "prequential_evaluation"),
         ("capymoa.classifier", "evaluate_classifier"),
         ("capymoa.regressor", "evaluate_regressor"),
+        ("capymoa.uncertainty", "evaluate_uncertainty"),
         ("capymoa.uncertainty", "evaluate_prediction_interval"),
         ("capymoa.anomaly", "evaluate_anomaly"),
         ("capymoa.ssl", "evaluate_ssl"),

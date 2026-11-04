@@ -51,7 +51,7 @@ New metrics
   ``periodical_auc``.
 * SSL with the Java loop: ``pseudo_label_accuracy``. The Python loop does not
   make pseudo labels, so this key is absent there.
-* :func:`~capymoa.uncertainty.evaluate_prediction_interval` and
+* :func:`~capymoa.uncertainty.evaluate_uncertainty` and
   :func:`~capymoa.anomaly.evaluate_anomaly` accept ``optimise`` and
   ``batch_size``. Before, ``prequential_evaluation`` raised ``TypeError`` for
   these arguments on those learners.
