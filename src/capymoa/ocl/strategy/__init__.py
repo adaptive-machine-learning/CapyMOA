@@ -1,6 +1,7 @@
 """Online Continual Learning (OCL) strategies."""
 
 from . import l2p
+from ._aser import ASER
 from ._der import DER
 from ._derpp import DERPP
 from ._ewc import EWC
@@ -15,6 +16,7 @@ from ._si import SI
 from ._slda import SLDA, RanPAC
 
 __all__ = [
+    "ASER",
     "DER",
     "DERPP",
     "EWC",
