@@ -58,8 +58,7 @@ take a mapping of names to learners and return a dict of results by name.
 ``pandas.DataFrame([r1, r2])`` is a tidy table. It lives in
 ``capymoa.{{domain}}.evaluate``, next to the evaluator classes (such as
 ``ClassificationEvaluator``) for use in custom loops. ``evaluate_{{domain}}`` is
-in ``capymoa/{{domain}}/_evaluate.py`` and exported from the domain. OCL keeps
-its result types in ``capymoa.ocl.evaluation``.
+in ``capymoa/{{domain}}/_evaluate.py`` and exported from the domain.
 
 The domains that follow this layout are ``capymoa.classifier``,
 ``capymoa.regressor``, ``capymoa.uncertainty`` (prediction intervals),

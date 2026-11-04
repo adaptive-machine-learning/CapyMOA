@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
-from capymoa.ocl.evaluation import OCLResults
+from capymoa.ocl.evaluate import OCLResults
 
 
 def _anytime_x(results: OCLResults) -> np.ndarray:
