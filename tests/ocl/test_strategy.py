@@ -23,6 +23,7 @@ from capymoa.ocl.strategy import (
     MAS,
     NCM,
     RAR,
+    SCR,
     SI,
     SLDA,
     ExperienceReplay,
@@ -100,6 +101,28 @@ def _new_der(schema: Schema) -> DER:
     return DER(schema, model, torch.optim.Adam(model.parameters(), lr=0.001))
 
 
+def _new_scr(schema: Schema) -> SCR:
+    class Model(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.feature_extractor = nn.Sequential(
+                nn.Flatten(), nn.Linear(schema.get_num_attributes(), 64), nn.ReLU()
+            )
+            self.projection = nn.Sequential(
+                nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 32)
+            )
+
+    model = Model()
+    return SCR(
+        schema,
+        model,
+        torch.optim.SGD(model.parameters(), lr=0.1),
+        augment=nn.Dropout(p=0.2),
+        buffer_capacity=200,
+        replay_batch_size=32,
+    )
+
+
 """
 Add new test cases here.
 
@@ -145,6 +168,7 @@ TEST_CASES: list[Case] = [
         _new_der,
         Result(29.5, 20.5, 2.9),
     ),
+    Case("SCR", _new_scr, Result(65.0, 44.8, 63.6)),
     Case(
         "DERPP",
         new_constructor(
