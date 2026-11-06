@@ -101,17 +101,22 @@ def _new_der(schema: Schema) -> DER:
 
 
 def _new_scr(schema: Schema) -> SCR:
-    encoder = nn.Sequential(
-        nn.Flatten(),
-        nn.Linear(schema.get_num_attributes(), 64),
-        nn.ReLU(),
-    )
+    class Model(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.feature_extractor = nn.Sequential(
+                nn.Flatten(), nn.Linear(schema.get_num_attributes(), 64), nn.ReLU()
+            )
+            self.projection = nn.Sequential(
+                nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 32)
+            )
+
+    model = Model()
     return SCR(
         schema,
-        encoder,
-        feature_dim=64,
+        model,
+        torch.optim.SGD(model.parameters(), lr=0.1),
         augment=nn.Dropout(p=0.2),
-        projection_dim=32,
         buffer_capacity=200,
         replay_batch_size=32,
     )
@@ -161,7 +166,7 @@ TEST_CASES: list[Case] = [
         _new_der,
         Result(29.5, 20.5, 2.9),
     ),
-    Case("SCR", _new_scr, Result(67.0, 46.5, 63.7)),
+    Case("SCR", _new_scr, Result(65.0, 44.8, 63.6)),
     Case(
         "GDumb",
         lambda schema: GDumb(schema, Perceptron(schema), 2, 32, 200),

@@ -1,6 +1,6 @@
-"""Supervised Contrastive Replay using the existing CapyMOA OCL cores."""
+"""Supervised Contrastive Replay."""
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from math import isfinite
 
 import torch
@@ -51,7 +51,6 @@ class SCR(BatchClassifier, Handler):
     are compared with normalized class means recomputed from reservoir memory.
     The projection head is used for training only.
 
-    Uses the existing schema, batch classifier, named reservoir and task events.
     Replay is sampled with replacement, using the reservoir's seeded generator.
     Incoming examples enter memory after all updates on that batch. There is no
     task-boundary requirement by default. Optional memory review uses
@@ -59,8 +58,8 @@ class SCR(BatchClassifier, Handler):
     loop's last evaluation of that task and does not change already reported metrics.
 
     Supply an augmentation appropriate to the data, as for RAR. No additional
-    augmentation package is required. ``seed`` controls memory sampling and
-    projection initialization; the caller seeds its model and random augmentation.
+    augmentation package is required. ``seed`` controls memory sampling; the
+    caller seeds its model and random augmentation.
     Features and class labels must fit a fixed classification schema.
 
     >>> from capymoa.ocl.strategy import SCR
@@ -70,8 +69,14 @@ class SCR(BatchClassifier, Handler):
     >>> schema = Schema.from_custom(
     ...     ["x0", "x1", "class"], "class", {"class": ["a", "b"]}
     ... )
-    >>> encoder = nn.Sequential(nn.Linear(2, 8), nn.ReLU())
-    >>> learner = SCR(schema, encoder, feature_dim=8, augment=lambda x: x.flip(-1))
+    >>> class Model(nn.Module):
+    ...     def __init__(self):
+    ...         super().__init__()
+    ...         self.feature_extractor = nn.Sequential(nn.Linear(2, 8), nn.ReLU())
+    ...         self.projection = nn.Linear(8, 4)
+    >>> model = Model()
+    >>> learner = SCR(schema, model, torch.optim.SGD(model.parameters(), lr=0.1),
+    ...               augment=lambda x: x.flip(-1))
     >>> learner.batch_train(torch.eye(2), torch.tensor([0, 1]))
     >>> learner.batch_predict_proba(torch.ones(3, 2)).shape
     torch.Size([3, 2])
@@ -87,15 +92,9 @@ class SCR(BatchClassifier, Handler):
         self,
         schema: Schema,
         model: nn.Module,
-        feature_dim: int,
+        optimiser: Optimizer,
         augment: Callable[[Tensor], Tensor],
-        optimiser: Optimizer
-        | Callable[[Iterator[nn.Parameter]], Optimizer]
-        | None = None,
         *,
-        feature_extractor: Callable[[Tensor], Tensor] | None = None,
-        projection_dim: int = 128,
-        projection_head: str = "mlp",
         temperature: float = 0.1,
         buffer_capacity: int = 200,
         replay_batch_size: int | None = 100,
@@ -111,21 +110,9 @@ class SCR(BatchClassifier, Handler):
         """Construct an SCR learner.
 
         :param schema: Fixed classification schema, including input shape.
-        :param model: Encoder, or a model exposing ``forward_features``/``features``.
-            Otherwise its forward output is taken as the embedding. The caller
-            controls model initialization, as for DER.
-        :param feature_dim: Encoder embedding width, before the projection head.
-        :param augment: Callable preserving ``(batch, *schema.shape)``. It makes
-            the second view; the first is the unaugmented example.
-        :param optimiser: Optimizer or factory; None selects SGD with lr=0.1.
-            A factory receives model and
-            projection parameters. With an instance, missing trainable parameters
-            are added using its default options so the projection head is trained.
-        :param feature_extractor: Optional embedding callable using ``model``'s
-            parameters; overrides the model's feature methods and forward output.
-        :param projection_dim: Width of contrastive embeddings.
-        :param projection_head: ``mlp``, ``linear`` or ``identity``. Identity
-            requires ``feature_dim == projection_dim``.
+        :param model: Module with callable ``feature_extractor`` and ``projection``.
+        :param optimiser: Optimizer containing the model's trainable parameters.
+        :param augment: Shape-preserving callable producing the second view.
         :param temperature: Positive supervised contrastive loss temperature.
         :param buffer_capacity: Maximum number of raw examples and labels stored.
         :param replay_batch_size: Replay samples per update, or None for the
@@ -138,15 +125,13 @@ class SCR(BatchClassifier, Handler):
             events. False keeps the method task-free.
         :param review_batch_size: Batch size of optional task-end review.
         :param review_gradient_scale: Positive multiplier on the review loss.
-        :param seed: Seed for replay sampling and projection-head initialization.
-        :param device: Device for the model, projection and replay buffer.
+        :param seed: Seed for replay sampling.
+        :param device: Device for the model and replay buffer.
         """
         super().__init__(schema, seed)
         if not schema.is_classification():
             raise ValueError("SCR requires a classification schema")
         for name, value in (
-            ("feature_dim", feature_dim),
-            ("projection_dim", projection_dim),
             ("buffer_capacity", buffer_capacity),
             ("substeps", substeps),
             ("feature_batch_size", feature_batch_size),
@@ -170,45 +155,23 @@ class SCR(BatchClassifier, Handler):
         self.device = torch.device(device)
         self._model = model.to(self.device)
         self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
-        self._feature_dim = feature_dim
-        self._feature_extractor = feature_extractor
         self._augment = (
             augment.to(self.device) if isinstance(augment, nn.Module) else augment
         )
         self._shape = tuple(schema.shape)
         self._num_features = schema.get_num_attributes()
         self._num_classes = schema.get_num_classes()
-        # Initialize on CPU under a private RNG state without changing caller RNGs.
-        with torch.random.fork_rng(devices=[]):
-            torch.set_rng_state(torch.Generator().manual_seed(seed).get_state())
-            if projection_head == "mlp":
-                head = nn.Sequential(
-                    nn.Linear(feature_dim, feature_dim),
-                    nn.ReLU(),
-                    nn.Linear(feature_dim, projection_dim),
-                )
-            elif projection_head == "linear":
-                head = nn.Linear(feature_dim, projection_dim)
-            elif projection_head == "identity" and feature_dim == projection_dim:
-                head = nn.Identity()
-            else:
-                raise ValueError(
-                    "projection_head must be mlp, linear, or identity with matching dimensions"
-                )
-        self._projection = head.to(device=self.device, dtype=self.x_dtype)
-        parameters = [
-            p for p in (*model.parameters(), *head.parameters()) if p.requires_grad
-        ]
-        if optimiser is None:
-            self._optimiser = torch.optim.SGD(parameters, lr=0.1)
-        elif isinstance(optimiser, Optimizer):
-            owned = {id(p) for group in optimiser.param_groups for p in group["params"]}
-            missing = [p for p in parameters if id(p) not in owned]
-            if missing:
-                optimiser.add_param_group({"params": missing})
-            self._optimiser = optimiser
-        else:
-            self._optimiser = optimiser(iter(parameters))
+        if not callable(getattr(model, "feature_extractor", None)) or not callable(
+            getattr(model, "projection", None)
+        ):
+            raise TypeError("model must provide feature_extractor and projection")
+        if not isinstance(optimiser, Optimizer):
+            raise TypeError("optimiser must be a torch optimizer")
+        owned = {id(p) for group in optimiser.param_groups for p in group["params"]}
+        trainable = {id(p) for p in model.parameters() if p.requires_grad}
+        if not trainable <= owned:
+            raise ValueError("optimiser must include all trainable model parameters")
+        self._optimiser = optimiser
         self._buffer = ReservoirSampler(
             buffer_capacity,
             {"x": ((self._num_features,), self.x_dtype), "y": ((), torch.long)},
@@ -235,28 +198,19 @@ class SCR(BatchClassifier, Handler):
         return x.to(device=self.device, dtype=self.x_dtype).reshape(-1, *self._shape)
 
     def _encode(self, x: Tensor) -> Tensor:
-        extractor = self._feature_extractor
-        if extractor is None:
-            extractor = getattr(self._model, "forward_features", None)
-        if extractor is None:
-            extractor = getattr(self._model, "features", None)
-        features = extractor(x) if extractor is not None else self._model(x)
-        features = features.reshape(x.shape[0], -1)
-        if features.shape[1] != self._feature_dim:
-            raise ValueError("encoder output width does not match feature_dim")
-        return features
+        features = self._model.feature_extractor(x)
+        return features.reshape(x.shape[0], -1)
 
     def _step(self, x: Tensor, y: Tensor, scale: float = 1.0) -> Tensor:
         self._model.train()
-        self._projection.train()
         self._prototype_cache = None
         augmented = self._augment(x)
         if augmented.shape != x.shape:
             raise ValueError("augment must preserve the batch shape")
         views = torch.stack(
             [
-                F.normalize(self._projection(self._encode(x)), dim=1),
-                F.normalize(self._projection(self._encode(augmented)), dim=1),
+                F.normalize(self._model.projection(self._encode(x)), dim=1),
+                F.normalize(self._model.projection(self._encode(augmented)), dim=1),
             ],
             dim=1,
         )
