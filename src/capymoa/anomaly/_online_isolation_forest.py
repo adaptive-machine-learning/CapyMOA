@@ -48,7 +48,7 @@ class OnlineIsolationForest(AnomalyDetector):
     >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
-    >>> learner = OnlineIsolationForest(schema=schema, window_size=100)
+    >>> learner = OnlineIsolationForest(schema=schema, window_size=100, random_seed=1)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -64,7 +64,7 @@ class OnlineIsolationForest(AnomalyDetector):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         num_trees: int = 32,
         max_leaf_samples: int = 32,
         growth_criterion: Literal["fixed", "adaptive"] = "adaptive",
@@ -77,7 +77,7 @@ class OnlineIsolationForest(AnomalyDetector):
         """Construct an Online Isolation Forest anomaly detector
 
         :param schema: The schema of the stream. If not provided, it will be inferred from the data.
-        :param random_seed: Random seed for reproducibility.
+        :param random_seed: Random seed for reproducibility. `None` draws from system entropy.
         :param num_trees: Number of trees in the ensemble.
         :param window_size: The size of the window for each tree.
         :param branching_factor: Branching factor of each tree.

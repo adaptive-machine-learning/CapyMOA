@@ -285,7 +285,7 @@ class StreamRHF(AnomalyDetector):
     >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
-    >>> learner = StreamRHF(schema=schema, num_trees=5, max_height=3)
+    >>> learner = StreamRHF(schema=schema, num_trees=5, max_height=3, random_seed=0)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -299,7 +299,7 @@ class StreamRHF(AnomalyDetector):
     """
 
     def __init__(
-        self, schema, max_height=5, num_trees=100, window_size=20, random_seed=0
+        self, schema, max_height=5, num_trees=100, window_size=20, random_seed=None
     ):
         """
         Initialize the StreamRHF learner.
@@ -307,7 +307,7 @@ class StreamRHF(AnomalyDetector):
         :param max_height: Maximum height of the trees.
         :param num_trees: Number of trees in the forest.
         :param window_size: Size of the sliding window.
-        :param random_seed: Random seed for reproducibility.
+        :param random_seed: Random seed for reproducibility. `None` draws from system entropy.
         """
         super().__init__(schema, random_seed)
         self.schema = schema
