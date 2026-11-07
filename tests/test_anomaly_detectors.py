@@ -37,11 +37,13 @@ Out of scope here:
   an anomaly detector, so it is not touched by this change.
 """
 
+import ast
+import os
 import subprocess
 import sys
-import textwrap
 from collections.abc import Callable
 from functools import partial
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -279,32 +281,38 @@ def _cases():
     """(detector name, seed kwarg) pairs, sized small for CI."""
 
     def hstrees(schema, seed):
-        return HalfSpaceTrees(schema, window_size=64, random_seed=seed)
+        return HalfSpaceTrees(schema, window_size=WARMUP, random_seed=seed)
 
     def oif(schema, seed):
         return OnlineIsolationForest(
-            schema, window_size=64, num_trees=8, random_seed=seed
+            schema, window_size=WARMUP, num_trees=8, random_seed=seed
         )
 
     def sif(schema, seed):
-        return StreamingIsolationForest(schema, window_size=64, n_trees=10, seed=seed)
+        return StreamingIsolationForest(
+            schema, window_size=WARMUP, n_trees=10, seed=seed
+        )
 
     def aif(schema, seed):
-        return AdaptiveIsolationForest(schema, window_size=64, n_trees=10, seed=seed)
+        return AdaptiveIsolationForest(
+            schema, window_size=WARMUP, n_trees=10, seed=seed
+        )
 
     def rrcf(schema, seed):
-        return RobustRandomCutForest(schema, tree_size=64, n_trees=10, random_seed=seed)
+        return RobustRandomCutForest(
+            schema, tree_size=WARMUP, n_trees=10, random_seed=seed
+        )
 
     def ifasd(schema, seed):
         return IForestASD(
-            schema, window_size=64, n_trees=4, sample_size=16, random_seed=seed
+            schema, window_size=WARMUP, n_trees=4, sample_size=16, random_seed=seed
         )
 
     def loda(schema, seed):
-        return Loda(schema, n_projections=5, window_size=64, random_seed=seed)
+        return Loda(schema, n_projections=5, window_size=WARMUP, random_seed=seed)
 
     def rshash(schema, seed):
-        return RSHash(schema, m=5, s=64, w=2, p=1000, seed=seed)
+        return RSHash(schema, m=5, s=WARMUP, w=2, p=1000, seed=seed)
 
     return [
         _Case("HalfSpaceTrees", hstrees, scope={"from_attribute"}),
@@ -417,47 +425,18 @@ def test_generator_is_derived_from_the_seed_attribute(case, monkeypatch):
 
 _XPROC_CASES = [c for c in ALL_CASES if "fresh_process" not in c.scope]
 
-_XPROC_SOURCE = textwrap.dedent(
-    """
-    import sys
-    from capymoa.anomaly import (
-        AdaptiveIsolationForest, HalfSpaceTrees, IForestASD, Loda,
-        OnlineIsolationForest, RobustRandomCutForest, RSHash,
-        StreamingIsolationForest, StreamRHF,
-    )
-    from capymoa.anomaly.datasets import TinyBlobs
 
-    BUILDERS = {
-        "HalfSpaceTrees": lambda s, k: HalfSpaceTrees(s, window_size=64, random_seed=k),
-        "OnlineIsolationForest": lambda s, k: OnlineIsolationForest(s, window_size=64, num_trees=8, random_seed=k),
-        "StreamingIsolationForest": lambda s, k: StreamingIsolationForest(s, window_size=64, n_trees=10, seed=k),
-        "AdaptiveIsolationForest": lambda s, k: AdaptiveIsolationForest(s, window_size=64, n_trees=10, seed=k),
-        "RobustRandomCutForest": lambda s, k: RobustRandomCutForest(s, tree_size=64, n_trees=10, random_seed=k),
-        "IForestASD": lambda s, k: IForestASD(s, window_size=64, n_trees=4, sample_size=16, random_seed=k),
-        "Loda": lambda s, k: Loda(s, n_projections=5, window_size=64, random_seed=k),
-        "RSHash": lambda s, k: RSHash(s, m=5, s=64, w=2, p=1000, seed=k),
-        "StreamRHF": lambda s, k: StreamRHF(s, num_trees=5, max_height=3, random_seed=k),
-    }
-
-    name, seed, warmup, n_scores = (int(a) if i else a for i, a in enumerate(sys.argv[1:]))
-    stream = TinyBlobs()
-    detector = BUILDERS[name](stream.get_schema(), seed)
-    scores = []
-    for i, instance in enumerate(stream):
-        if i >= warmup + n_scores:
-            break
-        score = detector.score_instance(instance)
-        if i >= warmup:
-            scores.append(round(float(score), 10))
-        detector.train(instance)
+def _run_trace_case(case_name: str, seed: int) -> None:
+    cases = {c.name: c for c in ALL_CASES}
+    case = cases[case_name]
+    schema = _schema()
+    scores = _trace(lambda s: case.build(s, seed), schema)
     print(repr(scores))
-    """
-)
 
 
 @pytest.mark.parametrize("case", _XPROC_CASES, ids=_ids(_XPROC_CASES))
 @pytest.mark.parametrize("seed", [1, 42], ids=["seed1", "seed42"])
-def test_seeded_detector_reproduces_in_a_fresh_process(case, seed, tmp_path):
+def test_seeded_detector_reproduces_in_a_fresh_process(case, seed):
     """A seeded detector reproduces in a new interpreter.
 
     This is the reuse case: a detector saved to disk, reloaded, or run
@@ -465,26 +444,26 @@ def test_seeded_detector_reproduces_in_a_fresh_process(case, seed, tmp_path):
     cover it, because a module-level generator or a cached global state can
     make one process reproducible and the next not.
     """
-    script = tmp_path / "trace.py"
-    script.write_text(_XPROC_SOURCE, encoding="utf-8")
+    repo_root = Path(__file__).resolve().parent.parent
+    cmd = [
+        sys.executable,
+        "-c",
+        f"from tests.test_anomaly_detectors import _run_trace_case; _run_trace_case({case.name!r}, {seed})",
+    ]
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(repo_root)
 
     def run():
         done = subprocess.run(
-            [
-                sys.executable,
-                str(script),
-                case.name,
-                str(seed),
-                str(WARMUP),
-                str(N_SCORES),
-            ],
+            cmd,
+            env=env,
             capture_output=True,
             text=True,
             timeout=300,
             check=False,
         )
         assert done.returncode == 0, done.stderr
-        return done.stdout.strip()
+        return ast.literal_eval(done.stdout.strip())
 
     first, second = run(), run()
 
@@ -566,19 +545,41 @@ def test_none_seed_is_stored_unchanged(case):
 def test_none_seed_differs_from_a_seeded_run(case):
     """``None`` and an explicit seed must not be the same thing.
 
-    Two runs of ``None`` may agree or may not, so they are not compared.
-    What is checked is that collapsing ``None`` onto a fixed seed is
-    visible: under a fixed-seed collapse every ``None`` run equals the
-    run made with that seed.
+    Two runs with ``None`` must differ from each other to ensure the detector
+    does not collapse onto a constant generator. Furthermore, an unseeded run
+    must differ from seeded runs (failing if it matches either seed=1 or seed=42).
+    Deterministic detectors (no randomness) are skipped.
     """
+    if "deterministic" in case.scope:
+        pytest.skip(f"{case.name} is deterministic and does not use randomness")
+
     schema = _schema()
-    unseeded = _trace(lambda s: case.build(s, None), schema)
-    for seed in (1, 42):
-        seeded = _trace(lambda s, k=seed: case.build(s, k), schema)
-        if unseeded != seeded:
-            return
-    pytest.fail(
-        f"{case.name} produces the same trace for random_seed=None as for "
-        "seed=1 and seed=42, so None is being collapsed onto a fixed seed "
-        "rather than being left unseeded"
+    seeded1 = _trace(lambda s: case.build(s, 1), schema)
+    seeded42 = _trace(lambda s: case.build(s, 42), schema)
+
+    if seeded1 == seeded42:
+        pytest.skip(
+            f"{case.name} is deterministic (produces identical traces across seeds)"
+        )
+
+    unseeded1 = _trace(lambda s: case.build(s, None), schema)
+    unseeded2 = _trace(lambda s: case.build(s, None), schema)
+
+    assert unseeded1 != unseeded2, (
+        f"{case.name} produces identical traces across two runs with "
+        "random_seed=None, collapsing onto a constant generator rather "
+        "than drawing from entropy"
     )
+
+    for unseeded, label in (
+        (unseeded1, "first unseeded run"),
+        (unseeded2, "second unseeded run"),
+    ):
+        assert unseeded != seeded1, (
+            f"{case.name} ({label}) produces the same trace for random_seed=None "
+            "as for seed=1, so None is collapsing onto a fixed seed"
+        )
+        assert unseeded != seeded42, (
+            f"{case.name} ({label}) produces the same trace for random_seed=None "
+            "as for seed=42, so None is collapsing onto a fixed seed"
+        )
