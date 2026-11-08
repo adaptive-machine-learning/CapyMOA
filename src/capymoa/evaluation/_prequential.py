@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any, overload
 from capymoa.base import (
     AnomalyDetector,
     Classifier,
+    Clusterer,
     PredictionIntervalLearner,
     Regressor,
 )
@@ -11,6 +12,7 @@ from capymoa.stream import Stream
 if TYPE_CHECKING:
     from capymoa.anomaly.evaluate import AnomalyResults
     from capymoa.classifier.evaluate import ClassifierResults
+    from capymoa.cluster.evaluate import ClusterResults
     from capymoa.regressor.evaluate import RegressorResults
     from capymoa.uncertainty.evaluate import PredictionIntervalResults
 
@@ -31,14 +33,19 @@ def prequential_evaluation(
 def prequential_evaluation(
     stream: Stream, learner: AnomalyDetector, **kwargs: Any
 ) -> "AnomalyResults": ...
+@overload
+def prequential_evaluation(
+    stream: Stream, learner: Clusterer, **kwargs: Any
+) -> "ClusterResults": ...
 def prequential_evaluation(stream: Stream, learner: Any, **kwargs: Any):
     """Test-then-train a learner on a stream, whatever its type.
 
     Calls the ``evaluate_*`` function of the learner's domain:
     :func:`~capymoa.classifier.evaluate_classifier`,
     :func:`~capymoa.regressor.evaluate_regressor`,
-    :func:`~capymoa.uncertainty.evaluate_prediction_interval` or
-    :func:`~capymoa.anomaly.evaluate_anomaly`. Keyword arguments go to that
+    :func:`~capymoa.uncertainty.evaluate_prediction_interval`,
+    :func:`~capymoa.anomaly.evaluate_anomaly` or
+    :func:`~capymoa.cluster.evaluate_cluster`. Keyword arguments go to that
     function. See it for the parameters and the results. To compare many
     learners, pass a mapping to the domain function.
 
@@ -60,6 +67,10 @@ def prequential_evaluation(stream: Stream, learner: Any, **kwargs: Any):
         from capymoa.anomaly import evaluate_anomaly
 
         function = evaluate_anomaly
+    elif isinstance(learner, Clusterer):
+        from capymoa.cluster import evaluate_cluster
+
+        function = evaluate_cluster
     else:
         raise TypeError(f"Cannot evaluate a learner of type {type(learner).__name__}")
     return function(stream, learner, **kwargs)
