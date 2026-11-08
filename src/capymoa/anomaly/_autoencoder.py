@@ -24,7 +24,7 @@ class Autoencoder(AnomalyDetector):
     >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
-    >>> learner = Autoencoder(schema=schema)
+    >>> learner = Autoencoder(schema=schema, random_seed=1)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -43,7 +43,7 @@ class Autoencoder(AnomalyDetector):
         hidden_layer=2,
         learning_rate=0.5,
         threshold=0.6,
-        random_seed=1,
+        random_seed=None,
     ):
         """Construct an Autoencoder anomaly detector
 
@@ -53,7 +53,7 @@ class Autoencoder(AnomalyDetector):
         features.
         :param learning_rate: Learning rate
         :param threshold: Anomaly threshold
-        :param random_seed: Random seed
+        :param random_seed: Random seed. `None` draws from system entropy.
         """
 
         super().__init__(schema, random_seed=random_seed)
@@ -65,7 +65,10 @@ class Autoencoder(AnomalyDetector):
             raise ValueError(
                 "The number of hidden layer should be less than the number of input features"
             )
-        torch.manual_seed(self.random_seed)
+        if self.random_seed is None:
+            torch.seed()
+        else:
+            torch.manual_seed(self.random_seed)
         self._initialise()
 
     def _initialise(self):

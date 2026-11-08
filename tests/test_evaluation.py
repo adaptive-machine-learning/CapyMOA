@@ -181,8 +181,8 @@ def test_no_windowed_results(optimise):
 def test_evaluate_anomaly():
     """Fast and Python loops give the same AUC."""
     stream = Electricity()
-    model1 = HalfSpaceTrees(schema=stream.get_schema())
-    model2 = HalfSpaceTrees(schema=stream.get_schema())
+    model1 = HalfSpaceTrees(schema=stream.get_schema(), random_seed=1)
+    model2 = HalfSpaceTrees(schema=stream.get_schema(), random_seed=1)
 
     results_1st_run = evaluate_anomaly(
         stream=stream, learner=model1, window_size=1000, optimise=True
