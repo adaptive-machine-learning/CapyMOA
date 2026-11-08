@@ -16,7 +16,7 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 
 from capymoa.base import BatchClassifier
-from capymoa.ocl.evaluation.events import TrainTaskBegin
+from capymoa.ocl.evaluate.events import TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.stream import Schema
 

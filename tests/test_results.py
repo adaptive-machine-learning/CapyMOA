@@ -286,7 +286,7 @@ def test_pickle_round_trip(evaluate, result_type):
 def test_ocl_results():
     from capymoa.ocl import evaluate_ocl
     from capymoa.ocl.datasets import TinySplitMNIST
-    from capymoa.ocl.evaluation import OCLResults, OnlineResults
+    from capymoa.ocl.evaluate import OCLResults, OnlineResults
 
     scenario = TinySplitMNIST()
     learner = NaiveBayes(scenario.schema)

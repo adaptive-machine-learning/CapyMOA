@@ -75,7 +75,7 @@ from torch import Tensor
 from capymoa.base import BatchClassifier
 from capymoa.classifier import Finetune
 from capymoa.core.torch.ann import Perceptron
-from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
+from capymoa.ocl.evaluate.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 
 

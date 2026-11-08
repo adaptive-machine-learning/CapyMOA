@@ -54,8 +54,8 @@ Backward Transfer: -0.07
 
 # PyTorch is an optional extra; this whole module requires it.
 try:
-    from . import datasets, evaluation, events, plot, strategy, util
-    from .evaluation._loop import evaluate_ocl
+    from . import datasets, evaluate, events, plot, strategy, util
+    from ._evaluate import evaluate_ocl
 except ModuleNotFoundError as _err:  # pragma: no cover
     if (_err.name or "").split(".")[0] in ("torch", "torchvision"):
         from capymoa.exception import OptionalDependencyError
@@ -65,8 +65,8 @@ except ModuleNotFoundError as _err:  # pragma: no cover
 
 __all__ = [
     "datasets",
+    "evaluate",
     "evaluate_ocl",
-    "evaluation",
     "events",
     "plot",
     "strategy",
