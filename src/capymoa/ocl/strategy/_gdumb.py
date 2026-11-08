@@ -1,6 +1,6 @@
 import torch
 from torch import Tensor, nn
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader
 
 from capymoa.base import BatchClassifier
 from capymoa.ocl.evaluation.events import TestTaskBegin
@@ -46,12 +46,17 @@ class GDumb(BatchClassifier, Handler):
         self.original_state_dict = model.state_dict()
         self._seed = seed
         self.coreset = GreedySampler(
-            capacity, schema.get_num_attributes(), torch.Generator().manual_seed(seed)
+            capacity,
+            {
+                "x": ((schema.get_num_attributes(),), torch.float32),
+                "y": ((), torch.long),
+            },
+            torch.Generator().manual_seed(seed),
         )
         self.loss_func = nn.CrossEntropyLoss()
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self.coreset.update(x, y)
+        self.coreset.update(x=x, y=y)
 
     def batch_predict_proba(self, x: Tensor) -> Tensor:
         return self.model(x).softmax(dim=1)
@@ -61,7 +66,7 @@ class GDumb(BatchClassifier, Handler):
         Fit the model on the coreset.
         """
         # Assemble a dataset from the buffer
-        dataset = TensorDataset(*self.coreset.array())
+        dataset = self.coreset.dataset_view()
 
         self.model.load_state_dict(self.original_state_dict)
         self.model.to(self.fit_device)

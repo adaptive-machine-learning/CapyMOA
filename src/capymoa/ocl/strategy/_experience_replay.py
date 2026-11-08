@@ -20,18 +20,18 @@ class ExperienceReplay(BatchClassifier, Handler):
     >>> from capymoa.classifier import Finetune
     >>> from capymoa.ocl.strategy import ExperienceReplay
     >>> from capymoa.ocl.datasets import TinySplitMNIST
-    >>> from capymoa.ocl.evaluation import ocl_train_eval_loop
+    >>> from capymoa.ocl import evaluate_ocl
     >>> import torch
     >>> _ = torch.manual_seed(0)
     >>> scenario = TinySplitMNIST()
     >>> model = Perceptron(scenario.schema)
     >>> learner = ExperienceReplay(Finetune(scenario.schema, model))
-    >>> results = ocl_train_eval_loop(
+    >>> results = evaluate_ocl(
     ...     learner,
     ...     scenario.train_loaders(32),
     ...     scenario.test_loaders(32),
     ... )
-    >>> print(f"{results.accuracy_final*100:.1f}%")
+    >>> print(f"{results['accuracy_final']*100:.1f}%")
     28.5%
 
     .. [#f0] `Rolnick, D., Ahuja, A., Schwarz, J., Lillicrap, T., & Wayne, G. (2019).
@@ -56,20 +56,23 @@ class ExperienceReplay(BatchClassifier, Handler):
         self.learner = learner
         self._buffer = ReservoirSampler(
             capacity=buffer_size,
-            features=self.schema.get_num_attributes(),
+            shape={
+                "x": ((self.schema.get_num_attributes(),), torch.float32),
+                "y": ((), torch.long),
+            },
             rng=torch.Generator().manual_seed(learner.random_seed),
         )
         self.repeat = repeat
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         # update the buffer with the new data
-        self._buffer.update(x, y)
+        self._buffer.update(x=x, y=y)
 
         for _ in range(self.repeat):
             # sample from the buffer and construct training batch
-            replay_x, replay_y = self._buffer.sample(x.shape[0])
-            train_x = torch.cat((x, replay_x), dim=0)
-            train_y = torch.cat((y, replay_y), dim=0)
+            replay = self._buffer.sample(x.shape[0])
+            train_x = torch.cat((x, replay["x"]), dim=0)
+            train_y = torch.cat((y, replay["y"]), dim=0)
             train_x = train_x.to(self.learner.device, dtype=self.learner.x_dtype)
             train_y = train_y.to(self.learner.device, dtype=self.learner.y_dtype)
             self.learner.batch_train(train_x, train_y)

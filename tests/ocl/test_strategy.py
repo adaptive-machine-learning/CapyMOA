@@ -1,4 +1,3 @@
-import os
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from functools import partial
@@ -14,9 +13,11 @@ from torch import nn
 from capymoa.base import Classifier
 from capymoa.classifier import Finetune, HoeffdingTree
 from capymoa.core.torch.ann import Perceptron
+from capymoa.ocl import evaluate_ocl
 from capymoa.ocl.datasets import TinySplitMNIST
-from capymoa.ocl.evaluation import ocl_train_eval_loop
 from capymoa.ocl.strategy import (
+    DER,
+    DERPP,
     EWC,
     LWF,
     MAS,
@@ -26,6 +27,7 @@ from capymoa.ocl.strategy import (
     SLDA,
     ExperienceReplay,
     GDumb,
+    RanPAC,
     RWalk,
 )
 from capymoa.stream import Schema
@@ -93,6 +95,11 @@ def _new_rar(schema):
     )
 
 
+def _new_der(schema: Schema) -> DER:
+    model = Perceptron(schema)
+    return DER(schema, model, torch.optim.Adam(model.parameters(), lr=0.001))
+
+
 """
 Add new test cases here.
 
@@ -115,12 +122,13 @@ TEST_CASES: list[Case] = [
         epochs=2,
         continual_evaluations=2,
     ),
-    Case("SLDA", SLDA, Result(75.5, 48.70, 74.2)),
+    Case("SLDA", SLDA, Result(80.5, 51.4, 63.0)),
     Case(
         "SLDA_with_preprocessor",
         lambda s: SLDA(s, pre_processor(), 512),
-        Result(83.5, 52.7, 75.8),
+        Result(87.5, 54.5, 67.7),
     ),
+    Case("RanPAC", lambda s: RanPAC(s, projection_dim=512), Result(80.0, 48.0, 62.4)),
     Case("NCM", NCM, Result(71.5, 46.2, 67.5)),
     Case(
         "NCM_with_preprocessor",
@@ -131,6 +139,20 @@ TEST_CASES: list[Case] = [
         "ExperienceReplay",
         lambda schema: ExperienceReplay(Finetune(schema, Perceptron)),
         Result(28.5, 20.1, 3.0),
+    ),
+    Case(
+        "DER",
+        _new_der,
+        Result(29.5, 20.5, 2.9),
+    ),
+    Case(
+        "DERPP",
+        new_constructor(
+            DERPP,
+            lr=0.001,
+            optimiser_type=torch.optim.Adam,
+        ),
+        Result(28.5, 20.0, 3.1),
     ),
     Case(
         "GDumb",
@@ -227,8 +249,6 @@ TEST_CASES: list[Case] = [
 
 @pytest.mark.parametrize("case", TEST_CASES, ids=[test.name for test in TEST_CASES])
 def test_ocl_classifier(case: Case):
-    if os.environ.get("CI") == "true" and "SLDA" in case.name:
-        pytest.skip("Skipping SLDA case on CI due to unreliable dataset download")
     scenario = TinySplitMNIST()
 
     # Set random seeds for reproducibility
@@ -240,16 +260,16 @@ def test_ocl_classifier(case: Case):
     if case.task_mask:
         kwargs["task_mask"] = scenario.task_mask
     learner = case.constructor(scenario.schema, **kwargs)  # type: ignore
-    r = ocl_train_eval_loop(
+    r = evaluate_ocl(
         learner,
         scenario.train_loaders(case.batch_size),
         scenario.test_loaders(case.batch_size),
         epochs=case.epochs,
     )
     actual = Result(
-        r.accuracy_final * 100,
-        r.anytime_accuracy_all_avg * 100,
-        r.ttt.accuracy(),
+        r["accuracy_final"] * 100,
+        r["anytime_accuracy_all_avg"] * 100,
+        r["ttt"]["cumulative"]["accuracy"],
     )
     assert asdict(actual) == approx(asdict(case.expected)), f"Case {case.name} failed."
 
@@ -262,20 +282,28 @@ def test_ocl_classifier(case: Case):
     def assert_float(value: float):
         assert isinstance(value, float), f"Expected float but got {type(value)}"
 
-    total_eval = r.n_continual_evaluations * r.n_tasks
-    assert_float(r.accuracy_all_avg)
-    assert_float(r.accuracy_final)
-    assert_float(r.accuracy_seen_avg)
-    assert_float(r.anytime_accuracy_all_avg)
-    assert_float(r.anytime_accuracy_seen_avg)
-    assert_float(r.backward_transfer)
-    assert_float(r.forward_transfer)
-    assert_ndarray(r.accuracy_all, (r.n_tasks,))
-    assert_ndarray(r.accuracy_matrix, (r.n_tasks, r.n_tasks))
-    assert_ndarray(r.accuracy_seen, (r.n_tasks,))
-    assert_ndarray(r.anytime_accuracy_all, (total_eval,))
-    assert_ndarray(r.anytime_accuracy_matrix, (total_eval, r.n_tasks))
-    assert_ndarray(r.anytime_task_index, (total_eval,), dtype=np.integer)
-    assert_ndarray(r.boundaries, (r.n_tasks + 1,), dtype=np.integer)
-    assert_ndarray(r.class_cm, (r.n_tasks, r.n_classes, r.n_classes), dtype=np.integer)
-    assert_ndarray(r.task_index, (r.n_tasks,), dtype=np.integer)
+    n_tasks = r["n_tasks"]
+    total_eval = r["n_continual_evaluations"] * n_tasks
+    assert_float(r["accuracy_all_avg"])
+    assert_float(r["accuracy_final"])
+    assert_float(r["accuracy_seen_avg"])
+    assert_float(r["anytime_accuracy_all_avg"])
+    assert_float(r["anytime_accuracy_seen_avg"])
+    assert_float(r["backward_transfer"])
+    assert_float(r["forward_transfer"])
+    assert_ndarray(r["accuracy_matrix"], (n_tasks, n_tasks))
+    assert_ndarray(r["anytime_accuracy_matrix"], (total_eval, n_tasks))
+    assert_ndarray(r["boundaries"], (n_tasks + 1,), dtype=np.integer)
+    assert_ndarray(
+        r["class_cm"], (n_tasks, r["n_classes"], r["n_classes"]), dtype=np.integer
+    )
+    assert list(r["per_task"]) == ["task", "accuracy_all", "accuracy_seen"]
+    assert len(r["per_task"]["task"]) == n_tasks
+    assert list(r["anytime"]) == [
+        "task",
+        "step",
+        "accuracy_all",
+        "accuracy_seen",
+    ]
+    assert len(r["anytime"]["task"]) == total_eval
+    assert "task" in r["ttt"]["windowed"]

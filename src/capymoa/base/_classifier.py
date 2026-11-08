@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from typing import Any, overload
 
 import numpy as np
 from jpype import _jpype
@@ -6,6 +8,7 @@ from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
 from capymoa.core import Instance, LabeledInstance, LabelIndex, LabelProbabilities
+from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
 
 
@@ -78,7 +81,38 @@ class MOAClassifier(Classifier):
     - moa_learner: The MOA learner object or class identifier.
     """
 
-    def __init__(self, moa_learner, schema=None, CLI=None, random_seed=1):
+    @overload
+    def __init__(
+        self,
+        moa_learner,
+        schema=None,
+        CLI: str | None = None,
+        random_seed=1,
+    ): ...
+
+    @overload
+    def __init__(
+        self,
+        moa_learner,
+        schema=None,
+        CLI: None = None,
+        random_seed=1,
+        *,
+        options: Mapping[str, Any],
+    ): ...
+
+    def __init__(
+        self,
+        moa_learner,
+        schema=None,
+        CLI=None,
+        random_seed=1,
+        options: Mapping[str, Any] | None = None,
+    ):
+        """
+        :param options: MOA option names mapped to values. Use instead of CLI for values
+            with no CLI string, such as Java objects.
+        """
         super().__init__(schema=schema, random_seed=random_seed)
         self.CLI = CLI
         # If moa_learner is a class identifier instead of an object
@@ -94,10 +128,7 @@ class MOAClassifier(Classifier):
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())
 
-        # If the CLI is None, we assume the object has already been configured
-        # or that default values should be used.
-        if self.CLI is not None:
-            self.moa_learner.getOptions().setViaCLIString(CLI)
+        set_moa_options(self.moa_learner, self.CLI, options)
 
         self.moa_learner.prepareForUse()
         self.moa_learner.resetLearningImpl()
@@ -116,22 +147,16 @@ class MOAClassifier(Classifier):
 
     def predict_proba(self, instance) -> LabelProbabilities | None:
         votes = np.array(self.moa_learner.getVotesForInstance(instance.java_instance))
-        # MOA sizes the vote array by the classes seen so far, not by the
-        # schema, so it can be shorter than `schema.get_num_classes()`. Votes
-        # are indexed by class index, so pad with trailing zeros to line the
-        # array up with the schema (padding an empty array still yields all
-        # zeros, so the "no prediction" case below is unaffected).
+        total = votes.sum()
+        # MOA returns unnormalised scores. Their scale depends on the learner
+        # (counts for majority class, tiny likelihood products for Naive Bayes).
+        # Reject only votes that carry no prediction: empty, non-finite or all zero.
+        if votes.size == 0 or not np.isfinite(total) or total <= 0.0:
+            return None
+        # MOA sizes votes by the classes seen so far. Pad with zeros to match the schema.
         num_classes = self.schema.get_num_classes()
         if votes.size < num_classes:
             votes = np.pad(votes, (0, num_classes - votes.size))
-        total = votes.sum() if votes.size else 0.0
-        # MOA returns unnormalised scores, and their scale depends on the
-        # learner: majority-class leaves give integer counts, while Naive Bayes
-        # gives products of likelihoods that are routinely below 1e-2 without
-        # being any less valid. Only reject votes that carry no prediction at
-        # all -- an empty array, a non-finite total, or nothing but zeros.
-        if votes.size == 0 or not np.isfinite(total) or total <= 0.0:
-            return None
         return votes / total
 
 

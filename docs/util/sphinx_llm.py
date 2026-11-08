@@ -99,6 +99,10 @@ def fix_unsupported_markdown_nodes(app: Sphinx) -> None:
     def _noop(self, node):
         pass
 
+    def visit_abbreviation(self, node):
+        self.add(node.astext())
+        raise docutils_nodes.SkipNode
+
     # Card/link titles and `:fas:`/`:fab:` icons: nothing sensible to render as
     # Markdown, so just skip over them like the text/man/texinfo builders do.
     app.add_node(
@@ -107,6 +111,7 @@ def fix_unsupported_markdown_nodes(app: Sphinx) -> None:
         override=True,
     )
     app.add_node(fontawesome, markdown=(_noop, _noop), override=True)
+    MarkdownTranslator.visit_abbreviation = visit_abbreviation
 
     # Citations (`.. [key] ...`) are structurally the same as footnotes, which
     # MarkdownTranslator already supports.

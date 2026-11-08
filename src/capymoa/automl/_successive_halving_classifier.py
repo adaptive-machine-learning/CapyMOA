@@ -9,7 +9,7 @@ from capymoa.automl._utils import (
 from capymoa.base import (
     Classifier,
 )
-from capymoa.evaluation import ClassificationEvaluator
+from capymoa.classifier.evaluate import ClassificationEvaluator
 from capymoa.stream import Schema
 
 

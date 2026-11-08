@@ -41,7 +41,14 @@ def _get_java_home() -> Path:
         java_class_path = _CAPYMOA_PACKAGE_ROOT / "jar"
         try:
             result = subprocess.run(
-                ["java", "-classpath", java_class_path.as_posix(), "Home"],
+                [
+                    "java",
+                    # Disable all logs since it can interfere with path parsing
+                    "-Xlog:disable",
+                    "-classpath",
+                    java_class_path.as_posix(),
+                    "Home",
+                ],
                 capture_output=True,
                 check=True,
             )
@@ -54,11 +61,15 @@ def _get_java_home() -> Path:
                 f"Failed to determine java.home: {e.stderr.decode().strip()}"
             )
 
+        # The last line of the output must contain the path.
         java_home = Path(result.stdout.decode().strip())
 
-        assert java_home.exists(), (
-            f"The java.home reported by the java program does not exist: {java_home}"
-        )
+        if not java_home.exists():
+            raise CapymoaImportError(
+                f"The java.home reported by the java program does not exist: "
+                f"`{java_home}`. Try setting the JAVA_HOME environment variable "
+                "explicitly. See https://capymoa.org/setup/#java."
+            )
 
     return java_home
 

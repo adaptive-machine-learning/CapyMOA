@@ -9,7 +9,6 @@ from jpype import JException
 from capymoa.base import MOAClassifier, MOARegressor, Regressor
 from capymoa.core.io import load_model, save_model
 from capymoa.datasets import Fried, FriedTiny
-from capymoa.evaluation import RegressionEvaluator, RegressionWindowedEvaluator
 from capymoa.regressor import (
     ARFFIMTDD,
     FIMTDD,
@@ -27,6 +26,7 @@ from capymoa.regressor import (
     StreamingGradientBoostedRegression,
     TargetMean,
 )
+from capymoa.regressor.evaluate import RegressionEvaluator, RegressionWindowedEvaluator
 from capymoa.stream import Schema, Stream
 
 

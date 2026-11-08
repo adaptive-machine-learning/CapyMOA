@@ -16,11 +16,7 @@ import capymoa.datasets as capymoa_datasets
 from capymoa.datasets import download_unpacked
 from capymoa.datasets._source_list import SOURCE_LIST
 from capymoa.datasets._utils import infer_unpacked_path
-from capymoa.evaluation.evaluation import (
-    prequential_evaluation,
-    start_time_measuring,
-    stop_time_measuring,
-)
+from capymoa.evaluation import prequential_evaluation
 
 # Globals
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -554,7 +550,7 @@ def capymoa_experiment(
             )
             chunk_results.append(result)
             processed_instances += chunk_size
-            total_correct += (result["cumulative"].accuracy() / 100.0) * chunk_size
+            total_correct += (result["cumulative"]["accuracy"] / 100.0) * chunk_size
             total_wallclock += result["wallclock"]
             total_cpu_time += result["cpu_time"]
             if pulse_recorder is not None:
@@ -580,8 +576,12 @@ def capymoa_experiment(
         repetition += 1
 
     # Calculate average and std for accuracy, wallclock, and cpu_time
-    avg_accuracy = sum(result["accuracy"] for result in raw_results) / repetitions
-    std_accuracy = pd.Series([result["accuracy"] for result in raw_results]).std()
+    avg_accuracy = (
+        sum(result["cumulative"]["accuracy"] for result in raw_results) / repetitions
+    )
+    std_accuracy = pd.Series(
+        [result["cumulative"]["accuracy"] for result in raw_results]
+    ).std()
     avg_wallclock = sum(result["wallclock"] for result in raw_results) / repetitions
     std_wallclock = pd.Series([result["wallclock"] for result in raw_results]).std()
     avg_cpu_time = sum(result["cpu_time"] for result in raw_results) / repetitions
@@ -620,7 +620,7 @@ def test_then_train_river(
     river_modules = import_river_modules()
 
     # Start measuring time
-    start_wallclock_time, start_cpu_time = start_time_measuring()
+    start_wallclock_time, start_cpu_time = time.time(), time.process_time()
 
     instancesProcessed = 0
     accuracy = river_modules["metrics"].Accuracy()
@@ -643,9 +643,8 @@ def test_then_train_river(
             pulse_recorder.maybe_record(instancesProcessed)
 
     # Stop measuring time
-    elapsed_wallclock_time, elapsed_cpu_time = stop_time_measuring(
-        start_wallclock_time, start_cpu_time
-    )
+    elapsed_wallclock_time = time.time() - start_wallclock_time
+    elapsed_cpu_time = time.process_time() - start_cpu_time
     if pulse_recorder is not None:
         pulse_recorder.finish(instancesProcessed)
 
@@ -717,8 +716,12 @@ def river_experiment(
         repetition += 1
 
     # Calculate average and std for accuracy, wallclock, and cpu_time
-    avg_accuracy = sum(result["accuracy"] for result in raw_results) / repetitions
-    std_accuracy = pd.Series([result["accuracy"] for result in raw_results]).std()
+    avg_accuracy = (
+        sum(result["cumulative"]["accuracy"] for result in raw_results) / repetitions
+    )
+    std_accuracy = pd.Series(
+        [result["cumulative"]["accuracy"] for result in raw_results]
+    ).std()
     avg_wallclock = sum(result["wallclock"] for result in raw_results) / repetitions
     std_wallclock = pd.Series([result["wallclock"] for result in raw_results]).std()
     avg_cpu_time = sum(result["cpu_time"] for result in raw_results) / repetitions

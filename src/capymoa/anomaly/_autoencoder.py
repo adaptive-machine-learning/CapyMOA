@@ -21,7 +21,7 @@ class Autoencoder(AnomalyDetector):
 
     >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import Autoencoder
-    >>> from capymoa.evaluation import AnomalyDetectionEvaluator
+    >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = Autoencoder(schema=schema)

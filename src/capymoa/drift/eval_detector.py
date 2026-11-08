@@ -105,11 +105,12 @@ class EvaluateDriftDetector:
         >>> from capymoa.drift.detectors import ADWIN
         >>> from capymoa.drift.eval_detector import EvaluateDriftDetector
         >>>
+        >>> rng = np.random.default_rng(4)
         >>> detector = ADWIN(delta=0.001)
         >>>
-        >>> data_stream = np.random.randint(2, size=2000)
+        >>> data_stream = rng.integers(2, size=2000)
         >>> for i in range(999, 2000):
-        ...     data_stream[i] = np.random.randint(4, high=8)
+        ...     data_stream[i] = rng.integers(4, high=8)
         >>>
         >>> for i in range(2000):
         ...     detector.add_element(data_stream[i])

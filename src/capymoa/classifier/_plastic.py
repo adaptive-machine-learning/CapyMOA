@@ -22,12 +22,12 @@ class PLASTIC(MOAClassifier):
 
     >>> from capymoa.classifier import PLASTIC
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
     >>> classifier = PLASTIC(stream.get_schema())
-    >>> results = prequential_evaluation(stream, classifier, max_instances=1000)
-    >>> print(f"{results['cumulative'].accuracy():.1f}")
+    >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
     84.4
 
     .. [#f1] Heyden, Marco, et al. "Leveraging plasticity in incremental decision trees."
@@ -38,6 +38,7 @@ class PLASTIC(MOAClassifier):
     def __init__(
         self,
         schema: Schema,
+        random_seed: int = 1,
         grace_period: int = 200,
         reevaluation_period: int = 200,
         nominal_estimator: str = "NominalAttributeClassObserver",
@@ -53,6 +54,7 @@ class PLASTIC(MOAClassifier):
     ) -> None:
         """Construct PLASTIC classifier.
 
+        :param random_seed: The random seed passed to the MOA learner.
         :param grace_period: The number of instances a leaf should observe between split
             attempts.
         :param reevaluation_period: The number of instances an internal node should
@@ -92,4 +94,9 @@ class PLASTIC(MOAClassifier):
         cli += [f"-D {max_depth}"]
         cli += [f"-B {max_branch_length}"]
 
-        super().__init__(moa_learner=_PLASTIC, schema=schema, CLI=" ".join(cli))
+        super().__init__(
+            moa_learner=_PLASTIC,
+            schema=schema,
+            CLI=" ".join(cli),
+            random_seed=random_seed,
+        )

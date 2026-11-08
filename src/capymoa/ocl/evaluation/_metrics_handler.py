@@ -1,15 +1,16 @@
 """Default event sink for OCL metrics collection."""
 
+import time
+
 import torch
 
 from capymoa.base import Classifier
-from capymoa.evaluation.evaluation import (
+from capymoa.classifier._evaluate import _classifier_results
+from capymoa.classifier.evaluate import (
     ClassificationEvaluator,
     ClassificationWindowedEvaluator,
-    start_time_measuring,
-    stop_time_measuring,
 )
-from capymoa.evaluation.results import PrequentialResults
+from capymoa.evaluation._loop import _LoopOutput
 from capymoa.ocl.evaluation.events import (
     TrainBatchPredict,
     TrainBegin,
@@ -19,7 +20,7 @@ from capymoa.ocl.evaluation.events import (
 from capymoa.ocl.events import Dispatcher, Event, Handler
 
 from ._evaluator import _OCLEvaluator
-from ._metrics import OCLMetrics
+from ._results import OCLResults
 
 
 class _OCLMetricsHandler(Handler):
@@ -56,14 +57,14 @@ class _OCLMetricsHandler(Handler):
         return self
 
     def _on_loop_start(self, _: Event) -> None:
-        self._start_wallclock_time, self._start_cpu_time = start_time_measuring()
+        self._start_wallclock_time = time.time()
+        self._start_cpu_time = time.process_time()
 
     def _on_loop_end(self, _: Event) -> None:
         if self._start_wallclock_time is None or self._start_cpu_time is None:
             return
-        self._elapsed_wallclock_time, self._elapsed_cpu_time = stop_time_measuring(
-            self._start_wallclock_time, self._start_cpu_time
-        )
+        self._elapsed_wallclock_time = time.time() - self._start_wallclock_time
+        self._elapsed_cpu_time = time.process_time() - self._start_cpu_time
 
     def _on_train_batch(self, event: TrainBatchPredict) -> None:
         for y_true, y_pred in zip(event.y, event.y_hat, strict=True):
@@ -79,15 +80,19 @@ class _OCLMetricsHandler(Handler):
     def instances_seen(self) -> int:
         return self._online_eval.instances_seen
 
-    def build(self, learner_name: str, stream_name: str) -> OCLMetrics:
-        return self._collector.build(
-            PrequentialResults(
-                learner=learner_name,
-                stream=stream_name,  # type: ignore[arg-type]
-                cumulative_evaluator=self._online_eval,
-                windowed_evaluator=self._windowed_eval,
-                wallclock=self._elapsed_wallclock_time,
-                cpu_time=self._elapsed_cpu_time,
-            ),
-            self._boundary_instances,
+    def build(self, learner_name: str, stream_name: str) -> OCLResults:
+        out = _LoopOutput(
+            instances=self.instances_seen,
+            wallclock=self._elapsed_wallclock_time,
+            cpu_time=self._elapsed_cpu_time,
+            y_true=None,
+            y_pred=None,
         )
+        ttt = _classifier_results(
+            learner_name,
+            stream_name,  # type: ignore[arg-type]
+            out,
+            self._online_eval,
+            self._windowed_eval,
+        )
+        return self._collector.build(ttt, self._boundary_instances)

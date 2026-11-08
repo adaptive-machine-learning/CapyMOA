@@ -18,22 +18,22 @@ traditional continual learning, OCL restricts training to a single data pass.
 
 >>> from capymoa.classifier import HoeffdingTree
 >>> from capymoa.ocl.datasets import TinySplitMNIST
->>> from capymoa.ocl.evaluation import ocl_train_eval_loop
+>>> from capymoa.ocl import evaluate_ocl
 >>> import numpy as np
 >>> scenario = TinySplitMNIST()
 >>> learner = HoeffdingTree(scenario.schema)
->>> metrics = ocl_train_eval_loop(learner, scenario.train_loaders(32), scenario.test_loaders(32))
+>>> results = evaluate_ocl(learner, scenario.train_loaders(32), scenario.test_loaders(32))
 
 The final accuracy is the accuracy on all tasks after finishing training on all
 tasks:
 
->>> print(f"Final Accuracy: {metrics.accuracy_final:0.2f}")
+>>> print(f"Final Accuracy: {results['accuracy_final']:0.2f}")
 Final Accuracy: 0.69
 
 The accuracy on each task after training on each task:
 
 >>> with np.printoptions(precision=2):
-...     print(metrics.accuracy_matrix)
+...     print(results['accuracy_matrix'])
 [[0.9  0.05 0.05 0.05 0.08]
  [0.88 0.9  0.   0.   0.05]
  [0.77 0.82 0.62 0.   0.03]
@@ -45,16 +45,17 @@ learner has not trained on those tasks yet. The diagonal contains the accuracy
 on each task after training on that task. The lower triangle contains the
 accuracy on each task after training on all tasks.
 
->>> print(f"Forward Transfer: {metrics.forward_transfer:0.2f}")
+>>> print(f"Forward Transfer: {results['forward_transfer']:0.2f}")
 Forward Transfer: 0.03
 
->>> print(f"Backward Transfer: {metrics.backward_transfer:0.2f}")
+>>> print(f"Backward Transfer: {results['backward_transfer']:0.2f}")
 Backward Transfer: -0.07
 """
 
 # PyTorch is an optional extra; this whole module requires it.
 try:
-    from . import datasets, evaluation, events, strategy, util
+    from . import datasets, evaluation, events, plot, strategy, util
+    from .evaluation._loop import evaluate_ocl
 except ModuleNotFoundError as _err:  # pragma: no cover
     if (_err.name or "").split(".")[0] in ("torch", "torchvision"):
         from capymoa.exception import OptionalDependencyError
@@ -62,4 +63,12 @@ except ModuleNotFoundError as _err:  # pragma: no cover
         raise OptionalDependencyError("PyTorch", "capymoa.ocl") from _err
     raise
 
-__all__ = ["datasets", "evaluation", "events", "strategy", "util"]
+__all__ = [
+    "datasets",
+    "evaluate_ocl",
+    "evaluation",
+    "events",
+    "plot",
+    "strategy",
+    "util",
+]

@@ -7,11 +7,16 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
+from sphinx.ext.autodoc import AttributeDocumenter
+from typing_extensions import is_typeddict
+
 from capymoa.__about__ import __version__
 from docs.release_scripts import site_base_url
+from docs.util.colab import colab_url, is_notebook_page
 from docs.util.github_link import make_linkcode_resolve
 from docs.util.sphinx_llm import (
     fix_markdown_image,
@@ -71,6 +76,7 @@ nitpick_ignore_regex = [
     ("py:class", r"abc\..*"),
     ("py:class", r"com\..*"),
     ("py:class", r"java\..*"),
+    ("py:class", r"matplotlib\..*"),
     ("py:class", r"moa\..*"),
     ("py:class", r"numpy\..*"),
     ("py:class", r"org\..*"),
@@ -79,6 +85,7 @@ nitpick_ignore_regex = [
     ("py:class", r"sklearn\..*"),
     ("py:class", r"torch\..*"),
     ("py:class", r"tqdm\..*"),
+    ("py:class", r"typing_extensions\..*"),
     ("py:class", r"torchvision\..*"),
     ("py:class", r"Tensor"),
     ("py:class", r"nn\.Module"),
@@ -184,7 +191,7 @@ redirects = {
     "notebooks/00_getting_started": "/notebooks/classifier/getting_started.html",
     "notebooks/01_evaluation": "/notebooks/classifier/evaluation.html",
     "notebooks/02_sklearn": "/notebooks/common/sklearn_models.html",
-    "notebooks/03_pytorch": "/notebooks/common/pytorch.html",
+    "notebooks/03_pytorch": "/notebooks/common/pytorch_integration.html",
     "notebooks/04_drift_streams": "/notebooks/drift/drift_streams.html",
     "notebooks/05_new_learner": "/notebooks/classifier/new_learner.html",
     "notebooks/06_advanced_API": "/notebooks/common/advanced_API.html",
@@ -294,10 +301,14 @@ html_theme_options = {
             "type": "fontawesome",
         },
     ],
+    # Show four links, then put the rest in a "More" dropdown. The theme only makes
+    # a dropdown when more than this number plus one links exist.
+    "header_links_before_dropdown": 4,
     "secondary_sidebar_items": [
         "page-toc",
         "edit-this-page",
         "sourcelink",
+        "components/colab-button.html",
         "components/llm-page-actions.html",
     ],
     "switcher": {
@@ -336,8 +347,55 @@ def autodoc_skip_member(app, obj_type, name, obj, skip, options) -> bool | None:
     return None
 
 
+# Set by the release docs build. Colab links point at a tag published after the
+# release, so other builds (PRs, local) would link to notebooks that may not exist.
+colab_links = os.environ.get("CAPYMOA_COLAB_LINKS") == "true"
+
+
+def add_colab_url(app, pagename, templatename, context, doctree):
+    """Set the links for components/colab-button.html on notebook pages."""
+    if is_notebook_page(pagename):
+        context["notebook_download"] = True
+        if colab_links:
+            context["colab_url"] = colab_url(capymoa_github, __version__, pagename)
+
+
+def copy_notebooks(app, exception):
+    """Put the executed notebooks in the site, for the download link."""
+    if exception is not None or app.builder.format != "html":
+        return
+    for nb in sorted((Path(app.confdir).parent / "notebooks").glob("*/*.ipynb")):
+        dest = Path(app.outdir) / "notebooks" / nb.parent.name / nb.name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(nb, dest)
+
+
+_get_attribute_comment = AttributeDocumenter.get_attribute_comment
+
+
+def _get_attribute_comment_from_typed_dict_bases(self, parent, attrname):
+    """Find the ``#:`` doc of a TypedDict key declared in a base TypedDict.
+
+    A TypedDict drops its bases from ``__mro__``, so autodoc cannot find the
+    docs of inherited keys such as ``RunInfo.instances``. They are only in
+    ``__orig_bases__``.
+    """
+    comment = _get_attribute_comment(self, parent, attrname)
+    for base in getattr(parent, "__orig_bases__", ()):
+        if comment is not None:
+            break
+        if is_typeddict(base):
+            comment = _get_attribute_comment_from_typed_dict_bases(self, base, attrname)
+    return comment
+
+
+AttributeDocumenter.get_attribute_comment = _get_attribute_comment_from_typed_dict_bases
+
+
 def setup(app):
     app.connect("autodoc-skip-member", autodoc_skip_member)
+    app.connect("build-finished", copy_notebooks)
+    app.connect("html-page-context", add_colab_url)
 
     # Patches for sphinx_llm extension.
     fix_notebook_output_markdown(app)

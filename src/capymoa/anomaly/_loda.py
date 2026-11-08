@@ -64,7 +64,7 @@ class Loda(AnomalyDetector):
 
     >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import Loda
-    >>> from capymoa.evaluation import AnomalyDetectionEvaluator
+    >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = Loda(schema, n_projections=10, window_size=100, random_state=42)

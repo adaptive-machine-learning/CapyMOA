@@ -71,10 +71,10 @@ installed, once with ``-m "torch"`` and ``--extra torch-cpu``.
     torch tests are wanted (``-m "torch"``, or no ``-m`` filter at all) but
     torch isn't installed, the import right after ``markskip`` fails loudly
     instead of being silently skipped.
-* For a file that mixes torch and non-torch cases, call ``markskip("torch")``
-  bare (discarding the return value) inside the constructor for just the
-  torch-only case instead of guarding the whole module -- see
-  ``_make_finetune`` in ``tests/test_classifiers.py``.
+* For a file that mixes torch and non-torch cases, mark just the torch-only
+  cases instead of guarding the whole module. Classifier cases in
+  ``tests/resources/classifier.yml`` set ``needs_torch: true``, and
+  ``tests/test_classifier.py`` adds ``pytest.mark.torch`` to them.
 
 Doctest
 -------

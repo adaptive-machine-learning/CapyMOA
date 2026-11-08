@@ -52,15 +52,15 @@ if is_nb_fast():
 
 # %%
 from capymoa.classifier import HoeffdingTree
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 from capymoa.stream.generator import RandomTreeGenerator
 
 rtg_stream = RandomTreeGenerator()
 
 ht = HoeffdingTree(schema=rtg_stream.get_schema())
 
-results_ht = prequential_evaluation(
+results_ht = evaluate_classifier(
     max_instances=10000, window_size=1000, stream=rtg_stream, learner=ht
 )
 
@@ -146,7 +146,7 @@ stream_sea2drift = DriftStream(
 
 OB = OnlineBagging(schema=stream_sea2drift.get_schema(), ensemble_size=10)
 
-results_sea2drift_OB = prequential_evaluation(
+results_sea2drift_OB = evaluate_classifier(
     stream=stream_sea2drift, learner=OB, window_size=100, max_instances=15000
 )
 
@@ -214,7 +214,7 @@ for name, title, stream in (
     ("position", "DriftStream position", stream_by_position),
 ):
     learner = OnlineBagging(schema=stream.get_schema(), ensemble_size=10)
-    results = prequential_evaluation(
+    results = evaluate_classifier(
         stream=stream, learner=learner, window_size=100, max_instances=15000
     )
     plot_windowed_results(results, metric="accuracy", plot_title=title)
@@ -399,8 +399,8 @@ print("counts with progress**3       :", stream_custom.get_concept_counts())
 
 # %%
 from capymoa.classifier import OnlineBagging
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 from capymoa.stream.drift import AbruptDrift, DriftStream
 from capymoa.stream.generator import RandomTreeGenerator
 
@@ -426,7 +426,7 @@ stream_with_drifts = DriftStream(
 
 OB = OnlineBagging(schema=stream_with_drifts.get_schema(), ensemble_size=10)
 
-results_stream_with_drifts_OB = prequential_evaluation(
+results_stream_with_drifts_OB = evaluate_classifier(
     stream=stream_with_drifts,
     learner=OB,
     window_size=window_size,
@@ -443,8 +443,8 @@ plot_windowed_results(results_stream_with_drifts_OB, metric="accuracy")
 
 # %%
 from capymoa.classifier import HoeffdingTree
-from capymoa.evaluation import prequential_evaluation
-from capymoa.evaluation.visualization import plot_windowed_results
+from capymoa.classifier import evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
 from capymoa.stream.drift import AbruptDrift, GradualDrift, RecurrentConceptDriftStream
 from capymoa.stream.generator import LEDGeneratorDrift
 
@@ -477,7 +477,7 @@ stream_with_recurrent_concepts = RecurrentConceptDriftStream(
 
 ll = HoeffdingTree(schema=stream_with_recurrent_concepts.get_schema())
 
-results_stream_with_drifts_OB = prequential_evaluation(
+results_stream_with_drifts_OB = evaluate_classifier(
     stream=stream_with_recurrent_concepts,
     learner=ll,
     window_size=window_size,

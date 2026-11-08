@@ -5,6 +5,7 @@ data stream setting, clusters must be discovered and updated incrementally as
 new instances arrive, while adapting to concept drift and bounded memory.
 """
 
+from . import evaluate
 from ._clustream import Clustream
 from ._clustream_with_kmeans import Clustream_with_kmeans
 from ._clustree import ClusTree
@@ -18,4 +19,7 @@ __all__ = [
     "Clustream_with_kmeans",
     "Denstream_with_dbscan",
     # "Dstream"
+    "evaluate",
+    # Not imported here, so importing the domain does not load matplotlib.
+    "plot",
 ]

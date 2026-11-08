@@ -45,6 +45,7 @@ Core and utility modules.
     capymoa.evaluation
     capymoa.stream
     capymoa.env
+    capymoa.core.torch.ann
 
 
 Indices and tables

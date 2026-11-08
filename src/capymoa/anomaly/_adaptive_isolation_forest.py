@@ -237,7 +237,7 @@ class AdaptiveIsolationForest(AnomalyDetector):
 
     >>> from capymoa.anomaly.datasets import TinyBlobs
     >>> from capymoa.anomaly import AdaptiveIsolationForest
-    >>> from capymoa.evaluation import AnomalyDetectionEvaluator
+    >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
     >>> learner = AdaptiveIsolationForest(schema, window_size=256, n_trees=100)

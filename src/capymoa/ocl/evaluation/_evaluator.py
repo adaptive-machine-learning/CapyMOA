@@ -3,13 +3,15 @@
 import numpy as np
 import torch
 
+from capymoa.classifier.evaluate import ClassifierResults
 from capymoa.core import LabelIndex
-from capymoa.evaluation.results import PrequentialResults
 from capymoa.ocl.evaluation import events
 from capymoa.ocl.events import Dispatcher, Handler
 
-from ._metrics import (
-    OCLMetrics,
+from ._results import (
+    Anytime,
+    OCLResults,
+    PerTask,
     _backwards_transfer,
     _forwards_transfer,
     _get_ttt_windowed_task_index,
@@ -66,9 +68,9 @@ class _OCLEvaluator(Handler):
             )
 
     def build(
-        self, ttt: PrequentialResults, boundary_instances: torch.Tensor
-    ) -> OCLMetrics:
-        """Creates metrics using collected statistics."""
+        self, ttt: ClassifierResults, boundary_instances: torch.Tensor
+    ) -> OCLResults:
+        """Creates results using collected statistics."""
         correct = self.cm.diagonal(dim1=3, dim2=4).sum(-1)
         total = self.cm.sum((3, 4))
         anytime_acc = correct / total  # (train task, step_id, test task)
@@ -97,36 +99,42 @@ class _OCLEvaluator(Handler):
         accuracy_all = np.array([_accuracy_all(t) for t in tasks])
         boundaries = boundary_instances.numpy()
 
-        ttt_windowed_task_index = None
-        if ttt.windowed is not None:
-            ttt_windowed_task_index = _get_ttt_windowed_task_index(
-                boundaries, ttt.windowed.window_size
-            )
-            assert len(ttt_windowed_task_index) == len(ttt.windowed.accuracy())
+        windowed = ttt.get("windowed")
+        if windowed is not None:
+            task = _get_ttt_windowed_task_index(boundaries, ttt["window_size"])
+            assert len(task) == len(windowed["instances"])
+            ttt = {**ttt, "windowed": {**windowed, "task": task}}  # type: ignore[typeddict-item]
 
-        return OCLMetrics(
-            accuracy_seen=accuracy_seen,
-            accuracy_all=accuracy_all,
-            accuracy_final=_accuracy_all(self.task_count - 1),
-            accuracy_all_avg=np.mean(accuracy_all),
-            accuracy_seen_avg=np.mean(accuracy_seen),
-            accuracy_matrix=accuracy_matrix.numpy(),
-            class_cm=self.cm[:, -1].sum(1).numpy(),
-            anytime_accuracy_all=anytime_accuracy_all.flatten().numpy(),
-            anytime_accuracy_seen=anytime_accuracy_seen.flatten().numpy(),
-            anytime_accuracy_all_avg=anytime_accuracy_all.mean().item(),
-            anytime_accuracy_seen_avg=anytime_accuracy_seen.mean().item(),
-            anytime_task_index=np.linspace(
-                0, self.task_count, self.step_count * self.task_count + 1
-            )[1:],
-            task_index=np.arange(self.task_count) + 1,
-            anytime_accuracy_matrix=anytime_acc.flatten(end_dim=1).numpy(),
-            backward_transfer=_backwards_transfer(accuracy_matrix),
-            forward_transfer=_forwards_transfer(accuracy_matrix),
-            ttt=ttt,
-            boundaries=boundaries,
-            ttt_windowed_task_index=ttt_windowed_task_index,
+        anytime = Anytime(
+            task=np.repeat(tasks, self.step_count),
+            step=np.tile(np.arange(self.step_count), self.task_count),
+            accuracy_all=anytime_accuracy_all.flatten().numpy(),
+            accuracy_seen=anytime_accuracy_seen.flatten().numpy(),
+        )
+        per_task = PerTask(
+            task=tasks, accuracy_all=accuracy_all, accuracy_seen=accuracy_seen
+        )
+
+        return OCLResults(
+            learner=ttt["learner"],
+            stream=ttt["stream"],
+            wallclock=ttt["wallclock"],
+            cpu_time=ttt["cpu_time"],
+            n_classes=self.class_count,
             n_tasks=self.task_count,
             n_continual_evaluations=self.step_count,
-            n_classes=self.class_count,
+            accuracy_final=_accuracy_all(self.task_count - 1),
+            accuracy_all_avg=float(np.mean(accuracy_all)),
+            accuracy_seen_avg=float(np.mean(accuracy_seen)),
+            anytime_accuracy_all_avg=anytime_accuracy_all.mean().item(),
+            anytime_accuracy_seen_avg=anytime_accuracy_seen.mean().item(),
+            forward_transfer=_forwards_transfer(accuracy_matrix),
+            backward_transfer=_backwards_transfer(accuracy_matrix),
+            accuracy_matrix=accuracy_matrix.numpy(),
+            anytime_accuracy_matrix=anytime_acc.flatten(end_dim=1).numpy(),
+            class_cm=self.cm[:, -1].sum(1).numpy(),
+            boundaries=boundaries,
+            per_task=per_task,
+            anytime=anytime,
+            ttt=ttt,
         )

@@ -188,6 +188,22 @@ def docs_notebooks(ctx: Context, slow: bool = False, parallel: bool = False):
 
 
 @task
+def docs_colab(ctx: Context, out: str = "colab-notebooks"):
+    """Write output-free Colab copies of the executed notebooks to `out`.
+
+    The copies have no outputs, so the notebooks need not be executed. The
+    Release workflow publishes `out` to the `colab-notebooks` branch, which the
+    "Open in Colab" links point at.
+    """
+    from capymoa.__about__ import __version__
+    from docs.util.colab import write_colab_notebooks
+
+    sync_notebooks_to_ipynb(NOTEBOOKS_DIR)
+    written = write_colab_notebooks(NOTEBOOKS_DIR, Path(out), __version__)
+    print(f"Wrote {len(written)} notebooks to {out}")
+
+
+@task
 def docs_clean(ctx: Context):
     """Remove the built documentation."""
     if remove_path(Path("docs/_build")):
@@ -504,6 +520,7 @@ def format(ctx: Context):
 docs = Collection("docs")
 docs.add_task(docs_build, "build", default=True)
 docs.add_task(docs_notebooks, "nb")
+docs.add_task(docs_colab, "colab")
 docs.add_task(docs_clean, "clean")
 
 build = Collection("build")

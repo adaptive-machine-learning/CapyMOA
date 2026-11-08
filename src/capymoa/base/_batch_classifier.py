@@ -21,8 +21,8 @@ class BatchClassifier(Classifier, Batch, ABC):
 
     Supported by:
 
-    - :func:`capymoa.ocl.evaluation.ocl_train_eval_loop`
-    - :func:`capymoa.evaluation.prequential_evaluation`
+    - :func:`capymoa.ocl.evaluate_ocl`
+    - :func:`capymoa.classifier.evaluate_classifier`
 
     Evaluators that support batch classifiers will call the :func:`batch_train`
     and :func:`batch_predict_proba` methods instead of :func:`train` and
@@ -30,7 +30,7 @@ class BatchClassifier(Classifier, Batch, ABC):
 
     >>> from capymoa.base import BatchClassifier
     >>> from capymoa.datasets import ElectricityTiny
-    >>> from capymoa.evaluation import prequential_evaluation
+    >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> batch_size = 500
     >>> class MyBatchClassifier(BatchClassifier):
@@ -44,7 +44,7 @@ class BatchClassifier(Classifier, Batch, ABC):
     ...
     >>> stream = ElectricityTiny()
     >>> learner = MyBatchClassifier(stream.get_schema())
-    >>> _ = prequential_evaluation(
+    >>> _ = evaluate_classifier(
     ...     stream,
     ...     learner,
     ...     batch_size=batch_size,

@@ -109,17 +109,6 @@ jobs:
     - name: Linting
       uses: astral-sh/ruff-action@v3
 
-  commit:
-    name: "Commit Style"
-    runs-on: ubuntu-latest
-    # Only report commit style issues on push to main, not on PRs as contributors seldom
-    # want to worry about fixing commit messages. The reviewer will `squash and merge`
-    # with a proper commit message.
-    if: github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: wagoid/commitlint-github-action@v6
-
   documentation:
     name: "Documentation"
     timeout-minutes: 30

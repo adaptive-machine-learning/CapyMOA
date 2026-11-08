@@ -17,18 +17,32 @@ def mock_datasets():
 
 
 def override_prequential_evaluation(max_instances: int = 100):
-    """Monkeypatch the prequential evaluation to limit the number of instances.
+    """Monkeypatch the evaluation functions to limit the number of instances.
 
-    This is useful for testing purposes to speed up the evaluation.
+    This is useful for testing purposes to speed up the evaluation. Import the
+    functions after calling this.
     """
-    from capymoa import evaluation
-    from capymoa.evaluation import prequential_evaluation as _prequential_evaluation
+    import importlib
 
-    def prequential_evaluation(*args, **kwargs):
-        kwargs["max_instances"] = max_instances
-        return _prequential_evaluation(*args, **kwargs)
+    targets = [
+        ("capymoa.evaluation", "prequential_evaluation"),
+        ("capymoa.classifier", "evaluate_classifier"),
+        ("capymoa.regressor", "evaluate_regressor"),
+        ("capymoa.uncertainty", "evaluate_prediction_interval"),
+        ("capymoa.anomaly", "evaluate_anomaly"),
+        ("capymoa.ssl", "evaluate_ssl"),
+    ]
 
-    evaluation.prequential_evaluation = prequential_evaluation
+    def limited(function):
+        def wrapper(*args, **kwargs):
+            kwargs["max_instances"] = max_instances
+            return function(*args, **kwargs)
+
+        return wrapper
+
+    for module_name, name in targets:
+        module = importlib.import_module(module_name)
+        setattr(module, name, limited(getattr(module, name)))
 
 
 def is_nb_fast() -> bool:

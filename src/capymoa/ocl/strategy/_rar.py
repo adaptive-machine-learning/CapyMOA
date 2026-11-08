@@ -32,7 +32,7 @@ class RAR(BatchClassifier, Handler):
     >>> from capymoa.classifier import Finetune
     >>> from capymoa.ocl.strategy import RAR
     >>> from capymoa.ocl.datasets import TinySplitMNIST
-    >>> from capymoa.ocl.evaluation import ocl_train_eval_loop
+    >>> from capymoa.ocl import evaluate_ocl
     >>> import torchvision.transforms as T
     >>> import torch
     >>> _ = torch.manual_seed(0)
@@ -43,12 +43,12 @@ class RAR(BatchClassifier, Handler):
     ...     T.RandomRotation(10),
     ... ])
     >>> learner = RAR(Finetune(scenario.schema, model), augment=augment, repeats=5)
-    >>> results = ocl_train_eval_loop(
+    >>> results = evaluate_ocl(
     ...     learner,
     ...     scenario.train_loaders(32),
     ...     scenario.test_loaders(32),
     ... )
-    >>> print(f"{results.accuracy_final*100:.1f}%")
+    >>> print(f"{results['accuracy_final']*100:.1f}%")
     39.5%
 
     Usually more complex augmentations are used such as random crops and
@@ -94,7 +94,7 @@ class RAR(BatchClassifier, Handler):
         self.repeats = repeats
         self.coreset = ReservoirSampler(
             coreset_size,
-            num_features,
+            {"x": ((num_features,), torch.float32), "y": ((), torch.long)},
             rng=torch.Generator().manual_seed(learner.random_seed),
         )
         self.shape = learner.schema.shape
@@ -102,9 +102,9 @@ class RAR(BatchClassifier, Handler):
     def train_step(self, x_fresh: Tensor, y_fresh: Tensor) -> None:
         # Sample from reservoir and augment the data
         n = x_fresh.shape[0]
-        x_replay, y_replay = self.coreset.sample(n)
-        x = torch.cat((x_fresh, x_replay), dim=0).to(self.device, self.x_dtype)
-        y = torch.cat((y_fresh, y_replay), dim=0).to(self.device, self.y_dtype)
+        replay = self.coreset.sample(n)
+        x = torch.cat((x_fresh, replay["x"]), dim=0).to(self.device, self.x_dtype)
+        y = torch.cat((y_fresh, replay["y"]), dim=0).to(self.device, self.y_dtype)
         x = x.view(-1, *self.shape)
         x: Tensor = self.augment(x)
 
@@ -114,7 +114,7 @@ class RAR(BatchClassifier, Handler):
         self.learner.batch_train(x, y)
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self.coreset.update(x, y)
+        self.coreset.update(x=x, y=y)
         for i in range(self.repeats):
             self.train_step(x, y)
 

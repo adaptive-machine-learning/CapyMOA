@@ -13,8 +13,8 @@ from capymoa.core import Instance, LabeledInstance, LabelIndex
 from capymoa.ocl.events import Dispatcher, Event, Handler
 
 from . import events
-from ._metrics import OCLMetrics
 from ._metrics_handler import _OCLMetricsHandler
+from ._results import OCLResults
 
 
 def _abstain_prediction_uniform(rng: np.random.Generator, n_classes: int) -> LabelIndex:
@@ -90,7 +90,7 @@ class _ProgressBarSink(Handler):
         self._pbar.close()
 
 
-def ocl_train_eval_loop(
+def evaluate_ocl(
     learner: Classifier,
     train_streams: Sequence[DataLoader[tuple[Tensor, Tensor]]],
     test_streams: Sequence[DataLoader[tuple[Tensor, Tensor]]],
@@ -99,7 +99,7 @@ def ocl_train_eval_loop(
     eval_window_size: int = 1000,
     epochs: int = 1,
     dispatcher: Dispatcher | None = None,
-) -> OCLMetrics:
+) -> OCLResults:
     """Run the OCL training loop with periodic continual evaluation.
 
     :param learner: The classifier to train and evaluate.
@@ -113,7 +113,7 @@ def ocl_train_eval_loop(
         rolling metrics, defaults to 1000.
     :param epochs: Number of epochs to train each task stream, defaults to 1.
     :param dispatcher: Optional event dispatcher. If None, a new dispatcher is created.
-    :return: Aggregated OCL metrics collected by the default metrics handler.
+    :return: The :class:`~capymoa.ocl.evaluation.OCLResults` collected by the default metrics handler.
     :raises ValueError: If train/test task counts differ, ``continual_evaluations
         < 1``, or a train stream has fewer batches than requested evaluations.
     :raises TypeError: If learner is not a classifier.

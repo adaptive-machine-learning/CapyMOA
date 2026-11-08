@@ -227,16 +227,16 @@ class L2P(BatchClassifier, Handler):
         # Please note this code block is not regularly tested.
         from capymoa.ocl.strategy.l2p import L2P
         from capymoa.ocl.datasets import SplitCIFAR100
-        from capymoa.ocl.evaluation import ocl_train_eval_loop
+        from capymoa.ocl import evaluate_ocl
         scenario = SplitCIFAR100()
         learner = L2P(scenario.schema, scenario.task_mask, device="cuda")
-        results = ocl_train_eval_loop(
+        results = evaluate_ocl(
             learner,
             scenario.train_loaders(32),
             scenario.test_loaders(32),
             progress_bar=True
         )
-        print(f"{results.accuracy_final*100:.1f}%")
+        print(f"{results['accuracy_final']*100:.1f}%")
 
     ..  [#f1] Wang, Z., Zhang, Z., Lee, C.-Y., Zhang, H., Sun, R., Ren, X., Su, G.,
         Perot, V., Dy, J. G., & Pfister, T. (2022). Learning to prompt for continual

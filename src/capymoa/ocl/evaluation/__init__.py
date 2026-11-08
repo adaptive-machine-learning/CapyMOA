@@ -1,7 +1,13 @@
-"""Evaluate online continual learning in classification tasks."""
+"""Events and result types for evaluating online continual learning."""
 
 from . import events
-from ._loop import ocl_train_eval_loop
-from ._metrics import OCLMetrics
+from ._results import Anytime, OCLResults, OnlineResults, PerTask, TaskWindows
 
-__all__ = ["OCLMetrics", "events", "ocl_train_eval_loop"]
+__all__ = [
+    "Anytime",
+    "OCLResults",
+    "OnlineResults",
+    "PerTask",
+    "TaskWindows",
+    "events",
+]

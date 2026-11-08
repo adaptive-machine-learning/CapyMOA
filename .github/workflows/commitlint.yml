@@ -1,0 +1,27 @@
+name: Commit Style
+
+# Always lint on push to main. On PRs, only lint if the commitlint config changes.
+# Contributors seldom want to worry about fixing commit messages. The reviewer will
+# `squash and merge` with a proper commit message.
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    paths: [ ".commitlintrc.yml" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  commit:
+    name: "Commit Style"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: wagoid/commitlint-github-action@v6
