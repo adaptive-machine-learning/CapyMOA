@@ -16,6 +16,7 @@ from capymoa.core.torch.ann import Perceptron
 from capymoa.ocl import evaluate_ocl
 from capymoa.ocl.datasets import TinySplitMNIST
 from capymoa.ocl.strategy import (
+    ASER,
     DER,
     DERPP,
     EWC,
@@ -100,6 +101,16 @@ def _new_der(schema: Schema) -> DER:
     return DER(schema, model, torch.optim.Adam(model.parameters(), lr=0.001))
 
 
+def _new_aser(schema: Schema) -> ASER:
+    model = nn.Sequential(
+        nn.Flatten(),
+        nn.Linear(schema.get_num_attributes(), 50),
+        nn.ReLU(),
+        nn.Linear(50, schema.get_num_classes()),
+    )
+    return ASER(schema, model, torch.optim.SGD(model.parameters(), lr=0.1))
+
+
 """
 Add new test cases here.
 
@@ -107,6 +118,7 @@ Use the `partial` function to create a new function with hyperparameters already
 set.
 """
 TEST_CASES: list[Case] = [
+    Case("ASER", _new_aser, Result(21.0, 18.8, 23.9)),
     # These improved when `MOAClassifier.predict_proba` stopped discarding
     # predictions whose unnormalised vote total was below 1e-2. HoeffdingTree
     # uses Naive Bayes at its leaves, whose likelihood products fall below that
