@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.5
+#       jupytext_version: 1.19.6
 #   kernelspec:
 #     display_name: .venv
 #     language: python
@@ -44,9 +44,12 @@ if is_nb_fast():
 
 # %%
 from capymoa.datasets import Fried
-from capymoa.regressor import evaluate_regressor
 from capymoa.evaluation.plot import plot_windowed_results
-from capymoa.regressor import AdaptiveRandomForestRegressor, KNNRegressor
+from capymoa.regressor import (
+    AdaptiveRandomForestRegressor,
+    KNNRegressor,
+    evaluate_regressor,
+)
 
 stream = Fried()
 kNN_learner = KNNRegressor(schema=stream.get_schema(), k=5)
@@ -71,13 +74,20 @@ plot_windowed_results(kNN_results, ARF_results, metric="rmse")
 # %% [markdown]
 # ### Evaluating a single stream using multiple learners
 #
-# * `evaluate_regressor` evaluates multiple regressors when you pass a dictionary of learners; the example below shows how it can be used.
+# * `evaluate_regressor` evaluates multiple regressors supplied as a dictionary.
+# * The baselines {py:class}`~capymoa.regressor.NoChange`,
+#   {py:class}`~capymoa.regressor.TargetMean`, and
+#   {py:class}`~capymoa.regressor.FadingTargetMean` predict the previous target,
+#   running mean, and fading mean, respectively.
 
 # %%
-from capymoa.regressor import evaluate_regressor
+from capymoa.regressor import FadingTargetMean, NoChange, TargetMean, evaluate_regressor
 
 # Define the learners + an alias (dictionary key)
 learners = {
+    "NoChange": NoChange(schema=stream.get_schema()),
+    "TargetMean": TargetMean(schema=stream.get_schema()),
+    "FadingTargetMean": FadingTargetMean(schema=stream.get_schema()),
     "kNNReg_k5": KNNRegressor(schema=stream.get_schema(), k=5),
     "kNNReg_k2": KNNRegressor(schema=stream.get_schema(), k=2),
     "kNNReg_k5_median": KNNRegressor(schema=stream.get_schema(), CLI="-k 5 -m"),
@@ -98,6 +108,7 @@ for learner_id in learners:
 
 # Tip: a list of results makes a table with one row per learner.
 import pandas as pd
+from IPython.display import display
 
 display(
     pd.DataFrame(
@@ -105,6 +116,9 @@ display(
     )[["learner", "rmse", "adjusted_r2"]]
 )
 plot_windowed_results(
+    results["NoChange"],
+    results["TargetMean"],
+    results["FadingTargetMean"],
     results["kNNReg_k5"],
     results["kNNReg_k2"],
     results["kNNReg_k5_median"],
@@ -113,6 +127,9 @@ plot_windowed_results(
 )
 
 plot_windowed_results(
+    results["NoChange"],
+    results["TargetMean"],
+    results["FadingTargetMean"],
     results["kNNReg_k5"],
     results["kNNReg_k2"],
     results["kNNReg_k5_median"],
@@ -129,9 +146,12 @@ plot_windowed_results(
 
 # %%
 from capymoa.datasets import Fried
-from capymoa.regressor import evaluate_regressor
+from capymoa.regressor import (
+    AdaptiveRandomForestRegressor,
+    KNNRegressor,
+    evaluate_regressor,
+)
 from capymoa.regressor.plot import plot_predictions_vs_ground_truth
-from capymoa.regressor import AdaptiveRandomForestRegressor, KNNRegressor
 
 stream = Fried()
 kNN_learner = KNNRegressor(schema=stream.get_schema(), k=5)
