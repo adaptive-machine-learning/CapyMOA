@@ -1,4 +1,4 @@
-"""Plots for the results of :func:`capymoa.uncertainty.evaluate_prediction_interval`.
+"""Plots for the results of :func:`capymoa.uncertainty.evaluate_uncertainty`.
 
 The results need ``store_y=True`` and ``store_predictions=True``.
 """

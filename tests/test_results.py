@@ -27,8 +27,8 @@ from capymoa.stream.drift import (
     RecurrentConceptDriftStream,
 )
 from capymoa.stream.generator import SEA
-from capymoa.uncertainty import MVE, evaluate_prediction_interval
-from capymoa.uncertainty.evaluate import PredictionIntervalResults
+from capymoa.uncertainty import MVE, evaluate_uncertainty
+from capymoa.uncertainty.evaluate import UncertaintyResults
 
 
 def _matches(value: Any, hint: Any) -> bool:
@@ -105,7 +105,7 @@ def _regressor(**kwargs):
 
 def _prediction_interval(**kwargs):
     stream = Fried()
-    return evaluate_prediction_interval(
+    return evaluate_uncertainty(
         stream, MVE(stream.get_schema()), max_instances=500, **kwargs
     )
 
@@ -127,7 +127,7 @@ def _ssl(**kwargs):
 CASES = [
     pytest.param(_classifier, ClassifierResults, id="classifier"),
     pytest.param(_regressor, RegressorResults, id="regressor"),
-    pytest.param(_prediction_interval, PredictionIntervalResults, id="interval"),
+    pytest.param(_prediction_interval, UncertaintyResults, id="interval"),
     pytest.param(_anomaly, AnomalyResults, id="anomaly"),
     pytest.param(_ssl, SSLResults, id="ssl"),
 ]
@@ -135,7 +135,7 @@ CASES = [
 
 def test_inheritance():
     assert set(get_type_hints(RunInfo)) < set(get_type_hints(ClassifierResults))
-    assert set(get_type_hints(RunInfo)) < set(get_type_hints(PredictionIntervalResults))
+    assert set(get_type_hints(RunInfo)) < set(get_type_hints(UncertaintyResults))
     assert set(get_type_hints(ClassifierResults)) < set(get_type_hints(SSLResults))
     assert set(get_type_hints(RunInfo)) < set(get_type_hints(AnomalyResults))
 
