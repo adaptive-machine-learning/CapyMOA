@@ -19,6 +19,7 @@ from capymoa.regressor import (
     FadingTargetMean,
     KNNRegressor,
     NoChange,
+    OnlineBaggingRegressor,
     PassiveAggressiveRegressor,
     SGDRegressor,
     ShrubsRegressor,
@@ -67,6 +68,7 @@ CASES = [
     Case(ShrubsRegressor, 5.21, 4.76),
     Case(StochasticGradientTree, 15.49, 16.19),
     Case(StreamingGradientBoostedRegression, 3.09, 2.21),
+    Case(OnlineBaggingRegressor, 7.10, 4.38),
 ]
 """Add your new test cases here ^^"""
 
@@ -121,6 +123,25 @@ def test_streaming_gradient_boosted_regression_predicts_numeric_targets():
     assert numeric_predictions
     assert any(prediction != 0.0 for prediction in numeric_predictions)
     assert len(rounded_predictions) > 1
+
+
+def test_online_bagging_regressor_base_learner():
+    """A CLI string and a CapyMOA regressor configure the same base learner."""
+    schema = FriedTiny().get_schema()
+    from_cli = OnlineBaggingRegressor(
+        schema, base_learner="trees.FIMTDD -g 50", ensemble_size=3
+    )
+    from_wrapper = OnlineBaggingRegressor(
+        schema, base_learner=FIMTDD(schema, grace_period=50), ensemble_size=3
+    )
+    assert str(from_cli) == "OnlineBaggingRegressor"
+    for learner in (from_cli, from_wrapper):
+        sub_learners = learner.moa_learner.getSubClassifiers()
+        assert len(sub_learners) == 3
+        assert all(
+            str(sub.getClass().getSimpleName()) == "FIMTDD" for sub in sub_learners
+        )
+        assert sub_learners[0].gracePeriodOption.getValue() == 50
 
 
 def test_none_predict():
