@@ -13,6 +13,7 @@ from ._fading_target_mean import FadingTargetMean
 from ._fimtdd import FIMTDD
 from ._knn import KNNRegressor
 from ._no_change import NoChange
+from ._online_bagging_regressor import OnlineBaggingRegressor
 from ._orto import ORTO
 from ._passive_aggressive_regressor import PassiveAggressiveRegressor
 from ._sgbr import StreamingGradientBoostedRegression
@@ -33,6 +34,7 @@ __all__ = [
     "FadingTargetMean",
     "KNNRegressor",
     "NoChange",
+    "OnlineBaggingRegressor",
     "PassiveAggressiveRegressor",
     "SGDRegressor",
     "ShrubsRegressor",
