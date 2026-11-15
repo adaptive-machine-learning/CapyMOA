@@ -1,3 +1,5 @@
+import random
+import sys
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any, overload
@@ -20,17 +22,10 @@ class Classifier(LearnerParamsMixin, ABC):
     value.
     """
 
-    random_seed: int
-    """The random seed for reproducibility.
-
-    When implementing a classifier ensure random number generators are seeded.
-    """
-
     schema: Schema
     """The schema representing the instances."""
 
-    def __init__(self, schema: Schema, random_seed: int = 1):
-        self.random_seed = random_seed
+    def __init__(self, schema: Schema):
         self.schema = schema
 
     def __str__(self) -> str:
@@ -85,18 +80,18 @@ class MOAClassifier(Classifier):
     def __init__(
         self,
         moa_learner,
-        schema=None,
+        schema: Schema,
         CLI: str | None = None,
-        random_seed=1,
+        random_seed: int | None = 1,
     ): ...
 
     @overload
     def __init__(
         self,
         moa_learner,
-        schema=None,
+        schema: Schema,
         CLI: None = None,
-        random_seed=1,
+        random_seed: int | None = 1,
         *,
         options: Mapping[str, Any],
     ): ...
@@ -104,16 +99,16 @@ class MOAClassifier(Classifier):
     def __init__(
         self,
         moa_learner,
-        schema=None,
+        schema: Schema,
         CLI=None,
-        random_seed=1,
+        random_seed: int | None = 1,
         options: Mapping[str, Any] | None = None,
     ):
         """
         :param options: MOA option names mapped to values. Use instead of CLI for values
             with no CLI string, such as Java objects.
         """
-        super().__init__(schema=schema, random_seed=random_seed)
+        super().__init__(schema=schema)
         self.CLI = CLI
         # If moa_learner is a class identifier instead of an object
         if isinstance(moa_learner, type):
@@ -123,6 +118,9 @@ class MOAClassifier(Classifier):
                 raise TypeError("Invalid MOA classifier provided.")
         self.moa_learner = moa_learner
 
+        if random_seed is None:
+            random_seed = random.randrange(sys.maxsize)
+        self.random_seed = random_seed
         self.moa_learner.setRandomSeed(self.random_seed)
 
         if self.schema is not None:
@@ -206,19 +204,16 @@ class SKClassifier(Classifier):
     sklearner: _SKClassifierMixin
     """The underlying scikit-learn object."""
 
-    def __init__(
-        self, sklearner: _SKClassifierMixin, schema: Schema = None, random_seed: int = 1
-    ):
+    def __init__(self, sklearner: _SKClassifierMixin, schema: Schema):
         """Construct a scikit-learn classifier wrapper.
 
         :param sklearner: A scikit-learn classifier object to wrap that must
             implements ``partial_fit`` and ``predict``.
         :param schema: Describes the structure of the datastream.
-        :param random_seed: Random seed for reproducibility.
         :raises ValueError: If the scikit-learn algorithm does not implement
             ``partial_fit`` or ``predict``.
         """
-        super().__init__(schema=schema, random_seed=random_seed)
+        super().__init__(schema=schema)
 
         # Checks if it implements partial_fit and predict
         if not hasattr(sklearner, "partial_fit") or not hasattr(sklearner, "predict"):

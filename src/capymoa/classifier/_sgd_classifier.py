@@ -101,7 +101,6 @@ class SGDClassifier(SKClassifier):
                 random_state=random_seed,
             ),
             schema,
-            random_seed,
         )
 
     def __str__(self):
