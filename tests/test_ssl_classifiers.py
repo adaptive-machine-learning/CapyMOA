@@ -7,19 +7,22 @@ from capymoa.datasets._datasets import CovtypeTiny, ElectricityTiny
 from capymoa.ssl import evaluate_ssl
 from capymoa.stream import Stream
 
+SEED = 1
+"""Seed for the learners and the label sampling, so results are exact."""
+
 
 def _make_osnn(**kwargs):
     pytest.markskip("torch")
     from capymoa.ssl import OSNN
 
-    return OSNN(**kwargs)
+    return OSNN(seed=SEED, **kwargs)
 
 
 def _make_sleade(**kwargs):
     pytest.markskip("torch")
     from capymoa.ssl import SLEADE
 
-    return SLEADE(**kwargs)
+    return SLEADE(random_seed=SEED, **kwargs)
 
 
 def assert_ssl_evaluation(
@@ -35,11 +38,11 @@ def assert_ssl_evaluation(
         label_probability=label_probability,
         window_size=10,
         max_instances=max_instances,
-        random_seed=1,
+        random_seed=SEED,
     )
 
     assert results["cumulative"]["accuracy"] == pytest.approx(expectation), (
-        f"Expected accuracy of {expectation} but got {results['cumulative'].accuracy()}"
+        f"Expected accuracy of {expectation} but got {results['cumulative']['accuracy']}"
         + f" for learner {learner} on stream {stream}"
     )
 
@@ -48,30 +51,30 @@ def assert_ssl_evaluation(
     "learner_constructor, stream_constructor, expectation, label_probability",
     [
         pytest.param(
-            partial(_make_osnn, optim_steps=10, seed=1),
+            partial(_make_osnn, optim_steps=10),
             ElectricityTiny,
             46.1,
             None,
             marks=pytest.mark.torch,
         ),
         pytest.param(
-            partial(_make_osnn, optim_steps=10, seed=1),
+            partial(_make_osnn, optim_steps=10),
             CovtypeTiny,
             26.3,
             None,
             marks=pytest.mark.torch,
         ),
         pytest.param(
-            partial(_make_sleade, ensemble_size=3, random_seed=0),
+            partial(_make_sleade, ensemble_size=3),
             ElectricityTiny,
             50.8,
             None,
             marks=pytest.mark.torch,
         ),
         pytest.param(
-            partial(_make_sleade, ensemble_size=3, random_seed=0),
+            partial(_make_sleade, ensemble_size=3),
             CovtypeTiny,
-            43.0,
+            41.0,
             None,
             marks=pytest.mark.torch,
         ),
