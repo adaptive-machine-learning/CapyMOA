@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any, overload
 
+import jpype
 from jpype import _jpype
 from moa.core import Utils
 
@@ -124,8 +125,10 @@ class MOAAnomalyDetector(AnomalyDetector):
         self.moa_learner.setModelContext(self.schema.get_moa_header())
 
     def __str__(self):
-        full_name = str(self.moa_learner.getClass().getCanonicalName())
-        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        if isinstance(self.moa_learner, jpype.JObject):
+            full_name = str(self.moa_learner.getClass().getCanonicalName())
+            return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        return str(self.moa_learner)
 
     def cli_help(self):
         return self.moa_learner.getOptions().getHelpString()
@@ -304,8 +307,10 @@ class MOAClusterer(Clusterer):
 
     def __str__(self):
         # Removes the package information from the name of the learner.
-        full_name = str(self.moa_learner.getClass().getCanonicalName())
-        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        if isinstance(self.moa_learner, jpype.JObject):
+            full_name = str(self.moa_learner.getClass().getCanonicalName())
+            return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        return str(self.moa_learner)
 
     def cli_help(self):
         return str(self.moa_learner.getOptions().getHelpString())
