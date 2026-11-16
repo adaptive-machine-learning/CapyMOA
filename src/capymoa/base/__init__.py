@@ -26,6 +26,7 @@ from capymoa.base._learner_params import (
     learner_from_params,
 )
 from capymoa.base._regressor import MOARegressor, Regressor, SKRegressor
+from capymoa.base._seed import SeededMixin
 from capymoa.base._ssl import (
     ClassifierSSL,
     MOAClassifierSSL,
@@ -52,6 +53,7 @@ __all__ = [
     "Regressor",
     "SKClassifier",
     "SKRegressor",
+    "SeededMixin",
     "learner_from_params",
 ]
 

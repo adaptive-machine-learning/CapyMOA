@@ -11,7 +11,7 @@ def resolve_seed(random_seed: int | None) -> int:
 class SeededMixin:
     """Gives a learner a read-only ``random_seed``.
 
-    Call :meth:`_init_seed` in the constructor. A ``None`` seed is replaced by
+    Call ``_init_seed`` in the constructor. A ``None`` seed is replaced by
     one from ``numpy.random.default_rng()``, so the seed used is always known.
     """
 
