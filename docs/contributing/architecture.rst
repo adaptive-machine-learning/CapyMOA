@@ -73,14 +73,16 @@ The domains that follow this layout are ``capymoa.classifier``,
 - ``prequential_evaluation``, which calls the ``evaluate_{{domain}}`` function that
   matches the type of the learner.
 
-Besides the research domains, CapyMOA has common rules that make code easier to write
-and domains easier to use together.
+Seeds & Determinism
+-------------------
 
-Seeds & Randomness
-------------------
+All CapyMOA classes that use random number generators, including those that delegate random number generators to dependencies, shall be seeded using a ``random_seed: int | None = None`` parameter in the constructor.
 
-All CapyMOA components that use random number generators, including those that delegate random number generators to dependencies, shall be seeded using a ``random_seed: int | None = None`` parameter in the constructor.
-By default ``random_seed`` shall be ``None`` and use ``numpy.random.default_rng()`` (or a derived seed passed to a dependency).
-By default results will not be exactly reproducible without the seed but this aligns closer with user expectations.
-Learners/classifiers that rely on randomness will have a read-only ``random_seed`` attribute to indicate the seed used for reproducibility.
-Results given the same seed shall be identical on the same platform and given the same dependency environment.
+Except for datasets, the default ``random_seed`` shall be ``None``, indicating that it is randomly generated at runtime from NumPy's global random number generator.
+
+As a consequence, learners without an explicitly set seed will produce non-deterministic results.
+
+CapyMOA classes may provide a ``random_seed`` attribute to indicate the seed used for reproducibility.
+
+Results with the same seed will be identical on the same platform and with the same dependency environment.
+
