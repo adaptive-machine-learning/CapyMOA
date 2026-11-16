@@ -93,12 +93,12 @@ def _implements(*interfaces: Any):
     """Implement java ``interfaces`` with a python class.
 
     Combines :func:`_inherit_overrides` and ``jpype.JImplements``. JPype returns a
-    new subclass, so copy the name, module and docstring back for the docs.
+    new subclass, so copy the module, name and docstring back for the docs.
     """
 
     def decorator(cls: type) -> type:
         proxy = jpype.JImplements(*interfaces)(_inherit_overrides(cls))
-        for attr in ("__module__", "__qualname__", "__doc__"):
+        for attr in ("__module__", "__name__", "__qualname__", "__doc__"):
             setattr(proxy, attr, getattr(cls, attr))
         return proxy
 
