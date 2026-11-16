@@ -63,7 +63,7 @@ its result types in ``capymoa.ocl.evaluation``.
 
 The domains that follow this layout are ``capymoa.classifier``,
 ``capymoa.regressor``, ``capymoa.uncertainty`` (prediction intervals),
-``capymoa.ssl``, ``capymoa.anomaly`` and ``capymoa.ocl``.
+``capymoa.ssl``, ``capymoa.anomaly``, ``capymoa.cluster`` and ``capymoa.ocl``.
 
 ``capymoa.evaluation`` holds only the parts shared by all domains:
 
