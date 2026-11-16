@@ -6,6 +6,7 @@ other scenarios where a Python learner needs to be used within the MOA framework
 
 from __future__ import annotations
 
+import functools
 from collections.abc import Collection, MutableSequence
 from typing import Any, cast
 
@@ -98,9 +99,7 @@ def _implements(*interfaces: Any):
 
     def decorator(cls: type) -> type:
         proxy = jpype.JImplements(*interfaces)(_inherit_overrides(cls))
-        for attr in ("__module__", "__name__", "__qualname__", "__doc__"):
-            setattr(proxy, attr, getattr(cls, attr))
-        return proxy
+        return functools.update_wrapper(proxy, cls, updated=())
 
     return decorator
 
