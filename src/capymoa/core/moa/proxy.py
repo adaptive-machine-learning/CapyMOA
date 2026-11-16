@@ -148,7 +148,7 @@ class _ProxyLearner(_ProxyOptionHandler):
         self._random_seed: int = 1
         self._schema: Schema | None = None
 
-    def _to_py(self, instance: SamoaInstance | Example[SamoaInstance]) -> Any:
+    def _to_py(self, instance: SamoaInstance | Example) -> Any:
         """Convert a Java instance to a python one, like a stream would."""
         assert self._schema is not None, "Schema is not set"
         if not isinstance(instance, InstanceExample):
@@ -235,14 +235,12 @@ class ProxyJavaClassifier(_ProxyLearner):
         return self._py_learner
 
     @jpype.JOverride
-    def trainOnInstance(
-        self, instance_or_example: SamoaInstance | Example[SamoaInstance]
-    ) -> None:
+    def trainOnInstance(self, instance_or_example: SamoaInstance | Example) -> None:
         self._py_classifier.train(self._to_py(instance_or_example))
 
     @jpype.JOverride
     def getVotesForInstance(
-        self, instance_or_example: SamoaInstance | Example[SamoaInstance]
+        self, instance_or_example: SamoaInstance | Example
     ) -> MutableSequence[float]:
         assert self._schema is not None, "Schema is not set"
         py_instance = self._to_py(instance_or_example)
@@ -256,20 +254,20 @@ class ProxyJavaClassifier(_ProxyLearner):
 
     @jpype.JOverride
     def getPredictionForInstance(
-        self, instance_or_example: SamoaInstance | Example[SamoaInstance]
+        self, instance_or_example: SamoaInstance | Example
     ) -> Prediction:
         raise ProxyNotImplementedError(self, "getPredictionForInstance")
 
     @jpype.JOverride
     def getConfidenceForPrediction(
         self,
-        instance_or_example: SamoaInstance | Example[SamoaInstance],
+        instance_or_example: SamoaInstance | Example,
         prediction: float,
     ) -> float:
         raise ProxyNotImplementedError(self, "getConfidenceForPrediction")
 
     @jpype.JOverride
-    def getSublearners(self) -> MutableSequence[Learner[Example[SamoaInstance]]]:
+    def getSublearners(self) -> MutableSequence[Learner]:
         raise ProxyNotImplementedError(self, "getSublearners")
 
     @jpype.JOverride
@@ -316,14 +314,12 @@ class ProxyJavaRegressor(ProxyJavaClassifier):
         return self._py_learner
 
     @jpype.JOverride
-    def trainOnInstance(
-        self, instance_or_example: SamoaInstance | Example[SamoaInstance]
-    ) -> None:
+    def trainOnInstance(self, instance_or_example: SamoaInstance | Example) -> None:
         self._py_regressor.train(self._to_py(instance_or_example))
 
     @jpype.JOverride
     def getVotesForInstance(
-        self, instance_or_example: SamoaInstance | Example[SamoaInstance]
+        self, instance_or_example: SamoaInstance | Example
     ) -> MutableSequence[float]:
         py_instance = self._to_py(instance_or_example)
         y_hat = self._py_regressor.predict(py_instance)
@@ -347,7 +343,7 @@ class ProxyJavaPredictionIntervalLearner(ProxyJavaRegressor):
 
     @jpype.JOverride
     def getVotesForInstance(
-        self, instance_or_example: SamoaInstance | Example[SamoaInstance]
+        self, instance_or_example: SamoaInstance | Example
     ) -> MutableSequence[float]:
         py_instance = self._to_py(instance_or_example)
         y_hat = self._py_pi_learner.predict(py_instance)
@@ -393,14 +389,12 @@ class ProxyJavaAnomalyDetector(ProxyJavaClassifier):
         return self._py_learner
 
     @jpype.JOverride
-    def trainOnInstance(
-        self, instance_or_example: SamoaInstance | Example[SamoaInstance]
-    ) -> None:
+    def trainOnInstance(self, instance_or_example: SamoaInstance | Example) -> None:
         self._py_detector.train(self._to_py(instance_or_example))
 
     @jpype.JOverride
     def getVotesForInstance(
-        self, instance_or_example: SamoaInstance | Example[SamoaInstance]
+        self, instance_or_example: SamoaInstance | Example
     ) -> MutableSequence[float]:
         assert self._schema is not None, "Schema is not set"
         y_hat = self._py_detector.predict(self._to_py(instance_or_example))
