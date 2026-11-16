@@ -1,5 +1,3 @@
-import random
-import sys
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any, overload
@@ -14,6 +12,13 @@ from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
 
 
+def resolve_seed(random_seed: int | None) -> int:
+    """Return ``random_seed``, or a seed from ``numpy.random.default_rng()`` if ``None``."""
+    if random_seed is None:
+        return int(np.random.default_rng().integers(2**31))
+    return random_seed
+
+
 class Classifier(LearnerParamsMixin, ABC):
     """Base class for classifiers.
 
@@ -25,8 +30,19 @@ class Classifier(LearnerParamsMixin, ABC):
     schema: Schema
     """The schema representing the instances."""
 
-    def __init__(self, schema: Schema):
+    def __init__(self, schema: Schema, random_seed: int | None = None):
+        """
+        :param schema: Describes the structure of the datastream.
+        :param random_seed: Seed for reproducibility. If ``None``, a seed is drawn
+            from ``numpy.random.default_rng()``.
+        """
         self.schema = schema
+        self._random_seed = resolve_seed(random_seed)
+
+    @property
+    def random_seed(self) -> int:
+        """The random seed used by the classifier (read-only)."""
+        return self._random_seed
 
     def __str__(self) -> str:
         """Return a label/name for the classifier.
@@ -82,7 +98,7 @@ class MOAClassifier(Classifier):
         moa_learner,
         schema: Schema,
         CLI: str | None = None,
-        random_seed: int | None = 1,
+        random_seed: int | None = None,
     ): ...
 
     @overload
@@ -91,7 +107,7 @@ class MOAClassifier(Classifier):
         moa_learner,
         schema: Schema,
         CLI: None = None,
-        random_seed: int | None = 1,
+        random_seed: int | None = None,
         *,
         options: Mapping[str, Any],
     ): ...
@@ -101,14 +117,14 @@ class MOAClassifier(Classifier):
         moa_learner,
         schema: Schema,
         CLI=None,
-        random_seed: int | None = 1,
+        random_seed: int | None = None,
         options: Mapping[str, Any] | None = None,
     ):
         """
         :param options: MOA option names mapped to values. Use instead of CLI for values
             with no CLI string, such as Java objects.
         """
-        super().__init__(schema=schema)
+        super().__init__(schema=schema, random_seed=random_seed)
         self.CLI = CLI
         # If moa_learner is a class identifier instead of an object
         if isinstance(moa_learner, type):
@@ -118,9 +134,6 @@ class MOAClassifier(Classifier):
                 raise TypeError("Invalid MOA classifier provided.")
         self.moa_learner = moa_learner
 
-        if random_seed is None:
-            random_seed = random.randrange(sys.maxsize)
-        self.random_seed = random_seed
         self.moa_learner.setRandomSeed(self.random_seed)
 
         if self.schema is not None:
@@ -204,16 +217,22 @@ class SKClassifier(Classifier):
     sklearner: _SKClassifierMixin
     """The underlying scikit-learn object."""
 
-    def __init__(self, sklearner: _SKClassifierMixin, schema: Schema):
+    def __init__(
+        self,
+        sklearner: _SKClassifierMixin,
+        schema: Schema,
+        random_seed: int | None = None,
+    ):
         """Construct a scikit-learn classifier wrapper.
 
         :param sklearner: A scikit-learn classifier object to wrap that must
             implements ``partial_fit`` and ``predict``.
         :param schema: Describes the structure of the datastream.
+        :param random_seed: Random seed for reproducibility.
         :raises ValueError: If the scikit-learn algorithm does not implement
             ``partial_fit`` or ``predict``.
         """
-        super().__init__(schema=schema)
+        super().__init__(schema=schema, random_seed=random_seed)
 
         # Checks if it implements partial_fit and predict
         if not hasattr(sklearner, "partial_fit") or not hasattr(sklearner, "predict"):

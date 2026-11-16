@@ -23,7 +23,7 @@ class OnlineBagging(MOAClassifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = OnlineBagging(stream.get_schema())
+    >>> classifier = OnlineBagging(stream.get_schema(), random_seed=1)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     85.3
@@ -36,7 +36,7 @@ class OnlineBagging(MOAClassifier):
     def __init__(
         self,
         schema=None,
-        random_seed=1,
+        random_seed: int | None = None,
         base_learner=None,
         ensemble_size=100,
         minibatch_size=None,

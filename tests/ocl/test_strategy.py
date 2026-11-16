@@ -90,7 +90,7 @@ def new_constructor(
 def _new_rar(schema):
     # RAR test case constructor
     return RAR(
-        Finetune(schema, Perceptron(schema)),
+        Finetune(schema, Perceptron(schema), random_seed=0),
         augment=nn.Dropout(p=0.2),
         repeats=2,
     )
@@ -140,7 +140,7 @@ TEST_CASES: list[Case] = [
     Case("RAR", _new_rar, Result(47.50, 29.20, 8.10)),
     Case(
         "Finetune",
-        partial(Finetune, model=Perceptron),
+        partial(Finetune, model=Perceptron, random_seed=0),
         Result(27.00, 24.70, 8.3),
         epochs=2,
         continual_evaluations=2,
@@ -151,7 +151,11 @@ TEST_CASES: list[Case] = [
         lambda s: SLDA(s, pre_processor(), 512),
         Result(87.5, 54.5, 67.7),
     ),
-    Case("RanPAC", lambda s: RanPAC(s, projection_dim=512), Result(80.0, 48.0, 62.4)),
+    Case(
+        "RanPAC",
+        lambda s: RanPAC(s, projection_dim=512, random_seed=1),
+        Result(80.0, 48.0, 62.4),
+    ),
     Case("NCM", NCM, Result(71.5, 46.2, 67.5)),
     Case(
         "NCM_with_preprocessor",
@@ -160,7 +164,7 @@ TEST_CASES: list[Case] = [
     ),
     Case(
         "ExperienceReplay",
-        lambda schema: ExperienceReplay(Finetune(schema, Perceptron)),
+        lambda schema: ExperienceReplay(Finetune(schema, Perceptron, random_seed=0)),
         Result(28.5, 20.1, 3.0),
     ),
     Case(

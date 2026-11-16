@@ -258,7 +258,7 @@ class L2P(BatchClassifier, Handler):
             torch.optim.Adam(params, lr=0.01)
         ),
         device: str = "cpu",
-        random_seed: int = 1,
+        random_seed: int | None = None,
     ):
         """Construct L2P learner.
 

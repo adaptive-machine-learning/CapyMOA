@@ -26,7 +26,7 @@ class OzaBoost(MOAClassifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = OzaBoost(stream.get_schema())
+    >>> classifier = OzaBoost(stream.get_schema(), random_seed=0)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     88.8
@@ -39,7 +39,7 @@ class OzaBoost(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int = 0,
+        random_seed: int | None = None,
         base_learner="trees.HoeffdingTree",
         boosting_iterations: int = 10,
         use_pure_boost: bool = False,

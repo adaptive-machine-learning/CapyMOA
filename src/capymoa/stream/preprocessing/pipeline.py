@@ -7,6 +7,7 @@ from typing import Any, Protocol
 import numpy as np
 
 from capymoa.base import Classifier, Regressor
+from capymoa.base._classifier import resolve_seed
 from capymoa.core import (
     Instance,
     LabeledInstance,
@@ -248,7 +249,7 @@ class BasePipeline(PipelineElement):
         self,
         pipeline_elements: list[PipelineElement] | None = None,
         schema: Schema | None = None,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         validate_schema: bool = True,
     ):
         """Initialize the pipeline with its elements and input schema.
@@ -264,13 +265,18 @@ class BasePipeline(PipelineElement):
             schema.
         """
         self._input_schema = schema
-        self.random_seed = random_seed
+        self._random_seed = resolve_seed(random_seed)
         self.validate_schema = validate_schema
         # Added one at a time so that elements passed here are checked against
         # each other exactly as elements appended later are.
         self.elements: list[PipelineElement] = []
         for element in pipeline_elements or []:
             self.add_pipeline_element(element)
+
+    @property
+    def random_seed(self) -> int:
+        """The seed reported to satisfy the learner interface (read-only)."""
+        return self._random_seed
 
     @property
     def schema(self) -> Schema | None:

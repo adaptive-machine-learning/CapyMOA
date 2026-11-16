@@ -5,6 +5,7 @@ from sklearn.linear_model import (
 )
 
 from capymoa.base import SKClassifier
+from capymoa.base._classifier import resolve_seed
 from capymoa.stream._stream import Schema
 
 # Maps the passive aggressive loss onto the equivalent scikit-learn learning
@@ -47,7 +48,7 @@ class PassiveAggressiveClassifier(SKClassifier):
         n_jobs: int | None = None,
         class_weight: dict[int, float] | None | Literal["balanced"] = None,
         average: bool = False,
-        random_seed=1,
+        random_seed: int | None = None,
     ):
         """Construct a passive aggressive classifier.
 
@@ -83,6 +84,7 @@ class PassiveAggressiveClassifier(SKClassifier):
                 f"{sorted(_LOSS_TO_LEARNING_RATE)}."
             )
 
+        random_seed = resolve_seed(random_seed)
         super().__init__(
             _SKSGDClassifier(
                 loss="hinge",
@@ -101,6 +103,7 @@ class PassiveAggressiveClassifier(SKClassifier):
                 random_state=random_seed,
             ),
             schema,
+            random_seed,
         )
 
     def __str__(self):

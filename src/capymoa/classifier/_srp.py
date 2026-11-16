@@ -26,7 +26,7 @@ class StreamingRandomPatches(MOAClassifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = StreamingRandomPatches(stream.get_schema())
+    >>> classifier = StreamingRandomPatches(stream.get_schema(), random_seed=0)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     89.7
@@ -39,7 +39,7 @@ class StreamingRandomPatches(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int = 0,
+        random_seed: int | None = None,
         base_learner="trees.HoeffdingTree -g 50 -c 0.01",
         ensemble_size=100,
         max_features=0.6,

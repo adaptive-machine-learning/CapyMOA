@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 
 from capymoa.base import Classifier
+from capymoa.base._classifier import resolve_seed
 from capymoa.classifier._shrubs_ensemble import _ShrubEnsembles
 from capymoa.stream._stream import Schema
 
@@ -38,7 +39,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         loss: Literal["mse", "ce", "h2"] = "ce",
         step_size: float | Literal["adaptive"] = "adaptive",
         ensemble_regularizer: Literal["hard-L0", "L0", "L1", "none"] = "hard-L0",
@@ -107,6 +108,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
         :param allow_abstaining: bool - If true, then None is returned if there is no
             model in the ensemble (i.e. it was pruned away or no data has been seen yet)
         """
+        random_seed = resolve_seed(random_seed)
         if sk_dt is None:
             sk_dt = DecisionTreeClassifier(
                 splitter="best",
@@ -114,7 +116,10 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
                 max_depth=None,
                 random_state=random_seed,
             )
-        Classifier.__init__(self, schema, sk_dt.random_state)
+        seed = (
+            sk_dt.random_state if isinstance(sk_dt.random_state, int) else random_seed
+        )
+        Classifier.__init__(self, schema, seed)
         _ShrubEnsembles.__init__(
             self,
             schema,

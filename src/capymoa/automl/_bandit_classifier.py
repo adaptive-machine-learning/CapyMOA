@@ -160,7 +160,7 @@ class BanditClassifier(Classifier):
     def __init__(
         self,
         schema: Schema = None,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         base_classifiers: list | None = None,
         config_file: str | None = None,
         metric: str = "accuracy",

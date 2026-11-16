@@ -28,7 +28,7 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = AdaptiveRandomForestClassifier(stream.get_schema())
+    >>> classifier = AdaptiveRandomForestClassifier(stream.get_schema(), random_seed=1)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     87.9
@@ -43,7 +43,7 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
         self,
         schema: Schema | None = None,
         CLI: str | None = None,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         base_learner: MOAClassifier | None = None,
         ensemble_size: int = 100,
         max_features: float = 0.6,

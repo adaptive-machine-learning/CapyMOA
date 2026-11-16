@@ -49,7 +49,7 @@ class SuccessiveHalvingClassifier(Classifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         base_classifiers: list[type[Classifier]] | None = None,
         config_file: str | None = None,
         max_instances: int | None = None,
