@@ -83,7 +83,9 @@ class Case:
     builds can compound and flip a single prediction. Leave unset (exact
     comparison) for everything else."""
 
-    def new_learner(self, schema: Schema, random_seed: int | None = RANDOM_SEED) -> Classifier:
+    def new_learner(
+        self, schema: Schema, random_seed: int | None = RANDOM_SEED
+    ) -> Classifier:
         params = _names_to_torch_objects(self.learner, self.params)
         spec = LearnerSpec(learner=self.learner, params=params)
         return learner_from_params(spec, schema, random_seed=random_seed)
