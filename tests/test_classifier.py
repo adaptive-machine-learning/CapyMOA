@@ -1,3 +1,5 @@
+import inspect
+
 """Test harness for classifiers in the CapyMOA framework.
 
 Add new methods to `tests/resources/classifier.yml`. Review `Case` for the required
@@ -344,8 +346,10 @@ class TestClassifier:
         l1_b = case.new_learner(stream.get_schema(), random_seed=1)
         l2 = case.new_learner(stream.get_schema(), random_seed=2)
 
-        assert l1_a.random_seed == l1_b.random_seed == 1
-        assert l2.random_seed == 2
+        # Learners with no randomness take no seed, so they cannot report one.
+        if "random_seed" in inspect.signature(type(l1_a)).parameters:
+            assert l1_a.random_seed == l1_b.random_seed == 1
+            assert l2.random_seed == 2
 
         for i, instance in enumerate(islice(stream, length)):
             # Get predictions
