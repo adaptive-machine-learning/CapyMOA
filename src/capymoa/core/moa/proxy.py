@@ -54,6 +54,18 @@ from capymoa.drift.base_detector import BaseDriftDetector
 from capymoa.feature import FeatureImportanceClassifier
 from capymoa.stream import Schema
 
+__all__ = [
+    "ProxyJavaAnomalyDetector",
+    "ProxyJavaClassifier",
+    "ProxyJavaClassifierSSL",
+    "ProxyJavaClusterer",
+    "ProxyJavaDriftDetector",
+    "ProxyJavaFeatureImportanceClassifier",
+    "ProxyJavaPredictionIntervalLearner",
+    "ProxyJavaRegressor",
+    "ProxyNotImplementedError",
+]
+
 
 class ProxyNotImplementedError(NotImplementedError):
     """Exception raised for methods that are not implemented in the proxy class."""
@@ -75,6 +87,22 @@ def _inherit_overrides(cls: type) -> type:
             if name not in cls.__dict__ and hasattr(value, "__joverride__"):
                 setattr(cls, name, value)
     return cls
+
+
+def _implements(*interfaces: Any):
+    """Implement java ``interfaces`` with a python class.
+
+    Combines :func:`_inherit_overrides` and ``jpype.JImplements``. JPype returns a
+    new subclass, so copy the name, module and docstring back for the docs.
+    """
+
+    def decorator(cls: type) -> type:
+        proxy = jpype.JImplements(*interfaces)(_inherit_overrides(cls))
+        for attr in ("__module__", "__qualname__", "__doc__"):
+            setattr(proxy, attr, getattr(cls, attr))
+        return proxy
+
+    return decorator
 
 
 class _ProxyOptionHandler:
@@ -187,8 +215,7 @@ class _ProxyLearner(_ProxyOptionHandler):
         raise ProxyNotImplementedError(self, "getAWTRenderer")
 
 
-@jpype.JImplements(JavaClassifier)
-@_inherit_overrides
+@_implements(JavaClassifier)
 class ProxyJavaClassifier(_ProxyLearner):
     """An adapter implementing moa's ``moa.classifiers.Classifier`` interface in python.
 
@@ -251,8 +278,7 @@ class ProxyJavaClassifier(_ProxyLearner):
         raise ProxyNotImplementedError(self, "getModel")
 
 
-@jpype.JImplements(JavaFeatureImportanceClassifier)
-@_inherit_overrides
+@_implements(JavaFeatureImportanceClassifier)
 class ProxyJavaFeatureImportanceClassifier(ProxyJavaClassifier):
     """An adapter implementing moa's
     ``moa.learners.featureanalysis.JavaFeatureImportanceClassifier`` interface in
@@ -277,8 +303,7 @@ class ProxyJavaFeatureImportanceClassifier(ProxyJavaClassifier):
         return cast(Any, jpype.JArray(jpype.JInt))(top_k)
 
 
-@jpype.JImplements(JavaClassifier, JavaRegressor)
-@_inherit_overrides
+@_implements(JavaClassifier, JavaRegressor)
 class ProxyJavaRegressor(ProxyJavaClassifier):
     """An adapter implementing moa's ``moa.learners.classifiers.Regressor`` interface
     in python.
@@ -307,8 +332,7 @@ class ProxyJavaRegressor(ProxyJavaClassifier):
         return cast(Any, jpype.JArray(jpype.JDouble))(votes)
 
 
-@jpype.JImplements(JavaClassifier, JavaRegressor, JavaPredictionIntervalLearner)
-@_inherit_overrides
+@_implements(JavaClassifier, JavaRegressor, JavaPredictionIntervalLearner)
 class ProxyJavaPredictionIntervalLearner(ProxyJavaRegressor):
     """An adapter implementing moa's
     ``moa.classifiers.predictioninterval.PredictionIntervalLearner`` interface in
@@ -332,8 +356,7 @@ class ProxyJavaPredictionIntervalLearner(ProxyJavaRegressor):
         return cast(Any, jpype.JArray(jpype.JDouble))(votes)
 
 
-@jpype.JImplements(JavaClassifier, JavaSemiSupervisedLearner)
-@_inherit_overrides
+@_implements(JavaClassifier, JavaSemiSupervisedLearner)
 class ProxyJavaClassifierSSL(ProxyJavaClassifier):
     """An adapter implementing moa's
     ``moa.classifiers.SemiSupervisedLearner`` interface in python.
@@ -357,8 +380,7 @@ class ProxyJavaClassifierSSL(ProxyJavaClassifier):
         raise ProxyNotImplementedError(self, "addInitialWarmupTrainingInstances")
 
 
-@jpype.JImplements(JavaClassifier, JavaOneClassClassifier)
-@_inherit_overrides
+@_implements(JavaClassifier, JavaOneClassClassifier)
 class ProxyJavaAnomalyDetector(ProxyJavaClassifier):
     """An adapter implementing moa's
     ``moa.classifiers.OneClassClassifier`` interface in python.
@@ -400,8 +422,7 @@ class ProxyJavaAnomalyDetector(ProxyJavaClassifier):
         raise ProxyNotImplementedError(self, "initialize")
 
 
-@jpype.JImplements(JavaChangeDetector)
-@_inherit_overrides
+@_implements(JavaChangeDetector)
 class ProxyJavaDriftDetector(_ProxyOptionHandler):
     """An adapter implementing moa's
     ``moa.classifiers.core.driftdetection.ChangeDetector`` interface in python.
@@ -457,8 +478,7 @@ class ProxyJavaDriftDetector(_ProxyOptionHandler):
         self._py_detector = self._build()
 
 
-@jpype.JImplements(JavaClusterer)
-@_inherit_overrides
+@_implements(JavaClusterer)
 class ProxyJavaClusterer(_ProxyLearner):
     """An adapter implementing moa's ``moa.clusterers.Clusterer`` interface in python.
 
