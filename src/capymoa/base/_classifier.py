@@ -7,19 +7,13 @@ from jpype import _jpype
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
+from capymoa.base._seed import SeededMixin
 from capymoa.core import Instance, LabeledInstance, LabelIndex, LabelProbabilities
 from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
 
 
-def resolve_seed(random_seed: int | None) -> int:
-    """Return ``random_seed``, or a seed from ``numpy.random.default_rng()`` if ``None``."""
-    if random_seed is None:
-        return int(np.random.default_rng().integers(2**31))
-    return random_seed
-
-
-class Classifier(LearnerParamsMixin, ABC):
+class Classifier(SeededMixin, LearnerParamsMixin, ABC):
     """Base class for classifiers.
 
     In machine learning, a classifier is a supervised learner that assigns a
@@ -37,12 +31,7 @@ class Classifier(LearnerParamsMixin, ABC):
             from ``numpy.random.default_rng()``.
         """
         self.schema = schema
-        self._random_seed = resolve_seed(random_seed)
-
-    @property
-    def random_seed(self) -> int:
-        """The random seed used by the classifier (read-only)."""
-        return self._random_seed
+        self._init_seed(random_seed)
 
     def __str__(self) -> str:
         """Return a label/name for the classifier.

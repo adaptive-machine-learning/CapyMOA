@@ -35,6 +35,7 @@ def assert_ssl_evaluation(
         label_probability=label_probability,
         window_size=10,
         max_instances=max_instances,
+        random_seed=1,
     )
 
     assert results["cumulative"]["accuracy"] == pytest.approx(expectation), (
@@ -47,28 +48,28 @@ def assert_ssl_evaluation(
     "learner_constructor, stream_constructor, expectation, label_probability",
     [
         pytest.param(
-            partial(_make_osnn, optim_steps=10),
+            partial(_make_osnn, optim_steps=10, seed=1),
             ElectricityTiny,
             46.1,
             None,
             marks=pytest.mark.torch,
         ),
         pytest.param(
-            partial(_make_osnn, optim_steps=10),
+            partial(_make_osnn, optim_steps=10, seed=1),
             CovtypeTiny,
             26.3,
             None,
             marks=pytest.mark.torch,
         ),
         pytest.param(
-            partial(_make_sleade, ensemble_size=3),
+            partial(_make_sleade, ensemble_size=3, random_seed=0),
             ElectricityTiny,
             50.8,
             None,
             marks=pytest.mark.torch,
         ),
         pytest.param(
-            partial(_make_sleade, ensemble_size=3),
+            partial(_make_sleade, ensemble_size=3, random_seed=0),
             CovtypeTiny,
             43.0,
             None,

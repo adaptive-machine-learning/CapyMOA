@@ -6,6 +6,7 @@ from capymoa._utils import build_cli_str_from_mapping_and_locals
 from capymoa.base import (
     MOARegressor,
 )
+from capymoa.base._seed import resolve_seed
 from capymoa.stream import Schema
 
 
@@ -22,7 +23,7 @@ class StreamingGradientBoostedRegression(MOARegressor):
         >>> from capymoa.regressor import evaluate_regressor
     >>> stream = Fried()
     >>> schema = stream.get_schema()
-    >>> learner = StreamingGradientBoostedRegression(schema)
+    >>> learner = StreamingGradientBoostedRegression(schema, random_seed=0)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
     >>> round(results["cumulative"]["r2"], 2)
     0.61
@@ -35,7 +36,7 @@ class StreamingGradientBoostedRegression(MOARegressor):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int = 0,
+        random_seed: int | None = None,
         base_learner="meta.OzaBag -s 10 -l (trees.FIMTDD -s VarianceReductionSplitCriterion -g 50 -c 0.01 -e)",
         boosting_iterations: int = 10,
         percentage_of_features: int = 75,
@@ -59,6 +60,7 @@ class StreamingGradientBoostedRegression(MOARegressor):
         :param use_squared_loss: Whether to use squared loss for classification.
         """
 
+        random_seed = resolve_seed(random_seed)
         mapping = {
             "base_learner": "-l",
             "boosting_iterations": "-s",

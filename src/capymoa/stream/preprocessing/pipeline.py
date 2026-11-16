@@ -7,7 +7,7 @@ from typing import Any, Protocol
 import numpy as np
 
 from capymoa.base import Classifier, Regressor
-from capymoa.base._classifier import resolve_seed
+from capymoa.base._seed import resolve_seed
 from capymoa.core import (
     Instance,
     LabeledInstance,

@@ -1,4 +1,3 @@
-import secrets
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any, overload
@@ -8,6 +7,7 @@ from moa.core import Utils
 
 from capymoa.base._learner_params import LearnerParamsMixin
 from capymoa.base._regressor import MOARegressor, Regressor
+from capymoa.base._seed import SeededMixin
 from capymoa.core import Instance, LabelIndex
 from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
@@ -19,7 +19,7 @@ from capymoa.stream._stream import Schema
 
 ### Prediction Interval Learner ###
 class PredictionIntervalLearner(Regressor):
-    def __init__(self, schema=None, random_seed=1):
+    def __init__(self, schema=None, random_seed: int | None = None):
         super().__init__(schema=schema, random_seed=random_seed)
 
     @abstractmethod
@@ -43,22 +43,21 @@ class MOAPredictionIntervalLearner(MOARegressor, PredictionIntervalLearner):
         return [float(v) for v in prediction_PI]
 
 
-class AnomalyDetector(LearnerParamsMixin, ABC):
+class AnomalyDetector(SeededMixin, LearnerParamsMixin, ABC):
     """
     Abstract base class for anomaly detector.
 
-    `random_seed` is stored unchanged on the instance, so every subclass
-    must read `self.random_seed` when it builds a generator. Reading the
-    constructor argument instead lets the two drift apart as soon as the
-    base class checks, defaults, or transforms the value.
+    `random_seed` is read-only. A `None` seed becomes one from
+    `numpy.random.default_rng()`. Every subclass must read `self.random_seed`
+    when it builds a generator, so the attribute is the seed really used.
 
     Attributes:
     - schema: The schema representing the instances. Defaults to None.
-    - random_seed: The random seed for reproducibility. Defaults to `None`. `None` means "do not seed", so the component draws from system entropy.
+    - random_seed: The random seed used for reproducibility (read-only).
     """
 
     def __init__(self, schema: Schema, random_seed: int | None = None):
-        self.random_seed = random_seed
+        self._init_seed(random_seed)
         self.schema = schema
         if self.schema is None:
             raise ValueError("Schema must be initialised")
@@ -123,11 +122,7 @@ class MOAAnomalyDetector(AnomalyDetector):
         self.CLI = CLI
         self.moa_learner = moa_learner
 
-        # MOA learners fall back to a fixed seed, so an explicit seed drawn
-        # from system entropy is needed for `None` to mean "do not seed".
-        if random_seed is None:
-            random_seed = secrets.randbelow(2**31)
-        self.moa_learner.setRandomSeed(random_seed)
+        self.moa_learner.setRandomSeed(self.random_seed)
 
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())
@@ -192,9 +187,9 @@ class ClusteringResult:
         return f"Centers: {self._centers}, Weights: {self._weights}, Radii: {self._radii}, IDs: {self._ids}"
 
 
-class Clusterer(LearnerParamsMixin, ABC):
-    def __init__(self, schema: Schema, random_seed=1):
-        self.random_seed = random_seed
+class Clusterer(SeededMixin, LearnerParamsMixin, ABC):
+    def __init__(self, schema: Schema, random_seed: int | None = None):
+        self._init_seed(random_seed)
         self.schema = schema
         if self.schema is None:
             raise ValueError("Schema must be initialised")

@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 
 from capymoa.base import Classifier
-from capymoa.base._classifier import resolve_seed
+from capymoa.base._seed import resolve_seed
 from capymoa.classifier._shrubs_ensemble import _ShrubEnsembles
 from capymoa.stream._stream import Schema
 
@@ -24,7 +24,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = ShrubsClassifier(stream.get_schema())
+    >>> classifier = ShrubsClassifier(stream.get_schema(), random_seed=1)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.0f}")
     86

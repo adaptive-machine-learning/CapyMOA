@@ -118,6 +118,7 @@ def _anomaly(**kwargs):
 
 
 def _ssl(**kwargs):
+    kwargs.setdefault("random_seed", 1)
     stream = ElectricityTiny()
     return evaluate_ssl(
         stream, NaiveBayes(stream.get_schema()), max_instances=500, **kwargs

@@ -5,7 +5,7 @@ from sklearn.linear_model import (
 )
 
 from capymoa.base import SKClassifier
-from capymoa.base._classifier import resolve_seed
+from capymoa.base._seed import resolve_seed
 from capymoa.stream._stream import Schema
 
 

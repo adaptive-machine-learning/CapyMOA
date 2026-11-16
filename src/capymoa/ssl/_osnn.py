@@ -15,6 +15,7 @@ from scipy.spatial.distance import cdist
 from torch import nn
 
 from capymoa.base import ClassifierSSL
+from capymoa.base._seed import resolve_seed
 
 
 def kernel_fun(a, b, sigma):
@@ -272,7 +273,7 @@ class OSNN(ClassifierSSL):
         beta=1,
         gamma=1,
         optim_steps=200,
-        seed=1,
+        seed: int | None = None,
     ):
         self.Network = OSNeuralNetwork(
             num_center=num_center,
@@ -288,6 +289,7 @@ class OSNN(ClassifierSSL):
 
         # Set seeds. numpy's global random generator is never used in this module,
         # so reseeding it here would only disturb the calling program.
+        seed = resolve_seed(seed)
         random.seed(seed)
         torch.manual_seed(seed)
 

@@ -2,7 +2,7 @@ import torch
 from torch import Tensor, nn
 
 from capymoa.base import BatchClassifier
-from capymoa.base._classifier import resolve_seed
+from capymoa.base._seed import resolve_seed
 from capymoa.stream import Schema
 
 from ._ncm import _batch_cumulative_mean
