@@ -1,4 +1,4 @@
-"""Let's MOA use Python Components via JPype proxies.
+"""Adapters let moa use python components via jpype proxies.
 
 Wraps a Python learner as a JPype proxy for use with MOA. Useful for ensembles and
 other scenarios where a Python learner needs to be used within the MOA framework.
