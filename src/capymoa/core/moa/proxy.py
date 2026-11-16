@@ -190,8 +190,7 @@ class _ProxyLearner(_ProxyOptionHandler):
 @jpype.JImplements(JavaClassifier)
 @_inherit_overrides
 class ProxyJavaClassifier(_ProxyLearner):
-    """Adapter Java-side MOA classifier to proxy a Python-side classifier. Designed to
-    allow java ensembles to use python classifiers.
+    """An adapter implementing moa's ``moa.classifiers.Classifier`` interface in python.
 
     https://github.com/Waikato/moa/blob/master/moa/src/main/java/moa/classifiers/Classifier.java#L35
     """
@@ -255,9 +254,9 @@ class ProxyJavaClassifier(_ProxyLearner):
 @jpype.JImplements(JavaFeatureImportanceClassifier)
 @_inherit_overrides
 class ProxyJavaFeatureImportanceClassifier(ProxyJavaClassifier):
-    """Adapter Java-side MOA feature importance classifier to proxy a Python-side
-    feature importance classifier. Designed to allow java code to use python
-    feature importance classifiers.
+    """An adapter implementing moa's
+    ``moa.learners.featureanalysis.JavaFeatureImportanceClassifier`` interface in
+    python.
 
     https://github.com/Waikato/moa/blob/master/moa/src/main/java/moa/learners/featureanalysis/FeatureImportanceClassifier.java
     """
@@ -281,11 +280,8 @@ class ProxyJavaFeatureImportanceClassifier(ProxyJavaClassifier):
 @jpype.JImplements(JavaClassifier, JavaRegressor)
 @_inherit_overrides
 class ProxyJavaRegressor(ProxyJavaClassifier):
-    """Adapter Java-side MOA regressor to proxy a Python-side regressor. Designed to
-    allow java ensembles to use python regressors.
-
-    MOA regressors are classifiers that also implement the ``Regressor`` marker
-    interface. The vote array holds one value, the prediction.
+    """An adapter implementing moa's ``moa.learners.classifiers.Regressor`` interface
+    in python.
 
     https://github.com/Waikato/moa/blob/master/moa/src/main/java/moa/classifiers/Regressor.java
     """
@@ -314,12 +310,9 @@ class ProxyJavaRegressor(ProxyJavaClassifier):
 @jpype.JImplements(JavaClassifier, JavaRegressor, JavaPredictionIntervalLearner)
 @_inherit_overrides
 class ProxyJavaPredictionIntervalLearner(ProxyJavaRegressor):
-    """Adapter Java-side MOA prediction interval learner to proxy a Python-side
-    prediction interval learner. Designed to allow java code to use python
-    prediction interval learners.
-
-    The vote array holds the three values from
-    :meth:`~capymoa.base.PredictionIntervalLearner.predict`.
+    """An adapter implementing moa's
+    ``moa.classifiers.predictioninterval.PredictionIntervalLearner`` interface in
+    python.
 
     https://github.com/Waikato/moa/blob/master/moa/src/main/java/moa/classifiers/predictioninterval/PredictionIntervalLearner.java
     """
@@ -342,9 +335,8 @@ class ProxyJavaPredictionIntervalLearner(ProxyJavaRegressor):
 @jpype.JImplements(JavaClassifier, JavaSemiSupervisedLearner)
 @_inherit_overrides
 class ProxyJavaClassifierSSL(ProxyJavaClassifier):
-    """Adapter Java-side MOA semi-supervised learner to proxy a Python-side
-    semi-supervised classifier. Designed to allow java code to use python
-    semi-supervised classifiers.
+    """An adapter implementing moa's
+    ``moa.classifiers.SemiSupervisedLearner`` interface in python.
 
     https://github.com/Waikato/moa/blob/master/moa/src/main/java/moa/classifiers/SemiSupervisedLearner.java
     """
@@ -368,11 +360,8 @@ class ProxyJavaClassifierSSL(ProxyJavaClassifier):
 @jpype.JImplements(JavaClassifier, JavaOneClassClassifier)
 @_inherit_overrides
 class ProxyJavaAnomalyDetector(ProxyJavaClassifier):
-    """Adapter Java-side MOA anomaly detector to proxy a Python-side anomaly
-    detector. Designed to allow java code to use python anomaly detectors.
-
-    MOA anomaly detectors are classifiers that also implement
-    ``OneClassClassifier``. The vote array is one-hot on the predicted label.
+    """An adapter implementing moa's
+    ``moa.classifiers.OneClassClassifier`` interface in python.
 
     https://github.com/Waikato/moa/blob/master/moa/src/main/java/moa/classifiers/OneClassClassifier.java
     """
@@ -414,8 +403,8 @@ class ProxyJavaAnomalyDetector(ProxyJavaClassifier):
 @jpype.JImplements(JavaChangeDetector)
 @_inherit_overrides
 class ProxyJavaDriftDetector(_ProxyOptionHandler):
-    """Adapter Java-side MOA change detector to proxy a Python-side drift detector.
-    Designed to allow java ensembles to use python drift detectors.
+    """An adapter implementing moa's
+    ``moa.classifiers.core.driftdetection.ChangeDetector`` interface in python.
 
     https://github.com/Waikato/moa/blob/master/moa/src/main/java/moa/classifiers/core/driftdetection/ChangeDetector.java
     """
@@ -471,11 +460,7 @@ class ProxyJavaDriftDetector(_ProxyOptionHandler):
 @jpype.JImplements(JavaClusterer)
 @_inherit_overrides
 class ProxyJavaClusterer(_ProxyLearner):
-    """Adapter Java-side MOA clusterer to proxy a Python-side clusterer. Designed to
-    allow java code to use python clusterers.
-
-    JPype proxies interfaces, so this uses ``Clusterer`` rather than
-    ``AbstractClusterer``.
+    """An adapter implementing moa's ``moa.clusterers.Clusterer`` interface in python.
 
     https://github.com/Waikato/moa/blob/master/moa/src/main/java/moa/clusterers/Clusterer.java
     """
