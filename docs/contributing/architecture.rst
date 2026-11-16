@@ -73,5 +73,14 @@ The domains that follow this layout are ``capymoa.classifier``,
 - ``prequential_evaluation``, which calls the ``evaluate_{{domain}}`` function that
   matches the type of the learner.
 
-In addition to the research domain CapyMOA maintains some common features to simplify
-implementation and facilitate interoperability:
+Besides the research domains, CapyMOA has common rules that make code easier to write
+and domains easier to use together.
+
+Seeds & Randomness
+------------------
+
+All CapyMOA components that use random number generators, including those that delegate random number generators to dependencies, shall be seeded using a ``random_seed: int | None = None`` parameter in the constructor.
+By default ``random_seed`` shall be ``None`` and use ``numpy.random.default_rng()`` (or a derived seed passed to a dependency).
+By default results will not be exactly reproducible without the seed but this aligns closer with user expectations.
+Learners/classifiers that rely on randomness will have a read-only ``random_seed`` attribute to indicate the seed used for reproducibility.
+Results given the same seed shall be identical on the same platform and given the same dependency environment.
