@@ -71,7 +71,9 @@ class LearnerRegistry(Generic[TClass]):
     def list_names(self) -> list[str]:
         return list(self._registered)
 
-    def build(self, spec: LearnerSpec, schema: Any, random_seed: int = 1) -> Any:
+    def build(
+        self, spec: LearnerSpec, schema: Any, random_seed: int | None = None
+    ) -> Any:
         """Construct a registered learner from a serialized specification."""
         cls = self.require(spec["learner"])
         return cls.from_params(schema, spec.get("params", {}), random_seed)
@@ -107,7 +109,7 @@ def _capture_learner_params(
 
 
 def _get_construction_kwargs(
-    cls: type, schema: Any, random_seed: int, params: dict[str, Any]
+    cls: type, schema: Any, random_seed: int | None, params: dict[str, Any]
 ) -> dict[str, Any]:
     parameters = inspect.signature(cls.__init__).parameters
     has_var_kwargs = any(
@@ -135,7 +137,7 @@ def _serialize_param(value: Any) -> Any:
     return value
 
 
-def _deserialize_param(value: Any, schema: Any, random_seed: int) -> Any:
+def _deserialize_param(value: Any, schema: Any, random_seed: int | None) -> Any:
     """Recursively resolve nested specs in ``value`` back into live objects."""
     if isinstance(value, dict):
         if "learner" in value and "params" in value:
@@ -152,7 +154,9 @@ def _deserialize_param(value: Any, schema: Any, random_seed: int) -> Any:
     return value
 
 
-def learner_from_params(spec: LearnerSpec, schema: Any, random_seed: int = 1) -> Any:
+def learner_from_params(
+    spec: LearnerSpec, schema: Any, random_seed: int | None = None
+) -> Any:
     """Construct a learner from a serialized fully qualified learner spec.
 
     See :class:`~capymoa.base.LearnerParamsMixin` for the parameter capture
@@ -189,7 +193,7 @@ class LearnerParamsMixin:
         cls,
         schema: Any = None,
         params: dict[str, Any] | None = None,
-        random_seed: int = 1,
+        random_seed: int | None = None,
     ) -> Any:
         """Construct an instance from parameters produced by ``get_params``."""
         resolved = {

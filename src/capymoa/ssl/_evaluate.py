@@ -6,6 +6,7 @@ from tqdm import tqdm
 from typing_extensions import override
 
 from capymoa.base import Classifier, ClassifierSSL
+from capymoa.base._seed import resolve_seed
 from capymoa.classifier._evaluate import _classifier_results
 from capymoa.classifier.evaluate import (
     ClassificationEvaluator,
@@ -100,7 +101,7 @@ def evaluate_ssl(
     initial_window_size: int = 0,
     delay_length: int = 0,
     label_probability: float = 0.01,
-    random_seed: int = 1,
+    random_seed: int | None = None,
     store_predictions: bool = False,
     store_y: bool = False,
     optimise: bool = True,
@@ -146,6 +147,7 @@ def evaluate_ssl(
         has no progress bar.
     :return: The results.
     """
+    random_seed = resolve_seed(random_seed)
     if restart_stream:
         stream.restart()
     schema = stream.get_schema()

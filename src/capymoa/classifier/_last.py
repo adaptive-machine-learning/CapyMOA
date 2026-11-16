@@ -48,7 +48,7 @@ class LAST(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int = 0,
+        random_seed: int | None = None,
         split_criterion: str | SplitCriterion = "InfoGainSplitCriterion",
         change_detector: MOADriftDetector | None = None,
         monitor_distribution=False,

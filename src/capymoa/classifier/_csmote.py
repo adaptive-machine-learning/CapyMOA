@@ -23,7 +23,7 @@ class CSMOTE(MOAClassifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = CSMOTE(stream.get_schema())
+    >>> classifier = CSMOTE(stream.get_schema(), random_seed=0)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     83.1
@@ -37,7 +37,7 @@ class CSMOTE(MOAClassifier):
     def __init__(
         self,
         schema: Schema = None,
-        random_seed: int = 0,
+        random_seed: int | None = None,
         base_learner="trees.HoeffdingTree",
         neighbors: int = 10,
         threshold: float = 0.5,

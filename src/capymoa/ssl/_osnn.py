@@ -272,7 +272,7 @@ class OSNN(ClassifierSSL):
         beta=1,
         gamma=1,
         optim_steps=200,
-        seed=1,
+        seed: int | None = None,
     ):
         self.Network = OSNeuralNetwork(
             num_center=num_center,
@@ -287,7 +287,10 @@ class OSNN(ClassifierSSL):
         self.loss_f = def_loss(model=self.Network)
 
         # Set seeds. numpy's global random generator is never used in this module,
-        # so reseeding it here would only disturb the calling program.
+        # so reseeding it here would only disturb the calling program. For the same
+        # reason, draw a missing seed from the OS, not from numpy's global generator.
+        if seed is None:
+            seed = random.SystemRandom().randrange(2**31)
         random.seed(seed)
         torch.manual_seed(seed)
 

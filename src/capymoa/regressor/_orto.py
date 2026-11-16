@@ -27,7 +27,7 @@ class ORTO(MOARegressor):
         >>> from capymoa.regressor import evaluate_regressor
     >>> stream = Fried()
     >>> schema = stream.get_schema()
-    >>> learner = ORTO(schema)
+    >>> learner = ORTO(schema, random_seed=1)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
     >>> results["cumulative"]["rmse"]
     9.228075678265904

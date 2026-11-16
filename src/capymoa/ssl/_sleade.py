@@ -47,7 +47,7 @@ class SLEADE(MOAClassifierSSL):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int = 0,
+        random_seed: int | None = None,
         ensemble_size: int = 10,
         confidence_strategy: Literal["Sum", "ArgMax"] = "ArgMax",
         enable_random_threshold: bool = False,

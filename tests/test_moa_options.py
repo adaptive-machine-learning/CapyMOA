@@ -47,7 +47,7 @@ def test_online_bagging_java_base_learner():
         java_tree, cli=str(capymoa_tree.moa_learner.getOptions().getAsCLIString())
     )
     java_learner = OnlineBagging(
-        schema, base_learner=java_tree, ensemble_size=ensemble_size
+        schema, base_learner=java_tree, ensemble_size=ensemble_size, random_seed=1
     )
     java_results = prequential_evaluation(
         stream, java_learner, max_instances=max_instances
@@ -59,6 +59,7 @@ def test_online_bagging_java_base_learner():
         schema,
         base_learner=HoeffdingTree(schema, grace_period=grace_period),
         ensemble_size=ensemble_size,
+        random_seed=1,
     )
     capymoa_results = prequential_evaluation(
         stream, capymoa_learner, max_instances=max_instances

@@ -78,7 +78,7 @@ def evaluate_regressor(
     >>> from capymoa.datasets import FriedTiny
     >>> stream = FriedTiny()
     >>> results = evaluate_regressor(
-    ...     stream, FIMTDD(stream.get_schema()), max_instances=1000
+    ...     stream, FIMTDD(stream.get_schema(), random_seed=1), max_instances=1000
     ... )
     >>> print(f"{results['cumulative']['rmse']:.2f}")
     7.36
@@ -92,7 +92,7 @@ def evaluate_regressor(
 
     >>> from capymoa.regressor import TargetMean
     >>> learners = {
-    ...     "fimtdd": FIMTDD(stream.get_schema()),
+    ...     "fimtdd": FIMTDD(stream.get_schema(), random_seed=1),
     ...     "mean": TargetMean(stream.get_schema()),
     ... }
     >>> results = evaluate_regressor(stream, learners, max_instances=1000)

@@ -37,7 +37,7 @@ class SOKNL(MOARegressor):
         >>> from capymoa.regressor import evaluate_regressor
     >>> stream = Fried()
     >>> schema = stream.get_schema()
-    >>> learner = SOKNL(schema)
+    >>> learner = SOKNL(schema, random_seed=1)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
     >>> results["cumulative"]["rmse"]
     3.3527490117282226
@@ -47,7 +47,7 @@ class SOKNL(MOARegressor):
         self,
         schema=None,
         CLI=None,
-        random_seed=1,
+        random_seed: int | None = None,
         tree_learner=None,
         ensemble_size=100,
         max_features=0.6,
