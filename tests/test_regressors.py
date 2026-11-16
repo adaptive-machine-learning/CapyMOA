@@ -1,3 +1,4 @@
+import inspect
 import os
 from contextlib import nullcontext
 from dataclasses import dataclass
@@ -30,6 +31,9 @@ from capymoa.regressor import (
 from capymoa.regressor.evaluate import RegressionEvaluator, RegressionWindowedEvaluator
 from capymoa.stream import Schema, Stream
 
+SEED = 1
+"""Seed for every regressor that takes one, so results are exact."""
+
 
 @dataclass(frozen=True)
 class Case:
@@ -56,19 +60,19 @@ CASES = [
     Case(NoChange, 6.89, 6.06),
     Case(TargetMean, 4.98, 4.64),
     Case(FadingTargetMean, 5.09, 4.68, {"factor": 0.9}),
-    Case(AdaptiveRandomForestRegressor, 4.15, 3.84, {"random_seed": 1}),
+    Case(AdaptiveRandomForestRegressor, 4.15, 3.84),
     Case(KNNRegressor, 3.03, 2.49),
-    Case(FIMTDD, 7.36, 5.25, {"random_seed": 1}),
-    Case(ARFFIMTDD, 4.95, 4.57, {"random_seed": 1}),
-    Case(ORTO, 9.23, 7.51, {"random_seed": 1}),
-    Case(SOKNLBT, 4.95, 4.57, {"random_seed": 1}),
-    Case(SOKNL, 3.35, 2.69, {"random_seed": 1}),
+    Case(FIMTDD, 7.36, 5.25),
+    Case(ARFFIMTDD, 4.95, 4.57),
+    Case(ORTO, 9.23, 7.51),
+    Case(SOKNLBT, 4.95, 4.57),
+    Case(SOKNL, 3.35, 2.69),
     Case(PassiveAggressiveRegressor, 3.70, 3.68),
     Case(SGDRegressor, 4.63, 3.61),
     Case(ShrubsRegressor, 5.21, 4.76),
     Case(StochasticGradientTree, 15.49, 16.19),
-    Case(StreamingGradientBoostedRegression, 3.09, 2.21, {"random_seed": 0}),
-    Case(OnlineBaggingRegressor, 7.10, 4.38, {"random_seed": 1}),
+    Case(StreamingGradientBoostedRegression, 3.12, 2.15),
+    Case(OnlineBaggingRegressor, 7.10, 4.38),
 ]
 """Add your new test cases here ^^"""
 
@@ -78,7 +82,10 @@ def test_regressor(case: Case):
     """Update TEST_CASES to add more regressors to test."""
     stream = Fried()
     schema = stream.get_schema()
-    learner = case.type(schema=schema, **(case.options or {}))
+    options = dict(case.options or {})
+    if "random_seed" in inspect.signature(case.type).parameters:
+        options["random_seed"] = SEED
+    learner = case.type(schema=schema, **options)
     evaluator = RegressionEvaluator(schema=schema)
     win_evaluator = RegressionWindowedEvaluator(schema=schema, window_size=100)
 
