@@ -275,7 +275,7 @@ class BasePipeline(PipelineElement):
 
     @property
     def random_seed(self) -> int:
-        """The seed reported to satisfy the learner interface (read-only)."""
+        """The seed reported to satisfy the learner interface."""
         return self._random_seed
 
     @property

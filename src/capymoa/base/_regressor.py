@@ -5,13 +5,13 @@ from typing import Any, overload
 from sklearn.base import RegressorMixin as _SKRegressorMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
-from capymoa.base._seed import SeededMixin
+from capymoa.base._seed import _SeededMixin
 from capymoa.core import Instance, RegressionInstance, TargetValue
 from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
 
 
-class Regressor(SeededMixin, LearnerParamsMixin, ABC):
+class Regressor(_SeededMixin, LearnerParamsMixin, ABC):
     def __init__(self, schema=None, random_seed: int | None = None):
         self._init_seed(random_seed)
         self.schema = schema

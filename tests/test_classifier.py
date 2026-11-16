@@ -83,7 +83,7 @@ class Case:
     builds can compound and flip a single prediction. Leave unset (exact
     comparison) for everything else."""
 
-    def new_learner(self, schema: Schema, random_seed: int = RANDOM_SEED) -> Classifier:
+    def new_learner(self, schema: Schema, random_seed: int | None = RANDOM_SEED) -> Classifier:
         params = _names_to_torch_objects(self.learner, self.params)
         spec = LearnerSpec(learner=self.learner, params=params)
         return learner_from_params(spec, schema, random_seed=random_seed)
@@ -321,6 +321,13 @@ class TestClassifier:
             learner.train(instance)
             loaded.train(instance)
 
+    def test_no_seed(self, case: Case):
+        """Check that a learner with no seed draws a random seed from numpy"""
+        stream = RandomTreeGenerator(num_classes=5)
+        np.random.seed(0)
+        learner = case.new_learner(stream.get_schema(), random_seed=None)
+        assert learner.random_seed == 209652396
+
     def test_determinism(self, case: Case):
         """Check that learner is deterministic."""
         length = case.length_test_determinism
@@ -334,6 +341,9 @@ class TestClassifier:
         l1_a = case.new_learner(stream.get_schema(), random_seed=1)
         l1_b = case.new_learner(stream.get_schema(), random_seed=1)
         l2 = case.new_learner(stream.get_schema(), random_seed=2)
+
+        assert l1_a.random_seed == l1_b.random_seed == 1
+        assert l2.random_seed == 2
 
         for i, instance in enumerate(islice(stream, length)):
             # Get predictions

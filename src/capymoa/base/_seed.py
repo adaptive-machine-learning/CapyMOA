@@ -2,25 +2,22 @@ import numpy as np
 
 
 def resolve_seed(random_seed: int | None) -> int:
-    """Return ``random_seed``, or a seed from ``numpy.random.default_rng()`` if ``None``."""
+    """Return ``random_seed``, or draw a new seed if ``None``."""
     if random_seed is None:
-        return int(np.random.default_rng().integers(2**31))
+        return np.random.randint(np.iinfo(np.int32).max)
     return random_seed
 
 
-class SeededMixin:
-    """Gives a learner a read-only ``random_seed``.
-
-    Call ``_init_seed`` in the constructor. A ``None`` seed is replaced by
-    one from ``numpy.random.default_rng()``, so the seed used is always known.
-    """
+class _SeededMixin:
+    """Mixin defining the random-seed behavior for learners."""
 
     _random_seed: int
 
     def _init_seed(self, random_seed: int | None) -> None:
+        """Initialize the random seed for the learner."""
         self._random_seed = resolve_seed(random_seed)
 
     @property
     def random_seed(self) -> int:
-        """The random seed used (read-only)."""
+        """Random seed for reproducibility."""
         return self._random_seed

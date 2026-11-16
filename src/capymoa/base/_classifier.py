@@ -7,13 +7,13 @@ from jpype import _jpype
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
-from capymoa.base._seed import SeededMixin
+from capymoa.base._seed import _SeededMixin
 from capymoa.core import Instance, LabeledInstance, LabelIndex, LabelProbabilities
 from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
 
 
-class Classifier(SeededMixin, LearnerParamsMixin, ABC):
+class Classifier(_SeededMixin, LearnerParamsMixin, ABC):
     """Base class for classifiers.
 
     In machine learning, a classifier is a supervised learner that assigns a
@@ -27,8 +27,7 @@ class Classifier(SeededMixin, LearnerParamsMixin, ABC):
     def __init__(self, schema: Schema, random_seed: int | None = None):
         """
         :param schema: Describes the structure of the datastream.
-        :param random_seed: Seed for reproducibility. If ``None``, a seed is drawn
-            from ``numpy.random.default_rng()``.
+        :param random_seed: Seed for reproducibility.
         """
         self.schema = schema
         self._init_seed(random_seed)

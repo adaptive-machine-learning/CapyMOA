@@ -7,7 +7,7 @@ from moa.core import Utils
 
 from capymoa.base._learner_params import LearnerParamsMixin
 from capymoa.base._regressor import MOARegressor, Regressor
-from capymoa.base._seed import SeededMixin
+from capymoa.base._seed import _SeededMixin
 from capymoa.core import Instance, LabelIndex
 from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
@@ -43,18 +43,8 @@ class MOAPredictionIntervalLearner(MOARegressor, PredictionIntervalLearner):
         return [float(v) for v in prediction_PI]
 
 
-class AnomalyDetector(SeededMixin, LearnerParamsMixin, ABC):
-    """
-    Abstract base class for anomaly detector.
-
-    `random_seed` is read-only. A `None` seed becomes one from
-    `numpy.random.default_rng()`. Every subclass must read `self.random_seed`
-    when it builds a generator, so the attribute is the seed really used.
-
-    Attributes:
-    - schema: The schema representing the instances. Defaults to None.
-    - random_seed: The random seed used for reproducibility (read-only).
-    """
+class AnomalyDetector(_SeededMixin, LearnerParamsMixin, ABC):
+    """Abstract base class for anomaly detectors."""
 
     def __init__(self, schema: Schema, random_seed: int | None = None):
         self._init_seed(random_seed)
@@ -187,7 +177,7 @@ class ClusteringResult:
         return f"Centers: {self._centers}, Weights: {self._weights}, Radii: {self._radii}, IDs: {self._ids}"
 
 
-class Clusterer(SeededMixin, LearnerParamsMixin, ABC):
+class Clusterer(_SeededMixin, LearnerParamsMixin, ABC):
     def __init__(self, schema: Schema, random_seed: int | None = None):
         self._init_seed(random_seed)
         self.schema = schema
