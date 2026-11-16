@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any, overload
 
+import jpype
 from sklearn.base import RegressorMixin as _SKRegressorMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
@@ -77,8 +78,10 @@ class MOARegressor(Regressor):
         self.moa_learner.setModelContext(self.schema.get_moa_header())
 
     def __str__(self):
-        full_name = str(self.moa_learner.getClass().getCanonicalName())
-        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        if isinstance(self.moa_learner, jpype.JObject):
+            full_name = str(self.moa_learner.getClass().getCanonicalName())
+            return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        return str(self.moa_learner)
 
     # def describe(self):
     #     return str(self.moa_learner)
