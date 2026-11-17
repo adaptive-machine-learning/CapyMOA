@@ -4,20 +4,20 @@ from typing import Generic, TypeVar
 import torch
 from torch import nn
 
-M = TypeVar("M", bound=nn.Module)
+_M = TypeVar("_M", bound=nn.Module)
 
 
-class TorchMixin(Generic[M]):
+class TorchMixin(Generic[_M]):
     """Mixin adding a torch module to a CapyMOA learner.
 
     This avoids classes inheriting directly from ``nn.Module`` while still
     providing a common API to the underlying torch module and its device.
     """
 
-    _module: M
+    _module: _M
 
     @property
-    def module(self) -> M:
+    def module(self) -> _M:
         """The underlying torch module."""
         return self._module
 
