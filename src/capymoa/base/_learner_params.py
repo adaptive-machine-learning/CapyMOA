@@ -17,6 +17,8 @@ from typing import (
     cast,
 )
 
+from capymoa.base._seed import resolve_seed
+
 P = ParamSpec("P")
 TClass = TypeVar("TClass", bound=type)
 
@@ -108,17 +110,22 @@ def _capture_learner_params(
     return wrapper
 
 
-def _get_construction_kwargs(
-    cls: type, schema: Any, random_seed: int | None, params: dict[str, Any]
-) -> dict[str, Any]:
+def _accepts(cls: type, name: str) -> bool:
+    """Return True if ``cls.__init__`` takes a keyword argument ``name``."""
     parameters = inspect.signature(cls.__init__).parameters
     has_var_kwargs = any(
         p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters.values()
     )
+    return has_var_kwargs or name in parameters
+
+
+def _get_construction_kwargs(
+    cls: type, schema: Any, random_seed: int | None, params: dict[str, Any]
+) -> dict[str, Any]:
     kwargs = dict(params)
-    if has_var_kwargs or "schema" in parameters:
+    if _accepts(cls, "schema"):
         kwargs["schema"] = schema
-    if has_var_kwargs or "random_seed" in parameters:
+    if _accepts(cls, "random_seed"):
         kwargs["random_seed"] = random_seed
     return kwargs
 
@@ -196,6 +203,9 @@ class LearnerParamsMixin:
         random_seed: int | None = None,
     ) -> Any:
         """Construct an instance from parameters produced by ``get_params``."""
+        if _accepts(cls, "random_seed"):
+            # Draw the seed before nested learners do, so it does not depend on them.
+            random_seed = resolve_seed(random_seed)
         resolved = {
             key: _deserialize_param(value, schema, random_seed)
             for key, value in (params or {}).items()

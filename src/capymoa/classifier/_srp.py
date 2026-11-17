@@ -5,10 +5,8 @@ import os
 from moa.classifiers.meta import StreamingRandomPatches as _MOA_SRP
 from moa.classifiers.meta.minibatch import StreamingRandomPatchesMB as _MOA_SRP_MB
 
-from capymoa._utils import build_cli_str_from_mapping_and_locals
-from capymoa.base import (
-    MOAClassifier,
-)
+from capymoa.base import Classifier, MOAClassifier
+from capymoa.drift.base_detector import BaseDriftDetector
 from capymoa.stream import Schema
 
 
@@ -40,15 +38,17 @@ class StreamingRandomPatches(MOAClassifier):
         self,
         schema: Schema | None = None,
         random_seed: int | None = None,
-        base_learner="trees.HoeffdingTree -g 50 -c 0.01",
+        base_learner: str | Classifier = "trees.HoeffdingTree -g 50 -c 0.01",
         ensemble_size=100,
         max_features=0.6,
         training_method: str = "RandomPatches",
         lambda_param: float = 6.0,
         minibatch_size=None,
         number_of_jobs=None,
-        drift_detection_method="ADWINChangeDetector -a 1.0E-5",
-        warning_detection_method="ADWINChangeDetector -a 1.0E-4",
+        drift_detection_method: str
+        | BaseDriftDetector = "ADWINChangeDetector -a 1.0E-5",
+        warning_detection_method: str
+        | BaseDriftDetector = "ADWINChangeDetector -a 1.0E-4",
         disable_weighted_vote: bool = False,
         disable_drift_detection: bool = False,
         disable_background_learner: bool = False,
@@ -85,22 +85,6 @@ class StreamingRandomPatches(MOAClassifier):
         :param disable_drift_detection: Whether to disable drift detection.
         :param disable_background_learner: Whether to disable background learning.
         """
-        moa_learner = None
-
-        mapping = {
-            "base_learner": "-l",
-            "ensemble_size": "-s",
-            "feature_mode": "-o",
-            "max_features_per_ensemble_item": "-m",
-            "training_method_str": "-t",
-            "lambda_param": "-a",
-            "drift_detection_method": "-x",
-            "warning_detection_method": "-p",
-            "disable_weighted_vote": "-w",
-            "disable_drift_detection": "-u",
-            "disable_background_learner": "-q",
-        }
-
         training_method_map = {
             "RandomSubspaces": "Random Subspaces",
             "Resampling": "Resampling (bagging)",
@@ -110,10 +94,6 @@ class StreamingRandomPatches(MOAClassifier):
             f"{training_method} is not a valid training method."
         )
         training_method_str = training_method_map[training_method]
-
-        assert isinstance(base_learner, str), (
-            "Only MOA CLI strings are supported for SRP base_learner, at the moment."
-        )
 
         # max_features = max_features
         if isinstance(max_features, float) and 0.0 <= max_features <= 1.0:
@@ -136,7 +116,19 @@ class StreamingRandomPatches(MOAClassifier):
                 "an integer specifying exact number, or\n"
                 "'sqrt' for square root of total features."
             )
-        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
+        options = {
+            "baseLearner": base_learner,
+            "ensembleSize": ensemble_size,
+            "subspaceMode": feature_mode,
+            "subspaceSize": max_features_per_ensemble_item,
+            "trainingMethod": training_method_str,
+            "lambda": lambda_param,
+            "driftDetectionMethod": drift_detection_method,
+            "warningDetectionMethod": warning_detection_method,
+            "disableWeightedVote": disable_weighted_vote,
+            "disableDriftDetection": disable_drift_detection,
+            "disableBackgroundLearner": disable_background_learner,
+        }
 
         if (number_of_jobs is None or number_of_jobs == 0 or number_of_jobs == 1) and (
             minibatch_size is None or minibatch_size <= 0 or minibatch_size == 1
@@ -162,12 +154,12 @@ class StreamingRandomPatches(MOAClassifier):
                 # if the user sets both parameters to values greater than 1, we initialize the minibatch_size to the user's choice
                 self.minibatch_size = int(minibatch_size)
             moa_learner = _MOA_SRP_MB()
-            config_str += f"-b {self.minibatch_size} "
-            config_str += f"-c {self.number_of_jobs} "
+            options["batchSize"] = self.minibatch_size
+            options["numCores"] = self.number_of_jobs
 
         super().__init__(
             moa_learner=moa_learner,
             schema=schema,
-            CLI=config_str,
+            options=options,
             random_seed=random_seed,
         )
