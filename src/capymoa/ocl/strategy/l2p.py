@@ -15,10 +15,9 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from capymoa.base import BatchClassifier
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.ocl.evaluation.events import TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
-from capymoa.ocl.util._module import TorchMixin
 from capymoa.stream import Schema
 
 

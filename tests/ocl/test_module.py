@@ -5,6 +5,8 @@ import pytest
 import torch
 from torch import nn
 
+from capymoa.base import TorchMixin
+from capymoa.classifier import Finetune
 from capymoa.core.torch.ann import Perceptron
 from capymoa.ocl.datasets import TinySplitMNIST
 from capymoa.ocl.strategy import (
@@ -14,9 +16,11 @@ from capymoa.ocl.strategy import (
     LWF,
     MAS,
     NCM,
+    RAR,
     SCR,
     SI,
     SLDA,
+    ExperienceReplay,
     GDumb,
     RanPAC,
     RWalk,
@@ -50,6 +54,13 @@ class _DummyViT(L2PViT, nn.Module):
 
 
 def _make(cls, schema, device="cpu"):
+    if cls is Finetune:
+        model = Perceptron(schema)
+        return Finetune(schema, model, device=device)
+    if cls is ExperienceReplay:
+        return ExperienceReplay(_make(Finetune, schema, device), buffer_size=16)
+    if cls is RAR:
+        return RAR(_make(Finetune, schema, device), nn.Identity(), coreset_size=16)
     if cls is NCM:
         return NCM(schema, device=device)
     if cls is SLDA:
@@ -159,7 +170,10 @@ def test_no_state_dict_on_strategy(cls, schema):
     assert not hasattr(learner, "load_state_dict")
 
 
-ALL = [EWC, LWF, MAS, RWalk, SI, DER, DERPP, SCR, NCM, SLDA, RanPAC, GDumb, L2P]
+ALL = [
+    EWC, LWF, MAS, RWalk, SI, DER, DERPP, SCR, NCM, SLDA, RanPAC, GDumb, L2P,
+    Finetune, ExperienceReplay, RAR,
+]  # fmt: skip
 
 
 def _tensors(module: nn.Module):
@@ -191,6 +205,9 @@ META_XFAIL = {
     SLDA: "boolean mask indexing needs real values",
     RanPAC: "boolean mask indexing needs real values",
     L2P: "loss logging calls .item()",
+    Finetune: "NaN check on the loss needs a real value",
+    ExperienceReplay: "inner Finetune NaN check needs a real value",
+    RAR: "inner Finetune NaN check needs a real value",
 }
 
 
@@ -261,3 +278,32 @@ def test_wrappers_follow_inner_learner(schema):
         assert wrapper.device == torch.device("meta")
         assert wrapper.x_dtype == torch.float64
         assert wrapper.y_dtype == inner.y_dtype
+
+
+@pytest.mark.parametrize("cls", [ExperienceReplay, RAR])
+def test_wrapper_module_moves_inner_learner_and_buffer(cls, schema):
+    wrapper = _make(cls, schema)
+    wrapper.module.to("meta")
+    assert wrapper.device == torch.device("meta")
+    inner = wrapper.module.learner
+    assert all(p.device.type == "meta" for p in inner.parameters())
+    buf = wrapper.module.buffer if cls is ExperienceReplay else wrapper.module.coreset
+    assert all(b.device.type == "meta" for b in buf.buffers())
+    assert wrapper.learner.device == torch.device("meta")
+
+
+@pytest.mark.parametrize("cls", [ExperienceReplay, RAR])
+def test_wrapper_needs_torch_mixin(cls, schema):
+    from capymoa.classifier import HoeffdingTree
+
+    args = (nn.Identity(),) if cls is RAR else ()
+    with pytest.raises(TypeError):
+        cls(HoeffdingTree(schema), *args)
+
+
+def test_finetune_module(schema):
+    learner = _make(Finetune, schema)
+    assert isinstance(learner, TorchMixin)
+    assert isinstance(learner.module.model, nn.Module)
+    for name in ("model", "optimizer", "criterion"):
+        assert not hasattr(learner, name)

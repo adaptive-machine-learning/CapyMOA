@@ -8,22 +8,22 @@ M = TypeVar("M", bound=nn.Module)
 
 
 class TorchMixin(Generic[M]):
-    """Mixin for strategies that keep their torch state in one private module.
+    """Mixin for learners that keep their torch state in one private module.
 
     The class that uses this mixin must set ``self._module`` to its own
-    :class:`torch.nn.Module` subclass ``M`` in ``__init__``. The strategy itself is not an
-    ``nn.Module``, so it has no module methods such as ``eval`` or ``cuda``.
+    :class:`torch.nn.Module` subclass ``M`` in ``__init__``. The learner itself is
+    not an ``nn.Module``, so it has no module methods such as ``eval`` or ``cuda``.
     """
 
     _module: M
 
     @property
     def module(self) -> M:
-        """Torch state of the strategy (``model`` plus strategy buffers).
+        """Torch state of the learner (``model`` plus buffers).
 
-        Use it to move the strategy to a device (``strategy.module.to(...)``) or
-        to save and load a checkpoint, for example with
-        ``strategy.module.state_dict()`` and ``strategy.module.load_state_dict(...)``.
+        Use it to move the learner to a device (``learner.module.to(...)``) or to
+        save and load a checkpoint, for example with
+        ``learner.module.state_dict()`` and ``learner.module.load_state_dict(...)``.
         The model you passed in is at ``module.model``.
         """
         return self._module

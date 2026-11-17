@@ -2,10 +2,9 @@ import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
-from capymoa.base import BatchClassifier
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.ocl.evaluation.events import TestTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
-from capymoa.ocl.util._module import TorchMixin
 from capymoa.ocl.util._replay import GreedySampler
 from capymoa.stream import Schema
 

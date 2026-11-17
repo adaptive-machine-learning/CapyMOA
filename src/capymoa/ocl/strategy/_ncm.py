@@ -1,8 +1,7 @@
 import torch
 from torch import Tensor, nn
 
-from capymoa.base import BatchClassifier
-from capymoa.ocl.util._module import TorchMixin
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.stream import Schema
 
 

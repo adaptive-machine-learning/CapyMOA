@@ -8,10 +8,9 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 from torch.optim import Optimizer
 
-from capymoa.base import BatchClassifier
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.ocl.evaluation.events import TrainTaskEnd
 from capymoa.ocl.events import Dispatcher, Handler
-from capymoa.ocl.util._module import TorchMixin
 from capymoa.ocl.util._replay import ReservoirSampler
 from capymoa.stream import Schema
 
