@@ -39,8 +39,7 @@ class DynamicWeightedMajority(MOAClassifier):
 
         :param schema: Describes the data stream.
         :param random_seed: random seed for reproducibility.
-        :param base_learner: the base learner to be used. A CLI string, a CapyMOA
-            classifier, or a MOA Java object. Defaults to "NaiveBayes".
+        :param base_learner: the base learner to be used, defaults to "NaiveBayes"
         :param period: period between expert removal, creation, and weight update.
         :param beta: factor to punish mistakes of experts.
         :param theta: minimum fraction of weight per model.

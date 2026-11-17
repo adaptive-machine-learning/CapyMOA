@@ -45,8 +45,7 @@ class CSMOTE(MOAClassifier):
 
         :param schema: The schema of the stream.
         :param random_seed: The random seed passed to the MOA learner.
-        :param base_learner: The base learner to be trained. A CLI string, a CapyMOA
-            classifier, or a MOA Java object. Default trees.HoeffdingTree.
+        :param base_learner: The base learner to be trained. Default trees.HoeffdingTree.
         :param neighbors: Number of neighbors for SMOTE.
         :param threshold: Minority class samples threshold.
         :param min_size_allowed: Minimum number of samples in the minority class for applying SMOTE.

@@ -43,8 +43,7 @@ class LeveragingBagging(MOAClassifier):
         :param CLI: Command Line Interface (CLI) options for configuring the ARF algorithm.
             If not provided, default options will be used.
         :param random_seed: Seed for the random number generator.
-        :param base_learner: The base learner to use. It can be a CLI string, a CapyMOA
-            classifier, or a MOA Java object. If not provided, a default Hoeffding Tree is used.
+        :param base_learner: The base learner to use. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
         :param minibatch_size: The number of instances that a learner must accumulate before training.
         :param number_of_jobs: The number of parallel jobs to run during the execution of the algorithm.

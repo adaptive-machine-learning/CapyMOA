@@ -57,8 +57,7 @@ class StreamingRandomPatches(MOAClassifier):
 
         :param schema: The schema of the stream.
         :param random_seed: The random seed passed to the MOA learner.
-        :param base_learner: The base learner to be trained. A CLI string, a CapyMOA
-            classifier, or a MOA Java object. Default trees.HoeffdingTree -g 50 -c 0.01.
+        :param base_learner: The base learner to be trained. Default trees.HoeffdingTree -g 50 -c 0.01.
         :param ensemble_size: The number of trees in the ensemble.
         :param max_features: The subspace size for each ensemble member.
             If provided as a float between 0.0 and 1.0, it represents the percentage of features to consider.
@@ -80,10 +79,8 @@ class StreamingRandomPatches(MOAClassifier):
             can be efficiently distributed across multiple processing units without sacrificing predictive
             performance. It's recommended to experiment with different values to find the optimal setting based on
             the available hardware resources and the nature of the workload.
-        :param drift_detection_method: The method used for drift detection. A CLI
-            string, a CapyMOA drift detector, or a MOA Java object.
-        :param warning_detection_method: The method used for warning detection. Same
-            types as ``drift_detection_method``.
+        :param drift_detection_method: The method used for drift detection.
+        :param warning_detection_method: The method used for warning detection.
         :param disable_weighted_vote: Whether to disable weighted voting.
         :param disable_drift_detection: Whether to disable drift detection.
         :param disable_background_learner: Whether to disable background learning.

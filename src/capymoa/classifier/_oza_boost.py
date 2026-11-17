@@ -45,8 +45,7 @@ class OzaBoost(MOAClassifier):
 
         :param schema: The schema of the stream.
         :param random_seed: The random seed passed to the MOA learner.
-        :param base_learner: The base learner to be trained. A CLI string, a CapyMOA
-            classifier, or a MOA Java object. Default trees.HoeffdingTree.
+        :param base_learner: The base learner to be trained. Default trees.HoeffdingTree.
         :param boosting_iterations: The number of boosting iterations.
         :param use_pure_boost: Boost with weights only; no poisson..
         """

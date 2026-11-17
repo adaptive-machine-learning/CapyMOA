@@ -48,9 +48,7 @@ class StreamingGradientBoostedRegression(MOARegressor):
 
         :param schema: The schema of the stream.
         :param random_seed: The random seed passed to the MOA learner.
-        :param base_learner: The base learner to be trained. A CLI string, a CapyMOA
-            MOA learner, or a MOA Java object. Python learners are not supported.
-            Default meta.OzaBag -s 10 -l (trees.FIMTDD -s VarianceReductionSplitCriterion -g 50 -c 0.01 -e).
+        :param base_learner: The base learner to be trained. Default meta.OzaBag -s 10 -l (trees.FIMTDD -s VarianceReductionSplitCriterion -g 50 -c 0.01 -e).
         :param boosting_iterations: The number of boosting iterations. Default 10.
         :param percentage_of_features: The percentage of features to use.
         :param learning_rate: The learning rate. Default 1.0.

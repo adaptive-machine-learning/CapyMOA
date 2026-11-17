@@ -54,8 +54,7 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
         """Dynamic Ensemble Member Selection (DEMS) Classifier.
 
         :param ensemble_class: which ensemble to use ("StreamingRandomPatches" or "AdaptiveRandomForest").
-        :param base_learner: base classifier (used by SRP). MOA ranks members as
-            Hoeffding Trees, so Python learners are not supported.
+        :param base_learner: base classifier (used by SRP).
         :param tree_learner: ARF tree learner (only used by ARF, cannot be changed).
         :param ensemble_size: number of ensemble members.
         :param max_features: subspace size configuration, similar to SRP:
@@ -66,10 +65,8 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
         :param training_method: "RandomSubspaces", "Resampling", or "RandomPatches" (SRP).
         :param lambda_param: Poisson lambda for bagging.
         :param number_of_jobs: number of parallel jobs for ARF (-1 = as many as possible).
-        :param drift_detection_method: Drift detector. A CLI string, a CapyMOA drift
-            detector, or a MOA Java object.
-        :param warning_detection_method: Warning detector. Same types as
-            ``drift_detection_method``.
+        :param drift_detection_method: Drift detector.
+        :param warning_detection_method: Warning detector.
         :param disable_weighted_vote: if True, disables accuracy-weighted voting.
         :param disable_drift_detection: if True, turns off drift detectors (and bkg learners).
         :param disable_background_learner: if True, turns off background learners.

@@ -106,11 +106,9 @@ class SLEADE(MOAClassifierSSL):
             error can be tracked without any labelled data, and a change in that
             error is what signals drift. Only used when
             ``use_unsupervised_drift_detection`` is set. Defaults to
-            ``HoeffdingTree(grace_period=50, confidence=0.01)``. Any CapyMOA
-            classifier, Python or MOA.
+            ``HoeffdingTree(grace_period=50, confidence=0.01)``.
         :param drift_detection_method: Change detector applied to the student's
-            error. Defaults to ``ADWIN(delta=1e-5)``. Any CapyMOA drift detector,
-            Python or MOA.
+            error. Defaults to ``ADWIN(delta=1e-5)``.
         :param unsupervised_detection_weight_window: Length of the sigmoid used to
             weight pseudo-labelled instances after an unsupervised detection.
         :param labeled_window_limit: Maximum number of labelled instances kept in

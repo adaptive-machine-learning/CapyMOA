@@ -57,9 +57,7 @@ class StreamingGradientBoostedTrees(MOAClassifier):
 
         :param schema: The schema of the stream.
         :param random_seed: The random seed passed to the MOA learner.
-        :param base_learner: The base learner to be trained. A CLI string, a CapyMOA
-            MOA learner, or a MOA Java object. Python learners are not supported.
-            Default FIMTDD -s VarianceReductionSplitCriterion -g 25 -c 0.05 -e -p.
+        :param base_learner: The base learner to be trained. Default FIMTDD -s VarianceReductionSplitCriterion -g 25 -c 0.05 -e -p.
         :param boosting_iterations: The number of boosting iterations.
         :param percentage_of_features: The percentage of features to use.
         :param learning_rate: The learning rate.

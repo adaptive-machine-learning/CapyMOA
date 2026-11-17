@@ -37,8 +37,7 @@ class AutoClass(MOAClassifier):
         :param schema: The schema of the stream.
         :param random_seed: The random seed passed to the MOA learner.
         :param configuration: A json file with the configuration for learners
-        :param base_classifiers: The learners that compose the ensemble. MOA builds
-            them by class name, so Python learners are not supported.
+        :param base_classifiers: The learners that compose the ensemble
         :param number_active_classifiers: The number of active classifiers (used for voting)
         :param weight_classifiers: Uses online performance estimation to weight the classifiers
         """

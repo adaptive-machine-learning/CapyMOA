@@ -69,7 +69,7 @@ class LAST(MOAClassifier):
         :param split_criterion: Split criterion to use.
         :param change_detector: The change detector created at leaf nodes
             that determines splitting time upon increase in error or impurity of class
-            distribution. A CapyMOA drift detector, Python or MOA.
+            distribution.
         :param monitor_distribution: If True, change detector monitors class distribution impurity.
         :param leaf_prediction: Prediction mechanism used at leafs.
         :param nb_threshold: Number of instances a leaf should observe before allowing

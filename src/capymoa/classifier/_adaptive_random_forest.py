@@ -61,9 +61,7 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
         :param CLI: Command Line Interface (CLI) options for configuring the ARF algorithm.
             If not provided, default options will be used.
         :param random_seed: Seed for the random number generator.
-        :param base_learner: The base learner to use. MOA requires an ARF Hoeffding
-            Tree, so Python learners are not supported. If not provided, a default
-            ARF Hoeffding Tree is used.
+        :param base_learner: The base learner to use. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
         :param max_features: The maximum number of features to consider when splitting a node.
             If provided as a float between 0.0 and 1.0, it represents the percentage of features to consider.
@@ -80,10 +78,8 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
             can be efficiently distributed across multiple processing units without sacrificing predictive
             performance. It's recommended to experiment with different values to find the optimal setting based on
             the available hardware resources and the nature of the workload.
-        :param drift_detection_method: The method used for drift detection. A CapyMOA
-            drift detector, Python or MOA.
-        :param warning_detection_method: The method used for warning detection. A
-            CapyMOA drift detector, Python or MOA.
+        :param drift_detection_method: The method used for drift detection.
+        :param warning_detection_method: The method used for warning detection.
         :param disable_weighted_vote: Whether to disable weighted voting.
         :param disable_drift_detection: Whether to disable drift detection.
         :param disable_background_learner: Whether to disable background learning.
