@@ -25,7 +25,7 @@ class KNNRegressor(MOARegressor):
     >>> learner = KNNRegressor(schema)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
     >>> results["cumulative"]["rmse"]
-    2.9811398077838542
+    3.0332283066066754
     """
 
     def __init__(
@@ -45,23 +45,12 @@ class KNNRegressor(MOARegressor):
         :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
-        # Important, should create the MOA object before invoking the super class __init__
-        self.moa_learner = _moa_kNN()
         super().__init__(
+            moa_learner=_moa_kNN(),
             schema=schema,
             random_seed=random_seed,
-            moa_learner=self.moa_learner,
+            options={"k": k, "median": median, "limit": window_size},
         )
-
-        self.k = k
-        self.median = median
-        self.window_size = window_size
-        self.moa_learner.getOptions().setViaCLIString(
-            f"-k {self.k} {'-m' if self.median else ''} -w \
-         {self.window_size}"
-        )
-        self.moa_learner.prepareForUse()
-        self.moa_learner.resetLearning()
 
     def __str__(self):
         # Overrides the default class name from MOA

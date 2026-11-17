@@ -53,21 +53,12 @@ class KNN(MOAClassifier):
         :param window_size: The maximum number of instances to store.
         :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
-        # Important, should create the MOA object before invoking the super class __init__
-        self.moa_learner = _moa_kNN()
         super().__init__(
+            moa_learner=_moa_kNN,
             schema=schema,
             random_seed=random_seed,
-            moa_learner=self.moa_learner,
+            options={"k": k, "limit": window_size},
         )
-
-        self.k = k
-        self.window_size = window_size
-        self.moa_learner.getOptions().setViaCLIString(
-            f"-k {self.k} -w {self.window_size}"
-        )
-        self.moa_learner.prepareForUse()
-        self.moa_learner.resetLearning()
 
     def __str__(self):
         # Overrides the default class name from MOA
