@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from moa.classifiers.meta import OzaBoost as _MOA_OzaBoost
 
-from capymoa._utils import build_cli_str_from_mapping_and_locals
-from capymoa.base import (
-    MOAClassifier,
-)
+from capymoa.base import Classifier, MOAClassifier
 from capymoa.stream import Schema
 
 
@@ -40,7 +37,7 @@ class OzaBoost(MOAClassifier):
         self,
         schema: Schema | None = None,
         random_seed: int | None = None,
-        base_learner="trees.HoeffdingTree",
+        base_learner: str | Classifier = "trees.HoeffdingTree",
         boosting_iterations: int = 10,
         use_pure_boost: bool = False,
     ):
@@ -48,25 +45,20 @@ class OzaBoost(MOAClassifier):
 
         :param schema: The schema of the stream.
         :param random_seed: The random seed passed to the MOA learner.
-        :param base_learner: The base learner to be trained. Default trees.HoeffdingTree.
+        :param base_learner: The base learner to be trained. A CLI string, a CapyMOA
+            classifier, or a MOA Java object. Default trees.HoeffdingTree.
         :param boosting_iterations: The number of boosting iterations.
         :param use_pure_boost: Boost with weights only; no poisson..
         """
 
-        mapping = {
-            "base_learner": "-l",
-            "boosting_iterations": "-s",
-            "use_pure_boost": "-p",
+        options = {
+            "baseLearner": base_learner,
+            "ensembleSize": boosting_iterations,
+            "pureBoost": use_pure_boost,
         }
-
-        assert isinstance(base_learner, str), (
-            "Only MOA CLI strings are supported for OzaBoost base_learner, at the moment."
-        )
-
-        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super().__init__(
             moa_learner=_MOA_OzaBoost,
             schema=schema,
-            CLI=config_str,
             random_seed=random_seed,
+            options=options,
         )

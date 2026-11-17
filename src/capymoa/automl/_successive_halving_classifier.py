@@ -50,7 +50,7 @@ class SuccessiveHalvingClassifier(Classifier):
         self,
         schema: Schema | None = None,
         random_seed: int | None = None,
-        base_classifiers: list[type[Classifier]] | None = None,
+        base_classifiers: list[Classifier | type[Classifier]] | None = None,
         config_file: str | None = None,
         max_instances: int | None = None,
         budget: int | None = None,
@@ -63,7 +63,7 @@ class SuccessiveHalvingClassifier(Classifier):
 
         :param schema: The schema of the stream.
         :param random_seed: Random seed used for reproducibility.
-        :param base_classifiers: List of base classifier classes to consider.
+        :param base_classifiers: Base classifiers, or their classes, to consider.
         :param config_file: Path to a JSON configuration file with model hyperparameters.
         :param max_instances: Maximum number of instances to process per model.
             If provided, the total budget is computed as ``2 * n_models * max_instances / eta``.

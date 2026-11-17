@@ -28,6 +28,20 @@ class OnlineBagging(MOAClassifier):
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     85.3
 
+    The base learner can be any CapyMOA classifier, including Python ones:
+
+    >>> from capymoa.classifier import SGDClassifier
+    >>> stream.restart()
+    >>> classifier = OnlineBagging(
+    ...     stream.get_schema(),
+    ...     base_learner=SGDClassifier(stream.get_schema()),
+    ...     ensemble_size=5,
+    ...     random_seed=1,
+    ... )
+    >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
+    >>> print(f"{results['cumulative']['accuracy']:.1f}")
+    83.8
+
     .. [#0] `Oza, N. C., & Russell, S. J. (2001, January). Online bagging and boosting.
              In International workshop on artificial intelligence and statistics (pp.
              229-236). PMLR. <https://proceedings.mlr.press/r3/oza01a.html>`_

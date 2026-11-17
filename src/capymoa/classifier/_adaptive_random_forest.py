@@ -6,8 +6,7 @@ from moa.classifiers.meta.minibatch import (
 )
 
 from capymoa.base import MOAClassifier
-from capymoa.core.moa._cli import cli_str_classifier, cli_str_drift_detector
-from capymoa.drift.base_detector import MOADriftDetector
+from capymoa.drift.base_detector import BaseDriftDetector
 from capymoa.drift.detectors import ADWIN
 from capymoa.stream._stream import Schema
 
@@ -50,8 +49,8 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
         lambda_param: float = 6.0,
         minibatch_size: int | None = None,
         number_of_jobs: int = 1,
-        drift_detection_method: MOADriftDetector | None = None,
-        warning_detection_method: MOADriftDetector | None = None,
+        drift_detection_method: BaseDriftDetector | None = None,
+        warning_detection_method: BaseDriftDetector | None = None,
         disable_weighted_vote: bool = False,
         disable_drift_detection: bool = False,
         disable_background_learner: bool = False,
@@ -62,7 +61,9 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
         :param CLI: Command Line Interface (CLI) options for configuring the ARF algorithm.
             If not provided, default options will be used.
         :param random_seed: Seed for the random number generator.
-        :param base_learner: The base learner to use. If not provided, a default Hoeffding Tree is used.
+        :param base_learner: The base learner to use. MOA requires an ARF Hoeffding
+            Tree, so Python learners are not supported. If not provided, a default
+            ARF Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
         :param max_features: The maximum number of features to consider when splitting a node.
             If provided as a float between 0.0 and 1.0, it represents the percentage of features to consider.
@@ -79,34 +80,37 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
             can be efficiently distributed across multiple processing units without sacrificing predictive
             performance. It's recommended to experiment with different values to find the optimal setting based on
             the available hardware resources and the nature of the workload.
-        :param drift_detection_method: The method used for drift detection.
-        :param warning_detection_method: The method used for warning detection.
+        :param drift_detection_method: The method used for drift detection. A CapyMOA
+            drift detector, Python or MOA.
+        :param warning_detection_method: The method used for warning detection. A
+            CapyMOA drift detector, Python or MOA.
         :param disable_weighted_vote: Whether to disable weighted voting.
         :param disable_drift_detection: Whether to disable drift detection.
         :param disable_background_learner: Whether to disable background learning.
         """
 
+        moa_learner = _MOA_AdaptiveRandomForest()
+        options = None
         if CLI is None:
             self.base_learner = (
-                "(ARFHoeffdingTree -e 2000000 -g 50 -c 0.01)"
+                "ARFHoeffdingTree -e 2000000 -g 50 -c 0.01"
                 if base_learner is None
-                else cli_str_classifier(base_learner)
+                else base_learner
             )
-            self.base_learner = self.base_learner.replace("trees.", "")
             self.ensemble_size = ensemble_size
 
             self.max_features = max_features
             if isinstance(self.max_features, float) and 0.0 <= self.max_features <= 1.0:
-                self.m_features_mode = "(Percentage (M * (m / 100)))"
+                self.m_features_mode = "Percentage (M * (m / 100))"
                 self.m_features_per_tree_size = int(self.max_features * 100)
             elif isinstance(self.max_features, int):
-                self.m_features_mode = "(Specified m (integer value))"
+                self.m_features_mode = "Specified m (integer value)"
                 self.m_features_per_tree_size = max_features
             elif self.max_features in ["sqrt"]:
-                self.m_features_mode = "(sqrt(M)+1)"
+                self.m_features_mode = "sqrt(M)+1"
                 self.m_features_per_tree_size = -1  # or leave it unchanged
             elif self.max_features is None:
-                self.m_features_mode = "(Percentage (M * (m / 100)))"
+                self.m_features_mode = "Percentage (M * (m / 100))"
                 self.m_features_per_tree_size = 60
             else:
                 # Raise an exception with information about valid options for max_features
@@ -122,10 +126,8 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
                 warning_detection_method = ADWIN(delta=0.01)
 
             self.lambda_param = lambda_param
-            self.drift_detection_method = cli_str_drift_detector(drift_detection_method)
-            self.warning_detection_method = cli_str_drift_detector(
-                warning_detection_method
-            )
+            self.drift_detection_method = drift_detection_method
+            self.warning_detection_method = warning_detection_method
             self.disable_weighted_vote = disable_weighted_vote
             self.disable_drift_detection = disable_drift_detection
             self.disable_background_learner = disable_background_learner
@@ -137,25 +139,31 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
             else:
                 self.number_of_jobs = int(min(number_of_jobs, os.cpu_count()))
 
+            options = {
+                "treeLearner": self.base_learner,
+                "ensembleSize": self.ensemble_size,
+                "mFeaturesMode": self.m_features_mode,
+                "mFeaturesPerTreeSize": self.m_features_per_tree_size,
+                "lambda": self.lambda_param,
+                "driftDetectionMethod": self.drift_detection_method,
+                "warningDetectionMethod": self.warning_detection_method,
+                "disableWeightedVote": self.disable_weighted_vote,
+                "disableDriftDetection": self.disable_drift_detection,
+                "disableBackgroundLearner": self.disable_background_learner,
+            }
             if minibatch_size is not None and minibatch_size > 1:
                 self.minibatch_size = int(minibatch_size)
                 moa_learner = _MOA_AdaptiveRandomForestMB()
-                CLI = f"-l {self.base_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
-                                    {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
-                                    {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
-                                    {'-q' if self.disable_background_learner else ''}\
-                                    -c {self.number_of_jobs} -b {self.minibatch_size}"
+                options["numCores"] = self.number_of_jobs
+                options["batchSize"] = self.minibatch_size
             else:
                 moa_learner = _MOA_AdaptiveRandomForest()
-                CLI = f"-l {self.base_learner} -s {self.ensemble_size} -o {self.m_features_mode} -m \
-                                    {self.m_features_per_tree_size} -a {self.lambda_param} -x {self.drift_detection_method} -p \
-                                    {self.warning_detection_method} {'-w' if self.disable_weighted_vote else ''} {'-u' if self.disable_drift_detection else ''}  \
-                                    {'-q' if self.disable_background_learner else ''}\
-                                    -j {self.number_of_jobs}"
+                options["numberOfJobs"] = self.number_of_jobs
 
         super().__init__(
             schema=schema,
             CLI=CLI,
             random_seed=random_seed,
             moa_learner=moa_learner,
+            options=options,
         )

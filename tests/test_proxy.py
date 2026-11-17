@@ -1,4 +1,6 @@
 import jpype
+import numpy as np
+import pytest
 from moa.classifiers.core.driftdetection import ChangeDetector as JavaChangeDetector
 from moa.learners.featureanalysis import (
     FeatureImportanceClassifier as JavaFeatureImportanceClassifier,
@@ -154,3 +156,29 @@ def test_proxy_java_feature_importance_classifier():
     assert sum(expected) > 0
     assert list(proxy.getFeatureImportances(True)) == expected
     assert list(proxy.getTopKFeatures(2, True)) == classifier.get_top_k_features(2)
+
+
+def test_proxy_java_classifier_without_model_context():
+    """MOA ensembles do not set the model context of their members."""
+    stream = ElectricityTiny()
+    proxy = ProxyJavaClassifier({"learner": "capymoa.classifier.SGDClassifier"})
+    proxy.prepareForUse()
+    instance = stream.next_instance().java_instance.getData()
+    proxy.trainOnInstance(instance)
+    votes = list(proxy.getVotesForInstance(instance))
+    assert len(votes) == stream.schema.get_num_classes()
+    expected = np.argmax(votes) == instance.classValue()
+    assert proxy.correctlyClassifies(instance) == expected
+
+
+@pytest.mark.parametrize("weight, n_train", [(0.0, 0), (1.0, 1), (3.0, 3)])
+def test_proxy_java_classifier_trains_weight_times(weight, n_train):
+    """Python learners take no weights, so the proxy repeats training."""
+    proxy = ProxyJavaClassifier({"learner": "capymoa.classifier.SGDClassifier"})
+    instance = ElectricityTiny().next_instance().java_instance.getData()
+    instance.setWeight(weight)
+    proxy.getVotesForInstance(instance)  # Builds the python learner.
+    trained = []
+    proxy._py_learner.train = trained.append
+    proxy.trainOnInstance(instance)
+    assert len(trained) == n_train

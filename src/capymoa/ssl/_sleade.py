@@ -4,11 +4,9 @@ from typing import Literal
 
 import moa.classifiers.semisupervised as moa_ssl
 
-from capymoa._utils import build_cli_str_from_mapping_and_locals
 from capymoa.base import Classifier, MOAClassifierSSL
 from capymoa.classifier import HoeffdingTree
-from capymoa.core.moa._cli import cli_str_classifier, cli_str_drift_detector
-from capymoa.drift.base_detector import MOADriftDetector
+from capymoa.drift.base_detector import BaseDriftDetector
 from capymoa.drift.detectors import ADWIN
 from capymoa.stream import Schema
 
@@ -70,7 +68,7 @@ class SLEADE(MOAClassifierSSL):
         ssl_weight_shrinkage: float = 100.0,
         use_unsupervised_drift_detection: bool = True,
         student_learner: Classifier | None = None,
-        drift_detection_method: MOADriftDetector | None = None,
+        drift_detection_method: BaseDriftDetector | None = None,
         unsupervised_detection_weight_window: int = 20,
         labeled_window_limit: int = 100,
     ):
@@ -108,9 +106,11 @@ class SLEADE(MOAClassifierSSL):
             error can be tracked without any labelled data, and a change in that
             error is what signals drift. Only used when
             ``use_unsupervised_drift_detection`` is set. Defaults to
-            ``HoeffdingTree(grace_period=50, confidence=0.01)``.
+            ``HoeffdingTree(grace_period=50, confidence=0.01)``. Any CapyMOA
+            classifier, Python or MOA.
         :param drift_detection_method: Change detector applied to the student's
-            error. Defaults to ``ADWIN(delta=1e-5)``.
+            error. Defaults to ``ADWIN(delta=1e-5)``. Any CapyMOA drift detector,
+            Python or MOA.
         :param unsupervised_detection_weight_window: Length of the sigmoid used to
             weight pseudo-labelled instances after an unsupervised detection.
         :param labeled_window_limit: Maximum number of labelled instances kept in
@@ -123,32 +123,28 @@ class SLEADE(MOAClassifierSSL):
         if drift_detection_method is None:
             drift_detection_method = ADWIN(delta=1e-5)
 
-        mapping = {
-            "confidence_strategy": "-b",
-            "enable_random_threshold": "-q",
-            "auto_weight_shrinkage": "-e",
-            "ssl_strategy": "-p",
-            "ssl_min_confidence": "-m",
-            "weight_function": "-w",
-            "pairing_function": "-t",
-            "ssl_weight_shrinkage": "-n",
-            "use_unsupervised_drift_detection": "-s",
-            "unsupervised_detection_weight_window": "-z",
-            "labeled_window_limit": "-j",
+        options = {
+            # The base ensemble is not a hyperparameter: SLEADE is only
+            # implemented against StreamingRandomPatches, and `-u -q` are part
+            # of the method rather than a tuning choice.
+            "baseEnsemble": f"StreamingRandomPatches -s {ensemble_size} -u -q",
+            "confidenceStrategy": confidence_strategy,
+            "enableRandomThreshold": enable_random_threshold,
+            "autoWeightShrinkage": auto_weight_shrinkage,
+            "SSLStrategy": ssl_strategy,
+            "SSL_minConfidence": ssl_min_confidence,
+            "weightFunction": weight_function,
+            "pairingFunction": pairing_function,
+            "SSL_weightShrinkageOption": ssl_weight_shrinkage,
+            "useUnsupervisedDriftDetection": use_unsupervised_drift_detection,
+            "studentLearnerForUnsupervisedDriftDetection": student_learner,
+            "driftDetectionMethod": drift_detection_method,
+            "unsupervisedDetectionWeightWindow": unsupervised_detection_weight_window,
+            "labeledWindowLimit": labeled_window_limit,
         }
-        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
-
-        # The base ensemble is not a hyperparameter: SLEADE is only implemented
-        # against StreamingRandomPatches, and `-u -q` are part of the method rather
-        # than a tuning choice. `cli_str_*` already parenthesise their output, so
-        # these are appended directly rather than through the mapping above.
-        config_str += f"-l (StreamingRandomPatches -s {ensemble_size} -u -q) "
-        config_str += f"-g {cli_str_classifier(student_learner)} "
-        config_str += f"-x {cli_str_drift_detector(drift_detection_method)} "
-
         super().__init__(
             moa_learner=moa_ssl.SLEADE,
             schema=schema,
-            CLI=config_str,
             random_seed=random_seed,
+            options=options,
         )
