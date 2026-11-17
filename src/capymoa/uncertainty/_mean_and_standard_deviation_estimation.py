@@ -25,7 +25,7 @@ class MVE(MOAPredictionIntervalLearner):
         :param base_learner: The base regressor to use. It can be a CLI string or a
             CapyMOA regressor. If not provided, an AdaptiveRandomForestRegressor is
             used.
-        :param confidence_level: The confidence level of the prediction interval.
+        :param confidence_level: The confidence level of the prediction interval, in (0, 1).
         :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         mappings = {"base_learner": "-l", "confidence_level": "-c"}

@@ -77,7 +77,7 @@ class OnlineAdwinBagging(MOAClassifier):
         :param base_learner: The base learner to use. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
         :param minibatch_size: The number of instances a learner accumulates before training.
-        :param number_of_jobs: The number of parallel jobs. By default, tasks run sequentially.
+        :param number_of_jobs: The number of CPU cores used for multi-threading. By default, tasks run sequentially.
         :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 

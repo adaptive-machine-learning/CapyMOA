@@ -66,8 +66,6 @@ class AdaptiveRandomForestRegressor(MOARegressor):
         """Construct an Adaptive Random Forest Regressor
 
         :param schema: Describes the stream's structure and types.
-        :param CLI: Command Line Interface (CLI) options to configure the learner.
-            If not given, default options are used.
         :param tree_learner: The tree learner to use. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
         :param max_features: The maximum number of features to consider when splitting a node.

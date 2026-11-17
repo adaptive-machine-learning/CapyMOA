@@ -274,7 +274,6 @@ class L2P(BatchClassifier, Handler):
         :param optimizer: Function that takes model parameters and returns an optimizer instance.
         :param device: Device to run the model on, e.g., "cpu" or "cuda".
         :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
-        :param logger: Optional logger for tracking training metrics.
         """
         super().__init__(schema, random_seed)
         if isinstance(vit, str):

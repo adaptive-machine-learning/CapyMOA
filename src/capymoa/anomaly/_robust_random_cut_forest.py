@@ -539,7 +539,7 @@ class RobustRandomCutForest(AnomalyDetector):
         """Construct a RobustRandomCutForest anomaly detector.
 
         :param schema: Describes the stream's structure and types.
-        :param tree_size: The maximum number of instances stored in each tree.
+        :param tree_size: The maximum number of instances in each tree. The oldest instance is removed when the tree is full.
         :param n_trees: The number of trees in the ensemble.
         :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """

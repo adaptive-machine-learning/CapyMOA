@@ -39,9 +39,9 @@ class GDumb(BatchClassifier, Handler):
 
         :param schema: Describes the stream's structure and types.
         :param model: Torch model that outputs class logits.
-        :param epochs: The number of epochs used to train on the memory.
+        :param epochs: The number of epochs used to train on the coreset.
         :param batch_size: Mini-batch size used for training.
-        :param capacity: The maximum number of instances in the memory.
+        :param capacity: The maximum number of instances in the coreset.
         :param lr: Learning rate of the Adam optimiser.
         :param device: Compute device.
         :param seed: Seed for all random choices.

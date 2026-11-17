@@ -271,7 +271,6 @@ class AdaptiveIsolationForest(AnomalyDetector):
         :param seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         :param m_trees: Number of candidate trees to generate when replacing.
         :param weights: Weight for combining tree size and max mass scores (0-1).
-        :param skip_default_strategy: If True, skip default replacement when quality score doesn't improve.
         """
         super().__init__(schema=schema, random_seed=seed)
         self.n_trees = n_trees

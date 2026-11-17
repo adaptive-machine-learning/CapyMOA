@@ -22,7 +22,7 @@ class FadingTargetMean(MOARegressor):
         """Construct Fading Target Mean Regressor.
 
         :param schema: Describes the stream's structure and types.
-        :param factor: The fading factor. Must be in (0, 1].
+        :param factor: The fading factor. Older targets are multiplied by it at each update. Must be in [0, 1].
         """
         cli = [f"-f {factor}"]
         super().__init__(

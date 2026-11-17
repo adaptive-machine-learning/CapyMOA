@@ -26,8 +26,8 @@ class AdaPI(MOAPredictionIntervalLearner):
         :param base_learner: The base regressor to use. It can be a CLI string or a
             CapyMOA regressor. If not provided, an AdaptiveRandomForestRegressor is
             used.
-        :param confidence_level: The confidence level of the prediction interval.
-        :param limit: The threshold used to adapt the interval width.
+        :param confidence_level: The confidence level of the prediction interval, in (0, 1).
+        :param limit: Lower limit of the scalar that scales the interval width. The scalar adapts to the observed coverage.
         :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         mappings = {

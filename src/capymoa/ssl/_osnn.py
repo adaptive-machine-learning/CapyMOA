@@ -278,12 +278,12 @@ class OSNN(ClassifierSSL):
         """Construct an OSNN learner.
 
         :param schema: Describes the stream's structure and types.
-        :param num_center: The number of radial basis function centers.
-        :param n_out: The number of outputs of the network.
-        :param window_size: The number of instances in the sliding window.
-        :param beta: Scale of the kernel width of each center.
-        :param gamma: Scale of the distance to the nearest center.
-        :param optim_steps: The number of optimisation steps per window.
+        :param num_center: The number of radial basis function centers. They are sampled from the window.
+        :param n_out: The number of network outputs. Predictions treat the output as the probability of the positive class, so use 1 (binary only).
+        :param window_size: The number of instances in the window. The network updates each time the window fills.
+        :param beta: Width of each basis function as a proportion of the mean distance to the other centers.
+        :param gamma: Scale of the nearest-neighbor distance used to compute pseudo-label weights.
+        :param optim_steps: The number of L-BFGS steps each time the window fills.
         :param seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         self.Network = OSNeuralNetwork(
