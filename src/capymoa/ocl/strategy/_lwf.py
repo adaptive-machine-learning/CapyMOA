@@ -6,6 +6,7 @@ from torch import Tensor, nn
 from capymoa.base import BatchClassifier
 from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
+from capymoa.ocl.util._module import HasModule
 from capymoa.ocl.util._optim import reset_optimizer_state
 from capymoa.ocl.util.functional import hinton_distillation_loss
 from capymoa.stream._stream import Schema
@@ -13,7 +14,17 @@ from capymoa.stream._stream import Schema
 NEG_INF = float("-inf")
 
 
-class LWF(BatchClassifier, nn.Module, Handler):
+class _LWFModule(nn.Module):
+    """Torch state of LWF."""
+
+    def __init__(self, model: nn.Module, task_mask: Tensor | None) -> None:
+        super().__init__()
+        self.model = model
+        self.criterion = nn.CrossEntropyLoss()
+        self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
+
+
+class LWF(HasModule, BatchClassifier, Handler):
     """Learning Without Forgetting (LwF).
 
     LwF [#f1]_ is a regularisation-based continual learning strategy that distils
@@ -53,7 +64,6 @@ class LWF(BatchClassifier, nn.Module, Handler):
             or task-specific masking is requested without ``task_mask``.
         """
         super().__init__(schema, 0)
-        nn.Module.__init__(self)
         if device is None:
             device = torch.device("cpu")
         if alpha < 0:
@@ -74,18 +84,15 @@ class LWF(BatchClassifier, nn.Module, Handler):
 
         self._optimiser = optimiser
         self._model = model
-        self._criterion = torch.nn.CrossEntropyLoss()
 
         self._teacher: torch.nn.Module | None = None
         self._train_task = 0
         self._test_task = 0
-        if task_mask is None:
-            self._task_mask = None
-        else:
-            self._task_mask = nn.Buffer(task_mask)
 
-        # Move all model parameters and buffers to the specified device
-        self.to(device)
+        # All torch state lives in one private module
+        self._module = _LWFModule(model, task_mask).to(device)
+        self._criterion = self._module.criterion
+        self._task_mask = self._module.task_mask
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         self._model.train()

@@ -12,6 +12,7 @@ from capymoa.base import BatchClassifier
 from capymoa.core import Instance, LabelProbabilities
 from capymoa.ocl.evaluation.events import TrainTaskEnd
 from capymoa.ocl.events import Dispatcher, Handler
+from capymoa.ocl.util._module import HasModule, ModuleHolder
 from capymoa.ocl.util._replay import ReservoirSampler
 from capymoa.stream import Schema
 
@@ -43,7 +44,7 @@ class _SupervisedContrastiveLoss(nn.Module):
         return -(log_prob * positives).sum(1).div(positives.sum(1)).mean()
 
 
-class SCR(BatchClassifier, Handler):
+class SCR(HasModule, BatchClassifier, Handler):
     """Supervised Contrastive Replay (SCR).
 
     SCR [#scr]_ trains an encoder and projection head on current and replay examples, using
@@ -158,6 +159,9 @@ class SCR(BatchClassifier, Handler):
         self._augment = (
             augment.to(self.device) if isinstance(augment, nn.Module) else augment
         )
+        self._module = ModuleHolder(model=self._model)
+        if isinstance(self._augment, nn.Module):
+            self._module.add_module("augment", self._augment)
         self._shape = tuple(schema.shape)
         self._num_features = schema.get_num_attributes()
         self._num_classes = schema.get_num_classes()

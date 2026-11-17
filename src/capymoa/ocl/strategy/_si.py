@@ -8,6 +8,7 @@ from capymoa.base import BatchClassifier
 from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._buffer_list import BufferList
+from capymoa.ocl.util._module import HasModule
 from capymoa.ocl.util._optim import reset_optimizer_state
 from capymoa.stream._stream import Schema
 
@@ -136,7 +137,31 @@ def reset_trajectory_(trajectory: Sequence[Tensor]) -> None:
         traj.zero_()
 
 
-class SI(BatchClassifier, nn.Module, Handler):
+class _SIModule(nn.Module):
+    """Torch state of SI."""
+
+    def __init__(
+        self,
+        model: nn.Module,
+        task_mask: Tensor | None,
+        anchor: BufferList,
+        importance: BufferList,
+        pre_step_params: BufferList,
+        trajectory: BufferList,
+        grads: BufferList,
+    ) -> None:
+        super().__init__()
+        self.model = model
+        self.criterion = nn.CrossEntropyLoss()
+        self.anchor = anchor
+        self.importance = importance
+        self.pre_step_params = pre_step_params
+        self.trajectory = trajectory
+        self.grads = grads
+        self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
+
+
+class SI(HasModule, BatchClassifier, Handler):
     """Synaptic Intelligence learner.
 
     Synaptic Intelligence (SI) is a regularisation-based continual learning strategy
@@ -181,7 +206,6 @@ class SI(BatchClassifier, nn.Module, Handler):
         :raises ValueError: If task-specific masking is requested without ``task_mask``.
         """
         super().__init__(schema, 0)
-        nn.Module.__init__(self)
         if device is None:
             device = torch.device("cpu")
         if (mask_train or mask_test) and task_mask is None:
@@ -204,35 +228,31 @@ class SI(BatchClassifier, nn.Module, Handler):
         # Modules
         self._optimiser = optimiser
         self._model = model
-        self._criterion = torch.nn.CrossEntropyLoss()
 
         # Allocate buffers for SI regularisation
-        self._buf_anchor = BufferList(
-            [p.clone().detach() for p in trainable_params(model)]
-        )
-        self._buf_importance = BufferList(
+        anchor = BufferList([p.clone().detach() for p in trainable_params(model)])
+        importance = BufferList([torch.zeros_like(p) for p in trainable_params(model)])
+        pre_step_params = BufferList(
             [torch.zeros_like(p) for p in trainable_params(model)]
         )
-        self._buf_pre_step_params = BufferList(
-            [torch.zeros_like(p) for p in trainable_params(model)]
-        )
-        self._buf_trajectory = BufferList(
-            [torch.zeros_like(p) for p in trainable_params(model)]
-        )
-        self._buf_grads = BufferList(
-            [torch.zeros_like(p) for p in trainable_params(model)]
-        )
+        trajectory = BufferList([torch.zeros_like(p) for p in trainable_params(model)])
+        grads = BufferList([torch.zeros_like(p) for p in trainable_params(model)])
 
         # Task tracking
         self._train_task = 0
         self._test_task = 0
-        if task_mask is None:
-            self._task_mask = None
-        else:
-            self._task_mask = nn.Buffer(task_mask)
 
-        # Move all model parameters and buffers to the specified device
-        self.to(device)
+        # All torch state lives in one private module
+        self._module = _SIModule(
+            model, task_mask, anchor, importance, pre_step_params, trajectory, grads
+        ).to(device)
+        self._criterion = self._module.criterion
+        self._buf_anchor = self._module.anchor
+        self._buf_importance = self._module.importance
+        self._buf_pre_step_params = self._module.pre_step_params
+        self._buf_trajectory = self._module.trajectory
+        self._buf_grads = self._module.grads
+        self._task_mask = self._module.task_mask
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         self._model.train()

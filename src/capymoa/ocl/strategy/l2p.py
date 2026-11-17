@@ -18,6 +18,7 @@ from torch import Tensor, nn
 from capymoa.base import BatchClassifier
 from capymoa.ocl.evaluation.events import TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
+from capymoa.ocl.util._module import HasModule, ModuleHolder
 from capymoa.stream import Schema
 
 
@@ -209,7 +210,7 @@ class _L2PModel(nn.Module):
         return self.head(features), cosine_distance
 
 
-class L2P(BatchClassifier, Handler):
+class L2P(HasModule, BatchClassifier, Handler):
     """Learning to Prompt.
 
     Learning to Prompt (L2P) [#f1]_ is a continual learning strategy that leverages a
@@ -294,6 +295,7 @@ class L2P(BatchClassifier, Handler):
             ),
             out_features=schema.get_num_classes(),
         ).to(self.device)
+        self._module = ModuleHolder(model=self._model)
         self._new_optimizer_fn = optimizer
         self._optimizer = self._new_optimizer()
         self._mask = task_mask.to(self.device)

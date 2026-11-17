@@ -8,6 +8,7 @@ from capymoa.base import BatchClassifier
 from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._buffer_list import BufferList
+from capymoa.ocl.util._module import HasModule
 from capymoa.ocl.util._optim import reset_optimizer_state
 from capymoa.ocl.util._replay import SlidingWindow
 from capymoa.stream._stream import Schema
@@ -87,7 +88,27 @@ def update_importance_(
         imp.mul_(alpha).add_(new_imp, alpha=1 - alpha)
 
 
-class MAS(BatchClassifier, nn.Module, Handler):
+class _MASModule(nn.Module):
+    """Torch state of MAS."""
+
+    def __init__(
+        self,
+        model: nn.Module,
+        task_mask: Tensor | None,
+        buffer: nn.Module,
+        anchor_params: BufferList,
+        importance: BufferList,
+    ) -> None:
+        super().__init__()
+        self.model = model
+        self.criterion = nn.CrossEntropyLoss()
+        self.buffer = buffer
+        self.anchor_params = anchor_params
+        self.importance = importance
+        self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
+
+
+class MAS(HasModule, BatchClassifier, Handler):
     """Memory Aware Synapses learner.
 
     Memory Aware Synapses (MAS) is a regularisation-based continual learning strategy
@@ -149,7 +170,6 @@ class MAS(BatchClassifier, nn.Module, Handler):
             or task-specific masking is requested without ``task_mask``.
         """
         super().__init__(schema, 0)
-        nn.Module.__init__(self)
         if device is None:
             device = torch.device("cpu")
         if (mask_train or mask_test) and task_mask is None:
@@ -173,8 +193,7 @@ class MAS(BatchClassifier, nn.Module, Handler):
         # Modules
         self._optimiser = optimiser
         self._model = model
-        self._criterion = torch.nn.CrossEntropyLoss()
-        self._buffer = SlidingWindow(
+        buffer = SlidingWindow(
             buffer_capacity,
             {
                 "x": ((schema.get_num_attributes(),), torch.float32),
@@ -183,23 +202,26 @@ class MAS(BatchClassifier, nn.Module, Handler):
         )
 
         # Buffers used by MAS regularisation
-        self._anchor_params = BufferList(
+        anchor_params = BufferList(
             [param.clone().detach() for param in trainable_params(model)]
         )
-        self._importance = BufferList(
+        importance = BufferList(
             [torch.zeros_like(param) for param in trainable_params(model)]
         )
 
         # Task tracking
         self._train_task = 0
         self._test_task = 0
-        if task_mask is None:
-            self._task_mask = None
-        else:
-            self._task_mask = nn.Buffer(task_mask)
 
-        # Move all model parameters and buffers to the specified device
-        self.to(device)
+        # All torch state lives in one private module
+        self._module = _MASModule(
+            model, task_mask, buffer, anchor_params, importance
+        ).to(device)
+        self._criterion = self._module.criterion
+        self._buffer = self._module.buffer
+        self._anchor_params = self._module.anchor_params
+        self._importance = self._module.importance
+        self._task_mask = self._module.task_mask
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         self._buffer.update(x=x, y=y)

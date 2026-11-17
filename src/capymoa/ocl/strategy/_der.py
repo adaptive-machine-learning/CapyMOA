@@ -4,11 +4,12 @@ import torch
 from torch import Tensor
 
 from capymoa.base import BatchClassifier
+from capymoa.ocl.util._module import HasModule, ModuleHolder
 from capymoa.ocl.util._replay import ReservoirSampler
 from capymoa.stream import Schema
 
 
-class DER(BatchClassifier):
+class DER(HasModule, BatchClassifier):
     """Dark Experience Replay.
 
     Dark Experience Replay (DER) [#f1]_ is a replay strategy. It stores the model
@@ -61,6 +62,7 @@ class DER(BatchClassifier):
         self._alpha = alpha
         self._substeps = substeps
         self._model = model.to(self.device)
+        self._module = ModuleHolder(model=self._model)
         self._optimiser = optimiser
         self._criterion = torch.nn.CrossEntropyLoss()
         self._logit_loss = torch.nn.MSELoss()

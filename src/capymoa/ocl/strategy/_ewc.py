@@ -8,6 +8,7 @@ from capymoa.base import BatchClassifier
 from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._buffer_list import BufferList
+from capymoa.ocl.util._module import HasModule
 from capymoa.ocl.util._replay import SlidingWindow
 from capymoa.stream._stream import Schema
 
@@ -106,7 +107,27 @@ def fd_compute(
     return fisher_diagonals
 
 
-class EWC(BatchClassifier, nn.Module, Handler):
+class _EWCModule(nn.Module):
+    """Torch state of EWC."""
+
+    def __init__(
+        self,
+        model: nn.Module,
+        task_mask: Tensor | None,
+        buffer: nn.Module,
+        anchor_params: BufferList,
+        fisher_diags: BufferList,
+    ) -> None:
+        super().__init__()
+        self.model = model
+        self.criterion = nn.CrossEntropyLoss()
+        self.buffer = buffer
+        self.anchor_params = anchor_params
+        self.fisher_diags = fisher_diags
+        self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
+
+
+class EWC(HasModule, BatchClassifier, Handler):
     """Elastic Weight Consolidation learner.
 
     Elastic Weight Consolidation (EWC) is a regularisation-based continual learning
@@ -164,7 +185,6 @@ class EWC(BatchClassifier, nn.Module, Handler):
         :raises ValueError: If task-specific masking is requested without ``task_mask``.
         """
         super().__init__(schema, 0)
-        nn.Module.__init__(self)
         if device is None:
             device = torch.device("cpu")
         if (mask_train or mask_test) and task_mask is None:
@@ -183,8 +203,7 @@ class EWC(BatchClassifier, nn.Module, Handler):
         # Modules
         self._optimiser = optimiser
         self._model = model
-        self._criterion = torch.nn.CrossEntropyLoss()
-        self._buffer = SlidingWindow(
+        buffer = SlidingWindow(
             fim_buffer,
             {
                 "x": ((schema.get_num_attributes(),), torch.float32),
@@ -193,23 +212,26 @@ class EWC(BatchClassifier, nn.Module, Handler):
         )
 
         # Buffers for anchoring the model
-        self._anchor_params = BufferList(
+        anchor_params = BufferList(
             [param.clone().detach() for param in model.parameters()]
         )
-        self._fisher_diags = BufferList(
+        fisher_diags = BufferList(
             [torch.zeros_like(param) for param in model.parameters()]
         )
 
         # Task tracking
         self._train_task = 0
         self._test_task = 0
-        if task_mask is None:
-            self._task_mask = None
-        else:
-            self._task_mask = nn.Buffer(task_mask)
 
-        # Move all model parameters and buffers to the specified device
-        self.to(device)
+        # All torch state lives in one private module
+        self._module = _EWCModule(
+            model, task_mask, buffer, anchor_params, fisher_diags
+        ).to(device)
+        self._criterion = self._module.criterion
+        self._buffer = self._module.buffer
+        self._anchor_params = self._module.anchor_params
+        self._fisher_diags = self._module.fisher_diags
+        self._task_mask = self._module.task_mask
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         self._buffer.update(x=x, y=y)
