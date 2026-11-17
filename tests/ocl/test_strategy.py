@@ -60,6 +60,8 @@ class Case:
     torch: bool = True
     # Meta forward pass cannot run, with the reason (strict xfail).
     meta_xfail: str | None = None
+    # State outside ``module`` changes predictions after a load (strict xfail).
+    restore_xfail: str | None = None
 
 
 def pre_processor() -> nn.Module:
@@ -205,6 +207,7 @@ TEST_CASES: list[Case] = [
         lambda s, **kw: RanPAC(s, projection_dim=512, **kw),
         Result(80.0, 48.0, 62.4),
         meta_xfail="boolean mask indexing needs real values",
+        restore_xfail="sample count is a plain int and weights are cached",
     ),
     Case(
         "NCM",
@@ -234,6 +237,7 @@ TEST_CASES: list[Case] = [
         _new_scr,
         Result(65.0, 44.8, 63.6),
         meta_xfail="loss logging calls .item()",
+        restore_xfail="replay buffer count is a plain int",
     ),
     Case(
         "DERPP",
@@ -362,6 +366,17 @@ META_CASES = [
     for c in TEST_CASES
     if c.torch
 ]
+RESTORE_CASES = [
+    pytest.param(
+        c,
+        id=c.name,
+        marks=[pytest.mark.xfail(strict=True, reason=c.restore_xfail)]
+        if c.restore_xfail
+        else [],
+    )
+    for c in TEST_CASES
+    if c.torch
+]
 
 
 @pytest.mark.parametrize("case", ACCURACY_CASES)
@@ -469,18 +484,20 @@ def test_no_nn_module_surface(case: Case):
         assert not hasattr(learner, name), name
 
 
-@pytest.mark.parametrize("case", TORCH_CASES)
+@pytest.mark.parametrize("case", RESTORE_CASES)
 def test_state_dict_round_trip(case: Case):
-    trained, fresh = _build(case), _build(case)
+    """A checkpoint of ``module`` holds all state needed to predict."""
+    trained, other = _build(case), _build(case)
     x, y = _batch(trained)
     for _ in range(3):
         trained.batch_train(x, y)
-    fresh.module.load_state_dict(trained.module.state_dict())
-    expected = trained.module.state_dict()
-    actual = fresh.module.state_dict()
-    assert actual.keys() == expected.keys()
-    for k, v in actual.items():
-        torch.testing.assert_close(v, expected[k])
+    # Train ``other`` on different data, so a load that misses state shows up.
+    other.batch_train(*_batch(other, n=8))
+    other.module.load_state_dict(trained.module.state_dict())
+    with torch.no_grad():
+        torch.testing.assert_close(
+            other.batch_predict_proba(x), trained.batch_predict_proba(x)
+        )
 
 
 @pytest.mark.parametrize("case", TORCH_CASES)
