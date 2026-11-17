@@ -267,7 +267,7 @@ class L2P(TorchMixin, BatchClassifier, Handler):
         optimizer: Callable[[Any], torch.optim.Optimizer] = lambda params: (
             torch.optim.Adam(params, lr=0.01)
         ),
-        device: str = "cpu",
+        device: torch.device | str = "cpu",
         random_seed: int = 1,
     ):
         """Construct L2P learner.
@@ -290,7 +290,6 @@ class L2P(TorchMixin, BatchClassifier, Handler):
         if isinstance(vit, str):
             vit = _HuggingFaceAdapter(vit)
 
-        self.device = torch.device(device)
         self._num_tasks = task_mask.size(0)
         self._pull_constraint_coeff = pull_constraint_coeff
         model = _L2PModel(
@@ -304,7 +303,8 @@ class L2P(TorchMixin, BatchClassifier, Handler):
             ),
             out_features=schema.get_num_classes(),
         )
-        self._module = _L2PModule(model, task_mask).to(self.device)
+        self._module = _L2PModule(model, task_mask).to(device)
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         self._new_optimizer_fn = optimizer
         self._optimizer = self._new_optimizer()
         self._train_task = 0

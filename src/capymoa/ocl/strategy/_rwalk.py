@@ -181,7 +181,7 @@ class RWalk(TorchMixin, BatchClassifier, Handler):
         lambda_: float,
         alpha: float = 0.9,
         delta_t: int = 10,
-        device: torch.device | None = None,
+        device: torch.device | str = "cpu",
         mask_test: bool = False,
         mask_train: bool = False,
         task_mask: Tensor | None = None,
@@ -207,8 +207,7 @@ class RWalk(TorchMixin, BatchClassifier, Handler):
             ``task_mask``.
         """
         super().__init__(schema, 0)
-        if device is None:
-            device = torch.device("cpu")
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         if (mask_train or mask_test) and task_mask is None:
             raise ValueError(
                 "Task schedule must be provided for task incremental or labels trick scenarios."
@@ -219,8 +218,6 @@ class RWalk(TorchMixin, BatchClassifier, Handler):
             raise ValueError("alpha must be in [0, 1].")
         if delta_t < 1:
             raise ValueError("delta_t must be at least 1.")
-
-        self.device = device
 
         # Hyperparameters
         self._lambda = lambda_

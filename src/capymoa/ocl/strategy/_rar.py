@@ -94,23 +94,36 @@ class RAR(BatchClassifier, Handler):
         self.repeats = repeats
         self.coreset = ReservoirSampler(
             coreset_size,
-            {"x": ((num_features,), torch.float32), "y": ((), torch.long)},
+            {"x": ((num_features,), learner.x_dtype), "y": ((), torch.long)},
             rng=torch.Generator().manual_seed(learner.random_seed),
-        )
+        ).to(learner.device)
         self.shape = learner.schema.shape
+
+    @property
+    def device(self) -> torch.device:
+        """Device of the wrapped learner."""
+        return self.learner.device
+
+    @property
+    def x_dtype(self) -> torch.dtype:
+        """Feature dtype of the wrapped learner."""
+        return self.learner.x_dtype
+
+    @property
+    def y_dtype(self) -> torch.dtype:
+        """Label dtype of the wrapped learner."""
+        return self.learner.y_dtype
 
     def train_step(self, x_fresh: Tensor, y_fresh: Tensor) -> None:
         # Sample from reservoir and augment the data
         n = x_fresh.shape[0]
         replay = self.coreset.sample(n)
-        x = torch.cat((x_fresh, replay["x"]), dim=0).to(self.device, self.x_dtype)
-        y = torch.cat((y_fresh, replay["y"]), dim=0).to(self.device, self.y_dtype)
+        x = torch.cat((x_fresh, replay["x"]), dim=0)
+        y = torch.cat((y_fresh, replay["y"]), dim=0)
         x = x.view(-1, *self.shape)
         x: Tensor = self.augment(x)
 
         # Train the learner
-        x = x.to(self.learner.device, self.learner.x_dtype)
-        y = y.to(self.learner.device, self.learner.y_dtype)
         self.learner.batch_train(x, y)
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
@@ -120,7 +133,6 @@ class RAR(BatchClassifier, Handler):
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        x = x.to(self.learner.device, self.learner.x_dtype)
         return self.learner.batch_predict_proba(x)
 
     def attach_with(self, source: Dispatcher) -> "RAR":

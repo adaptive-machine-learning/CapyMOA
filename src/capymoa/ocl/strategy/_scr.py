@@ -9,7 +9,6 @@ from torch import Tensor, nn
 from torch.optim import Optimizer
 
 from capymoa.base import BatchClassifier
-from capymoa.core import Instance, LabelProbabilities
 from capymoa.ocl.evaluation.events import TrainTaskEnd
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._module import TorchMixin
@@ -169,7 +168,6 @@ class SCR(TorchMixin, BatchClassifier, Handler):
                 raise ValueError(f"{name} must be finite and positive")
         if not callable(augment):
             raise TypeError("augment must be callable")
-        self.device = torch.device(device)
         self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         self._shape = tuple(schema.shape)
         self._num_features = schema.get_num_attributes()
@@ -192,7 +190,7 @@ class SCR(TorchMixin, BatchClassifier, Handler):
         )
         self._module = _SCRModule(
             model, buffer, _SupervisedContrastiveLoss(temperature), augment
-        ).to(self.device)
+        ).to(device)
         self._substeps = substeps
         self._replay_batch_size = replay_batch_size
         self._feature_batch_size = feature_batch_size
@@ -211,7 +209,7 @@ class SCR(TorchMixin, BatchClassifier, Handler):
         x = x.reshape(x.shape[0], -1)
         if x.shape[1] != self._num_features:
             raise ValueError("feature count does not match the schema")
-        return x.to(device=self.device, dtype=self.x_dtype).reshape(-1, *self._shape)
+        return x.reshape(-1, *self._shape)
 
     def _encode(self, x: Tensor) -> Tensor:
         features = self._module.model.feature_extractor(x)
@@ -245,7 +243,6 @@ class SCR(TorchMixin, BatchClassifier, Handler):
         current_x = self._prepare_x(x)
         if y.shape != (x.shape[0],):
             raise ValueError("y must contain one class index per input row")
-        y = y.to(device=self.device, dtype=self.y_dtype)
         if ((y < 0) | (y >= self._num_classes)).any():
             raise ValueError("class index is outside the schema")
         losses = []
@@ -313,15 +310,6 @@ class SCR(TorchMixin, BatchClassifier, Handler):
             -torch.cdist(query, prototypes).square() / self._ncm_temperature
         )
         return scores.softmax(1)
-
-    def predict_proba(self, instance: Instance) -> LabelProbabilities:
-        """Return single-instance scores as a CPU NumPy array."""
-        return (
-            self.batch_predict_proba(torch.as_tensor(instance.x).reshape(1, -1))
-            .to(device="cpu", dtype=torch.float64)
-            .numpy()
-            .reshape(-1)
-        )
 
     def attach_with(self, source: Dispatcher) -> "SCR":
         """Attach optional review to the existing task-end event, once per source."""

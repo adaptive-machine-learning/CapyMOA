@@ -143,7 +143,7 @@ class MAS(TorchMixin, BatchClassifier, Handler):
         alpha: float = 0.5,
         buffer_capacity: int = 256,
         importance_batch_size: int = 32,
-        device: torch.device | None = None,
+        device: torch.device | str = "cpu",
         mask_test: bool = False,
         mask_train: bool = False,
         task_mask: Tensor | None = None,
@@ -170,8 +170,7 @@ class MAS(TorchMixin, BatchClassifier, Handler):
             or task-specific masking is requested without ``task_mask``.
         """
         super().__init__(schema, 0)
-        if device is None:
-            device = torch.device("cpu")
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         if (mask_train or mask_test) and task_mask is None:
             raise ValueError(
                 "Task schedule must be provided for task incremental or labels trick scenarios."
@@ -180,8 +179,6 @@ class MAS(TorchMixin, BatchClassifier, Handler):
             raise ValueError("lambda_ must be non-negative.")
         if not (0.0 <= alpha <= 1.0):
             raise ValueError("alpha must be in [0, 1].")
-
-        self.device = device
 
         # Hyperparameters
         self._lambda = lambda_
@@ -195,7 +192,7 @@ class MAS(TorchMixin, BatchClassifier, Handler):
         buffer = SlidingWindow(
             buffer_capacity,
             {
-                "x": ((schema.get_num_attributes(),), torch.float32),
+                "x": ((schema.get_num_attributes(),), self.x_dtype),
                 "y": ((), torch.long),
             },
         )

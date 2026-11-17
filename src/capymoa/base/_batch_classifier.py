@@ -135,4 +135,5 @@ class BatchClassifier(Classifier, Batch, ABC):
         """Calls :func:`batch_predict_proba` with a batch of size 1."""
         x = torch.from_numpy(instance.x.reshape(1, -1))
         x = x.to(self.device, self.x_dtype)
-        return self.batch_predict_proba(x).flatten().numpy().astype(np.float64)
+        proba = self.batch_predict_proba(x).flatten()
+        return proba.detach().cpu().numpy().astype(np.float64)

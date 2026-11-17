@@ -42,7 +42,7 @@ class LWF(TorchMixin, BatchClassifier, Handler):
         optimiser: torch.optim.Optimizer,
         alpha: float = 1.0,
         temperature: float = 2.0,
-        device: torch.device | None = None,
+        device: torch.device | str = "cpu",
         mask_test: bool = False,
         mask_train: bool = False,
         task_mask: Tensor | None = None,
@@ -64,8 +64,7 @@ class LWF(TorchMixin, BatchClassifier, Handler):
             or task-specific masking is requested without ``task_mask``.
         """
         super().__init__(schema, 0)
-        if device is None:
-            device = torch.device("cpu")
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         if alpha < 0:
             raise ValueError("alpha must be non-negative.")
         if temperature <= 0:
@@ -74,8 +73,6 @@ class LWF(TorchMixin, BatchClassifier, Handler):
             raise ValueError(
                 "Task schedule must be provided for task incremental or labels trick scenarios."
             )
-
-        self.device = device
 
         self._alpha = alpha
         self._temperature = temperature

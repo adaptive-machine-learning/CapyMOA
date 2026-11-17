@@ -74,7 +74,7 @@ class DER(TorchMixin, BatchClassifier):
         if substeps <= 0:
             raise ValueError("substeps must be greater than zero.")
 
-        self.device = torch.device(device)
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         self._alpha = alpha
         self._substeps = substeps
         self._optimiser = optimiser
@@ -82,7 +82,7 @@ class DER(TorchMixin, BatchClassifier):
         buffer = ReservoirSampler(
             buffer_capacity,
             {
-                "x": ((schema.get_num_attributes(),), torch.float32),
+                "x": ((schema.get_num_attributes(),), self.x_dtype),
                 "z": ((schema.get_num_classes(),), torch.float32),
                 "y": ((), torch.long),
             },
@@ -90,7 +90,7 @@ class DER(TorchMixin, BatchClassifier):
         )
         self._module = _DERModule(
             model, buffer, augment if augment is not None else (lambda x: x)
-        ).to(self.device)
+        ).to(device)
 
     def _train_step(self, x: Tensor, y: Tensor, update_buffer: bool) -> None:
         self._optimiser.zero_grad()
@@ -101,8 +101,8 @@ class DER(TorchMixin, BatchClassifier):
         # Sample before the update, so a batch is not replayed against itself.
         if self._module.buffer.count > 0:
             replay = self._module.buffer.sample(n)
-            xp = replay["x"].to(self.device).view(-1, *self._shape)
-            zp = replay["z"].to(self.device)
+            xp = replay["x"].view(-1, *self._shape)
+            zp = replay["z"]
             loss = loss + self._alpha * self._module.logit_loss(
                 self._module.model(self._module.augment(xp)), zp
             )
@@ -113,8 +113,6 @@ class DER(TorchMixin, BatchClassifier):
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         """Train on a batch (Algorithm 1 of the DER paper)."""
-        x = x.to(self.device, self.x_dtype)
-        y = y.to(self.device, self.y_dtype)
         self._module.model.train()
         for i in range(self._substeps):
             self._train_step(x, y, update_buffer=i == 0)
@@ -122,7 +120,7 @@ class DER(TorchMixin, BatchClassifier):
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
         self._module.model.eval()
-        x = x.to(self.device, self.x_dtype).view(-1, *self._shape)
+        x = x.view(-1, *self._shape)
         return torch.softmax(self._module.model(x), dim=1)
 
     def __str__(self) -> str:

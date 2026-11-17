@@ -57,12 +57,27 @@ class ExperienceReplay(BatchClassifier, Handler):
         self._buffer = ReservoirSampler(
             capacity=buffer_size,
             shape={
-                "x": ((self.schema.get_num_attributes(),), torch.float32),
+                "x": ((self.schema.get_num_attributes(),), learner.x_dtype),
                 "y": ((), torch.long),
             },
             rng=torch.Generator().manual_seed(learner.random_seed),
-        )
+        ).to(learner.device)
         self.repeat = repeat
+
+    @property
+    def device(self) -> torch.device:
+        """Device of the wrapped learner."""
+        return self.learner.device
+
+    @property
+    def x_dtype(self) -> torch.dtype:
+        """Feature dtype of the wrapped learner."""
+        return self.learner.x_dtype
+
+    @property
+    def y_dtype(self) -> torch.dtype:
+        """Label dtype of the wrapped learner."""
+        return self.learner.y_dtype
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         # update the buffer with the new data
@@ -73,12 +88,9 @@ class ExperienceReplay(BatchClassifier, Handler):
             replay = self._buffer.sample(x.shape[0])
             train_x = torch.cat((x, replay["x"]), dim=0)
             train_y = torch.cat((y, replay["y"]), dim=0)
-            train_x = train_x.to(self.learner.device, dtype=self.learner.x_dtype)
-            train_y = train_y.to(self.learner.device, dtype=self.learner.y_dtype)
             self.learner.batch_train(train_x, train_y)
 
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        x = x.to(self.learner.device, dtype=self.learner.x_dtype)
         return self.learner.batch_predict_proba(x)
 
     def attach_with(self, source: Dispatcher) -> "ExperienceReplay":

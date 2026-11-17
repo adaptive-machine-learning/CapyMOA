@@ -6,7 +6,6 @@ from math import isfinite
 import torch
 from torch import Tensor, nn
 
-from capymoa.core import Instance, LabelProbabilities
 from capymoa.stream import Schema
 
 from ._der import DER
@@ -112,14 +111,14 @@ class DERPP(DER):
         loss = self._module.criterion(z, y)
         if self._module.buffer.count > 0:
             dark_replay = self._module.buffer.sample(n)
-            xp = dark_replay["x"].to(self.device).view(-1, *self._shape)
-            zp = dark_replay["z"].to(self.device)
+            xp = dark_replay["x"].view(-1, *self._shape)
+            zp = dark_replay["z"]
             loss = loss + self._alpha * self._module.logit_loss(
                 self._module.model(self._module.augment(xp)), zp
             )
             label_replay = self._module.buffer.sample(n)
-            xp = label_replay["x"].to(self.device).view(-1, *self._shape)
-            yp = label_replay["y"].to(self.device)
+            xp = label_replay["x"].view(-1, *self._shape)
+            yp = label_replay["y"]
             loss = loss + self._beta * self._module.criterion(
                 self._module.model(self._module.augment(xp)), yp
             )
@@ -129,16 +128,6 @@ class DERPP(DER):
             self._module.buffer.update(x=x, z=stored_z, y=y)
         loss.backward()
         self._optimiser.step()
-
-    def predict_proba(self, instance: Instance) -> LabelProbabilities:
-        """Return single-instance probabilities on CPU, including for GPU models."""
-        x = torch.as_tensor(instance.x).reshape(1, -1)
-        return (
-            self.batch_predict_proba(x)
-            .to(device="cpu", dtype=torch.float64)
-            .numpy()
-            .reshape(-1)
-        )
 
     def __str__(self) -> str:
         return (

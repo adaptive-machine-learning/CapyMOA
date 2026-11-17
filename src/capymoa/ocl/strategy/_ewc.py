@@ -162,7 +162,7 @@ class EWC(TorchMixin, BatchClassifier, Handler):
         lambda_: float,
         fim_buffer: int = 256,
         fim_batch_size: int = 32,
-        device: torch.device | None = None,
+        device: torch.device | str = "cpu",
         mask_test: bool = False,
         mask_train: bool = False,
         gamma: float = 1.0,
@@ -185,13 +185,11 @@ class EWC(TorchMixin, BatchClassifier, Handler):
         :raises ValueError: If task-specific masking is requested without ``task_mask``.
         """
         super().__init__(schema, 0)
-        if device is None:
-            device = torch.device("cpu")
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         if (mask_train or mask_test) and task_mask is None:
             raise ValueError(
                 "Task schedule must be provided for task incremental or labels trick scenarios."
             )
-        self.device = device
 
         # Hyperparameters
         self._lambda = lambda_
@@ -205,7 +203,7 @@ class EWC(TorchMixin, BatchClassifier, Handler):
         buffer = SlidingWindow(
             fim_buffer,
             {
-                "x": ((schema.get_num_attributes(),), torch.float32),
+                "x": ((schema.get_num_attributes(),), self.x_dtype),
                 "y": ((), torch.long),
             },
         )
