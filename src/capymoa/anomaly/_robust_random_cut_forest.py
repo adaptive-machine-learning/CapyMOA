@@ -288,24 +288,6 @@ class RCTree:
             node = self.root
         return self._query(point, node)
 
-    def disp(self, leaf):
-        if not isinstance(leaf, RCLeaf):
-            try:
-                leaf = self.leaves[leaf]
-            except KeyError:
-                raise KeyError("leaf must be a Leaf instance or key to self.leaves")
-        if leaf is self.root:
-            return 0
-
-        parent = leaf.up
-        assert parent is not None
-        if leaf is parent.left:
-            sibling = parent.right
-        else:
-            sibling = parent.left
-        displacement = sibling.mass
-        return displacement
-
     def codisp(self, leaf):
         if not isinstance(leaf, RCLeaf):
             try:
@@ -334,49 +316,6 @@ class RCTree:
             node = parent
         co_displacement = max(results)
         return co_displacement
-
-    def codisp_with_cut_dimension(self, leaf):
-        if not isinstance(leaf, RCLeaf):
-            try:
-                leaf = self.leaves[leaf]
-            except KeyError:
-                raise KeyError("leaf must be a Leaf instance or key to self.leaves")
-
-        if leaf is self.root:
-            return 0
-        node = leaf
-        results = []
-        cut_dimensions = []
-
-        assert node.depth is not None
-        for _ in range(node.depth):
-            parent = node.up
-            if parent is None:
-                break
-            if node is parent.left:
-                sibling = parent.right
-            else:
-                sibling = parent.left
-            num_deleted = node.mass
-            displacement = sibling.mass
-            result = displacement / num_deleted
-            results.append(result)
-            cut_dimensions.append(parent.feature)
-            node = parent
-        argmax = np.argmax(results)
-
-        return results[argmax], cut_dimensions[argmax]
-
-    def get_bbox(self, branch=None):
-        if branch is None:
-            branch = self.root
-
-        assert self.num_attributes is not None, "Tree dimensions not initialized"
-        mins = np.full(self.num_attributes, np.inf)
-        maxes = np.full(self.num_attributes, -np.inf)
-        self.map_leaves(branch, op=self._get_bbox, mins=mins, maxes=maxes)
-        bbox = np.vstack([mins, maxes])
-        return bbox
 
     def find_duplicate(self, instance, tolerance=None):
         point = instance.x
@@ -418,12 +357,6 @@ class RCTree:
             assert node.right is not None
             node.mass = node.left.mass + node.right.mass
 
-    def _count_leaves(self, node):
-        num_leaves = np.array(0, dtype=np.int64)
-        self.map_leaves(node, op=self._accumulate, accumulator=num_leaves)
-        num_leaves = num_leaves.item()
-        return num_leaves
-
     def _query(self, point, node):
         if isinstance(node, RCLeaf):
             return node
@@ -435,18 +368,6 @@ class RCTree:
 
     def _increment_depth(self, node, inc=1):
         node.depth += inc
-
-    def _accumulate(self, node, accumulator):
-        accumulator += node.mass
-
-    def _get_nodes(self, node, stack):
-        stack.append(node)
-
-    def _get_bbox(self, instance, mins, maxes):
-        lt = instance.x < mins
-        gt = instance.x > maxes
-        mins[lt] = instance.x[lt]
-        maxes[gt] = instance.x[gt]
 
     def _tighten_bbox_upwards(self, node):
         bbox = self._lr_branch_bbox(node)
