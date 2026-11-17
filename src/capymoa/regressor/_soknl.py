@@ -1,9 +1,12 @@
 # Library imports
 
+from typing import Literal
+
 from moa.classifiers.meta import SelfOptimisingKNearestLeaves as _MOA_SOKNL
 
 from capymoa.base import MOARegressor
 from capymoa.core.moa._cli import cli_str_regressor
+from capymoa.stream import Schema
 
 from ._soknl_base_tree import SOKNLBT
 
@@ -45,19 +48,19 @@ class SOKNL(MOARegressor):
 
     def __init__(
         self,
-        schema=None,
-        tree_learner=None,
-        ensemble_size=100,
-        max_features=0.6,
-        lambda_param=6.0,  # m_features_mode=None, m_features_per_tree_size=60,
-        drift_detection_method=None,
-        warning_detection_method=None,
-        disable_drift_detection=False,
-        disable_background_learner=False,
-        disable_self_optimising=False,
-        k_value=10,
+        schema: Schema | None = None,
+        tree_learner: MOARegressor | str | None = None,
+        ensemble_size: int = 100,
+        max_features: float | Literal["sqrt"] | None = 0.6,
+        lambda_param: float = 6.0,
+        drift_detection_method: str | None = None,
+        warning_detection_method: str | None = None,
+        disable_drift_detection: bool = False,
+        disable_background_learner: bool = False,
+        disable_self_optimising: bool = False,
+        k_value: int = 10,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a SOKNL regressor.
 
         :param schema: Describes the stream's structure and types.
@@ -89,7 +92,7 @@ class SOKNL(MOARegressor):
 
         if tree_learner is None:
             self.tree_learner = SOKNLBT(schema, grace_period=50, split_confidence=0.01)
-        elif type(tree_learner) is str:
+        elif isinstance(tree_learner, str):
             self.tree_learner = tree_learner
         else:
             self.tree_learner = cli_str_regressor(tree_learner)
@@ -113,8 +116,6 @@ class SOKNL(MOARegressor):
             # Handle other cases or raise an exception if needed
             raise ValueError("Invalid value for max_features")
 
-        # self.m_features_mode = "(Percentage (M * (m / 100)))" if m_features_mode is None else m_features_mode
-        # self.m_features_per_tree_size = m_features_per_tree_size
         self.lambda_param = lambda_param
         self.drift_detection_method = (
             "(ADWINChangeDetector -a 1.0E-3)"
