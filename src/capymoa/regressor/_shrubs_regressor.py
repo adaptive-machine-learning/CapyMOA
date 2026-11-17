@@ -53,7 +53,7 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
         batch_size: int = 32,
         sk_dt: DecisionTreeRegressor | None = None,
     ):
-        """Construct a ShrubsRegressor.
+        """Initializes the ShrubEnsemble regressor with the given parameters.
 
         :param schema: Describes the stream's structure and types.
         :param step_size: The step size (i.e. learning rate of SGD) for updating

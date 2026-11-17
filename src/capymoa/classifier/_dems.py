@@ -51,35 +51,28 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
         disable_self_optimising: bool = False,
         random_seed: int | None = None,
     ):
-        """Construct a DynamicEnsembleMemberSelection classifier.
+        """Dynamic Ensemble Member Selection (DEMS) Classifier.
 
         :param schema: Describes the stream's structure and types.
-        :param ensemble_class: Which ensemble to use (``"StreamingRandomPatches"`` or
-            ``"AdaptiveRandomForest"``).
-        :param base_learner: The base learner to use (used by SRP).
-        :param tree_learner: The tree learner to use (only used by ARF, cannot be
-            changed).
-        :param ensemble_size: The number of members in the ensemble.
-        :param max_features: The subspace size for each ensemble member.
-            If a float between 0.0 and 1.0, it is the fraction of features (0.6 is 60%).
-            If an integer, it is the exact number of features.
-            If ``"sqrt"``, it is the square root of the number of features plus 1.
-            If ``None``, 60% of the features are used.
-        :param training_method: ``"RandomSubspaces"``, ``"Resampling"`` or
-            ``"RandomPatches"`` (SRP).
-        :param lambda_param: The lambda parameter that controls the Poisson
-            distribution for the online bagging simulation.
-        :param number_of_jobs: The number of parallel jobs for ARF (-1 is as many as
-            possible).
-        :param drift_detection_method: The method used for drift detection.
-        :param warning_detection_method: The method used for warning detection.
-        :param disable_weighted_vote: Whether to disable accuracy-weighted voting.
-        :param disable_drift_detection: Whether to disable drift detection (and
-            background learners).
-        :param disable_background_learner: Whether to disable background learning.
-        :param k_value: The fixed K for DEMS when self-optimising is disabled.
-        :param disable_self_optimising: Whether to use the fixed ``k_value`` instead
-            of self-optimising.
+        :param ensemble_class: which ensemble to use ("StreamingRandomPatches" or "AdaptiveRandomForest").
+        :param base_learner: base classifier (used by SRP).
+        :param tree_learner: ARF tree learner (only used by ARF, cannot be changed).
+        :param ensemble_size: number of ensemble members.
+        :param max_features: subspace size configuration, similar to SRP:
+            float in [0, 1]: percentage of features (e.g. 0.6 = 60%).
+            int: exact number of features.
+            "sqrt": use sqrt(M)+1.
+            None: default (60%).
+        :param training_method: "RandomSubspaces", "Resampling", or "RandomPatches" (SRP).
+        :param lambda_param: Poisson lambda for bagging.
+        :param number_of_jobs: number of parallel jobs for ARF (-1 = as many as possible).
+        :param drift_detection_method: Drift detector.
+        :param warning_detection_method: Warning detector.
+        :param disable_weighted_vote: if True, disables accuracy-weighted voting.
+        :param disable_drift_detection: if True, turns off drift detectors (and bkg learners).
+        :param disable_background_learner: if True, turns off background learners.
+        :param k_value: fixed K for DEMS when self-optimising is disabled.
+        :param disable_self_optimising: if True, use the fixed k_value instead of self-optimising.
         :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         ensemble_class_map = {

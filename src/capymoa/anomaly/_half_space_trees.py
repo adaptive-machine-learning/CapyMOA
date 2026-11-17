@@ -54,7 +54,7 @@ class HalfSpaceTrees(MOAAnomalyDetector):
         """Construct a Half-Space Trees anomaly detector
 
         :param schema: Describes the stream's structure and types.
-        :param window_size: The size of the landmark window used by each tree.
+        :param window_size: The size of the window for each tree.
         :param number_of_trees: The number of trees in the ensemble.
         :param max_depth: The maximum depth of each tree.
         :param anomaly_threshold: Threshold (as a fraction of the maximum mass value)

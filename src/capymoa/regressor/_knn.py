@@ -38,10 +38,9 @@ class KNNRegressor(MOARegressor):
         """Construct a KNNRegressor.
 
         :param schema: Describes the stream's structure and types.
-        :param k: The number of neighbors.
-        :param median: Whether to use the median instead of the mean to combine the
-            neighbors' targets.
-        :param window_size: The maximum number of instances to store.
+        :param k: the number of the neighbours.
+        :param median: choose to use mean or median as the aggregation for the final prediction.
+        :param window_size: the size of the sliding window to store the instances.
         :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 

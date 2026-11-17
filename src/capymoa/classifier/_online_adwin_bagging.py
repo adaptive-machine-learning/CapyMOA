@@ -70,16 +70,13 @@ class OnlineAdwinBagging(MOAClassifier):
         number_of_jobs=None,
         random_seed: int | None = None,
     ):
-        """Construct an OnlineAdwinBagging classifier.
+        """Constructor for online ADWIN bagging.
 
         :param schema: Describes the stream's structure and types.
-        :param base_learner: The base learner to use. If not provided, a default
-            Hoeffding Tree is used.
-        :param ensemble_size: The number of members in the ensemble.
-        :param minibatch_size: The number of instances that a learner must accumulate
-            before training.
-        :param number_of_jobs: The number of parallel jobs to run during the execution
-            of the algorithm. By default, tasks run sequentially.
+        :param base_learner: The base learner to use. If not provided, a default Hoeffding Tree is used.
+        :param ensemble_size: The number of trees in the ensemble.
+        :param minibatch_size: The number of instances a learner accumulates before training.
+        :param number_of_jobs: The number of parallel jobs. By default, tasks run sequentially.
         :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 

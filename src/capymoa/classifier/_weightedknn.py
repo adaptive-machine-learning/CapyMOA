@@ -26,7 +26,7 @@ class WeightedkNN(MOAClassifier):
     """
 
     def __init__(self, schema: Schema, k: int = 10, limit: int = 1000):
-        """Construct a WeightedkNN classifier.
+        """Weighted KNN Classifier
 
         :param schema: Describes the stream's structure and types.
         :param k: The number of neighbors.

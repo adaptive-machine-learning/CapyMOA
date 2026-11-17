@@ -53,7 +53,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
         allow_abstaining: bool = True,
         random_seed: int | None = None,
     ):
-        """Construct a ShrubsClassifier.
+        """Initializes the ShrubEnsemble classifier with the given parameters.
 
         :param schema: Describes the stream's structure and types.
         :param loss: The loss function to be used. Supported values are ``"mse"``,
