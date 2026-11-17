@@ -34,7 +34,7 @@ class FeatureModel(nn.Module, ABC):
 class ProjectionModel(FeatureModel):
     """A :class:`FeatureModel` with a projection head for contrastive losses.
 
-    The head is for training only. :meth:`forward` is not used by SCR.
+    The head is for training only. ``forward`` is not used by SCR.
     """
 
     @abstractmethod
