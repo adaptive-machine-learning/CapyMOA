@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+import jpype
 from moa.classifiers.meta import StreamingGradientBoostedTrees as _MOA_SGBT
 
-from capymoa._utils import build_cli_str_from_mapping_and_locals
-from capymoa.base import (
-    MOAClassifier,
-)
+from capymoa.base import MOAClassifier, MOARegressor
+from capymoa.base._seed import resolve_seed
 from capymoa.stream import Schema
 
 
@@ -22,14 +21,15 @@ class StreamingGradientBoostedTrees(MOAClassifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = StreamingGradientBoostedTrees(stream.get_schema())
+    >>> classifier = StreamingGradientBoostedTrees(stream.get_schema(), random_seed=0)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     86.3
     >>> learner = StreamingGradientBoostedTrees(
     ...     stream.get_schema(),
     ...     base_learner='meta.AdaptiveRandomForestRegressor -s 10',
-    ...     boosting_iterations=10
+    ...     boosting_iterations=10,
+    ...     random_seed=0,
     ... )
     >>> results = evaluate_classifier(stream, learner, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
@@ -43,7 +43,7 @@ class StreamingGradientBoostedTrees(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int = 0,
+        random_seed: int | None = None,
         base_learner="trees.FIMTDD -s VarianceReductionSplitCriterion -g 25 -c 0.05 -e -p",
         boosting_iterations: int = 100,
         percentage_of_features: int = 75,
@@ -67,26 +67,28 @@ class StreamingGradientBoostedTrees(MOAClassifier):
         :param use_squared_loss: Whether to use squared loss for classification.
         """
 
-        mapping = {
-            "base_learner": "-l",
-            "boosting_iterations": "-s",
-            "percentage_of_features": "-m",
-            "learning_rate": "-L",
-            "disable_one_hot": "-H",
-            "multiply_hessian_by": "-M",
-            "skip_training": "-S",
-            "use_squared_loss": "-K",
-            "random_seed": "-r",
+        random_seed = resolve_seed(random_seed)
+        if not isinstance(
+            base_learner, (str, MOAClassifier, MOARegressor, jpype.JObject)
+        ):
+            # MOA copies the base learner with Java serialization, which the
+            # proxies for Python learners do not support.
+            raise TypeError("SGBT needs a MOA base learner, not a Python learner.")
+
+        options = {
+            "baseLearner": base_learner,
+            "numberOfboostingIterations": boosting_iterations,
+            "percentageOfAttributesForEachBoostingIteration": percentage_of_features,
+            "learningRate": learning_rate,
+            "disableOneHotEncoding": disable_one_hot,
+            "multipleIterationByCeilingOfHessianTimesM": multiply_hessian_by,
+            "randomlySkip1SthOfInstancesAtTraining": skip_training,
+            "useSquaredLossForClassification": use_squared_loss,
+            "randomSeed": random_seed,
         }
-
-        assert isinstance(base_learner, str), (
-            "Only MOA CLI strings are supported for SGBT base_learner, at the moment."
-        )
-
-        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super().__init__(
             moa_learner=_MOA_SGBT,
             schema=schema,
-            CLI=config_str,
             random_seed=random_seed,
+            options=options,
         )

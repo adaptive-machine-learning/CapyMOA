@@ -24,6 +24,7 @@ class Finetune(BatchClassifier):
     ...     model=Perceptron,
     ...     optimizer=Adam,
     ...     optimizer_params={"lr": 0.01},
+    ...     random_seed=0,
     ... )
     >>> results = evaluate_classifier(stream, learner, batch_size=32)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
@@ -37,6 +38,7 @@ class Finetune(BatchClassifier):
     ...     schema=stream.get_schema(),
     ...     model=model,
     ...     optimizer=optimizer,
+    ...     random_seed=0,
     ... )
     >>> results = evaluate_classifier(stream, learner, batch_size=32)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
@@ -53,7 +55,7 @@ class Finetune(BatchClassifier):
         optimizer_params: dict[str, Any] | None = None,
         criterion: nn.Module | None = None,
         device: device | str = "cpu",
-        random_seed: int = 0,
+        random_seed: int | None = None,
     ) -> None:
         """Construct a learner to finetune a neural network.
 
@@ -80,7 +82,7 @@ class Finetune(BatchClassifier):
         if criterion is None:
             criterion = nn.CrossEntropyLoss()
         # seed for reproducibility
-        torch.manual_seed(random_seed)
+        torch.manual_seed(self.random_seed)
         #: The model to be trained.
         self.model: nn.Module = (
             model

@@ -28,7 +28,7 @@ class HalfSpaceTrees(MOAAnomalyDetector):
     >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
-    >>> learner = HalfSpaceTrees(schema)
+    >>> learner = HalfSpaceTrees(schema, random_seed=1)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -45,7 +45,7 @@ class HalfSpaceTrees(MOAAnomalyDetector):
         self,
         schema=None,
         CLI=None,
-        random_seed=1,
+        random_seed=None,
         window_size=250,
         number_of_trees=25,
         max_depth=15,
@@ -56,7 +56,7 @@ class HalfSpaceTrees(MOAAnomalyDetector):
 
         :param schema: The schema of the stream. If not provided, it will be inferred from the data.
         :param CLI: Command Line Interface (CLI) options for configuring the HS-Trees algorithm.
-        :param random_seed: Random seed for reproducibility.
+        :param random_seed: Random seed for reproducibility. `None` draws from system entropy.
         :param window_size: The size of the window for each tree.
         :param number_of_trees: The number of trees in the ensemble.
         :param max_depth: The maximum depth of each tree.

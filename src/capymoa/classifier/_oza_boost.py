@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from moa.classifiers.meta import OzaBoost as _MOA_OzaBoost
 
-from capymoa._utils import build_cli_str_from_mapping_and_locals
-from capymoa.base import (
-    MOAClassifier,
-)
+from capymoa.base import Classifier, MOAClassifier
 from capymoa.stream import Schema
 
 
@@ -26,7 +23,7 @@ class OzaBoost(MOAClassifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = OzaBoost(stream.get_schema())
+    >>> classifier = OzaBoost(stream.get_schema(), random_seed=0)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     88.8
@@ -39,8 +36,8 @@ class OzaBoost(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int = 0,
-        base_learner="trees.HoeffdingTree",
+        random_seed: int | None = None,
+        base_learner: str | Classifier = "trees.HoeffdingTree",
         boosting_iterations: int = 10,
         use_pure_boost: bool = False,
     ):
@@ -53,20 +50,14 @@ class OzaBoost(MOAClassifier):
         :param use_pure_boost: Boost with weights only; no poisson..
         """
 
-        mapping = {
-            "base_learner": "-l",
-            "boosting_iterations": "-s",
-            "use_pure_boost": "-p",
+        options = {
+            "baseLearner": base_learner,
+            "ensembleSize": boosting_iterations,
+            "pureBoost": use_pure_boost,
         }
-
-        assert isinstance(base_learner, str), (
-            "Only MOA CLI strings are supported for OzaBoost base_learner, at the moment."
-        )
-
-        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super().__init__(
             moa_learner=_MOA_OzaBoost,
             schema=schema,
-            CLI=config_str,
             random_seed=random_seed,
+            options=options,
         )

@@ -16,7 +16,7 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 
 from capymoa.base import BatchClassifier
-from capymoa.ocl.evaluation.events import TrainTaskBegin
+from capymoa.ocl.evaluate.events import TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.stream import Schema
 
@@ -258,7 +258,7 @@ class L2P(BatchClassifier, Handler):
             torch.optim.Adam(params, lr=0.01)
         ),
         device: str = "cpu",
-        random_seed: int = 1,
+        random_seed: int | None = None,
     ):
         """Construct L2P learner.
 

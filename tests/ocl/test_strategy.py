@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from functools import partial
@@ -22,8 +23,10 @@ from capymoa.ocl.strategy import (
     EWC,
     LWF,
     MAS,
+    MIR,
     NCM,
     RAR,
+    SCR,
     SI,
     SLDA,
     ExperienceReplay,
@@ -36,6 +39,10 @@ from capymoa.stream import Schema
 # PyTorch is notorious for non-deterministic behavior between versions and platforms.
 # Here we set a fixed absolute tolerance of +-1.5 for percentage-based metrics.
 approx = partial(pytest.approx, abs=1.5)
+
+
+SEED = 0
+"""Seed for every learner that takes one, so results are exact."""
 
 
 @dataclass(frozen=True)
@@ -73,7 +80,11 @@ def new_constructor(
 ) -> Callable[[Schema], Classifier]:
     """Create a new learner instance with the given hyperparameters."""
 
-    def constructor(schema: Schema, **extra_kwargs) -> Classifier:
+    def constructor(
+        schema: Schema, random_seed: int | None = None, **extra_kwargs
+    ) -> Classifier:
+        if "random_seed" in inspect.signature(learner).parameters:
+            extra_kwargs["random_seed"] = random_seed
         model = Perceptron(schema)
         optimiser = optimiser_type(model.parameters(), lr=lr)
         return learner(
@@ -87,10 +98,10 @@ def new_constructor(
     return constructor
 
 
-def _new_rar(schema):
+def _new_rar(schema, random_seed=None):
     # RAR test case constructor
     return RAR(
-        Finetune(schema, Perceptron(schema)),
+        Finetune(schema, Perceptron(schema), random_seed=random_seed),
         augment=nn.Dropout(p=0.2),
         repeats=2,
     )
@@ -111,6 +122,28 @@ def _new_aser(schema: Schema) -> ASER:
     return ASER(schema, model, torch.optim.SGD(model.parameters(), lr=0.1))
 
 
+def _new_scr(schema: Schema) -> SCR:
+    class Model(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.feature_extractor = nn.Sequential(
+                nn.Flatten(), nn.Linear(schema.get_num_attributes(), 64), nn.ReLU()
+            )
+            self.projection = nn.Sequential(
+                nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 32)
+            )
+
+    model = Model()
+    return SCR(
+        schema,
+        model,
+        torch.optim.SGD(model.parameters(), lr=0.1),
+        augment=nn.Dropout(p=0.2),
+        buffer_capacity=200,
+        replay_batch_size=32,
+    )
+
+
 """
 Add new test cases here.
 
@@ -119,6 +152,7 @@ set.
 """
 TEST_CASES: list[Case] = [
     Case("ASER", _new_aser, Result(21.0, 18.8, 23.9)),
+    Case("MIR", new_constructor(MIR, lr=0.01), Result(13.5, 14.0, 7.1)),
     # These improved when `MOAClassifier.predict_proba` stopped discarding
     # predictions whose unnormalised vote total was below 1e-2. HoeffdingTree
     # uses Naive Bayes at its leaves, whose likelihood products fall below that
@@ -140,7 +174,13 @@ TEST_CASES: list[Case] = [
         lambda s: SLDA(s, pre_processor(), 512),
         Result(87.5, 54.5, 67.7),
     ),
-    Case("RanPAC", lambda s: RanPAC(s, projection_dim=512), Result(80.0, 48.0, 62.4)),
+    Case(
+        "RanPAC",
+        lambda s, random_seed=None: RanPAC(
+            s, projection_dim=512, random_seed=random_seed
+        ),
+        Result(78.0, 46.7, 60.8),
+    ),
     Case("NCM", NCM, Result(71.5, 46.2, 67.5)),
     Case(
         "NCM_with_preprocessor",
@@ -149,7 +189,9 @@ TEST_CASES: list[Case] = [
     ),
     Case(
         "ExperienceReplay",
-        lambda schema: ExperienceReplay(Finetune(schema, Perceptron)),
+        lambda schema, random_seed=None: ExperienceReplay(
+            Finetune(schema, Perceptron, random_seed=random_seed)
+        ),
         Result(28.5, 20.1, 3.0),
     ),
     Case(
@@ -157,6 +199,7 @@ TEST_CASES: list[Case] = [
         _new_der,
         Result(29.5, 20.5, 2.9),
     ),
+    Case("SCR", _new_scr, Result(65.0, 44.8, 63.6)),
     Case(
         "DERPP",
         new_constructor(
@@ -269,6 +312,8 @@ def test_ocl_classifier(case: Case):
     torch.use_deterministic_algorithms(True)
 
     kwargs = {}
+    if "random_seed" in inspect.signature(case.constructor).parameters:
+        kwargs["random_seed"] = SEED
     if case.task_mask:
         kwargs["task_mask"] = scenario.task_mask
     learner = case.constructor(scenario.schema, **kwargs)  # type: ignore

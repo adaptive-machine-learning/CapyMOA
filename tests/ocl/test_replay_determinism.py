@@ -43,7 +43,9 @@ def _train_data(n: int, seed: int) -> tuple[torch.Tensor, torch.Tensor]:
 
 
 def _new_strategy() -> ExperienceReplay:
-    return ExperienceReplay(Finetune(_schema(), Perceptron), buffer_size=200)
+    return ExperienceReplay(
+        Finetune(_schema(), Perceptron, random_seed=0), buffer_size=200
+    )
 
 
 def _prediction_trace(

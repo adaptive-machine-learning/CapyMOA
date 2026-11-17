@@ -33,7 +33,7 @@ class SOKNLBT(MOARegressor):
         >>> from capymoa.regressor import evaluate_regressor
     >>> stream = Fried()
     >>> schema = stream.get_schema()
-    >>> learner = SOKNLBT(schema)
+    >>> learner = SOKNLBT(schema, random_seed=1)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
     >>> results["cumulative"]["rmse"]
     4.950050301515773

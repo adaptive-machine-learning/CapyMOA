@@ -118,6 +118,7 @@ def _anomaly(**kwargs):
 
 
 def _ssl(**kwargs):
+    kwargs.setdefault("random_seed", 1)
     stream = ElectricityTiny()
     return evaluate_ssl(
         stream, NaiveBayes(stream.get_schema()), max_instances=500, **kwargs
@@ -286,7 +287,7 @@ def test_pickle_round_trip(evaluate, result_type):
 def test_ocl_results():
     from capymoa.ocl import evaluate_ocl
     from capymoa.ocl.datasets import TinySplitMNIST
-    from capymoa.ocl.evaluation import OCLResults, OnlineResults
+    from capymoa.ocl.evaluate import OCLResults, OnlineResults
 
     scenario = TinySplitMNIST()
     learner = NaiveBayes(scenario.schema)

@@ -3,7 +3,7 @@ from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
 from capymoa.base import BatchClassifier
-from capymoa.ocl.evaluation.events import TestTaskBegin
+from capymoa.ocl.evaluate.events import TestTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._replay import GreedySampler
 from capymoa.stream import Schema
