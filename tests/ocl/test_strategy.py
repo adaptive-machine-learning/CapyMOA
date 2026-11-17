@@ -13,7 +13,7 @@ from torch import nn
 
 from capymoa.base import Classifier
 from capymoa.classifier import Finetune, HoeffdingTree
-from capymoa.core.torch import ProjectionModel
+from capymoa.core.torch import FeatureModel, ProjectionModel
 from capymoa.core.torch.ann import Perceptron
 from capymoa.ocl import evaluate_ocl
 from capymoa.ocl.datasets import TinySplitMNIST
@@ -114,12 +114,21 @@ def _new_der(schema: Schema) -> DER:
 
 
 def _new_aser(schema: Schema) -> ASER:
-    model = nn.Sequential(
-        nn.Flatten(),
-        nn.Linear(schema.get_num_attributes(), 50),
-        nn.ReLU(),
-        nn.Linear(50, schema.get_num_classes()),
-    )
+    class Model(FeatureModel):
+        def __init__(self):
+            super().__init__()
+            self.encoder = nn.Sequential(
+                nn.Flatten(), nn.Linear(schema.get_num_attributes(), 50), nn.ReLU()
+            )
+            self.head = nn.Linear(50, schema.get_num_classes())
+
+        def features(self, x):
+            return self.encoder(x)
+
+        def forward(self, x):
+            return self.head(self.features(x))
+
+    model = Model()
     return ASER(schema, model, torch.optim.SGD(model.parameters(), lr=0.1))
 
 

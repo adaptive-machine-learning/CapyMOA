@@ -13,9 +13,28 @@ import torch
 from torch import nn
 
 from capymoa.core import Instance, LabeledInstance
+from capymoa.core.torch import FeatureModel
 from capymoa.ocl.strategy import ASER
 from capymoa.ocl.strategy._aser import _knn_shapley
 from capymoa.stream import Schema
+
+
+class _Net(FeatureModel):
+    def __init__(self, encoder: nn.Module | None = None, head: nn.Module | None = None):
+        super().__init__()
+        self.encoder = encoder or nn.Identity()
+        self.head = head or nn.Linear(2, 3)
+
+    def features(self, x):
+        return self.encoder(x)
+
+    def forward(self, x):
+        return self.head(self.features(x))
+
+
+def _bn_net(*extra: nn.Module) -> _Net:
+    encoder = nn.Sequential(nn.Linear(2, 4), nn.BatchNorm1d(4), nn.ReLU(), *extra)
+    return _Net(encoder, nn.Linear(4, 3))
 
 
 def _tiny_aser(**kwargs) -> ASER:
@@ -24,7 +43,7 @@ def _tiny_aser(**kwargs) -> ASER:
     )
     model = kwargs.pop("model", None)
     if model is None:
-        model = nn.Linear(2, 3)
+        model = _Net()
     optimiser = kwargs.pop("optimiser", torch.optim.SGD(model.parameters(), lr=0.03))
     options = {"buffer_capacity": 8, "samples_per_class": 1, "knn_k": 3, "seed": 4}
     options.update(kwargs)
@@ -146,15 +165,14 @@ def test_aser_warmup_sampling_and_small_memory(monkeypatch):
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
 def test_aser_single_training_pass_and_prediction(dtype):
-    model = nn.Sequential(
-        nn.Linear(2, 4), nn.BatchNorm1d(4), nn.ReLU(), nn.Linear(4, 3)
-    ).to(dtype)
+    model = _bn_net().to(dtype)
+    batch_norm = model.encoder[1]
     learner = _tiny_aser(model=model)
     x, y = torch.eye(2).repeat(2, 1), torch.tensor([0, 1, 0, 1])
     learner.batch_train(x, y)
-    assert int(model[1].num_batches_tracked) == 1
+    assert int(batch_norm.num_batches_tracked) == 1
     learner.batch_train(x, y)
-    assert int(model[1].num_batches_tracked) == 2
+    assert int(batch_norm.num_batches_tracked) == 2
     state = {name: value.clone() for name, value in model.state_dict().items()}
     learner._features(x.to(dtype))
     probabilities = learner.batch_predict_proba(x)
@@ -168,9 +186,9 @@ def test_aser_single_training_pass_and_prediction(dtype):
     )
     # Training after prediction sets train mode again, so batch norm updates.
     learner.batch_train(x, y)
-    assert int(model[1].num_batches_tracked) == 3
+    assert int(batch_norm.num_batches_tracked) == 3
     # With empty memory, a batch-normalized encoder still cannot train a singleton.
-    single = _tiny_aser(model=nn.Linear(2, 3).to(dtype))
+    single = _tiny_aser(model=_Net().to(dtype))
     single.train(LabeledInstance.from_array(single.schema, x[0].numpy(), 0))
     assert single._seen == 1
 
@@ -179,9 +197,7 @@ def test_aser_single_training_pass_and_prediction(dtype):
 def test_aser_combined_update_with_singleton_and_replay(substeps, monkeypatch):
     """A singleton plus replay must match one combined SGD update, including state."""
     torch.manual_seed(7)
-    model = nn.Sequential(
-        nn.Linear(2, 4), nn.BatchNorm1d(4), nn.ReLU(), nn.Dropout(0.2), nn.Linear(4, 3)
-    )
+    model = _bn_net(nn.Dropout(0.2))
     expected_model = copy.deepcopy(model)
     optimiser = torch.optim.SGD(model.parameters(), lr=0.03, momentum=0.9)
     expected_optimiser = torch.optim.SGD(
@@ -231,10 +247,10 @@ def test_aser_combined_update_with_singleton_and_replay(substeps, monkeypatch):
 def test_aser_reproducibility_and_private_cache():
     results = []
     for _ in range(2):
-        model = nn.Linear(2, 3)
+        model = _Net()
         with torch.no_grad():
-            model.weight.fill_(0.2)
-            model.bias.zero_()
+            model.head.weight.fill_(0.2)
+            model.head.bias.zero_()
         learner = _tiny_aser(model=model)
         x, y = (
             torch.arange(16, dtype=torch.float32).reshape(8, 2) / 16,
@@ -271,3 +287,8 @@ def test_aser_reproducibility_and_private_cache():
 def test_aser_invalid_configuration(kwargs):
     with pytest.raises(ValueError):
         _tiny_aser(**kwargs)
+
+
+def test_aser_requires_feature_model():
+    with pytest.raises(TypeError, match="FeatureModel"):
+        _tiny_aser(model=nn.Linear(2, 3))

@@ -1,7 +1,6 @@
 """Adversarial Shapley Value Experience Replay."""
 
 import warnings
-from collections.abc import Callable
 
 import torch
 from torch import Tensor, nn
@@ -9,6 +8,7 @@ from torch.nn import functional as F
 
 from capymoa.base import BatchClassifier
 from capymoa.core import Instance, LabelProbabilities
+from capymoa.core.torch import FeatureModel
 from capymoa.ocl.util._replay import ReservoirSampler
 from capymoa.stream import Schema
 
@@ -78,11 +78,21 @@ class ASER(BatchClassifier):
     candidate sets leave memory unchanged. The reference's N < k recurrence is
     retained; choose k no larger than candidate sets for exact KNN-Shapley values.
 
+    >>> from capymoa.core.torch import FeatureModel
     >>> from capymoa.ocl.strategy import ASER
     >>> schema = Schema.from_custom(
     ...     ["x0", "x1", "class"], "class", {"class": ["a", "b"]}
     ... )
-    >>> model = nn.Sequential(nn.Linear(2, 8), nn.ReLU(), nn.Linear(8, 2))
+    >>> class Model(FeatureModel):
+    ...     def __init__(self):
+    ...         super().__init__()
+    ...         self.encoder = nn.Sequential(nn.Linear(2, 8), nn.ReLU())
+    ...         self.head = nn.Linear(8, 2)
+    ...     def features(self, x):
+    ...         return self.encoder(x)
+    ...     def forward(self, x):
+    ...         return self.head(self.features(x))
+    >>> model = Model()
     >>> learner = ASER(schema, model, torch.optim.SGD(model.parameters(), lr=0.1))
     >>> learner.batch_train(torch.eye(2), torch.tensor([0, 1]))
     >>> learner.batch_predict_proba(torch.ones(3, 2)).shape
@@ -100,7 +110,6 @@ class ASER(BatchClassifier):
         model: nn.Module,
         optimiser: torch.optim.Optimizer,
         *,
-        feature_extractor: Callable[[Tensor], Tensor] | None = None,
         buffer_capacity: int = 200,
         replay_batch_size: int = 10,
         samples_per_class: int = 2,
@@ -114,13 +123,11 @@ class ASER(BatchClassifier):
         """Construct an ASER learner.
 
         :param schema: Fixed classification schema, including input shape.
-        :param model: Classifier returning one logit per schema class.
+        :param model: A :class:`~capymoa.core.torch.FeatureModel` returning one
+            logit per schema class. Its ``features`` method gives the latent
+            features used to score examples.
         :param optimiser: Optimizer owning the model's trainable parameters.
             Use SGD with lr=0.1 for the reference training configuration.
-        :param feature_extractor: Callable using the model's parameters. Defaults
-            to ``features``, then ``forward_features``, then a sequential view of
-            the model's children with the last child removed, as in the reference.
-            Supply this explicitly if the last fallback does not fit the model.
         :param buffer_capacity: Maximum number of examples and labels in memory.
         :param replay_batch_size: Maximum number of replay examples per step,
             capped at the available candidate count. Balanced retrieval warns
@@ -152,8 +159,8 @@ class ASER(BatchClassifier):
                 raise ValueError(f"{name} must be a positive integer")
         if score_type not in {"asv", "asvm", "neg_sv"}:
             raise ValueError("score_type must be asv, asvm or neg_sv")
-        if feature_extractor is not None and not callable(feature_extractor):
-            raise TypeError("feature_extractor must be callable")
+        if not isinstance(model, FeatureModel):
+            raise TypeError("model must be a FeatureModel")
         if not isinstance(optimiser, torch.optim.Optimizer):
             raise TypeError("optimiser must be a torch optimizer")
         self.device = torch.device(device)
@@ -167,17 +174,6 @@ class ASER(BatchClassifier):
         self._shape = tuple(schema.shape)
         self._num_features = schema.get_num_attributes()
         self._num_classes = schema.get_num_classes()
-        if feature_extractor is None:
-            # Prefer a model feature method before the reference's head removal.
-            features = getattr(model, "features", None)
-            forward_features = getattr(model, "forward_features", None)
-            if callable(features):
-                feature_extractor = features
-            elif callable(forward_features):
-                feature_extractor = forward_features
-            else:
-                feature_extractor = nn.Sequential(*list(model.children())[:-1])
-        self._feature_extractor = feature_extractor
         self._rng = torch.Generator().manual_seed(seed)
         # Reuse named storage and sequential filling, never Algorithm R replacement.
         self._buffer = ReservoirSampler(
@@ -210,7 +206,7 @@ class ASER(BatchClassifier):
         """Encode chunks in eval mode. The caller must reset train mode."""
         self._model.eval()
         chunks = [
-            self._feature_extractor(part.reshape(-1, *self._shape)).reshape(
+            self._model.features(part.reshape(-1, *self._shape)).reshape(
                 part.shape[0], -1
             )
             for part in x.split(self._feature_batch_size)
