@@ -273,35 +273,35 @@
     base_learner: &sgd
       learner: capymoa.classifier.SGDClassifier
       params: {}
-    ensemble_size: 5
-  accuracy: 84.20
-  win_accuracy: 80.0
+    ensemble_size: 3
+  accuracy: 83.80
+  win_accuracy: 78.0
   skip_test_save_then_load: &no_save "Java cannot serialize Python learners."
 
 - id: LeveragingBagging-SGDClassifier
   learner: capymoa.classifier.LeveragingBagging
-  params: {base_learner: *sgd, ensemble_size: 5}
-  accuracy: 85.85
-  win_accuracy: 81.0
+  params: {base_learner: *sgd, ensemble_size: 2}
+  accuracy: 85.75
+  win_accuracy: 80.0
   skip_test_save_then_load: *no_save
 
 - id: OnlineAdwinBagging-SGDClassifier
   learner: capymoa.classifier.OnlineAdwinBagging
-  params: {base_learner: *sgd, ensemble_size: 5}
-  accuracy: 84.25
-  win_accuracy: 81.0
+  params: {base_learner: *sgd, ensemble_size: 3}
+  accuracy: 83.80
+  win_accuracy: 78.0
   skip_test_save_then_load: *no_save
 
 - id: OzaBoost-SGDClassifier
   learner: capymoa.classifier.OzaBoost
-  params: {base_learner: *sgd, boosting_iterations: 5}
-  accuracy: 85.55
-  win_accuracy: 81.0
+  params: {base_learner: *sgd, boosting_iterations: 3}
+  accuracy: 85.50
+  win_accuracy: 80.0
   skip_test_save_then_load: *no_save
 
 - id: OnlineSmoothBoost-SGDClassifier
   learner: capymoa.classifier.OnlineSmoothBoost
-  params: {base_learner: *sgd, boosting_iterations: 5}
+  params: {base_learner: *sgd, boosting_iterations: 3}
   accuracy: 84.70
   win_accuracy: 83.0
   skip_test_save_then_load: *no_save
@@ -328,13 +328,14 @@
   learner: capymoa.classifier.StreamingRandomPatches
   params:
     base_learner: *sgd
-    ensemble_size: 5
+    ensemble_size: 2
+    lambda_param: 1.0
     drift_detection_method: &abcd
       learner: capymoa.drift.detectors.abcd.ABCD
       params: {}
     warning_detection_method: *abcd
-  accuracy: 85.85
-  win_accuracy: 81.0
+  accuracy: 82.70
+  win_accuracy: 77.0
   skip_test_save_then_load: *no_save
 
 - id: AdaptiveRandomForestClassifier-ABCD
