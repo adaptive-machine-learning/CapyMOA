@@ -50,11 +50,13 @@ def set_moa_options(
 def _set_option_value(option: Any, value: Any) -> None:
     # Imported here to avoid a circular import, since these modules use this one.
     from capymoa.base import (
+        LearnerParamsMixin,
         MOAAnomalyDetector,
         MOAClassifier,
         MOAClusterer,
         MOARegressor,
     )
+    from capymoa.core.moa.proxy import to_java_proxy
     from capymoa.drift.base_detector import MOADriftDetector
 
     if isinstance(option, (_MoaAbstractClassOption, _JclAbstractClassOption)):
@@ -68,14 +70,17 @@ def _set_option_value(option: Any, value: Any) -> None:
         elif isinstance(value, MOADriftDetector):
             # Copy so MOA does not reset or change the user's detector.
             option.setCurrentObject(value.moa_detector.copy())
+        elif isinstance(value, LearnerParamsMixin):
+            # Python learners run in MOA through a proxy.
+            option.setCurrentObject(to_java_proxy(value))
         else:
             try:
                 option.setCurrentObject(value)
             except TypeError as e:
                 raise TypeError(
                     f"Cannot set MOA option {str(option.getName())!r} to a "
-                    f"{type(value).__name__}. Expected a CLI string, a CapyMOA MOA "
-                    "wrapper, or a Java object."
+                    f"{type(value).__name__}. Expected a CLI string, a CapyMOA "
+                    "learner, or a Java object."
                 ) from e
     elif isinstance(option, _FlagOption):
         option.setValue(bool(value))

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
+import jpype
 from moa.classifiers.meta import StreamingGradientBoostedRegression as _MOA_SGBR
 
-from capymoa._utils import build_cli_str_from_mapping_and_locals
-from capymoa.base import (
-    MOARegressor,
-)
+from capymoa.base import MOAClassifier, MOARegressor
 from capymoa.base._seed import resolve_seed
 from capymoa.stream import Schema
 
@@ -61,26 +59,27 @@ class StreamingGradientBoostedRegression(MOARegressor):
         """
 
         random_seed = resolve_seed(random_seed)
-        mapping = {
-            "base_learner": "-l",
-            "boosting_iterations": "-s",
-            "percentage_of_features": "-m",
-            "learning_rate": "-L",
-            "disable_one_hot": "-H",
-            "multiply_hessian_by": "-M",
-            "skip_training": "-S",
-            "use_squared_loss": "-K",
-            "random_seed": "-r",
+        if not isinstance(
+            base_learner, (str, MOAClassifier, MOARegressor, jpype.JObject)
+        ):
+            # MOA copies the base learner with Java serialization, which the
+            # proxies for Python learners do not support.
+            raise TypeError("SGBR needs a MOA base learner, not a Python learner.")
+
+        options = {
+            "baseLearner": base_learner,
+            "numberOfboostingIterations": boosting_iterations,
+            "percentageOfAttributesForEachBoostingIteration": percentage_of_features,
+            "learningRate": learning_rate,
+            "disableOneHotEncoding": disable_one_hot,
+            "multipleIterationByCeilingOfHessianTimesM": multiply_hessian_by,
+            "randomlySkip1SthOfInstancesAtTraining": skip_training,
+            "useSquaredLossForClassification": use_squared_loss,
+            "randomSeed": random_seed,
         }
-
-        assert isinstance(base_learner, str), (
-            "Only MOA CLI strings are supported for SGBR base_learner, at the moment."
-        )
-
-        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super().__init__(
             moa_learner=_MOA_SGBR(),
             schema=schema,
-            CLI=config_str,
             random_seed=random_seed,
+            options=options,
         )
