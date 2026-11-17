@@ -27,8 +27,8 @@ class HasModule:
     def module(self) -> nn.Module:
         """Torch state of the strategy (``model`` plus strategy buffers).
 
-        Use it to move the strategy to a device or to save and load a checkpoint.
-        The model you passed in is at ``module.model``.
+        Use it to save and load a checkpoint. The model you passed in is at
+        ``module.model``. To change device, build a new strategy with ``device``.
         """
         return self._module
 

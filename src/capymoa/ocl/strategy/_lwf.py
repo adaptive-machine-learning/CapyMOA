@@ -92,7 +92,6 @@ class LWF(HasModule, BatchClassifier, Handler):
         # All torch state lives in one private module
         self._module = _LWFModule(model, task_mask).to(device)
         self._criterion = self._module.criterion
-        self._task_mask = self._module.task_mask
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         self._model.train()
@@ -130,14 +129,18 @@ class LWF(HasModule, BatchClassifier, Handler):
 
     def _apply_train_mask(self, y_hat: Tensor) -> Tensor:
         """Apply the train-task mask to logits, if enabled."""
-        if self._task_mask is not None and self._mask_train:
-            y_hat = y_hat.masked_fill(self._task_mask[self._train_task] == 0, NEG_INF)
+        if self._module.task_mask is not None and self._mask_train:
+            y_hat = y_hat.masked_fill(
+                self._module.task_mask[self._train_task] == 0, NEG_INF
+            )
         return y_hat
 
     def _apply_test_mask(self, y_hat: Tensor) -> Tensor:
         """Apply the test-task mask to logits, if enabled."""
-        if self._task_mask is not None and self._mask_test:
-            y_hat = y_hat.masked_fill(self._task_mask[self._test_task] == 0, NEG_INF)
+        if self._module.task_mask is not None and self._mask_test:
+            y_hat = y_hat.masked_fill(
+                self._module.task_mask[self._test_task] == 0, NEG_INF
+            )
         return y_hat
 
     @torch.no_grad()

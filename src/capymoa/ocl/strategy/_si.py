@@ -252,7 +252,6 @@ class SI(HasModule, BatchClassifier, Handler):
         self._buf_pre_step_params = self._module.pre_step_params
         self._buf_trajectory = self._module.trajectory
         self._buf_grads = self._module.grads
-        self._task_mask = self._module.task_mask
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         self._model.train()
@@ -327,15 +326,19 @@ class SI(HasModule, BatchClassifier, Handler):
     def _test_forward(self, x: Tensor) -> Tensor:
         """Compute logits for inference, optionally applying a test-task mask."""
         y_hat = self._model(x)
-        if self._task_mask is not None and self._mask_test:
-            y_hat = y_hat.masked_fill(self._task_mask[self._test_task] == 0, NEG_INF)
+        if self._module.task_mask is not None and self._mask_test:
+            y_hat = y_hat.masked_fill(
+                self._module.task_mask[self._test_task] == 0, NEG_INF
+            )
         return y_hat
 
     def _train_forward(self, x: Tensor) -> Tensor:
         """Compute logits for training, optionally applying a train-task mask."""
         y_hat = self._model(x)
-        if self._task_mask is not None and self._mask_train:
-            y_hat = y_hat.masked_fill(self._task_mask[self._train_task] == 0, NEG_INF)
+        if self._module.task_mask is not None and self._mask_train:
+            y_hat = y_hat.masked_fill(
+                self._module.task_mask[self._train_task] == 0, NEG_INF
+            )
         return y_hat
 
     def __str__(self) -> str:
