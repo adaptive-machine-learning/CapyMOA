@@ -13,6 +13,7 @@ from torch import nn
 
 from capymoa.base import Classifier
 from capymoa.classifier import Finetune, HoeffdingTree
+from capymoa.core.torch import ProjectionModel
 from capymoa.core.torch.ann import Perceptron
 from capymoa.ocl import evaluate_ocl
 from capymoa.ocl.datasets import TinySplitMNIST
@@ -123,15 +124,22 @@ def _new_aser(schema: Schema) -> ASER:
 
 
 def _new_scr(schema: Schema) -> SCR:
-    class Model(nn.Module):
+    class Model(ProjectionModel):
         def __init__(self):
             super().__init__()
-            self.feature_extractor = nn.Sequential(
+            self.encoder = nn.Sequential(
                 nn.Flatten(), nn.Linear(schema.get_num_attributes(), 64), nn.ReLU()
             )
-            self.projection = nn.Sequential(
-                nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 32)
-            )
+            self.head = nn.Sequential(nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 32))
+
+        def features(self, x):
+            return self.encoder(x)
+
+        def project(self, features):
+            return self.head(features)
+
+        def forward(self, x):
+            return self.project(self.features(x))
 
     model = Model()
     return SCR(
