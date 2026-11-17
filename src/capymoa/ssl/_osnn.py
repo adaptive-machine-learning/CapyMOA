@@ -274,6 +274,17 @@ class OSNN(ClassifierSSL):
         optim_steps=200,
         seed: int | None = None,
     ):
+        """Construct an OSNN learner.
+
+        :param schema: Describes the stream's structure and types.
+        :param num_center: The number of radial basis function centers.
+        :param n_out: The number of outputs of the network.
+        :param window_size: The number of instances in the sliding window.
+        :param beta: Scale of the kernel width of each center.
+        :param gamma: Scale of the distance to the nearest center.
+        :param optim_steps: The number of optimisation steps per window.
+        :param seed: Seed for all random choices. ``None`` is a fresh random seed each run.
+        """
         self.Network = OSNeuralNetwork(
             num_center=num_center,
             n_out=n_out,

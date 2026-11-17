@@ -264,11 +264,11 @@ class AdaptiveIsolationForest(AnomalyDetector):
     ):
         """Construct an Adaptive Isolation Forest anomaly detector.
 
-        :param schema: The schema of the stream.
+        :param schema: Describes the stream's structure and types.
         :param window_size: Size of the sliding window for training trees.
         :param n_trees: Number of trees in the ensemble.
         :param height: Maximum height of trees. If None, calculated as ceil(log2(window_size)).
-        :param seed: Random seed for reproducibility. `None` draws from system entropy.
+        :param seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         :param m_trees: Number of candidate trees to generate when replacing.
         :param weights: Weight for combining tree size and max mass scores (0-1).
         :param skip_default_strategy: If True, skip default replacement when quality score doesn't improve.

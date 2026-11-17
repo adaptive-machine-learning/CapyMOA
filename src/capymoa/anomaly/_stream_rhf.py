@@ -303,11 +303,11 @@ class StreamRHF(AnomalyDetector):
     ):
         """
         Initialize the StreamRHF learner.
-        :param schema: Schema of the data stream.
+        :param schema: Describes the stream's structure and types.
         :param max_height: Maximum height of the trees.
         :param num_trees: Number of trees in the forest.
         :param window_size: Size of the sliding window.
-        :param random_seed: Random seed for reproducibility. `None` draws from system entropy.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         super().__init__(schema, random_seed)
         self.schema = schema

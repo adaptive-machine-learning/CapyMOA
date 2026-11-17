@@ -59,7 +59,7 @@ class Finetune(BatchClassifier):
     ) -> None:
         """Construct a learner to finetune a neural network.
 
-        :param schema: Describes streaming data types and shapes.
+        :param schema: Describes the stream's structure and types.
         :param model: A classifier model that takes a ``(bs, input_dim)`` matrix
             and returns a ``(bs, num_classes)`` matrix. Alternatively, a model
             class (e.g. :class:`~capymoa.core.torch.ann.Perceptron`),

@@ -41,7 +41,6 @@ class HDDMWeighted(MOADriftDetector):
         warning_confidence: float = 0.005,
         lambda_: float = 0.05,
         test_type: Literal["Two-sided", "One-sided"] = "Two-sided",
-        CLI: str | None = None,
     ):
         """
         :param drift_confidence: Significance level for drift detection (p-value threshold).
@@ -56,18 +55,12 @@ class HDDMWeighted(MOADriftDetector):
             * ``"One-sided"`` only detects increases in the monitored weighted average
               (i.e. performance degradation). Use this when only positive drift is relevant.
 
-        :param CLI: (Advanced) Override the CLI arguments passed directly to the
-            underlying MOA detector, bypassing all other parameters.
         """
         assert test_type in self.TEST_TYPES, "Wrong test type"
 
-        if CLI is None:
-            CLI = (
-                f"-d {drift_confidence} "
-                f"-w {warning_confidence} "
-                f"-m {lambda_} "
-                f"-t {test_type}"
-            )
+        CLI = (
+            f"-d {drift_confidence} -w {warning_confidence} -m {lambda_} -t {test_type}"
+        )
 
         super().__init__(cli=CLI)
 

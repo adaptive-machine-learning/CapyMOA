@@ -57,7 +57,7 @@ class SGDClassifier(SKClassifier):
     ):
         """Construct stochastic gradient descent classifier.
 
-        :param schema: Describes the datastream's structure.
+        :param schema: Describes the stream's structure and types.
         :param loss: The loss function to be used.
         :param penalty: The penalty (aka regularization term) to be used.
         :param alpha: Constant that multiplies the regularization term.
@@ -85,7 +85,7 @@ class SGDClassifier(SKClassifier):
             The "balanced" mode uses the values of y to automatically adjust
             weights inversely proportional to class frequencies in the input data
             as ``n_samples / (n_classes * np.bincount(y))``.
-        :param random_seed: Seed for reproducibility.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         random_seed = resolve_seed(random_seed)

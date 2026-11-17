@@ -14,7 +14,10 @@ class NoChange(Regressor):
     """
 
     def __init__(self, schema=None):
-        """Construct No Change Regressor."""
+        """Construct a NoChange regressor.
+
+        :param schema: Describes the stream's structure and types.
+        """
         super().__init__(None, 0)
         self.previous_value: TargetValue = TargetValue(0)
 

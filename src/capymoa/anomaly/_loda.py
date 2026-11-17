@@ -92,12 +92,12 @@ class Loda(AnomalyDetector):
     ):
         """Initialize the Loda anomaly detector.
 
-        :param schema: Schema of the data stream.
+        :param schema: Describes the stream's structure and types.
         :param n_projections: Number of random projection histograms in the ensemble.
         :param window_size: Number of recent instances used to fit each histogram.
         :param max_bins: Upper bound on bins per histogram. ``"auto"`` uses ``floor(n / log n)``
             via the Birge-Rozenholc criterion; an integer caps the search at that value.
-        :param random_seed: Random seed for reproducibility. `None` draws from system entropy.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         super().__init__(schema=schema, random_seed=random_seed)

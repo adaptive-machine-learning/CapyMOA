@@ -37,7 +37,6 @@ class StreamingRandomPatches(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int | None = None,
         base_learner: str | Classifier = "trees.HoeffdingTree -g 50 -c 0.01",
         ensemble_size=100,
         max_features=0.6,
@@ -52,11 +51,11 @@ class StreamingRandomPatches(MOAClassifier):
         disable_weighted_vote: bool = False,
         disable_drift_detection: bool = False,
         disable_background_learner: bool = False,
+        random_seed: int | None = None,
     ):
         """Streaming Random Patches (SRP) Classifier
 
-        :param schema: The schema of the stream.
-        :param random_seed: The random seed passed to the MOA learner.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to be trained. Default trees.HoeffdingTree -g 50 -c 0.01.
         :param ensemble_size: The number of trees in the ensemble.
         :param max_features: The subspace size for each ensemble member.
@@ -84,6 +83,7 @@ class StreamingRandomPatches(MOAClassifier):
         :param disable_weighted_vote: Whether to disable weighted voting.
         :param disable_drift_detection: Whether to disable drift detection.
         :param disable_background_learner: Whether to disable background learning.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         training_method_map = {
             "RandomSubspaces": "Random Subspaces",

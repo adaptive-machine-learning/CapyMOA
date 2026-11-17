@@ -35,6 +35,17 @@ class GDumb(BatchClassifier, Handler):
         device: str | torch.device = "cpu",
         seed: int = 0,
     ):
+        """Construct a GDumb learner.
+
+        :param schema: Describes the stream's structure and types.
+        :param model: Torch model that outputs class logits.
+        :param epochs: The number of epochs used to train on the memory.
+        :param batch_size: Mini-batch size used for training.
+        :param capacity: The maximum number of instances in the memory.
+        :param lr: Learning rate of the Adam optimiser.
+        :param device: Compute device.
+        :param seed: Seed for all random choices.
+        """
         super().__init__(schema)
         self.schema = schema
         self.model = model.to(device)

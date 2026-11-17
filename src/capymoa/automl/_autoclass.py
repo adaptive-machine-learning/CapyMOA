@@ -23,23 +23,23 @@ class AutoClass(MOAClassifier):
     def __init__(
         self,
         schema: Schema = None,
-        random_seed: int | None = None,
         configuration_json: str = "../../data/settings_autoclass.json",
         base_classifiers: list[Classifier] | None = None,
         number_active_classifiers: int = 1,
         weight_classifiers: bool = False,
+        random_seed: int | None = None,
     ):
         """AutoClass automl algorithm by Bahri and Georgantas.
 
-        Note that configuration json file reading is delegated to the MOA object, thus in the configuration file
-        the name of the learners should correspond to the MOA class full name.
+        The configuration file names each learner by its full class name.
 
-        :param schema: The schema of the stream.
-        :param random_seed: The random seed passed to the MOA learner.
-        :param configuration: A json file with the configuration for learners
+        :param schema: Describes the stream's structure and types.
+        :param configuration_json: Path to a JSON file with the configuration for the
+            learners.
         :param base_classifiers: The learners that compose the ensemble
         :param number_active_classifiers: The number of active classifiers (used for voting)
         :param weight_classifiers: Uses online performance estimation to weight the classifiers
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         # Check if the json configuration file exists.

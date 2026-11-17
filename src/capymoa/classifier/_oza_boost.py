@@ -36,18 +36,18 @@ class OzaBoost(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int | None = None,
         base_learner: str | Classifier = "trees.HoeffdingTree",
         boosting_iterations: int = 10,
         use_pure_boost: bool = False,
+        random_seed: int | None = None,
     ):
         """Incremental on-line boosting classifier of Oza and Russell.
 
-        :param schema: The schema of the stream.
-        :param random_seed: The random seed passed to the MOA learner.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to be trained. Default trees.HoeffdingTree.
         :param boosting_iterations: The number of boosting iterations.
         :param use_pure_boost: Boost with weights only; no poisson..
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         options = {

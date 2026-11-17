@@ -88,9 +88,16 @@ class FeatureImportanceClassifier(Classifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int | None = None,
         window_size: int | None = None,
+        random_seed: int | None = None,
     ):
+        """Construct a feature importance classifier.
+
+        :param schema: Describes the stream's structure and types.
+        :param window_size: Number of instances between snapshots of the feature
+            importances. If ``None``, no snapshots are stored.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
+        """
         Classifier.__init__(self, schema=schema, random_seed=random_seed)
 
         if window_size is not None and window_size <= 0:
@@ -163,9 +170,17 @@ class MOAFeatureImportanceClassifier(FeatureImportanceClassifier, MOAClassifier)
         self,
         schema: Schema | None = None,
         base_learner: Any = None,
-        random_seed: int | None = None,
         window_size: int | None = None,
+        random_seed: int | None = None,
     ):
+        """Construct a feature importance wrapper around a base learner.
+
+        :param schema: Describes the stream's structure and types.
+        :param base_learner: The learner to wrap (see accepted inputs above).
+        :param window_size: Number of instances between snapshots of the feature
+            importances. If ``None``, no snapshots are stored.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
+        """
         random_seed = resolve_seed(random_seed)
         FeatureImportanceClassifier.__init__(
             self,

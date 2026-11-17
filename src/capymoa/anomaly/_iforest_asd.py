@@ -180,12 +180,12 @@ class IForestASD(AnomalyDetector):
         random_seed: int | None = None,
     ):
         """Initialize the IForestASD anomaly detector.
-        :param schema: The schema of the data stream.
+        :param schema: Describes the stream's structure and types.
         :param window_size: The size of the sliding window to maintain.
         :param n_trees: The number of isolation trees to build.
         :param sample_size: The number of instances to sample for each tree.
         :param height_limit: The maximum height of the isolation trees. If None, it will be set to ceil(log2(sample_size)).
-        :param random_seed: The seed for the random number generator. `None` draws from system entropy.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         super().__init__(schema=schema, random_seed=random_seed)
         self.window_size = window_size

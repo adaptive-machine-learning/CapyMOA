@@ -41,7 +41,6 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int | None = None,
         base_learner: MOAClassifier | None = None,
         ensemble_size: int = 100,
         max_features: float = 0.6,
@@ -53,11 +52,11 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
         disable_weighted_vote: bool = False,
         disable_drift_detection: bool = False,
         disable_background_learner: bool = False,
+        random_seed: int | None = None,
     ):
         """Construct ARF.
 
-        :param schema: The schema of the stream. If not provided, it will be inferred from the data.
-        :param random_seed: Seed for the random number generator.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to use. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
         :param max_features: The maximum number of features to consider when splitting a node.
@@ -80,6 +79,7 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
         :param disable_weighted_vote: Whether to disable weighted voting.
         :param disable_drift_detection: Whether to disable drift detection.
         :param disable_background_learner: Whether to disable background learning.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         self.base_learner = (

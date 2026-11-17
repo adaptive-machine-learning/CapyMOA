@@ -36,16 +36,15 @@ class OnlineBagging(MOAClassifier):
     def __init__(
         self,
         schema=None,
-        random_seed: int | None = None,
         base_learner=None,
         ensemble_size=100,
         minibatch_size=None,
         number_of_jobs=None,
+        random_seed: int | None = None,
     ):
         """Construct an Online bagging classifier using online bootstrap sampling.
 
-        :param schema: The schema of the stream. If not provided, it will be inferred from the data.
-        :param random_seed: Seed for the random number generator.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to use. It can be a CLI string, a CapyMOA
             classifier, or a MOA Java object. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
@@ -56,6 +55,7 @@ class OnlineBagging(MOAClassifier):
             However, setting it to a high value may consume more system resources and memory.
             This implementation focuses more on performance, therefore the predictive performance is modified.
             It's recommended to experiment with different values to find the optimal setting based on
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         self.base_learner = (
             "trees.HoeffdingTree" if base_learner is None else base_learner

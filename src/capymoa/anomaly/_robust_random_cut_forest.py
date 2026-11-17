@@ -530,6 +530,13 @@ class RobustRandomCutForest(AnomalyDetector):
     """
 
     def __init__(self, schema: Schema, tree_size=1000, n_trees=100, random_seed=None):
+        """Construct a RobustRandomCutForest anomaly detector.
+
+        :param schema: Describes the stream's structure and types.
+        :param tree_size: The maximum number of instances stored in each tree.
+        :param n_trees: The number of trees in the ensemble.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
+        """
         super().__init__(schema, random_seed)
         self.tree_size = tree_size
         self.n_trees = n_trees

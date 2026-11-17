@@ -39,7 +39,6 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int | None = None,
         loss: Literal["mse", "ce", "h2"] = "ce",
         step_size: float | Literal["adaptive"] = "adaptive",
         ensemble_regularizer: Literal["hard-L0", "L0", "L1", "none"] = "hard-L0",
@@ -52,11 +51,11 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
         batch_size: int = 32,
         sk_dt: DecisionTreeClassifier | None = None,
         allow_abstaining: bool = True,
+        random_seed: int | None = None,
     ):
-        """Initializes the ShrubEnsemble classifier with the given parameters.
+        """Construct a ShrubsClassifier.
 
-        :param random_seed: The random seed used to build the default decision
-            tree if ``sk_dt`` is not given.
+        :param schema: Describes the stream's structure and types.
         :param loss: The loss function to be used. Supported values are ``"mse"``,
             ``"ce"``, and ``"h2"``.
         :param step_size: The step size (i.e. learning rate of SGD) for updating
@@ -107,6 +106,8 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
             same clone is used for any DT object
         :param allow_abstaining: bool - If true, then None is returned if there is no
             model in the ensemble (i.e. it was pruned away or no data has been seen yet)
+        :param random_seed: The random seed used to build the default decision
+            tree if ``sk_dt`` is not given.
         """
         random_seed = resolve_seed(random_seed)
         if sk_dt is None:

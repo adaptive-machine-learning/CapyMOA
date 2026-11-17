@@ -21,8 +21,8 @@ class FadingTargetMean(MOARegressor):
     def __init__(self, schema: Schema | None = None, factor: float = 0.99):
         """Construct Fading Target Mean Regressor.
 
-        :param schema: Description of the stream's data types.
-        :param fading_factor: The fading factor. Must be in (0, 1]. Defaults to 0.99.
+        :param schema: Describes the stream's structure and types.
+        :param factor: The fading factor. Must be in (0, 1].
         """
         cli = [f"-f {factor}"]
         super().__init__(

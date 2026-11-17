@@ -26,7 +26,7 @@ class Denstream_with_dbscan(MOAClusterer):
     ):
         """Clustream clusterer.
 
-        :param schema: The schema of the stream
+        :param schema: Describes the stream's structure and types.
         :param horizon: The size of the time window
         :param epsilon: The epsilon neighborhood
                 :param beta: The beta parameter

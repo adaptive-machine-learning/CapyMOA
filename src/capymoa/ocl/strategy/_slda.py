@@ -125,7 +125,7 @@ class SLDA(BatchClassifier):
     ):
         """Initialize a SLDA classifier.
 
-        :param schema: Describes the shape and type of the data.
+        :param schema: Describes the stream's structure and types.
         :param pre_processor: A pre-processing module to apply to the input
             data, defaults to an identity module.
         :param num_features: Number of features once pre-processed, defaults to
@@ -133,7 +133,7 @@ class SLDA(BatchClassifier):
         :param ridge: Added to the covariance diagonal so it can be inverted,
             defaults to 1e-3.
         :param device: Device to run the model on, defaults to CPU.
-        :param random_seed: Seed for reproducibility.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         super().__init__(schema, random_seed)
         if pre_processor is None:
@@ -244,7 +244,7 @@ class RanPAC(SLDA):
     ):
         """Initialize a RanPAC classifier.
 
-        :param schema: Describes the shape and type of the data.
+        :param schema: Describes the stream's structure and types.
         :param projection_dim: Number of random features :math:`M`, defaults to 5000.
         :param ridge: Added to the covariance diagonal so it can be inverted,
             defaults to 1e-3.

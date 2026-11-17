@@ -46,6 +46,7 @@ class StochasticGradientTree(MOAClassifier):
     ) -> None:
         """Construct StochasticGradientTree classifier.
 
+        :param schema: Describes the stream's structure and types.
         :param grace_period: The number of instances a leaf should observe between
             split attempts.
         :param lambda_: Regularization parameter lambda.

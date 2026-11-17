@@ -50,7 +50,6 @@ class AdaptiveRandomForestRegressor(MOARegressor):
     def __init__(
         self,
         schema=None,
-        random_seed: int | None = None,
         tree_learner=None,
         ensemble_size=100,
         max_features=0.6,
@@ -59,13 +58,13 @@ class AdaptiveRandomForestRegressor(MOARegressor):
         warning_detection_method=None,
         disable_drift_detection=False,
         disable_background_learner=False,
+        random_seed: int | None = None,
     ):
         """Construct an Adaptive Random Forest Regressor
 
-        :param schema: The schema of the stream. If not provided, it will be inferred from the data.
-        :param CLI: Command Line Interface (CLI) options for configuring the ARF algorithm.
-            If not provided, default options will be used.
-        :param random_seed: Seed for the random number generator.
+        :param schema: Describes the stream's structure and types.
+        :param CLI: Command Line Interface (CLI) options to configure the learner.
+            If not given, default options are used.
         :param tree_learner: The tree learner to use. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
         :param max_features: The maximum number of features to consider when splitting a node.
@@ -79,6 +78,7 @@ class AdaptiveRandomForestRegressor(MOARegressor):
         :param warning_detection_method: The method used for warning detection.
         :param disable_drift_detection: Whether to disable drift detection.
         :param disable_background_learner: Whether to disable background learning.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         if isinstance(max_features, float) and 0.0 <= max_features <= 1.0:
             m_features_mode = "Percentage (M * (m / 100))"

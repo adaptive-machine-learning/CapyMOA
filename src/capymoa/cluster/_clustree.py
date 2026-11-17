@@ -21,7 +21,7 @@ class ClusTree(MOAClusterer):
     ):
         """Clustream clusterer.
 
-        :param schema: The schema of the stream
+        :param schema: Describes the stream's structure and types.
         :param horizon: The size of the time window
         :param max_height: The maximum height of the tree
         :param breadth_first_strategy: Whether to use breadth-first strategy

@@ -76,8 +76,8 @@ class OnlineIsolationForest(AnomalyDetector):
     ):
         """Construct an Online Isolation Forest anomaly detector
 
-        :param schema: The schema of the stream. If not provided, it will be inferred from the data.
-        :param random_seed: Random seed for reproducibility. `None` draws from system entropy.
+        :param schema: Describes the stream's structure and types.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         :param num_trees: Number of trees in the ensemble.
         :param window_size: The size of the window for each tree.
         :param branching_factor: Branching factor of each tree.

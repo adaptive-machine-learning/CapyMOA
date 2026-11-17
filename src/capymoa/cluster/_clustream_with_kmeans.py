@@ -22,7 +22,7 @@ class Clustream_with_kmeans(MOAClusterer):
     ):
         """Clustream clusterer with K-means offline clustering.
 
-        :param schema: The schema of the stream.
+        :param schema: Describes the stream's structure and types.
         :param time_window: The size of the time window.
         :param max_num_kernels: Maximum number of micro kernels to use.
         :param kernel_radi_factor: Multiplier for the kernel radius

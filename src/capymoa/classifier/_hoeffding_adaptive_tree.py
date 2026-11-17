@@ -40,7 +40,6 @@ class HoeffdingAdaptiveTree(HoeffdingTree):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int | None = None,
         grace_period: int = 200,
         split_criterion: str | SplitCriterion = "InfoGainSplitCriterion",
         confidence: float = 1e-3,
@@ -54,11 +53,11 @@ class HoeffdingAdaptiveTree(HoeffdingTree):
         stop_mem_management: bool = True,
         remove_poor_attrs: bool = False,
         disable_prepruning: bool = True,
+        random_seed: int | None = None,
     ):
         """Hoeffding Adaptive Tree (HAT) classifier.
 
-        :param schema: the schema of the stream.
-        :param random_seed: the random seed passed to the moa learner.
+        :param schema: Describes the stream's structure and types.
         :param grace_period: the number of instances a leaf should observe between split attempts.
         :param split_criterion: the split criterion to use. Defaults to `InfoGainSplitCriterion`.
         :param confidence: the confidence level to calculate the Hoeffding Bound (1 - delta).
@@ -77,6 +76,7 @@ class HoeffdingAdaptiveTree(HoeffdingTree):
         :param stop_mem_management: If True, stop growing as soon as memory limit is hit.
         :param remove_poor_attrs: If True, disable poor attributes to reduce memory usage.
         :param disable_prepruning: If True, disable merit-based tree pre-pruning.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
 
         """
         mapping = {

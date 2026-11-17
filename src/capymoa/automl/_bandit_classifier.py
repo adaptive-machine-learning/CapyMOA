@@ -160,22 +160,22 @@ class BanditClassifier(Classifier):
     def __init__(
         self,
         schema: Schema = None,
-        random_seed: int | None = None,
         base_classifiers: list | None = None,
         config_file: str | None = None,
         metric: str = "accuracy",
         policy: EpsilonGreedy = None,
         verbose: bool = False,
+        random_seed: int | None = None,
     ):
         """Construct a Bandit-based model selector.
 
-        :param schema: The schema of the stream.
-        :param random_seed: Random seed used for initialization.
+        :param schema: Describes the stream's structure and types.
         :param base_classifiers: List of base classifier classes to consider.
         :param config_file: Path to a JSON configuration file with model hyperparameters.
         :param metric: The metric used to evaluate model performance. Defaults to ``"accuracy"``.
         :param policy: The bandit policy used to choose which model to train (e.g., :class:`~capymoa.automl.EpsilonGreedy`).
         :param verbose: If True, print progress information during training.
+        :param random_seed: Random seed used for initialization.
         """
         super().__init__(schema=schema, random_seed=random_seed)
 

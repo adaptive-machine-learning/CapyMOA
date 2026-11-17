@@ -30,16 +30,15 @@ class LeveragingBagging(MOAClassifier):
     def __init__(
         self,
         schema=None,
-        random_seed: int | None = None,
         base_learner: str | Classifier | None = None,
         ensemble_size=100,
         minibatch_size=None,
         number_of_jobs=None,
+        random_seed: int | None = None,
     ):
         """Construct a Leveraging Bagging classifier.
 
-        :param schema: The schema of the stream. If not provided, it will be inferred from the data.
-        :param random_seed: Seed for the random number generator.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to use. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
         :param minibatch_size: The number of instances that a learner must accumulate before training.
@@ -50,6 +49,7 @@ class LeveragingBagging(MOAClassifier):
             This implementation focuses more on performance, therefore the predictive performance is modified.
             It's recommended to experiment with different values to find the optimal setting based on
             the available hardware resources and the nature of the workload.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         self.base_learner = (
             "trees.HoeffdingTree" if base_learner is None else base_learner

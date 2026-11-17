@@ -32,7 +32,7 @@ class MajorityClass(MOAClassifier):
     ):
         """Majority class classifier.
 
-        :param schema: The schema of the stream.
+        :param schema: Describes the stream's structure and types.
         """
 
         mapping = {}

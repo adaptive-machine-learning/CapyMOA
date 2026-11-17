@@ -30,18 +30,18 @@ class OnlineSmoothBoost(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int | None = None,
         base_learner: str | Classifier = "trees.HoeffdingTree",
         boosting_iterations: int = 100,
         gamma=0.1,
+        random_seed: int | None = None,
     ):
         """OnlineSmoothBoost Classifier
 
-        :param schema: The schema of the stream.
-        :param random_seed: The random seed passed to the MOA learner.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to be trained. Default trees.HoeffdingTree.
         :param boosting_iterations: The number of boosting iterations (ensemble size).
         :param gamma: The value of the gamma parameter.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         options = {

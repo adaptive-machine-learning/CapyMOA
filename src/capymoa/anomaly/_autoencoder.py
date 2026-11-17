@@ -48,12 +48,12 @@ class Autoencoder(AnomalyDetector):
         """Construct an Autoencoder anomaly detector
 
         Parameters
-        :param schema: The schema of the input data
+        :param schema: Describes the stream's structure and types.
         :param hidden_layer: Number of neurons in the hidden layer. The number should less than the number of input
         features.
         :param learning_rate: Learning rate
         :param threshold: Anomaly threshold
-        :param random_seed: Random seed. `None` draws from system entropy.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         super().__init__(schema, random_seed=random_seed)

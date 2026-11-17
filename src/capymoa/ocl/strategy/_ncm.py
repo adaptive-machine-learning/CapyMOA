@@ -61,7 +61,7 @@ class NCM(BatchClassifier):
     ):
         """Initialize a NCM classifier head.
 
-        :param schema: Describes the shape and type of the data.
+        :param schema: Describes the stream's structure and types.
         :param pre_processor: A pre-processing module to apply to the input
             data, defaults to an identity module.
         :param num_features: Number of features once pre-processed, defaults to

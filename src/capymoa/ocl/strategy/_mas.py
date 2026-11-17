@@ -129,7 +129,7 @@ class MAS(BatchClassifier, nn.Module, Handler):
     ) -> None:
         """Construct a MAS learner.
 
-        :param schema: Stream schema used by the classifier interface.
+        :param schema: Describes the stream's structure and types.
         :param model: Torch model that outputs class logits.
         :param optimiser: Optimiser used to update ``model`` parameters.
         :param lambda_: Weight of the MAS regularisation term.

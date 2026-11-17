@@ -34,22 +34,22 @@ class CSMOTE(MOAClassifier):
     def __init__(
         self,
         schema: Schema = None,
-        random_seed: int | None = None,
         base_learner: str | Classifier = "trees.HoeffdingTree",
         neighbors: int = 10,
         threshold: float = 0.5,
         min_size_allowed: int = 100,
         disable_drift_detection: bool = False,
+        random_seed: int | None = None,
     ):
         """Construct C-SMOTE.
 
-        :param schema: The schema of the stream.
-        :param random_seed: The random seed passed to the MOA learner.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to be trained. Default trees.HoeffdingTree.
         :param neighbors: Number of neighbors for SMOTE.
         :param threshold: Minority class samples threshold.
         :param min_size_allowed: Minimum number of samples in the minority class for applying SMOTE.
         :param disable_drift_detection: If set, disables ADWIN drift detector
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         options = {
