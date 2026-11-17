@@ -158,11 +158,17 @@ def test_proxy_java_feature_importance_classifier():
     assert list(proxy.getTopKFeatures(2, True)) == classifier.get_top_k_features(2)
 
 
-def test_proxy_java_classifier_without_model_context():
-    """MOA ensembles do not set the model context of their members."""
-    stream = ElectricityTiny()
+def _sgd_proxy(schema) -> ProxyJavaClassifier:
     proxy = ProxyJavaClassifier({"learner": "capymoa.classifier.SGDClassifier"})
+    proxy.setModelContext(schema.get_moa_header())
     proxy.prepareForUse()
+    return proxy
+
+
+def test_proxy_java_classifier_copy():
+    """MOA ensembles use copies without preparing them or setting their context."""
+    stream = ElectricityTiny()
+    proxy = _sgd_proxy(stream.schema).copy()
     instance = stream.next_instance().java_instance.getData()
     proxy.trainOnInstance(instance)
     votes = list(proxy.getVotesForInstance(instance))
@@ -174,10 +180,10 @@ def test_proxy_java_classifier_without_model_context():
 @pytest.mark.parametrize("weight, n_train", [(0.0, 0), (1.0, 1), (3.0, 3)])
 def test_proxy_java_classifier_trains_weight_times(weight, n_train):
     """Python learners take no weights, so the proxy repeats training."""
-    proxy = ProxyJavaClassifier({"learner": "capymoa.classifier.SGDClassifier"})
-    instance = ElectricityTiny().next_instance().java_instance.getData()
+    stream = ElectricityTiny()
+    proxy = _sgd_proxy(stream.schema)
+    instance = stream.next_instance().java_instance.getData()
     instance.setWeight(weight)
-    proxy.getVotesForInstance(instance)  # Builds the python learner.
     trained = []
     proxy._py_learner.train = trained.append
     proxy.trainOnInstance(instance)
