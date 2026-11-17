@@ -30,7 +30,6 @@ class LeveragingBagging(MOAClassifier):
     def __init__(
         self,
         schema=None,
-        CLI=None,
         random_seed: int | None = None,
         base_learner: str | Classifier | None = None,
         ensemble_size=100,
@@ -40,8 +39,6 @@ class LeveragingBagging(MOAClassifier):
         """Construct a Leveraging Bagging classifier.
 
         :param schema: The schema of the stream. If not provided, it will be inferred from the data.
-        :param CLI: Command Line Interface (CLI) options for configuring the ARF algorithm.
-            If not provided, default options will be used.
         :param random_seed: Seed for the random number generator.
         :param base_learner: The base learner to use. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
@@ -89,10 +86,9 @@ class LeveragingBagging(MOAClassifier):
 
         super().__init__(
             schema=schema,
-            CLI=CLI,
             random_seed=random_seed,
             moa_learner=moa_learner,
-            options=None if CLI else options,
+            options=options,
         )
 
     def __str__(self):
