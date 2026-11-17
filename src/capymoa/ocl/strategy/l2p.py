@@ -259,7 +259,7 @@ class L2P(BatchClassifier, Handler):
         ),
         device: str = "cpu",
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct L2P learner.
 
         :param schema: Describes the stream's structure and types.

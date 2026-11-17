@@ -62,7 +62,7 @@ class HoeffdingTree(MOAClassifier):
         remove_poor_attrs: bool = False,
         disable_prepruning: bool = True,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct Hoeffding Tree.
 
         :param schema: Describes the stream's structure and types.

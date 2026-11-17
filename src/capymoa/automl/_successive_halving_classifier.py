@@ -58,7 +58,7 @@ class SuccessiveHalvingClassifier(Classifier):
         evaluation_metric: str = "accuracy",
         verbose: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a Successive Halving Classifier.
 
         :param schema: Describes the stream's structure and types.

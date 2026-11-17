@@ -1,6 +1,7 @@
 from moa.classifiers.lazy import kNN as _moa_kNN
 
 from capymoa.base import MOAClassifier
+from capymoa.stream import Schema
 
 
 class KNN(MOAClassifier):
@@ -40,11 +41,11 @@ class KNN(MOAClassifier):
 
     def __init__(
         self,
-        schema=None,
-        k=3,
-        window_size=1000,
+        schema: Schema | None = None,
+        k: int = 3,
+        window_size: int = 1000,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a KNN classifier.
 
         :param schema: Describes the stream's structure and types.

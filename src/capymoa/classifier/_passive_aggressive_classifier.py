@@ -49,7 +49,7 @@ class PassiveAggressiveClassifier(SKClassifier):
         class_weight: dict[int, float] | None | Literal["balanced"] = None,
         average: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a passive aggressive classifier.
 
         :param schema: Describes the stream's structure and types.

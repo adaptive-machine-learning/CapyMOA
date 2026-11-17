@@ -52,7 +52,7 @@ class ShrubsRegressor(_ShrubEnsembles, Regressor):
         update_leaves: bool = False,
         batch_size: int = 32,
         sk_dt: DecisionTreeRegressor | None = None,
-    ):
+    ) -> None:
         """Initializes the ShrubEnsemble regressor with the given parameters.
 
         :param schema: Describes the stream's structure and types.

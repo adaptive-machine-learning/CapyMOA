@@ -3,6 +3,7 @@ from moa.classifiers.oneclass import HSTrees as _MOA_HSTrees
 from capymoa.base import (
     MOAAnomalyDetector,
 )
+from capymoa.stream import Schema
 
 
 class HalfSpaceTrees(MOAAnomalyDetector):
@@ -43,14 +44,14 @@ class HalfSpaceTrees(MOAAnomalyDetector):
 
     def __init__(
         self,
-        schema=None,
-        window_size=250,
-        number_of_trees=25,
-        max_depth=15,
-        anomaly_threshold=0.5,
-        size_limit=0.1,
-        random_seed=None,
-    ):
+        schema: Schema | None = None,
+        window_size: int = 250,
+        number_of_trees: int = 25,
+        max_depth: int = 15,
+        anomaly_threshold: float = 0.5,
+        size_limit: float = 0.1,
+        random_seed: int | None = None,
+    ) -> None:
         """Construct a Half-Space Trees anomaly detector
 
         :param schema: Describes the stream's structure and types.

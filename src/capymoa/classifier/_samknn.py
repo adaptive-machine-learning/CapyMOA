@@ -35,7 +35,7 @@ class SAMkNN(MOAClassifier):
         relative_ltm_size: float = 0.4,
         recalculate_stm_error: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Self Adjusted Memory k Nearest Neighbor (SAMkNN) Classifier
 
         :param schema: Describes the stream's structure and types.

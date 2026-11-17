@@ -58,7 +58,7 @@ class NCM(BatchClassifier):
         pre_processor: nn.Module | None = None,
         num_features: int | None = None,
         device: torch.device | str | None = None,
-    ):
+    ) -> None:
         """Initialize a NCM classifier head.
 
         :param schema: Describes the stream's structure and types.

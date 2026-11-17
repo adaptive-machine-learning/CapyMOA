@@ -1,5 +1,6 @@
 from capymoa.base import Regressor
 from capymoa.core import RegressionInstance, TargetValue
+from capymoa.stream import Schema
 
 
 class NoChange(Regressor):
@@ -13,7 +14,7 @@ class NoChange(Regressor):
         :func:`~capymoa.regressor.FadingTargetMean`
     """
 
-    def __init__(self, schema=None):
+    def __init__(self, schema: Schema | None = None) -> None:
         """Construct a NoChange regressor.
 
         :param schema: Describes the stream's structure and types.

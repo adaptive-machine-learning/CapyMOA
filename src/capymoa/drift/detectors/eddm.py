@@ -41,7 +41,7 @@ class EDDM(MOADriftDetector):
 
     _moa_detector_type = _EDDM
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Create an EDDM drift detector.
 
         EDDM has no hyper-parameters. MOA uses the thresholds from the original paper.

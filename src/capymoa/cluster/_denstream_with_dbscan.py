@@ -23,7 +23,7 @@ class Denstream_with_dbscan(MOAClusterer):
         offline_option: float = 2,
         lambda_option: float = 0.25,
         speed: int = 100,
-    ):
+    ) -> None:
         """Clustream clusterer.
 
         :param schema: Describes the stream's structure and types.

@@ -4,8 +4,10 @@ from moa.classifiers.meta import OzaBag as _MOA_OzaBag
 from moa.classifiers.meta.minibatch import OzaBagMB as _MOA_OzaBagMB
 
 from capymoa.base import (
+    Classifier,
     MOAClassifier,
 )
+from capymoa.stream import Schema
 
 
 class OnlineBagging(MOAClassifier):
@@ -35,13 +37,13 @@ class OnlineBagging(MOAClassifier):
 
     def __init__(
         self,
-        schema=None,
-        base_learner=None,
-        ensemble_size=100,
-        minibatch_size=None,
-        number_of_jobs=None,
+        schema: Schema | None = None,
+        base_learner: str | Classifier | None = None,
+        ensemble_size: int = 100,
+        minibatch_size: int | None = None,
+        number_of_jobs: int | None = None,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct an Online bagging classifier using online bootstrap sampling.
 
         :param schema: Describes the stream's structure and types.

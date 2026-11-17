@@ -19,7 +19,7 @@ class Clustream_with_kmeans(MOAClusterer):
         max_num_kernels: int = 100,
         kernel_radi_factor: float = 2,
         k_option: int = 5,
-    ):
+    ) -> None:
         """Clustream clusterer with K-means offline clustering.
 
         :param schema: Describes the stream's structure and types.

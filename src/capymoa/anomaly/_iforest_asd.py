@@ -178,7 +178,7 @@ class IForestASD(AnomalyDetector):
         sample_size: int = 256,
         height_limit: int | None = None,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Initialize the IForestASD anomaly detector.
         :param schema: Describes the stream's structure and types.
         :param window_size: The size of the sliding window to maintain.

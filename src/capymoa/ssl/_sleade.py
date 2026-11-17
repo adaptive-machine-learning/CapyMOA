@@ -71,7 +71,7 @@ class SLEADE(MOAClassifierSSL):
         unsupervised_detection_weight_window: int = 20,
         labeled_window_limit: int = 100,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct the SLEADE semi-supervised ensemble.
 
         :param schema: Describes the stream's structure and types.

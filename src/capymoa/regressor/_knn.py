@@ -1,6 +1,7 @@
 from moa.classifiers.lazy import kNN as _moa_kNN
 
 from capymoa.base import MOARegressor
+from capymoa.stream import Schema
 
 
 class KNNRegressor(MOARegressor):
@@ -29,12 +30,12 @@ class KNNRegressor(MOARegressor):
 
     def __init__(
         self,
-        schema=None,
-        k=3,
-        median=False,
-        window_size=1000,
+        schema: Schema | None = None,
+        k: int = 3,
+        median: bool = False,
+        window_size: int = 1000,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a KNNRegressor.
 
         :param schema: Describes the stream's structure and types.

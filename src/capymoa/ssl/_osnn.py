@@ -15,6 +15,7 @@ from scipy.spatial.distance import cdist
 from torch import nn
 
 from capymoa.base import ClassifierSSL
+from capymoa.stream import Schema
 
 
 def kernel_fun(a, b, sigma):
@@ -265,15 +266,15 @@ class OSNN(ClassifierSSL):
 
     def __init__(
         self,
-        schema=None,
-        num_center=10,
-        n_out=1,
-        window_size=200,
-        beta=1,
-        gamma=1,
-        optim_steps=200,
+        schema: Schema | None = None,
+        num_center: int = 10,
+        n_out: int = 1,
+        window_size: int = 200,
+        beta: float = 1,
+        gamma: float = 1,
+        optim_steps: int = 200,
         seed: int | None = None,
-    ):
+    ) -> None:
         """Construct an OSNN learner.
 
         :param schema: Describes the stream's structure and types.

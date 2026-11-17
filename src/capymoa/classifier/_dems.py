@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from moa.classifiers.meta import DynamicEnsembleMemberSelection as _MOA_DEMS
 
 from capymoa.base import MOAClassifier
@@ -36,7 +38,7 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
         base_learner: str = "trees.HoeffdingTree -g 50 -c 0.01",
         tree_learner: str = "ARFHoeffdingTree -e 2000000 -g 50 -c 0.01",
         ensemble_size: int = 100,
-        max_features=0.6,
+        max_features: float | Literal["sqrt"] | None = 0.6,
         training_method: str = "RandomPatches",
         lambda_param: float = 6.0,
         number_of_jobs: int = 1,
@@ -50,7 +52,7 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
         k_value: int = 5,
         disable_self_optimising: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Dynamic Ensemble Member Selection (DEMS) Classifier.
 
         :param schema: Describes the stream's structure and types.

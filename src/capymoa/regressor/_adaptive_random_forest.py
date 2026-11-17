@@ -1,5 +1,7 @@
 # Library imports
 
+from typing import Literal
+
 from moa.classifiers.meta import (
     AdaptiveRandomForestRegressor as _AdaptiveRandomForestRegressor,
 )
@@ -11,6 +13,7 @@ from capymoa.core.moa._cli import (
     cli_str_drift_detector,
 )
 from capymoa.drift.base_detector import MOADriftDetector
+from capymoa.stream import Schema
 
 from ._arffimtdd import ARFFIMTDD
 
@@ -49,17 +52,17 @@ class AdaptiveRandomForestRegressor(MOARegressor):
 
     def __init__(
         self,
-        schema=None,
-        tree_learner=None,
-        ensemble_size=100,
-        max_features=0.6,
-        lambda_param=6.0,
-        drift_detection_method=None,
-        warning_detection_method=None,
-        disable_drift_detection=False,
-        disable_background_learner=False,
+        schema: Schema | None = None,
+        tree_learner: ARFFIMTDD | str | None = None,
+        ensemble_size: int = 100,
+        max_features: float | Literal["sqrt"] | None = 0.6,
+        lambda_param: float = 6.0,
+        drift_detection_method: MOADriftDetector | str | None = None,
+        warning_detection_method: MOADriftDetector | str | None = None,
+        disable_drift_detection: bool = False,
+        disable_background_learner: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct an Adaptive Random Forest Regressor
 
         :param schema: Describes the stream's structure and types.

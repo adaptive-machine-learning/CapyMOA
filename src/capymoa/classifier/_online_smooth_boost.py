@@ -32,9 +32,9 @@ class OnlineSmoothBoost(MOAClassifier):
         schema: Schema | None = None,
         base_learner: str | Classifier = "trees.HoeffdingTree",
         boosting_iterations: int = 100,
-        gamma=0.1,
+        gamma: float = 0.1,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """OnlineSmoothBoost Classifier
 
         :param schema: Describes the stream's structure and types.

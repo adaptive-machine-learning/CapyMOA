@@ -3,6 +3,7 @@ from torch import nn, optim
 
 from capymoa.base import AnomalyDetector
 from capymoa.core import Instance
+from capymoa.stream import Schema
 
 
 class Autoencoder(AnomalyDetector):
@@ -39,12 +40,12 @@ class Autoencoder(AnomalyDetector):
 
     def __init__(
         self,
-        schema=None,
-        hidden_layer=2,
-        learning_rate=0.5,
-        threshold=0.6,
-        random_seed=None,
-    ):
+        schema: Schema | None = None,
+        hidden_layer: int = 2,
+        learning_rate: float = 0.5,
+        threshold: float = 0.6,
+        random_seed: int | None = None,
+    ) -> None:
         """Construct an Autoencoder anomaly detector
 
         Parameters

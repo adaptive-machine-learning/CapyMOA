@@ -40,7 +40,7 @@ class OzaBoost(MOAClassifier):
         boosting_iterations: int = 10,
         use_pure_boost: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Incremental on-line boosting classifier of Oza and Russell.
 
         :param schema: Describes the stream's structure and types.

@@ -149,7 +149,7 @@ class RSHash(AnomalyDetector):
         w: int = 4,
         p: int = 10_000,
         seed: int | None = None,
-    ):
+    ) -> None:
         """Construct an RS-Hash anomaly detector.
 
         :param schema: Describes the stream's structure and types.

@@ -47,7 +47,7 @@ class HDDMAverage(MOADriftDetector):
         drift_confidence: float = 0.001,
         warning_confidence: float = 0.005,
         test_type: Literal["Two-sided", "One-sided"] = "Two-sided",
-    ):
+    ) -> None:
         """
         :param drift_confidence: Significance level for drift detection (p-value threshold).
         :param warning_confidence: Significance level for warning detection (p-value threshold).

@@ -122,7 +122,7 @@ class SLDA(BatchClassifier):
         ridge: float = 1e-3,
         device: torch.device | str | None = None,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Initialize a SLDA classifier.
 
         :param schema: Describes the stream's structure and types.
@@ -241,7 +241,7 @@ class RanPAC(SLDA):
         ridge: float = 1e-3,
         device: torch.device | str | None = None,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Initialize a RanPAC classifier.
 
         :param schema: Describes the stream's structure and types.

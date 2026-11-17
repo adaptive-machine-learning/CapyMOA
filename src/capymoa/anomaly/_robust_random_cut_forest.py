@@ -529,7 +529,13 @@ class RobustRandomCutForest(AnomalyDetector):
         machine learning (pp. 2712-2721). PMLR.
     """
 
-    def __init__(self, schema: Schema, tree_size=1000, n_trees=100, random_seed=None):
+    def __init__(
+        self,
+        schema: Schema,
+        tree_size: int = 1000,
+        n_trees: int = 100,
+        random_seed: int | None = None,
+    ) -> None:
         """Construct a RobustRandomCutForest anomaly detector.
 
         :param schema: Describes the stream's structure and types.

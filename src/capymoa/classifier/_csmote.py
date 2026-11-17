@@ -40,7 +40,7 @@ class CSMOTE(MOAClassifier):
         min_size_allowed: int = 100,
         disable_drift_detection: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct C-SMOTE.
 
         :param schema: Describes the stream's structure and types.

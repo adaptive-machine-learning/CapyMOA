@@ -25,7 +25,7 @@ class WeightedkNN(MOAClassifier):
              <https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=10020652>`_
     """
 
-    def __init__(self, schema: Schema, k: int = 10, limit: int = 1000):
+    def __init__(self, schema: Schema, k: int = 10, limit: int = 1000) -> None:
         """Weighted KNN Classifier
 
         :param schema: Describes the stream's structure and types.

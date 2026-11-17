@@ -54,7 +54,7 @@ class HoeffdingAdaptiveTree(HoeffdingTree):
         remove_poor_attrs: bool = False,
         disable_prepruning: bool = True,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Hoeffding Adaptive Tree (HAT) classifier.
 
         :param schema: Describes the stream's structure and types.

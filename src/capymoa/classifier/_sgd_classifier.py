@@ -54,7 +54,7 @@ class SGDClassifier(SKClassifier):
         learning_rate: Literal["constant", "optimal", "invscaling"] = "optimal",
         eta0: float = 0.01,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct stochastic gradient descent classifier.
 
         :param schema: Describes the stream's structure and types.

@@ -52,7 +52,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
         sk_dt: DecisionTreeClassifier | None = None,
         allow_abstaining: bool = True,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Initializes the ShrubEnsemble classifier with the given parameters.
 
         :param schema: Describes the stream's structure and types.

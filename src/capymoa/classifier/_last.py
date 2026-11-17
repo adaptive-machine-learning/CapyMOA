@@ -50,8 +50,8 @@ class LAST(MOAClassifier):
         schema: Schema | None = None,
         split_criterion: str | SplitCriterion = "InfoGainSplitCriterion",
         change_detector: BaseDriftDetector | None = None,
-        monitor_distribution=False,
-        leaf_prediction: int = "NaiveBayesAdaptive",
+        monitor_distribution: bool = False,
+        leaf_prediction: str = "NaiveBayesAdaptive",
         nb_threshold: int = 0,
         numeric_attribute_observer: str = "GaussianNumericAttributeClassObserver",
         binary_split: bool = False,
@@ -61,7 +61,7 @@ class LAST(MOAClassifier):
         remove_poor_attrs: bool = False,
         disable_prepruning: bool = True,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct Local Adaptive Streaming Tree.
 
         :param schema: Describes the stream's structure and types.

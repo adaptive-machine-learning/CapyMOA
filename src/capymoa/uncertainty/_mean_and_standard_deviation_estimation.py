@@ -4,19 +4,21 @@ from moa.classifiers.predictioninterval import MVEPredictionInterval as MOA_MVE
 
 from capymoa.base import (
     MOAPredictionIntervalLearner,
+    MOARegressor,
 )
 from capymoa.core.moa._cli import cli_str_regressor
 from capymoa.regressor import AdaptiveRandomForestRegressor
+from capymoa.stream import Schema
 
 
 class MVE(MOAPredictionIntervalLearner):
     def __init__(
         self,
-        schema=None,
-        base_learner=None,
-        confidence_level=0.95,
+        schema: Schema | None = None,
+        base_learner: str | MOARegressor | None = None,
+        confidence_level: float = 0.95,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct an MVE prediction interval learner.
 
         :param schema: Describes the stream's structure and types.

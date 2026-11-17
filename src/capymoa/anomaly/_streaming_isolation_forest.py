@@ -434,11 +434,11 @@ class StreamingIsolationForest(AnomalyDetector):
     def __init__(
         self,
         schema: Schema,
-        window_size=256,
-        n_trees=100,
-        height=None,
+        window_size: int = 256,
+        n_trees: int = 100,
+        height: int | None = None,
         seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a Streaming Isolation Forest anomaly detector.
         :param schema: Describes the stream's structure and types.
         :param window_size: The size of the window for each tree.

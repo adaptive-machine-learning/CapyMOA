@@ -4,6 +4,7 @@ from moa.classifiers.meta import OzaBagAdwin as _MOA_OzaBagAdwin
 from moa.classifiers.meta.minibatch import OzaBagAdwinMB as _MOA_OzaBagAdwinMB
 
 from capymoa.base import Classifier, MOAClassifier
+from capymoa.stream import Schema
 
 
 class OnlineAdwinBagging(MOAClassifier):
@@ -63,13 +64,13 @@ class OnlineAdwinBagging(MOAClassifier):
 
     def __init__(
         self,
-        schema=None,
+        schema: Schema | None = None,
         base_learner: str | Classifier | None = None,
-        ensemble_size=100,
-        minibatch_size=None,
-        number_of_jobs=None,
+        ensemble_size: int = 100,
+        minibatch_size: int | None = None,
+        number_of_jobs: int | None = None,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Constructor for online ADWIN bagging.
 
         :param schema: Describes the stream's structure and types.

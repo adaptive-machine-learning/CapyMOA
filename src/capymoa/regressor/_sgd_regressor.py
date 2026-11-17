@@ -50,7 +50,7 @@ class SGDRegressor(SKRegressor):
         learning_rate: str = "invscaling",
         eta0: float = 0.01,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct stochastic gradient descent Regressor.
 
         :param schema: Describes the stream's structure and types.

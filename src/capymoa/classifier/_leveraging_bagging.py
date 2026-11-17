@@ -4,6 +4,7 @@ from moa.classifiers.meta import LeveragingBag as _MOA_LeveragingBag
 from moa.classifiers.meta.minibatch import LeveragingBagMB as _MOA_LeveragingBagMB
 
 from capymoa.base import Classifier, MOAClassifier
+from capymoa.stream import Schema
 
 
 class LeveragingBagging(MOAClassifier):
@@ -29,13 +30,13 @@ class LeveragingBagging(MOAClassifier):
 
     def __init__(
         self,
-        schema=None,
+        schema: Schema | None = None,
         base_learner: str | Classifier | None = None,
-        ensemble_size=100,
-        minibatch_size=None,
-        number_of_jobs=None,
+        ensemble_size: int = 100,
+        minibatch_size: int | None = None,
+        number_of_jobs: int | None = None,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a Leveraging Bagging classifier.
 
         :param schema: Describes the stream's structure and types.

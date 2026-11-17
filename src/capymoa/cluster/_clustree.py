@@ -18,7 +18,7 @@ class ClusTree(MOAClusterer):
         horizon: int = 1000,
         max_height: int = 8,
         breadth_first_strategy: bool = False,
-    ):
+    ) -> None:
         """Clustream clusterer.
 
         :param schema: Describes the stream's structure and types.

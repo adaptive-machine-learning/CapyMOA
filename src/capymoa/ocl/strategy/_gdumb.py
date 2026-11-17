@@ -34,7 +34,7 @@ class GDumb(BatchClassifier, Handler):
         lr: float = 0.001,
         device: str | torch.device = "cpu",
         seed: int = 0,
-    ):
+    ) -> None:
         """Construct a GDumb learner.
 
         :param schema: Describes the stream's structure and types.

@@ -89,7 +89,7 @@ class Loda(AnomalyDetector):
         window_size: int = 256,
         max_bins: str | int = "auto",
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Initialize the Loda anomaly detector.
 
         :param schema: Describes the stream's structure and types.

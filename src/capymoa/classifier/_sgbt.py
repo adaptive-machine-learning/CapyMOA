@@ -43,16 +43,17 @@ class StreamingGradientBoostedTrees(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        base_learner="trees.FIMTDD -s VarianceReductionSplitCriterion -g 25 -c 0.05 -e -p",
+        base_learner: str
+        | MOARegressor = "trees.FIMTDD -s VarianceReductionSplitCriterion -g 25 -c 0.05 -e -p",
         boosting_iterations: int = 100,
         percentage_of_features: int = 75,
-        learning_rate=0.0125,
+        learning_rate: float = 0.0125,
         disable_one_hot: bool = False,
         multiply_hessian_by: int = 1,
         skip_training: int = 1,
         use_squared_loss: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Streaming Gradient Boosted Trees (SGBT) Classifier
 
         :param schema: Describes the stream's structure and types.

@@ -61,7 +61,7 @@ class STUDD(BaseDriftDetector):
         student: Classifier,
         min_n_instances: int = 500,
         detector: BaseDriftDetector | None = None,
-    ):
+    ) -> None:
         """
         :param student: Student model that mimics the teacher's predictions
         :param min_n_instances: Minimum number of instances before monitoring drift

@@ -32,10 +32,10 @@ class OnlineBaggingRegressor(MOARegressor):
     def __init__(
         self,
         schema: Schema | None = None,
-        base_learner=None,
+        base_learner: str | MOARegressor | None = None,
         ensemble_size: int = 100,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct an Online bagging regressor using online bootstrap sampling.
 
         :param schema: Describes the stream's structure and types.

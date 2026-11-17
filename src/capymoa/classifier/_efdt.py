@@ -61,7 +61,7 @@ class EFDT(MOAClassifier):
         remove_poor_attrs: bool = False,
         disable_prepruning: bool = True,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct an Extremely Fast Decision Tree (EFDT) Classifier
 
         :param schema: Describes the stream's structure and types.

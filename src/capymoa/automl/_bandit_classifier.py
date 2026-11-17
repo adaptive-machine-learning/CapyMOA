@@ -32,7 +32,7 @@ class EpsilonGreedy:
 
     def __init__(
         self, epsilon: float = 0.1, burn_in: int = 100, rng: random.Random | None = None
-    ):
+    ) -> None:
         """Construct a new Epsilon-Greedy policy.
 
         :param epsilon: Probability of exploring a random model (default: ``0.1``).
@@ -166,7 +166,7 @@ class BanditClassifier(Classifier):
         policy: EpsilonGreedy = None,
         verbose: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a Bandit-based model selector.
 
         :param schema: Describes the stream's structure and types.

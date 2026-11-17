@@ -34,16 +34,17 @@ class StreamingGradientBoostedRegression(MOARegressor):
     def __init__(
         self,
         schema: Schema | None = None,
-        base_learner="meta.OzaBag -s 10 -l (trees.FIMTDD -s VarianceReductionSplitCriterion -g 50 -c 0.01 -e)",
+        base_learner: str
+        | MOARegressor = "meta.OzaBag -s 10 -l (trees.FIMTDD -s VarianceReductionSplitCriterion -g 50 -c 0.01 -e)",
         boosting_iterations: int = 10,
         percentage_of_features: int = 75,
-        learning_rate=1.0,
+        learning_rate: float = 1.0,
         disable_one_hot: bool = False,
         multiply_hessian_by: int = 1,
         skip_training: int = 1,
         use_squared_loss: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Streaming Gradient Boosted Regression (SGBR) Regressor
 
         :param schema: Describes the stream's structure and types.

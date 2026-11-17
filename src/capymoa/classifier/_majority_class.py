@@ -29,7 +29,7 @@ class MajorityClass(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-    ):
+    ) -> None:
         """Majority class classifier.
 
         :param schema: Describes the stream's structure and types.

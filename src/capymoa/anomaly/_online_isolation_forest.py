@@ -73,7 +73,7 @@ class OnlineIsolationForest(AnomalyDetector):
         branching_factor: int = 2,
         split: Literal["axisparallel"] = "axisparallel",
         n_jobs: int = 1,
-    ):
+    ) -> None:
         """Construct an Online Isolation Forest anomaly detector
 
         :param schema: Describes the stream's structure and types.

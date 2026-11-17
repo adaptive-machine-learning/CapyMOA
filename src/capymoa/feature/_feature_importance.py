@@ -90,7 +90,7 @@ class FeatureImportanceClassifier(Classifier):
         schema: Schema | None = None,
         window_size: int | None = None,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a feature importance classifier.
 
         :param schema: Describes the stream's structure and types.
@@ -172,7 +172,7 @@ class MOAFeatureImportanceClassifier(FeatureImportanceClassifier, MOAClassifier)
         base_learner: Any = None,
         window_size: int | None = None,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a feature importance wrapper around a base learner.
 
         :param schema: Describes the stream's structure and types.

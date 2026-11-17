@@ -1,6 +1,7 @@
 import numpy as np
 
 from capymoa.base import AnomalyDetector
+from capymoa.stream import Schema
 
 
 # Random Histogram Tree Node
@@ -299,8 +300,13 @@ class StreamRHF(AnomalyDetector):
     """
 
     def __init__(
-        self, schema, max_height=5, num_trees=100, window_size=20, random_seed=None
-    ):
+        self,
+        schema: Schema,
+        max_height: int = 5,
+        num_trees: int = 100,
+        window_size: int = 20,
+        random_seed: int | None = None,
+    ) -> None:
         """
         Initialize the StreamRHF learner.
         :param schema: Describes the stream's structure and types.

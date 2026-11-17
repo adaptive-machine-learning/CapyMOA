@@ -34,7 +34,7 @@ class DynamicWeightedMajority(MOAClassifier):
         theta: float = 0.01,
         max_experts: int = 10000,  # overwrite Integer.MAX_VALUE in Java with 10000,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct Dynamic Weighted Majority.
 
         :param schema: Describes the stream's structure and types.

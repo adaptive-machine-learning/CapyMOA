@@ -28,7 +28,7 @@ class NoChange(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-    ):
+    ) -> None:
         """NoChange class classifier.
 
         :param schema: Describes the stream's structure and types.

@@ -255,13 +255,13 @@ class AdaptiveIsolationForest(AnomalyDetector):
     def __init__(
         self,
         schema: Schema,
-        window_size=256,
-        n_trees=100,
-        height=None,
+        window_size: int = 256,
+        n_trees: int = 100,
+        height: int | None = None,
         seed: int | None = None,
-        m_trees=10,
-        weights=0.5,
-    ):
+        m_trees: int = 10,
+        weights: float = 0.5,
+    ) -> None:
         """Construct an Adaptive Isolation Forest anomaly detector.
 
         :param schema: Describes the stream's structure and types.

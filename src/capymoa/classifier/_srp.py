@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from typing import Literal
 
 from moa.classifiers.meta import StreamingRandomPatches as _MOA_SRP
 from moa.classifiers.meta.minibatch import StreamingRandomPatchesMB as _MOA_SRP_MB
@@ -38,12 +39,12 @@ class StreamingRandomPatches(MOAClassifier):
         self,
         schema: Schema | None = None,
         base_learner: str | Classifier = "trees.HoeffdingTree -g 50 -c 0.01",
-        ensemble_size=100,
-        max_features=0.6,
+        ensemble_size: int = 100,
+        max_features: float | Literal["sqrt"] | None = 0.6,
         training_method: str = "RandomPatches",
         lambda_param: float = 6.0,
-        minibatch_size=None,
-        number_of_jobs=None,
+        minibatch_size: int | None = None,
+        number_of_jobs: int | None = None,
         drift_detection_method: str
         | BaseDriftDetector = "ADWINChangeDetector -a 1.0E-5",
         warning_detection_method: str
@@ -52,7 +53,7 @@ class StreamingRandomPatches(MOAClassifier):
         disable_drift_detection: bool = False,
         disable_background_learner: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Streaming Random Patches (SRP) Classifier
 
         :param schema: Describes the stream's structure and types.

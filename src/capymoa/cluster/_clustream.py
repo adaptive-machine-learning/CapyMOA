@@ -18,7 +18,7 @@ class Clustream(MOAClusterer):
         time_window: int = 1000,
         max_num_kernels: int = 100,
         kernel_radi_factor: float = 2,
-    ):
+    ) -> None:
         """Clustream clusterer.
 
         :param schema: Describes the stream's structure and types.

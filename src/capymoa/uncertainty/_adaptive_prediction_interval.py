@@ -4,20 +4,22 @@ from moa.classifiers.predictioninterval import AdaptivePredictionInterval as MOA
 
 from capymoa.base import (
     MOAPredictionIntervalLearner,
+    MOARegressor,
 )
 from capymoa.core.moa._cli import cli_str_regressor
 from capymoa.regressor import AdaptiveRandomForestRegressor
+from capymoa.stream import Schema
 
 
 class AdaPI(MOAPredictionIntervalLearner):
     def __init__(
         self,
-        schema=None,
-        base_learner=None,
-        confidence_level=0.95,
-        limit=0.1,
+        schema: Schema | None = None,
+        base_learner: str | MOARegressor | None = None,
+        confidence_level: float = 0.95,
+        limit: float = 0.1,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct an AdaPI prediction interval learner.
 
         :param schema: Describes the stream's structure and types.

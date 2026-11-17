@@ -78,7 +78,7 @@ class ABCD(BaseDriftDetector):
         n_min: int = 100,
         maximum_absolute_value: float = 1.0,
         bonferroni: bool = False,
-    ):
+    ) -> None:
         """
         :param delta_drift: The desired confidence level at which a drift is detected
         :param delta_warn: The desired confidence level at which a warning is detected

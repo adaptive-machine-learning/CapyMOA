@@ -57,7 +57,7 @@ class D3(BaseDataDriftDetector):
         n_splits: int = 2,
         seed: int | None = None,
         auto_fit_samples: int | None = None,
-    ):
+    ) -> None:
         """Create a D3 data drift detector.
 
         :param window_size: Number of observations in the sliding window.

@@ -28,7 +28,7 @@ class AutoClass(MOAClassifier):
         number_active_classifiers: int = 1,
         weight_classifiers: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """AutoClass automl algorithm by Bahri and Georgantas.
 
         The configuration file names each learner by its full class name.

@@ -53,7 +53,7 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
         disable_drift_detection: bool = False,
         disable_background_learner: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct ARF.
 
         :param schema: Describes the stream's structure and types.

@@ -56,7 +56,7 @@ class PassiveAggressiveRegressor(SKRegressor):
         ] = "epsilon_insensitive",
         average: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a passive aggressive regressor.
 
         :param schema: Describes the stream's structure and types.
