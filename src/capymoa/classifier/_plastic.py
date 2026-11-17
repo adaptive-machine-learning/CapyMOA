@@ -38,7 +38,7 @@ class PLASTIC(MOAClassifier):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         grace_period: int = 200,
         reevaluation_period: int = 200,
         nominal_estimator: str = "NominalAttributeClassObserver",

@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from functools import partial
@@ -37,6 +38,10 @@ from capymoa.stream import Schema
 # PyTorch is notorious for non-deterministic behavior between versions and platforms.
 # Here we set a fixed absolute tolerance of +-1.5 for percentage-based metrics.
 approx = partial(pytest.approx, abs=1.5)
+
+
+SEED = 0
+"""Seed for every learner that takes one, so results are exact."""
 
 
 @dataclass(frozen=True)
@@ -81,7 +86,11 @@ def new_constructor(
 ) -> Callable[[Schema], Classifier]:
     """Create a new learner instance with the given hyperparameters."""
 
-    def constructor(schema: Schema, **extra_kwargs) -> Classifier:
+    def constructor(
+        schema: Schema, random_seed: int | None = None, **extra_kwargs
+    ) -> Classifier:
+        if "random_seed" in inspect.signature(learner).parameters:
+            extra_kwargs["random_seed"] = random_seed
         model = Perceptron(schema)
         optimiser = optimiser_type(model.parameters(), lr=lr)
         return learner(
@@ -95,10 +104,10 @@ def new_constructor(
     return constructor
 
 
-def _new_rar(schema, **kwargs):
+def _new_rar(schema, random_seed=None, **kwargs):
     # RAR test case constructor
     return RAR(
-        Finetune(schema, Perceptron(schema), **kwargs),
+        Finetune(schema, Perceptron(schema), random_seed=random_seed, **kwargs),
         augment=nn.Dropout(p=0.2),
         repeats=2,
     )
@@ -204,8 +213,10 @@ TEST_CASES: list[Case] = [
     ),
     Case(
         "RanPAC",
-        lambda s, **kw: RanPAC(s, projection_dim=512, **kw),
-        Result(80.0, 48.0, 62.4),
+        lambda s, random_seed=None, **kw: RanPAC(
+            s, projection_dim=512, random_seed=random_seed, **kw
+        ),
+        Result(78.0, 46.7, 60.8),
         meta_xfail="boolean mask indexing needs real values",
         restore_xfail="sample count is a plain int and weights are cached",
     ),
@@ -223,7 +234,9 @@ TEST_CASES: list[Case] = [
     ),
     Case(
         "ExperienceReplay",
-        lambda schema, **kw: ExperienceReplay(Finetune(schema, Perceptron, **kw)),
+        lambda schema, random_seed=None, **kw: ExperienceReplay(
+            Finetune(schema, Perceptron, random_seed=random_seed, **kw)
+        ),
         Result(28.5, 20.1, 3.0),
         meta_xfail="inner Finetune NaN check needs a real value",
     ),
@@ -390,6 +403,8 @@ def test_ocl_classifier(case: Case):
     torch.use_deterministic_algorithms(True)
 
     kwargs = {}
+    if "random_seed" in inspect.signature(case.constructor).parameters:
+        kwargs["random_seed"] = SEED
     if case.task_mask:
         kwargs["task_mask"] = scenario.task_mask
     learner = case.constructor(scenario.schema, **kwargs)  # type: ignore

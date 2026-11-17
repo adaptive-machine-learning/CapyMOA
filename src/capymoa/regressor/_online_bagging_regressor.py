@@ -19,7 +19,7 @@ class OnlineBaggingRegressor(MOARegressor):
     >>> from capymoa.regressor import evaluate_regressor
     >>>
     >>> stream = Fried()
-    >>> learner = OnlineBaggingRegressor(stream.get_schema())
+    >>> learner = OnlineBaggingRegressor(stream.get_schema(), random_seed=1)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
     >>> print(f"{results['cumulative']['rmse']:.2f}")
     7.10
@@ -32,7 +32,7 @@ class OnlineBaggingRegressor(MOARegressor):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         base_learner=None,
         ensemble_size: int = 100,
     ):

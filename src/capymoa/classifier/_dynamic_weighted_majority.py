@@ -29,7 +29,7 @@ class DynamicWeightedMajority(MOAClassifier):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         base_learner="bayes.NaiveBayes",
         period: int = 50,
         beta: float = 0.5,

@@ -2,17 +2,19 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any, overload
 
+import jpype
 from sklearn.base import RegressorMixin as _SKRegressorMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
+from capymoa.base._seed import _SeededMixin
 from capymoa.core import Instance, RegressionInstance, TargetValue
 from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
 
 
-class Regressor(LearnerParamsMixin, ABC):
-    def __init__(self, schema=None, random_seed=1):
-        self.random_seed = random_seed
+class Regressor(_SeededMixin, LearnerParamsMixin, ABC):
+    def __init__(self, schema=None, random_seed: int | None = None):
+        self._init_seed(random_seed)
         self.schema = schema
 
     def __str__(self) -> str:
@@ -33,7 +35,7 @@ class MOARegressor(Regressor):
         self,
         schema=None,
         CLI: str | None = None,
-        random_seed=1,
+        random_seed: int | None = None,
         moa_learner=None,
     ): ...
 
@@ -42,7 +44,7 @@ class MOARegressor(Regressor):
         self,
         schema=None,
         CLI: None = None,
-        random_seed=1,
+        random_seed: int | None = None,
         moa_learner=None,
         *,
         options: Mapping[str, Any],
@@ -52,7 +54,7 @@ class MOARegressor(Regressor):
         self,
         schema=None,
         CLI=None,
-        random_seed=1,
+        random_seed: int | None = None,
         moa_learner=None,
         options: Mapping[str, Any] | None = None,
     ):
@@ -64,8 +66,7 @@ class MOARegressor(Regressor):
         self.CLI = CLI
         self.moa_learner = moa_learner
 
-        if random_seed is not None:
-            self.moa_learner.setRandomSeed(random_seed)
+        self.moa_learner.setRandomSeed(self.random_seed)
 
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())
@@ -77,8 +78,10 @@ class MOARegressor(Regressor):
         self.moa_learner.setModelContext(self.schema.get_moa_header())
 
     def __str__(self):
-        full_name = str(self.moa_learner.getClass().getCanonicalName())
-        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        if isinstance(self.moa_learner, jpype.JObject):
+            full_name = str(self.moa_learner.getClass().getCanonicalName())
+            return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        return str(self.moa_learner)
 
     # def describe(self):
     #     return str(self.moa_learner)
@@ -146,7 +149,10 @@ class SKRegressor(Regressor):
     """The underlying scikit-learn object."""
 
     def __init__(
-        self, sklearner: _SKRegressorMixin, schema: Schema = None, random_seed: int = 1
+        self,
+        sklearner: _SKRegressorMixin,
+        schema: Schema = None,
+        random_seed: int | None = None,
     ):
         """Construct a scikit-learn regressor wrapper.
 

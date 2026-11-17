@@ -46,7 +46,7 @@ class EFDT(MOAClassifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int = 0,
+        random_seed: int | None = None,
         grace_period: int = 200,
         min_samples_reevaluate: int = 200,
         split_criterion: str | SplitCriterion = "InfoGainSplitCriterion",

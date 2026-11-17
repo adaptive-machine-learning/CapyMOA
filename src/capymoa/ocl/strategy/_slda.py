@@ -2,6 +2,7 @@ import torch
 from torch import Tensor, nn
 
 from capymoa.base import BatchClassifier, TorchMixin
+from capymoa.base._seed import resolve_seed
 from capymoa.stream import Schema
 
 from ._ncm import _batch_cumulative_mean
@@ -141,6 +142,7 @@ class SLDA(TorchMixin[_SLDAModule], BatchClassifier):
         num_features: int | None = None,
         ridge: float = 1e-3,
         device: torch.device | str = "cpu",
+        random_seed: int | None = None,
     ):
         """Initialize a SLDA classifier.
 
@@ -152,8 +154,9 @@ class SLDA(TorchMixin[_SLDAModule], BatchClassifier):
         :param ridge: Added to the covariance diagonal so it can be inverted,
             defaults to 1e-3.
         :param device: Device to run the model on, defaults to CPU.
+        :param random_seed: Seed for reproducibility.
         """
-        super().__init__(schema)
+        super().__init__(schema, random_seed)
         if pre_processor is None:
             pre_processor = nn.Identity()
         self._n_classes = schema.get_num_classes()
@@ -234,7 +237,7 @@ class RanPAC(SLDA):
     >>> from capymoa.ocl.datasets import TinySplitMNIST
     >>> from capymoa.ocl import evaluate_ocl
     >>> scenario = TinySplitMNIST()
-    >>> learner = RanPAC(scenario.schema, projection_dim=512)
+    >>> learner = RanPAC(scenario.schema, projection_dim=512, random_seed=1)
     >>> results = evaluate_ocl(
     ...     learner,
     ...     scenario.train_loaders(32),
@@ -254,7 +257,7 @@ class RanPAC(SLDA):
         projection_dim: int = 5000,
         ridge: float = 1e-3,
         device: torch.device | str = "cpu",
-        random_seed: int = 1,
+        random_seed: int | None = None,
     ):
         """Initialize a RanPAC classifier.
 
@@ -263,8 +266,9 @@ class RanPAC(SLDA):
         :param ridge: Added to the covariance diagonal so it can be inverted,
             defaults to 1e-3.
         :param device: Device to run the model on, defaults to CPU.
-        :param random_seed: Seed for the random projection, defaults to 1.
+        :param random_seed: Seed for the random projection.
         """
+        random_seed = resolve_seed(random_seed)
         generator = torch.Generator().manual_seed(random_seed)
         projection = nn.utils.skip_init(
             nn.Linear, schema.get_num_attributes(), projection_dim, bias=False
@@ -277,5 +281,5 @@ class RanPAC(SLDA):
             num_features=projection_dim,
             ridge=ridge,
             device=device,
+            random_seed=random_seed,
         )
-        self.random_seed = random_seed

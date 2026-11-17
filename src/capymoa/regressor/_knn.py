@@ -31,7 +31,7 @@ class KNNRegressor(MOARegressor):
         self,
         schema=None,
         CLI=None,
-        random_seed=1,
+        random_seed: int | None = None,
         k=3,
         median=False,
         window_size=1000,

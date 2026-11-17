@@ -51,7 +51,7 @@ class RAR(TorchMixin[_RARModule], BatchClassifier, Handler):
     >>> augment = T.Compose([
     ...     T.RandomRotation(10),
     ... ])
-    >>> learner = RAR(Finetune(scenario.schema, model), augment=augment, repeats=5)
+    >>> learner = RAR(Finetune(scenario.schema, model, random_seed=0), augment=augment, repeats=5)
     >>> results = evaluate_ocl(
     ...     learner,
     ...     scenario.train_loaders(32),

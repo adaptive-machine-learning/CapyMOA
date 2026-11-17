@@ -34,7 +34,7 @@ class ExperienceReplay(TorchMixin[_ERModule], BatchClassifier, Handler):
     >>> _ = torch.manual_seed(0)
     >>> scenario = TinySplitMNIST()
     >>> model = Perceptron(scenario.schema)
-    >>> learner = ExperienceReplay(Finetune(scenario.schema, model))
+    >>> learner = ExperienceReplay(Finetune(scenario.schema, model, random_seed=0))
     >>> results = evaluate_ocl(
     ...     learner,
     ...     scenario.train_loaders(32),
