@@ -90,7 +90,7 @@ learners = {
     "FadingTargetMean": FadingTargetMean(schema=stream.get_schema()),
     "kNNReg_k5": KNNRegressor(schema=stream.get_schema(), k=5),
     "kNNReg_k2": KNNRegressor(schema=stream.get_schema(), k=2),
-    "kNNReg_k5_median": KNNRegressor(schema=stream.get_schema(), CLI="-k 5 -m"),
+    "kNNReg_k5_median": KNNRegressor(schema=stream.get_schema(), k=5, median=True),
     "ARFReg_s5": AdaptiveRandomForestRegressor(
         schema=stream.get_schema(), ensemble_size=5
     ),

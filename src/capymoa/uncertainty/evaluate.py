@@ -89,7 +89,7 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
         moa_evaluator=None,
     ):
         """
-        :param schema: The schema of the stream.
+        :param schema: Describes the stream's structure and types.
         :param window_size: Keep the metrics every ``window_size`` instances in
             :meth:`metrics_per_window`. ``None`` to keep none.
         :param moa_evaluator: MOA interval evaluator. Defaults to a

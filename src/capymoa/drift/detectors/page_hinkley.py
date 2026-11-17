@@ -42,7 +42,7 @@ class PageHinkley(MOADriftDetector):
         delta: float = 0.005,
         lambda_: float = 50.0,
         alpha: float = 0.9999,
-    ):
+    ) -> None:
         """Create a Page-Hinkley drift detector.
 
         :param min_n_instances: Minimum number of instances to observe before change

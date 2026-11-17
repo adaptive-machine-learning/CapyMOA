@@ -48,8 +48,7 @@ class SuccessiveHalvingClassifier(Classifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
-        random_seed: int | None = None,
+        schema: Schema,
         base_classifiers: list[Classifier] | None = None,
         config_file: str | None = None,
         max_instances: int | None = None,
@@ -58,11 +57,11 @@ class SuccessiveHalvingClassifier(Classifier):
         min_models: int = 1,
         evaluation_metric: str = "accuracy",
         verbose: bool = False,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Construct a Successive Halving Classifier.
 
-        :param schema: The schema of the stream.
-        :param random_seed: Random seed used for reproducibility.
+        :param schema: Describes the stream's structure and types.
         :param base_classifiers: Base classifiers to consider.
         :param config_file: Path to a JSON configuration file with model hyperparameters.
         :param max_instances: Maximum number of instances to process per model.
@@ -73,6 +72,7 @@ class SuccessiveHalvingClassifier(Classifier):
         :param min_models: Minimum number of models to maintain in successive rounds.
         :param evaluation_metric: Metric used to evaluate models. Defaults to ``"accuracy"``.
         :param verbose: Whether to print progress information during training.
+        :param random_seed: Random seed used for reproducibility.
         """
         super().__init__(schema=schema, random_seed=random_seed)
 

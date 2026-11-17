@@ -1,6 +1,7 @@
 from moa.classifiers.lazy import kNN as _moa_kNN
 
 from capymoa.base import MOAClassifier
+from capymoa.stream import Schema
 
 
 class KNN(MOAClassifier):
@@ -40,30 +41,24 @@ class KNN(MOAClassifier):
 
     def __init__(
         self,
-        schema=None,
-        CLI=None,
+        schema: Schema,
+        k: int = 3,
+        window_size: int = 1000,
         random_seed: int | None = None,
-        k=3,
-        window_size=1000,
-    ):
-        # Important, should create the MOA object before invoking the super class __init__
-        self.moa_learner = _moa_kNN()
-        super().__init__(
-            schema=schema,
-            CLI=CLI,
-            random_seed=random_seed,
-            moa_learner=self.moa_learner,
-        )
+    ) -> None:
+        """Construct a KNN classifier.
 
-        # Initialize instance attributes with default values, CLI was not set.
-        if self.CLI is None:
-            self.k = k
-            self.window_size = window_size
-            self.moa_learner.getOptions().setViaCLIString(
-                f"-k {self.k} -w {self.window_size}"
-            )
-            self.moa_learner.prepareForUse()
-            self.moa_learner.resetLearning()
+        :param schema: Describes the stream's structure and types.
+        :param k: The number of neighbors.
+        :param window_size: The maximum number of instances to store.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
+        """
+        super().__init__(
+            moa_learner=_moa_kNN,
+            schema=schema,
+            random_seed=random_seed,
+            options={"k": k, "limit": window_size},
+        )
 
     def __str__(self):
         # Overrides the default class name from MOA

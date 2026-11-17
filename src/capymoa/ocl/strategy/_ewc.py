@@ -149,7 +149,7 @@ class EWC(BatchClassifier, nn.Module, Handler):
     ) -> None:
         """Construct an EWC learner.
 
-        :param schema: Stream schema used by the classifier interface.
+        :param schema: Describes the stream's structure and types.
         :param model: Torch model that outputs class logits.
         :param optimiser: Optimiser used to update ``model`` parameters.
         :param lambda_: Weight of the EWC regularisation term.
@@ -160,6 +160,8 @@ class EWC(BatchClassifier, nn.Module, Handler):
             task incremental scenario.
         :param mask_train: Whether to apply per-task masking during training. This is
             also known as the labels trick.
+        :param gamma: Decay of the Fisher diagonals of previous tasks. 1.0 keeps them
+            unchanged.
         :param task_mask: Optional per-task mask applied to output logits.
         :raises ValueError: If task-specific masking is requested without ``task_mask``.
         """

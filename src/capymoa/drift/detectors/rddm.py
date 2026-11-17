@@ -43,7 +43,7 @@ class RDDM(MOADriftDetector):
         max_size_concept: int = 40000,
         min_size_concept: int = 7000,
         warning_limit: int = 1400,
-    ):
+    ) -> None:
         """Create an RDDM drift detector.
 
         :param min_n_instances: Minimum number of instances before the detector starts

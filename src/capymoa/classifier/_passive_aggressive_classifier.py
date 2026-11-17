@@ -49,10 +49,10 @@ class PassiveAggressiveClassifier(SKClassifier):
         class_weight: dict[int, float] | None | Literal["balanced"] = None,
         average: bool = False,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a passive aggressive classifier.
 
-        :param schema: Stream schema
+        :param schema: Describes the stream's structure and types.
         :param max_step_size: Maximum step size (regularization).
         :param fit_intercept: Whether the intercept should be estimated or not.
             If False, the data is assumed to be already centered.
@@ -74,7 +74,7 @@ class PassiveAggressiveClassifier(SKClassifier):
             than 1, averaging will begin once the total number of samples
             seen reaches average. So ``average=10`` will begin averaging after
             seeing 10 samples.
-        :param random_seed: Seed for the random number generator.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         :raises ValueError: If ``loss`` is not one of the supported losses.
         """
 

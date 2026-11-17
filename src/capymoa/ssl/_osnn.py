@@ -15,6 +15,7 @@ from scipy.spatial.distance import cdist
 from torch import nn
 
 from capymoa.base import ClassifierSSL
+from capymoa.stream import Schema
 
 
 def kernel_fun(a, b, sigma):
@@ -265,15 +266,26 @@ class OSNN(ClassifierSSL):
 
     def __init__(
         self,
-        schema=None,
-        num_center=10,
-        n_out=1,
-        window_size=200,
-        beta=1,
-        gamma=1,
-        optim_steps=200,
+        schema: Schema | None = None,
+        num_center: int = 10,
+        n_out: int = 1,
+        window_size: int = 200,
+        beta: float = 1,
+        gamma: float = 1,
+        optim_steps: int = 200,
         seed: int | None = None,
-    ):
+    ) -> None:
+        """Construct an OSNN learner.
+
+        :param schema: Describes the stream's structure and types.
+        :param num_center: The number of radial basis function centers. They are sampled from the window.
+        :param n_out: The number of network outputs. Predictions treat the output as the probability of the positive class, so use 1 (binary only).
+        :param window_size: The number of instances in the window. The network updates each time the window fills.
+        :param beta: Width of each basis function as a proportion of the mean distance to the other centers.
+        :param gamma: Scale of the nearest-neighbor distance used to compute pseudo-label weights.
+        :param optim_steps: The number of L-BFGS steps each time the window fills.
+        :param seed: Seed for all random choices. ``None`` is a fresh random seed each run.
+        """
         self.Network = OSNeuralNetwork(
             num_center=num_center,
             n_out=n_out,

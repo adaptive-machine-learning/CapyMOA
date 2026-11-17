@@ -25,12 +25,12 @@ class WeightedkNN(MOAClassifier):
              <https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=10020652>`_
     """
 
-    def __init__(self, schema: Schema, k: int = 10, limit: int = 1000):
+    def __init__(self, schema: Schema, k: int = 10, limit: int = 1000) -> None:
         """Weighted KNN Classifier
 
-        :param schema: The schema of the stream.
+        :param schema: Describes the stream's structure and types.
         :param k: The number of neighbors.
-        :param w: The maximum number of instances to store.
+        :param limit: The maximum number of instances to store.
         """
 
         mapping = {
