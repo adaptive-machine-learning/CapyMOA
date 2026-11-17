@@ -42,7 +42,7 @@ class StreamingGradientBoostedTrees(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         base_learner: str
         | MOARegressor = "trees.FIMTDD -s VarianceReductionSplitCriterion -g 25 -c 0.05 -e -p",
         boosting_iterations: int = 100,

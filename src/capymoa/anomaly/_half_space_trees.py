@@ -44,7 +44,7 @@ class HalfSpaceTrees(MOAAnomalyDetector):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         window_size: int = 250,
         number_of_trees: int = 25,
         max_depth: int = 15,

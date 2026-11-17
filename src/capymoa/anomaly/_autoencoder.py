@@ -40,7 +40,7 @@ class Autoencoder(AnomalyDetector):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         hidden_layer: int = 2,
         learning_rate: float = 0.5,
         threshold: float = 0.6,

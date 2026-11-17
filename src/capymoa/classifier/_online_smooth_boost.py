@@ -29,7 +29,7 @@ class OnlineSmoothBoost(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         base_learner: str | Classifier = "trees.HoeffdingTree",
         boosting_iterations: int = 100,
         gamma: float = 0.1,

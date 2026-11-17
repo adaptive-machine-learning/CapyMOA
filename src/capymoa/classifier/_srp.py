@@ -37,7 +37,7 @@ class StreamingRandomPatches(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         base_learner: str | Classifier = "trees.HoeffdingTree -g 50 -c 0.01",
         ensemble_size: int = 100,
         max_features: float | Literal["sqrt"] | None = 0.6,

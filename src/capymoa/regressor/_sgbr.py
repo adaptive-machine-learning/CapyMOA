@@ -33,7 +33,7 @@ class StreamingGradientBoostedRegression(MOARegressor):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         base_learner: str
         | MOARegressor = "meta.OzaBag -s 10 -l (trees.FIMTDD -s VarianceReductionSplitCriterion -g 50 -c 0.01 -e)",
         boosting_iterations: int = 10,

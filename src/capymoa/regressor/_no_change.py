@@ -14,7 +14,7 @@ class NoChange(Regressor):
         :func:`~capymoa.regressor.FadingTargetMean`
     """
 
-    def __init__(self, schema: Schema | None = None) -> None:
+    def __init__(self, schema: Schema) -> None:
         """Construct a NoChange regressor.
 
         :param schema: Describes the stream's structure and types.

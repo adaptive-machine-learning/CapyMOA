@@ -14,7 +14,7 @@ class Denstream_with_dbscan(MOAClusterer):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         horizon: int = 1000,
         epsilon: float = 0.02,
         beta: float = 0.2,

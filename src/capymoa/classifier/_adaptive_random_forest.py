@@ -40,7 +40,7 @@ class AdaptiveRandomForestClassifier(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         base_learner: MOAClassifier | None = None,
         ensemble_size: int = 100,
         max_features: float = 0.6,

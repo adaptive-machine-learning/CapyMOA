@@ -14,7 +14,7 @@ from capymoa.stream import Schema
 class AdaPI(MOAPredictionIntervalLearner):
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         base_learner: str | MOARegressor | None = None,
         confidence_level: float = 0.95,
         limit: float = 0.1,

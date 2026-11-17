@@ -14,7 +14,7 @@ class Clustream_with_kmeans(MOAClusterer):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         time_window: int = 1000,
         max_num_kernels: int = 100,
         kernel_radi_factor: float = 2,

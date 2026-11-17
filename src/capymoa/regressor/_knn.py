@@ -30,7 +30,7 @@ class KNNRegressor(MOARegressor):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         k: int = 3,
         median: bool = False,
         window_size: int = 1000,

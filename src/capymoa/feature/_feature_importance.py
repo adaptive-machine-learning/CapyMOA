@@ -87,7 +87,7 @@ class FeatureImportanceClassifier(Classifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         window_size: int | None = None,
         random_seed: int | None = None,
     ) -> None:
@@ -168,7 +168,7 @@ class MOAFeatureImportanceClassifier(FeatureImportanceClassifier, MOAClassifier)
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         base_learner: Any = None,
         window_size: int | None = None,
         random_seed: int | None = None,

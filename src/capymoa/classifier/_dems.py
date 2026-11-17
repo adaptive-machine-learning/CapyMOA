@@ -33,7 +33,7 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         ensemble_class: str = "StreamingRandomPatches",  # StreamingRandomPatches / SRP or AdaptiveRandomForest / ARF
         base_learner: str = "trees.HoeffdingTree -g 50 -c 0.01",
         tree_learner: str = "ARFHoeffdingTree -e 2000000 -g 50 -c 0.01",

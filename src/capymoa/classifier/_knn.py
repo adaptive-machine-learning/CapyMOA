@@ -41,7 +41,7 @@ class KNN(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         k: int = 3,
         window_size: int = 1000,
         random_seed: int | None = None,

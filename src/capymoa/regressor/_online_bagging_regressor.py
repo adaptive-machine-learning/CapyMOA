@@ -31,7 +31,7 @@ class OnlineBaggingRegressor(MOARegressor):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         base_learner: str | MOARegressor | None = None,
         ensemble_size: int = 100,
         random_seed: int | None = None,

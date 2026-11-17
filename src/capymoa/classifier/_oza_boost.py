@@ -35,7 +35,7 @@ class OzaBoost(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         base_learner: str | Classifier = "trees.HoeffdingTree",
         boosting_iterations: int = 10,
         use_pure_boost: bool = False,

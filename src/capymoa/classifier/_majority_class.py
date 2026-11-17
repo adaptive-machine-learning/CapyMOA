@@ -28,7 +28,7 @@ class MajorityClass(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
     ) -> None:
         """Majority class classifier.
 

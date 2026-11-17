@@ -47,7 +47,7 @@ class HoeffdingTree(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         grace_period: int = 200,
         split_criterion: str | SplitCriterion = "InfoGainSplitCriterion",
         confidence: float = 1e-3,

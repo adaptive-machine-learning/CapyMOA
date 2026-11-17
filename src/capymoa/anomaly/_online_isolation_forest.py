@@ -63,7 +63,7 @@ class OnlineIsolationForest(AnomalyDetector):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         random_seed: int | None = None,
         num_trees: int = 32,
         max_leaf_samples: int = 32,

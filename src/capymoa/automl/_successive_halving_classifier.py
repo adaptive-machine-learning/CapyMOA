@@ -48,7 +48,7 @@ class SuccessiveHalvingClassifier(Classifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         base_classifiers: list[Classifier] | None = None,
         config_file: str | None = None,
         max_instances: int | None = None,

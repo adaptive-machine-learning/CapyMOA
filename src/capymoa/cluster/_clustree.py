@@ -14,7 +14,7 @@ class ClusTree(MOAClusterer):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         horizon: int = 1000,
         max_height: int = 8,
         breadth_first_strategy: bool = False,

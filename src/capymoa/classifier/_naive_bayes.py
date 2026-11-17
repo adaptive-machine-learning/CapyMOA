@@ -26,9 +26,7 @@ class NaiveBayes(MOAClassifier):
     84.8
     """
 
-    def __init__(
-        self, schema: Schema | None = None, random_seed: int | None = None
-    ) -> None:
+    def __init__(self, schema: Schema, random_seed: int | None = None) -> None:
         """Construct a NaiveBayes classifier.
 
         :param schema: Describes the stream's structure and types.

@@ -48,7 +48,7 @@ class SOKNL(MOARegressor):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         tree_learner: MOARegressor | str | None = None,
         ensemble_size: int = 100,
         max_features: float | Literal["sqrt"] | None = 0.6,

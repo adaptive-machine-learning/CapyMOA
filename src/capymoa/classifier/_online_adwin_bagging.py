@@ -64,7 +64,7 @@ class OnlineAdwinBagging(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         base_learner: str | Classifier | None = None,
         ensemble_size: int = 100,
         minibatch_size: int | None = None,

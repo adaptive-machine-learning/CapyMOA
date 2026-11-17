@@ -27,7 +27,7 @@ class NoChange(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
     ) -> None:
         """NoChange class classifier.
 
