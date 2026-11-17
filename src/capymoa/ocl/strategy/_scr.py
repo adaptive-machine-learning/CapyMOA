@@ -60,7 +60,7 @@ class _SCRModule(nn.Module):
         self.augment = augment
 
 
-class SCR(TorchMixin, BatchClassifier, Handler):
+class SCR(TorchMixin[_SCRModule], BatchClassifier, Handler):
     """Supervised Contrastive Replay (SCR).
 
     SCR [#scr]_ trains an encoder and projection head on current and replay examples, using

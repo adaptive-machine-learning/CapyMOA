@@ -127,7 +127,7 @@ class _EWCModule(nn.Module):
         self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
 
 
-class EWC(TorchMixin, BatchClassifier, Handler):
+class EWC(TorchMixin[_EWCModule], BatchClassifier, Handler):
     """Elastic Weight Consolidation learner.
 
     Elastic Weight Consolidation (EWC) is a regularisation-based continual learning

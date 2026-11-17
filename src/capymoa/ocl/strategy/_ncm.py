@@ -34,7 +34,7 @@ class _NCMModule(nn.Module):
         self.class_means = nn.Buffer(torch.zeros((n_classes, n_feats)))
 
 
-class NCM(TorchMixin, BatchClassifier):
+class NCM(TorchMixin[_NCMModule], BatchClassifier):
     """Nearest Class Mean.
 
     Nearest Class Mean (NCM) [#f0]_ is a prototype based classifier that uses the mean

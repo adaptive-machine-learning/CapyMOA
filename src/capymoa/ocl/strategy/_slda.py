@@ -39,19 +39,25 @@ def _batch_cumulative_covariance(
 class _SLDAModule(nn.Module):
     """Torch state of SLDA."""
 
+    class_counts: Tensor
+    class_means: Tensor
+    mean: Tensor
+    covariance: Tensor
+    ridge: Tensor
+
     def __init__(
         self, pre_processor: nn.Module, n_classes: int, n_feats: int, ridge: float
     ) -> None:
         super().__init__()
         self.pre_processor = pre_processor
-        self.class_counts = nn.Buffer(torch.zeros((n_classes,)))
-        self.class_means = nn.Buffer(torch.zeros((n_classes, n_feats)))
-        self.mean = nn.Buffer(torch.zeros(n_feats))
-        self.covariance = nn.Buffer(torch.eye(n_feats))
-        self.ridge = nn.Buffer(torch.eye(n_feats) * ridge)
+        self.register_buffer("class_counts", torch.zeros((n_classes,)))
+        self.register_buffer("class_means", torch.zeros((n_classes, n_feats)))
+        self.register_buffer("mean", torch.zeros(n_feats))
+        self.register_buffer("covariance", torch.eye(n_feats))
+        self.register_buffer("ridge", torch.eye(n_feats) * ridge)
 
 
-class SLDA(TorchMixin, BatchClassifier):
+class SLDA(TorchMixin[_SLDAModule], BatchClassifier):
     r"""Streaming Linear Discriminant Analysis.
 
     Streaming Linear Discriminant Analysis (SLDA) [#f0]_ is a prototype classifier.

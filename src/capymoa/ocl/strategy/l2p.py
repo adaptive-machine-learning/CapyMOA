@@ -219,7 +219,7 @@ class _L2PModule(nn.Module):
         self.task_mask = nn.Buffer(task_mask)
 
 
-class L2P(TorchMixin, BatchClassifier, Handler):
+class L2P(TorchMixin[_L2PModule], BatchClassifier, Handler):
     """Learning to Prompt.
 
     Learning to Prompt (L2P) [#f1]_ is a continual learning strategy that leverages a

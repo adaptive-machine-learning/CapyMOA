@@ -24,7 +24,7 @@ class _LWFModule(nn.Module):
         self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
 
 
-class LWF(TorchMixin, BatchClassifier, Handler):
+class LWF(TorchMixin[_LWFModule], BatchClassifier, Handler):
     """Learning Without Forgetting (LwF).
 
     LwF [#f1]_ is a regularisation-based continual learning strategy that distils

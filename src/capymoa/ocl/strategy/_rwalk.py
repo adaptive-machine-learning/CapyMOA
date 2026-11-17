@@ -151,7 +151,7 @@ class _RWalkModule(nn.Module):
         self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
 
 
-class RWalk(TorchMixin, BatchClassifier, Handler):
+class RWalk(TorchMixin[_RWalkModule], BatchClassifier, Handler):
     """Riemannian Walk (RWalk) learner.
 
     RWalk [#f1]_ is a regularisation-based continual learning strategy that, like EWC,

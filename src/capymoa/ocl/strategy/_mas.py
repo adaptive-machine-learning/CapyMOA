@@ -108,7 +108,7 @@ class _MASModule(nn.Module):
         self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
 
 
-class MAS(TorchMixin, BatchClassifier, Handler):
+class MAS(TorchMixin[_MASModule], BatchClassifier, Handler):
     """Memory Aware Synapses learner.
 
     Memory Aware Synapses (MAS) is a regularisation-based continual learning strategy

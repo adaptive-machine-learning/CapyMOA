@@ -26,7 +26,7 @@ class _DERModule(nn.Module):
         self.logit_loss = nn.MSELoss()
 
 
-class DER(TorchMixin, BatchClassifier):
+class DER(TorchMixin[_DERModule], BatchClassifier):
     """Dark Experience Replay.
 
     Dark Experience Replay (DER) [#f1]_ is a replay strategy. It stores the model

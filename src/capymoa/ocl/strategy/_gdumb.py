@@ -19,7 +19,7 @@ class _GDumbModule(nn.Module):
         self.coreset = coreset
 
 
-class GDumb(TorchMixin, BatchClassifier, Handler):
+class GDumb(TorchMixin[_GDumbModule], BatchClassifier, Handler):
     """Greedy sampler and a dumb learner.
 
     Greedy sampler and a dumb learner (GDumb) [#f0]_ is a baseline replay strategy. It

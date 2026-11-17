@@ -161,7 +161,7 @@ class _SIModule(nn.Module):
         self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
 
 
-class SI(TorchMixin, BatchClassifier, Handler):
+class SI(TorchMixin[_SIModule], BatchClassifier, Handler):
     """Synaptic Intelligence learner.
 
     Synaptic Intelligence (SI) is a regularisation-based continual learning strategy
