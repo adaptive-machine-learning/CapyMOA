@@ -13,10 +13,12 @@ from torch import nn
 
 from capymoa.base import Classifier
 from capymoa.classifier import Finetune, HoeffdingTree
+from capymoa.core.torch import FeatureModel, ProjectionModel
 from capymoa.core.torch.ann import Perceptron
 from capymoa.ocl import evaluate_ocl
 from capymoa.ocl.datasets import TinySplitMNIST
 from capymoa.ocl.strategy import (
+    ASER,
     DER,
     DERPP,
     EWC,
@@ -117,16 +119,42 @@ def _new_der(schema: Schema, **kwargs) -> DER:
     return DER(schema, model, torch.optim.Adam(model.parameters(), lr=0.001), **kwargs)
 
 
-def _new_scr(schema: Schema, **kwargs) -> SCR:
-    class Model(nn.Module):
+def _new_aser(schema: Schema, **kwargs) -> ASER:
+    class Model(FeatureModel):
         def __init__(self):
             super().__init__()
-            self.feature_extractor = nn.Sequential(
+            self.encoder = nn.Sequential(
+                nn.Flatten(), nn.Linear(schema.get_num_attributes(), 50), nn.ReLU()
+            )
+            self.head = nn.Linear(50, schema.get_num_classes())
+
+        def features(self, x):
+            return self.encoder(x)
+
+        def forward(self, x):
+            return self.head(self.features(x))
+
+    model = Model()
+    return ASER(schema, model, torch.optim.SGD(model.parameters(), lr=0.1), **kwargs)
+
+
+def _new_scr(schema: Schema, **kwargs) -> SCR:
+    class Model(ProjectionModel):
+        def __init__(self):
+            super().__init__()
+            self.encoder = nn.Sequential(
                 nn.Flatten(), nn.Linear(schema.get_num_attributes(), 64), nn.ReLU()
             )
-            self.projection = nn.Sequential(
-                nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 32)
-            )
+            self.head = nn.Sequential(nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 32))
+
+        def features(self, x):
+            return self.encoder(x)
+
+        def project(self, features):
+            return self.head(features)
+
+        def forward(self, x):
+            return self.project(self.features(x))
 
     model = Model()
     return SCR(
@@ -165,6 +193,7 @@ Use the `partial` function to create a new function with hyperparameters already
 set.
 """
 TEST_CASES: list[Case] = [
+    Case("ASER", _new_aser, Result(21.0, 18.8, 23.9)),
     Case("MIR", new_constructor(MIR, lr=0.01), Result(13.5, 14.0, 7.1)),
     # These improved when `MOAClassifier.predict_proba` stopped discarding
     # predictions whose unnormalised vote total was below 1e-2. HoeffdingTree
