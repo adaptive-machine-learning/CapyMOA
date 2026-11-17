@@ -12,7 +12,7 @@ from capymoa.base import BatchClassifier
 from capymoa.core import Instance, LabelProbabilities
 from capymoa.ocl.evaluation.events import TrainTaskEnd
 from capymoa.ocl.events import Dispatcher, Handler
-from capymoa.ocl.util._module import HasModule, ModuleHolder
+from capymoa.ocl.util._module import TorchMixin
 from capymoa.ocl.util._replay import ReservoirSampler
 from capymoa.stream import Schema
 
@@ -44,7 +44,24 @@ class _SupervisedContrastiveLoss(nn.Module):
         return -(log_prob * positives).sum(1).div(positives.sum(1)).mean()
 
 
-class SCR(HasModule, BatchClassifier, Handler):
+class _SCRModule(nn.Module):
+    """Torch state of SCR."""
+
+    def __init__(
+        self,
+        model: nn.Module,
+        buffer: ReservoirSampler,
+        loss: _SupervisedContrastiveLoss,
+        augment: Callable[[Tensor], Tensor],
+    ) -> None:
+        super().__init__()
+        self.model = model
+        self.buffer = buffer
+        self.loss = loss
+        self.augment = augment
+
+
+class SCR(TorchMixin, BatchClassifier, Handler):
     """Supervised Contrastive Replay (SCR).
 
     SCR [#scr]_ trains an encoder and projection head on current and replay examples, using
@@ -152,16 +169,8 @@ class SCR(HasModule, BatchClassifier, Handler):
                 raise ValueError(f"{name} must be finite and positive")
         if not callable(augment):
             raise TypeError("augment must be callable")
-        self._loss = _SupervisedContrastiveLoss(temperature)
         self.device = torch.device(device)
-        self._model = model.to(self.device)
         self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
-        self._augment = (
-            augment.to(self.device) if isinstance(augment, nn.Module) else augment
-        )
-        self._module = ModuleHolder(model=self._model)
-        if isinstance(self._augment, nn.Module):
-            self._module.add_module("augment", self._augment)
         self._shape = tuple(schema.shape)
         self._num_features = schema.get_num_attributes()
         self._num_classes = schema.get_num_classes()
@@ -176,10 +185,13 @@ class SCR(HasModule, BatchClassifier, Handler):
         if not trainable <= owned:
             raise ValueError("optimiser must include all trainable model parameters")
         self._optimiser = optimiser
-        self._buffer = ReservoirSampler(
+        buffer = ReservoirSampler(
             buffer_capacity,
             {"x": ((self._num_features,), self.x_dtype), "y": ((), torch.long)},
             torch.Generator().manual_seed(seed),
+        )
+        self._module = _SCRModule(
+            model, buffer, _SupervisedContrastiveLoss(temperature), augment
         ).to(self.device)
         self._substeps = substeps
         self._replay_batch_size = replay_batch_size
@@ -202,23 +214,25 @@ class SCR(HasModule, BatchClassifier, Handler):
         return x.to(device=self.device, dtype=self.x_dtype).reshape(-1, *self._shape)
 
     def _encode(self, x: Tensor) -> Tensor:
-        features = self._model.feature_extractor(x)
+        features = self._module.model.feature_extractor(x)
         return features.reshape(x.shape[0], -1)
 
     def _step(self, x: Tensor, y: Tensor, scale: float = 1.0) -> Tensor:
-        self._model.train()
+        self._module.model.train()
         self._prototype_cache = None
-        augmented = self._augment(x)
+        augmented = self._module.augment(x)
         if augmented.shape != x.shape:
             raise ValueError("augment must preserve the batch shape")
         views = torch.stack(
             [
-                F.normalize(self._model.projection(self._encode(x)), dim=1),
-                F.normalize(self._model.projection(self._encode(augmented)), dim=1),
+                F.normalize(self._module.model.projection(self._encode(x)), dim=1),
+                F.normalize(
+                    self._module.model.projection(self._encode(augmented)), dim=1
+                ),
             ],
             dim=1,
         )
-        loss = self._loss(views, y) * scale
+        loss = self._module.loss(views, y) * scale
         if not torch.isfinite(loss):
             raise ValueError("SCR loss is not finite")
         self._optimiser.zero_grad()
@@ -237,24 +251,24 @@ class SCR(HasModule, BatchClassifier, Handler):
         losses = []
         for _ in range(self._substeps):
             train_x, train_y = current_x, y
-            if self._buffer.count:
+            if self._module.buffer.count:
                 n = (
                     x.shape[0]
                     if self._replay_batch_size is None
                     else self._replay_batch_size
                 )
-                replay = self._buffer.sample(n)
+                replay = self._module.buffer.sample(n)
                 train_x = torch.cat((current_x, self._prepare_x(replay["x"])))
                 train_y = torch.cat((y, replay["y"]))
             losses.append(self._step(train_x, train_y))
-        self._buffer.update(x=x.detach().reshape(x.shape[0], -1), y=y)
+        self._module.buffer.update(x=x.detach().reshape(x.shape[0], -1), y=y)
         self._prototype_cache = None
         self.last_loss = torch.stack(losses).mean().item()
 
     @torch.no_grad()
     def _memory_features(self, x: Tensor) -> Tensor:
-        was_training = self._model.training
-        self._model.eval()
+        was_training = self._module.model.training
+        self._module.model.eval()
         try:
             return torch.cat(
                 [
@@ -263,13 +277,13 @@ class SCR(HasModule, BatchClassifier, Handler):
                 ]
             )
         finally:
-            self._model.train(was_training)
+            self._module.model.train(was_training)
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
         """Return NCM distance scores; empty memory gives uniform probabilities."""
         prepared = self._prepare_x(x)
-        if not self._buffer.count:
+        if not self._module.buffer.count:
             return torch.full(
                 (x.shape[0], self._num_classes),
                 1 / self._num_classes,
@@ -277,7 +291,7 @@ class SCR(HasModule, BatchClassifier, Handler):
                 dtype=self.x_dtype,
             )
         if self._prototype_cache is None:
-            memory = self._buffer.array()
+            memory = self._module.buffer.array()
             features = self._memory_features(memory["x"])
             classes = memory["y"].unique(sorted=True)
             prototypes = torch.stack(
@@ -317,10 +331,12 @@ class SCR(HasModule, BatchClassifier, Handler):
         return self
 
     def _on_task_end(self, event: TrainTaskEnd) -> None:
-        if not self._buffer.count:
+        if not self._module.buffer.count:
             return
-        memory = self._buffer.array()
-        permutation = torch.randperm(self._buffer.count, generator=self._buffer._rng)
+        memory = self._module.buffer.array()
+        permutation = torch.randperm(
+            self._module.buffer.count, generator=self._module.buffer._rng
+        )
         for indices in permutation.split(self._review_batch_size):
             self._step(
                 self._prepare_x(memory["x"][indices]),
@@ -330,4 +346,4 @@ class SCR(HasModule, BatchClassifier, Handler):
         self.completed_reviews += 1
 
     def __str__(self) -> str:
-        return f"SCR(buffer_capacity={self._buffer.capacity}, temperature={self._loss.temperature})"
+        return f"SCR(buffer_capacity={self._module.buffer.capacity}, temperature={self._module.loss.temperature})"

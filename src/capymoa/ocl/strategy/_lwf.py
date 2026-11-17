@@ -6,7 +6,7 @@ from torch import Tensor, nn
 from capymoa.base import BatchClassifier
 from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
-from capymoa.ocl.util._module import HasModule
+from capymoa.ocl.util._module import TorchMixin
 from capymoa.ocl.util._optim import reset_optimizer_state
 from capymoa.ocl.util.functional import hinton_distillation_loss
 from capymoa.stream._stream import Schema
@@ -24,7 +24,7 @@ class _LWFModule(nn.Module):
         self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
 
 
-class LWF(HasModule, BatchClassifier, Handler):
+class LWF(TorchMixin, BatchClassifier, Handler):
     """Learning Without Forgetting (LwF).
 
     LwF [#f1]_ is a regularisation-based continual learning strategy that distils
@@ -83,7 +83,6 @@ class LWF(HasModule, BatchClassifier, Handler):
         self._mask_test = mask_test
 
         self._optimiser = optimiser
-        self._model = model
 
         self._teacher: torch.nn.Module | None = None
         self._train_task = 0
@@ -91,15 +90,14 @@ class LWF(HasModule, BatchClassifier, Handler):
 
         # All torch state lives in one private module
         self._module = _LWFModule(model, task_mask).to(device)
-        self._criterion = self._module.criterion
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self._model.train()
+        self._module.model.train()
         self._optimiser.zero_grad()
 
-        raw_logits = self._model(x)
+        raw_logits = self._module.model(x)
         student_logits = self._apply_train_mask(raw_logits)
-        task_loss = self._criterion(student_logits, y)
+        task_loss = self._module.criterion(student_logits, y)
         total_loss = task_loss + self._alpha * self._distillation_loss(x, raw_logits)
 
         total_loss.backward()
@@ -107,8 +105,8 @@ class LWF(HasModule, BatchClassifier, Handler):
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        self._model.eval()
-        y_hat = self._apply_test_mask(self._model(x))
+        self._module.model.eval()
+        y_hat = self._apply_test_mask(self._module.model(x))
         return torch.softmax(y_hat, dim=1)
 
     def attach_with(self, source: Dispatcher) -> "LWF":
@@ -120,7 +118,10 @@ class LWF(HasModule, BatchClassifier, Handler):
         reset_optimizer_state(self._optimiser)
         if event.train_task > 0:
             self._teacher = (
-                deepcopy(self._model).to(self.device).eval().requires_grad_(False)
+                deepcopy(self._module.model)
+                .to(self.device)
+                .eval()
+                .requires_grad_(False)
             )
         self._train_task = event.train_task
 

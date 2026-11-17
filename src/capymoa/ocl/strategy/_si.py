@@ -8,7 +8,7 @@ from capymoa.base import BatchClassifier
 from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._buffer_list import BufferList
-from capymoa.ocl.util._module import HasModule
+from capymoa.ocl.util._module import TorchMixin
 from capymoa.ocl.util._optim import reset_optimizer_state
 from capymoa.stream._stream import Schema
 
@@ -161,7 +161,7 @@ class _SIModule(nn.Module):
         self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
 
 
-class SI(HasModule, BatchClassifier, Handler):
+class SI(TorchMixin, BatchClassifier, Handler):
     """Synaptic Intelligence learner.
 
     Synaptic Intelligence (SI) is a regularisation-based continual learning strategy
@@ -227,7 +227,6 @@ class SI(HasModule, BatchClassifier, Handler):
 
         # Modules
         self._optimiser = optimiser
-        self._model = model
 
         # Allocate buffers for SI regularisation
         anchor = BufferList([p.clone().detach() for p in trainable_params(model)])
@@ -246,34 +245,28 @@ class SI(HasModule, BatchClassifier, Handler):
         self._module = _SIModule(
             model, task_mask, anchor, importance, pre_step_params, trajectory, grads
         ).to(device)
-        self._criterion = self._module.criterion
-        self._buf_anchor = self._module.anchor
-        self._buf_importance = self._module.importance
-        self._buf_pre_step_params = self._module.pre_step_params
-        self._buf_trajectory = self._module.trajectory
-        self._buf_grads = self._module.grads
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self._model.train()
+        self._module.model.train()
 
         # Compute unregularised loss and gradients
         self._optimiser.zero_grad()
         y_hat = self._train_forward(x)
-        loss = self._criterion(y_hat, y)
+        loss = self._module.criterion(y_hat, y)
         loss.backward()
 
         # Capture parameters before the optimiser step
-        copy_params_(self._model, self._buf_pre_step_params)
+        copy_params_(self._module.model, self._module.pre_step_params)
 
         # Save unregularised gradients needed for the path integral
-        copy_grads_(self._model, self._buf_grads)
+        copy_grads_(self._module.model, self._module.grads)
 
         # Add SI regularisation loss (only applies after the first task)
         if self._train_task > 0:
             reg_loss = self._lambda * weighted_l2_reg(
-                trainable_params(self._model),
-                self._buf_anchor,
-                self._buf_importance,
+                trainable_params(self._module.model),
+                self._module.anchor,
+                self._module.importance,
                 device=self.device,
             )
             reg_loss.backward()
@@ -283,15 +276,15 @@ class SI(HasModule, BatchClassifier, Handler):
 
         # Update the trajectory using the unregularised gradients and parameter changes
         update_trajectory(
-            trajectory=self._buf_trajectory,
-            pre_step_params=self._buf_pre_step_params,
-            post_step_params=trainable_params(self._model),
-            gradients=self._buf_grads,
+            trajectory=self._module.trajectory,
+            pre_step_params=self._module.pre_step_params,
+            post_step_params=trainable_params(self._module.model),
+            gradients=self._module.grads,
         )
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        self._model.eval()
+        self._module.model.eval()
         y_hat = self._test_forward(x)
         return torch.softmax(y_hat, dim=1)
 
@@ -307,25 +300,25 @@ class SI(HasModule, BatchClassifier, Handler):
         if self._train_task > 0:
             # Consolidate importance weights using the trajectory from the previous task
             update_importance_weights_(
-                importance=self._buf_importance,
-                trajectory=self._buf_trajectory,
-                start_task_params=self._buf_anchor,
-                end_task_params=trainable_params(self._model),
+                importance=self._module.importance,
+                trajectory=self._module.trajectory,
+                start_task_params=self._module.anchor,
+                end_task_params=trainable_params(self._module.model),
                 damping=self._eps,
             )
 
             # Update anchors to the current model parameters
-            copy_params_(self._model, self._buf_anchor)
+            copy_params_(self._module.model, self._module.anchor)
 
             # Reset trajectory for the new task
-            reset_trajectory_(self._buf_trajectory)
+            reset_trajectory_(self._module.trajectory)
 
     def _on_test_task_begin(self, event: TestTaskBegin) -> None:
         self._test_task = event.test_task
 
     def _test_forward(self, x: Tensor) -> Tensor:
         """Compute logits for inference, optionally applying a test-task mask."""
-        y_hat = self._model(x)
+        y_hat = self._module.model(x)
         if self._module.task_mask is not None and self._mask_test:
             y_hat = y_hat.masked_fill(
                 self._module.task_mask[self._test_task] == 0, NEG_INF
@@ -334,7 +327,7 @@ class SI(HasModule, BatchClassifier, Handler):
 
     def _train_forward(self, x: Tensor) -> Tensor:
         """Compute logits for training, optionally applying a train-task mask."""
-        y_hat = self._model(x)
+        y_hat = self._module.model(x)
         if self._module.task_mask is not None and self._mask_train:
             y_hat = y_hat.masked_fill(
                 self._module.task_mask[self._train_task] == 0, NEG_INF

@@ -106,27 +106,27 @@ class DERPP(DER):
 
         self._optimiser.zero_grad()
         n = x.shape[0]
-        z = self._model(self._augment(x.view(-1, *self._shape)))
+        z = self._module.model(self._module.augment(x.view(-1, *self._shape)))
         # Preserve targets even if the model returns a view of mutable parameters.
         stored_z = z.detach().clone()
-        loss = self._criterion(z, y)
-        if self._buffer.count > 0:
-            dark_replay = self._buffer.sample(n)
+        loss = self._module.criterion(z, y)
+        if self._module.buffer.count > 0:
+            dark_replay = self._module.buffer.sample(n)
             xp = dark_replay["x"].to(self.device).view(-1, *self._shape)
             zp = dark_replay["z"].to(self.device)
-            loss = loss + self._alpha * self._logit_loss(
-                self._model(self._augment(xp)), zp
+            loss = loss + self._alpha * self._module.logit_loss(
+                self._module.model(self._module.augment(xp)), zp
             )
-            label_replay = self._buffer.sample(n)
+            label_replay = self._module.buffer.sample(n)
             xp = label_replay["x"].to(self.device).view(-1, *self._shape)
             yp = label_replay["y"].to(self.device)
-            loss = loss + self._beta * self._criterion(
-                self._model(self._augment(xp)), yp
+            loss = loss + self._beta * self._module.criterion(
+                self._module.model(self._module.augment(xp)), yp
             )
         if not torch.isfinite(loss):
             raise ValueError("DERPP loss is not finite")
         if update_buffer:
-            self._buffer.update(x=x, z=stored_z, y=y)
+            self._module.buffer.update(x=x, z=stored_z, y=y)
         loss.backward()
         self._optimiser.step()
 
@@ -143,5 +143,5 @@ class DERPP(DER):
     def __str__(self) -> str:
         return (
             f"DERPP(alpha={self._alpha}, beta={self._beta}, "
-            f"buffer_capacity={self._buffer.capacity})"
+            f"buffer_capacity={self._module.buffer.capacity})"
         )

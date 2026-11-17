@@ -14,7 +14,9 @@ pytestmark = pytest.mark.torch
 class _ScrModel(nn.Module):
     def __init__(self, n_in: int):
         super().__init__()
-        self.feature_extractor = nn.Sequential(nn.Linear(n_in, 16), nn.ReLU())
+        self.feature_extractor = nn.Sequential(
+            nn.Flatten(), nn.Linear(n_in, 16), nn.ReLU()
+        )
         self.projection = nn.Linear(16, 8)
 
 
@@ -49,7 +51,7 @@ def schema():
 def test_module_contains_model(cls, schema):
     learner = _make(cls, schema)
     assert isinstance(learner.module, nn.Module)
-    assert learner.module.model is learner._model
+    assert isinstance(learner.module.model, nn.Module)
     assert learner.module is learner._module
 
 
@@ -60,7 +62,6 @@ def test_module_is_read_only(cls, schema):
         learner.module = nn.Linear(1, 1)  # type: ignore
 
 
-# SCR predicts from prototypes built on its replay buffer, which is not torch state.
 ROUND_TRIP = [c for c in CLASSES if c is not SCR]
 
 
@@ -78,15 +79,25 @@ def test_state_dict_round_trip(cls, schema):
 
     fresh = _make(cls, schema)
     assert not torch.allclose(fresh.batch_predict_proba(x), expected)
-    fresh.load_state_dict(trained.state_dict())
+    fresh.module.load_state_dict(trained.module.state_dict())
     torch.testing.assert_close(fresh.batch_predict_proba(x), expected)
 
 
 def test_scr_state_dict_round_trip(schema):
-    a, b = _make(SCR, schema), _make(SCR, schema)
-    b.load_state_dict(a.state_dict())
-    for pa, pb in zip(a.module.parameters(), b.module.parameters(), strict=True):
-        torch.testing.assert_close(pa, pb)
+    """SCR weights and replay tensors restore.
+
+    Predictions do not, because the buffer count is a plain int outside the
+    state dict, so a loaded SCR sees an empty buffer.
+    """
+    n = schema.get_num_attributes()
+    x = torch.rand(16, n)
+    y = torch.randint(0, schema.get_num_classes(), (16,))
+    trained, fresh = _make(SCR, schema), _make(SCR, schema)
+    trained.batch_train(x, y)
+    fresh.module.load_state_dict(trained.module.state_dict())
+    expected = trained.module.state_dict()
+    for k, v in fresh.module.state_dict().items():
+        torch.testing.assert_close(v, expected[k])
 
 
 @pytest.mark.parametrize("cls", NN_MODULE_ONLY)
@@ -96,3 +107,10 @@ def test_not_an_nn_module(cls, schema):
     assert not isinstance(learner, nn.Module)
     for name in ("eval", "cuda", "half", "forward", "apply", "parameters"):
         assert not hasattr(learner, name)
+
+
+@pytest.mark.parametrize("cls", CLASSES)
+def test_no_state_dict_on_strategy(cls, schema):
+    learner = _make(cls, schema)
+    assert not hasattr(learner, "state_dict")
+    assert not hasattr(learner, "load_state_dict")

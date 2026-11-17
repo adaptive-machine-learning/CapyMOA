@@ -1,15 +1,32 @@
 from collections.abc import Callable
 
 import torch
-from torch import Tensor
+from torch import Tensor, nn
 
 from capymoa.base import BatchClassifier
-from capymoa.ocl.util._module import HasModule, ModuleHolder
+from capymoa.ocl.util._module import TorchMixin
 from capymoa.ocl.util._replay import ReservoirSampler
 from capymoa.stream import Schema
 
 
-class DER(HasModule, BatchClassifier):
+class _DERModule(nn.Module):
+    """Torch state of DER."""
+
+    def __init__(
+        self,
+        model: nn.Module,
+        buffer: ReservoirSampler,
+        augment: Callable[[Tensor], Tensor],
+    ) -> None:
+        super().__init__()
+        self.model = model
+        self.buffer = buffer
+        self.augment = augment
+        self.criterion = nn.CrossEntropyLoss()
+        self.logit_loss = nn.MSELoss()
+
+
+class DER(TorchMixin, BatchClassifier):
     """Dark Experience Replay.
 
     Dark Experience Replay (DER) [#f1]_ is a replay strategy. It stores the model
@@ -58,16 +75,11 @@ class DER(HasModule, BatchClassifier):
             raise ValueError("substeps must be greater than zero.")
 
         self.device = torch.device(device)
-        self._augment = augment if augment is not None else (lambda x: x)
         self._alpha = alpha
         self._substeps = substeps
-        self._model = model.to(self.device)
-        self._module = ModuleHolder(model=self._model)
         self._optimiser = optimiser
-        self._criterion = torch.nn.CrossEntropyLoss()
-        self._logit_loss = torch.nn.MSELoss()
         self._shape = schema.shape
-        self._buffer = ReservoirSampler(
+        buffer = ReservoirSampler(
             buffer_capacity,
             {
                 "x": ((schema.get_num_attributes(),), torch.float32),
@@ -75,24 +87,27 @@ class DER(HasModule, BatchClassifier):
                 "y": ((), torch.long),
             },
             torch.Generator().manual_seed(seed),
+        )
+        self._module = _DERModule(
+            model, buffer, augment if augment is not None else (lambda x: x)
         ).to(self.device)
 
     def _train_step(self, x: Tensor, y: Tensor, update_buffer: bool) -> None:
         self._optimiser.zero_grad()
         n = x.shape[0]
 
-        z = self._model(self._augment(x.view(-1, *self._shape)))
-        loss = self._criterion(z, y)
+        z = self._module.model(self._module.augment(x.view(-1, *self._shape)))
+        loss = self._module.criterion(z, y)
         # Sample before the update, so a batch is not replayed against itself.
-        if self._buffer.count > 0:
-            replay = self._buffer.sample(n)
+        if self._module.buffer.count > 0:
+            replay = self._module.buffer.sample(n)
             xp = replay["x"].to(self.device).view(-1, *self._shape)
             zp = replay["z"].to(self.device)
-            loss = loss + self._alpha * self._logit_loss(
-                self._model(self._augment(xp)), zp
+            loss = loss + self._alpha * self._module.logit_loss(
+                self._module.model(self._module.augment(xp)), zp
             )
         if update_buffer:
-            self._buffer.update(x=x, z=z, y=y)
+            self._module.buffer.update(x=x, z=z, y=y)
         loss.backward()
         self._optimiser.step()
 
@@ -100,15 +115,17 @@ class DER(HasModule, BatchClassifier):
         """Train on a batch (Algorithm 1 of the DER paper)."""
         x = x.to(self.device, self.x_dtype)
         y = y.to(self.device, self.y_dtype)
-        self._model.train()
+        self._module.model.train()
         for i in range(self._substeps):
             self._train_step(x, y, update_buffer=i == 0)
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        self._model.eval()
+        self._module.model.eval()
         x = x.to(self.device, self.x_dtype).view(-1, *self._shape)
-        return torch.softmax(self._model(x), dim=1)
+        return torch.softmax(self._module.model(x), dim=1)
 
     def __str__(self) -> str:
-        return f"DER(alpha={self._alpha}, buffer_capacity={self._buffer.capacity})"
+        return (
+            f"DER(alpha={self._alpha}, buffer_capacity={self._module.buffer.capacity})"
+        )

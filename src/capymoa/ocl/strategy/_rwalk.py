@@ -8,7 +8,7 @@ from capymoa.base import BatchClassifier
 from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._buffer_list import BufferList
-from capymoa.ocl.util._module import HasModule
+from capymoa.ocl.util._module import TorchMixin
 from capymoa.ocl.util._optim import reset_optimizer_state
 from capymoa.stream._stream import Schema
 
@@ -151,7 +151,7 @@ class _RWalkModule(nn.Module):
         self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
 
 
-class RWalk(HasModule, BatchClassifier, Handler):
+class RWalk(TorchMixin, BatchClassifier, Handler):
     """Riemannian Walk (RWalk) learner.
 
     RWalk [#f1]_ is a regularisation-based continual learning strategy that, like EWC,
@@ -231,7 +231,6 @@ class RWalk(HasModule, BatchClassifier, Handler):
 
         # Modules
         self._optimiser = optimiser
-        self._model = model
 
         # Persistent regularisation buffers
         params = list(trainable_params(model))
@@ -267,34 +266,26 @@ class RWalk(HasModule, BatchClassifier, Handler):
             checkpoint_losses,
             checkpoint_scores,
         ).to(device)
-        self._criterion = self._module.criterion
-        self._anchor_params = self._module.anchor_params
-        self._penalties = self._module.penalties
-        self._task_scores = self._module.task_scores
-        self._iter_importances = self._module.iter_importances
-        self._iter_grads = self._module.iter_grads
-        self._pre_step_params = self._module.pre_step_params
-        self._checkpoint_params = self._module.checkpoint_params
-        self._checkpoint_losses = self._module.checkpoint_losses
-        self._checkpoint_scores = self._module.checkpoint_scores
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self._model.train()
+        self._module.model.train()
 
         self._optimiser.zero_grad()
         y_hat = self._train_forward(x)
-        loss = self._criterion(y_hat, y)
+        loss = self._module.criterion(y_hat, y)
         loss.backward()
 
-        copy_params_(self._model, self._pre_step_params)
-        copy_grads_(self._model, self._iter_grads)
-        update_importances_(self._iter_importances, self._iter_grads, self._alpha)
+        copy_params_(self._module.model, self._module.pre_step_params)
+        copy_grads_(self._module.model, self._module.iter_grads)
+        update_importances_(
+            self._module.iter_importances, self._module.iter_grads, self._alpha
+        )
 
         if self._train_task > 0:
             reg_loss = self._lambda * weighted_l2_reg(
-                trainable_params(self._model),
-                self._anchor_params,
-                self._penalties,
+                trainable_params(self._module.model),
+                self._module.anchor_params,
+                self._module.penalties,
                 device=self.device,
             )
             reg_loss.backward()
@@ -302,10 +293,10 @@ class RWalk(HasModule, BatchClassifier, Handler):
         self._optimiser.step()
 
         accumulate_loss_(
-            self._checkpoint_losses,
-            trainable_params(self._model),
-            self._pre_step_params,
-            self._iter_grads,
+            self._module.checkpoint_losses,
+            trainable_params(self._module.model),
+            self._module.pre_step_params,
+            self._module.iter_grads,
         )
 
         self._steps_since_checkpoint += 1
@@ -314,7 +305,7 @@ class RWalk(HasModule, BatchClassifier, Handler):
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        self._model.eval()
+        self._module.model.eval()
         y_hat = self._test_forward(x)
         return torch.softmax(y_hat, dim=1)
 
@@ -339,20 +330,26 @@ class RWalk(HasModule, BatchClassifier, Handler):
             self._flush_checkpoint_scores()
 
         if self._has_completed_task:
-            update_task_scores_(self._checkpoint_scores, self._task_scores)
+            update_task_scores_(
+                self._module.checkpoint_scores, self._module.task_scores
+            )
 
         for task_score, checkpoint_score in zip(
-            self._task_scores, self._checkpoint_scores, strict=True
+            self._module.task_scores, self._module.checkpoint_scores, strict=True
         ):
             task_score.copy_(checkpoint_score)
 
-        set_penalties_(self._penalties, self._iter_importances, self._task_scores)
-        copy_params_(self._model, self._anchor_params)
+        set_penalties_(
+            self._module.penalties,
+            self._module.iter_importances,
+            self._module.task_scores,
+        )
+        copy_params_(self._module.model, self._module.anchor_params)
 
-        zero_(self._checkpoint_losses)
-        zero_(self._checkpoint_scores)
-        zero_(self._iter_importances)
-        copy_params_(self._model, self._checkpoint_params)
+        zero_(self._module.checkpoint_losses)
+        zero_(self._module.checkpoint_scores)
+        zero_(self._module.iter_importances)
+        copy_params_(self._module.model, self._module.checkpoint_params)
         self._steps_since_checkpoint = 0
         self._has_completed_task = True
 
@@ -360,19 +357,19 @@ class RWalk(HasModule, BatchClassifier, Handler):
     def _flush_checkpoint_scores(self) -> None:
         """Commit the current checkpoint segment into the task scores."""
         update_scores_(
-            scores=self._checkpoint_scores,
-            params=list(trainable_params(self._model)),
-            losses=self._checkpoint_losses,
-            importances=self._iter_importances,
-            old_params=self._checkpoint_params,
+            scores=self._module.checkpoint_scores,
+            params=list(trainable_params(self._module.model)),
+            losses=self._module.checkpoint_losses,
+            importances=self._module.iter_importances,
+            old_params=self._module.checkpoint_params,
         )
-        zero_(self._checkpoint_losses)
-        copy_params_(self._model, self._checkpoint_params)
+        zero_(self._module.checkpoint_losses)
+        copy_params_(self._module.model, self._module.checkpoint_params)
         self._steps_since_checkpoint = 0
 
     def _test_forward(self, x: Tensor) -> Tensor:
         """Compute logits for inference, optionally applying a test-task mask."""
-        y_hat = self._model(x)
+        y_hat = self._module.model(x)
         if self._module.task_mask is not None and self._mask_test:
             y_hat = y_hat.masked_fill(
                 self._module.task_mask[self._test_task] == 0, NEG_INF
@@ -381,7 +378,7 @@ class RWalk(HasModule, BatchClassifier, Handler):
 
     def _train_forward(self, x: Tensor) -> Tensor:
         """Compute logits for training, optionally applying a train-task mask."""
-        y_hat = self._model(x)
+        y_hat = self._module.model(x)
         if self._module.task_mask is not None and self._mask_train:
             y_hat = y_hat.masked_fill(
                 self._module.task_mask[self._train_task] == 0, NEG_INF
