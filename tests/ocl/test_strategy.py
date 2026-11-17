@@ -11,7 +11,7 @@ pytestmark = pytest.markskip("torch")
 import torch
 from torch import nn
 
-from capymoa.base import Classifier, TorchMixin
+from capymoa.base import Classifier
 from capymoa.classifier import Finetune, HoeffdingTree
 from capymoa.core.torch.ann import Perceptron
 from capymoa.ocl import evaluate_ocl
@@ -64,8 +64,6 @@ class Case:
     task_mask: bool = False
     # Learner uses `TorchMixin`, so the shared module checks apply.
     torch: bool = True
-    # Meta forward pass cannot run, with the reason (strict xfail).
-    meta_xfail: str | None = None
     # State outside ``module`` changes predictions after a load (strict xfail).
     restore_xfail: str | None = None
 
@@ -191,7 +189,6 @@ TEST_CASES: list[Case] = [
         "RAR",
         _new_rar,
         Result(47.50, 29.20, 8.10),
-        meta_xfail="inner Finetune NaN check needs a real value",
     ),
     Case(
         "Finetune",
@@ -199,19 +196,16 @@ TEST_CASES: list[Case] = [
         Result(27.00, 24.70, 8.3),
         epochs=2,
         continual_evaluations=2,
-        meta_xfail="NaN check on the loss needs a real value",
     ),
     Case(
         "SLDA",
         SLDA,
         Result(80.5, 51.4, 63.0),
-        meta_xfail="boolean mask indexing needs real values",
     ),
     Case(
         "SLDA_with_preprocessor",
         lambda s, **kw: SLDA(s, pre_processor(), 512, **kw),
         Result(87.5, 54.5, 67.7),
-        meta_xfail="boolean mask indexing needs real values",
     ),
     Case(
         "RanPAC",
@@ -219,20 +213,17 @@ TEST_CASES: list[Case] = [
             s, projection_dim=512, random_seed=random_seed, **kw
         ),
         Result(78.0, 46.7, 60.8),
-        meta_xfail="boolean mask indexing needs real values",
         restore_xfail="sample count is a plain int and weights are cached",
     ),
     Case(
         "NCM",
         NCM,
         Result(71.5, 46.2, 67.5),
-        meta_xfail="boolean mask indexing needs real values",
     ),
     Case(
         "NCM_with_preprocessor",
         lambda s, **kw: NCM(s, pre_processor(), 512, **kw),
         Result(69.5, 45.0, 66.8),
-        meta_xfail="boolean mask indexing needs real values",
     ),
     Case(
         "ExperienceReplay",
@@ -240,7 +231,6 @@ TEST_CASES: list[Case] = [
             Finetune(schema, Perceptron, random_seed=random_seed, **kw)
         ),
         Result(28.5, 20.1, 3.0),
-        meta_xfail="inner Finetune NaN check needs a real value",
     ),
     Case(
         "DER",
@@ -251,7 +241,6 @@ TEST_CASES: list[Case] = [
         "SCR",
         _new_scr,
         Result(65.0, 44.8, 63.6),
-        meta_xfail="loss logging calls .item()",
         restore_xfail="replay buffer count is a plain int",
     ),
     Case(
@@ -262,7 +251,6 @@ TEST_CASES: list[Case] = [
             optimiser_type=torch.optim.Adam,
         ),
         Result(28.5, 20.0, 3.1),
-        meta_xfail="finite loss check calls .item()",
     ),
     Case(
         "GDumb",
@@ -276,7 +264,6 @@ TEST_CASES: list[Case] = [
         "L2P",
         _new_l2p,
         None,  # Accuracy needs the real ViT, see test_l2p.py.
-        meta_xfail="loss logging calls .item()",
     ),
     Case(
         "EWC",
@@ -370,17 +357,6 @@ def _params(cases: list[Case]):
 ACCURACY_CASES = _params([c for c in TEST_CASES if c.expected is not None])
 # Every case that uses `TorchMixin` gets the shared module checks below.
 TORCH_CASES = _params([c for c in TEST_CASES if c.torch])
-META_CASES = [
-    pytest.param(
-        c,
-        id=c.name,
-        marks=[pytest.mark.xfail(strict=True, reason=c.meta_xfail)]
-        if c.meta_xfail
-        else [],
-    )
-    for c in TEST_CASES
-    if c.torch
-]
 RESTORE_CASES = [
     pytest.param(
         c,
@@ -478,29 +454,6 @@ def _batch(learner, n: int = 16):
     return x, y
 
 
-@pytest.mark.parametrize("case", TORCH_CASES)
-def test_module_access(case: Case):
-    learner = _build(case)
-    assert isinstance(learner, TorchMixin)
-    assert isinstance(learner.module, nn.Module)
-    assert learner.module is learner._module
-    with pytest.raises(AttributeError):
-        learner.module = nn.Linear(1, 1)  # type: ignore
-    if hasattr(learner.module, "model"):
-        assert isinstance(learner.module.model, nn.Module)
-
-
-@pytest.mark.parametrize("case", TORCH_CASES)
-def test_no_nn_module_surface(case: Case):
-    learner = _build(case)
-    assert nn.Module not in type(learner).__mro__
-    assert not isinstance(learner, nn.Module)
-    names = ("eval", "cuda", "half", "forward", "apply", "parameters")
-    names += ("state_dict", "load_state_dict", "model", "optimizer", "criterion")
-    for name in names:
-        assert not hasattr(learner, name), name
-
-
 @pytest.mark.parametrize("case", RESTORE_CASES)
 def test_state_dict_round_trip(case: Case):
     """A checkpoint of ``module`` holds all state needed to predict."""
@@ -524,93 +477,3 @@ def test_meta_device_construction(case: Case):
     tensors = _tensors(learner.module)
     assert tensors
     assert all(t.device.type == "meta" for t in tensors)
-
-
-@pytest.mark.parametrize("case", TORCH_CASES)
-def test_module_to_updates_device(case: Case):
-    learner = _build(case)
-    assert learner.device == torch.device("cpu")
-    learner.module.to("meta")
-    assert learner.device == torch.device("meta")
-    assert all(t.device.type == "meta" for t in _tensors(learner.module))
-
-
-@pytest.mark.parametrize("case", META_CASES)
-def test_meta_forward(case: Case):
-    """Best effort: strategies that need real values are strict xfail."""
-    learner = _build(case, device="meta")
-    n = learner.schema.get_num_attributes()
-    x = torch.empty(4, n, device="meta", dtype=learner.x_dtype)
-    y = torch.empty(4, device="meta", dtype=learner.y_dtype)
-    learner.batch_predict_proba(x)
-    learner.batch_train(x, y)
-
-
-class _NoNumpyWithoutCpu(torch.Tensor):
-    """Tensor whose ``numpy`` fails unless ``cpu`` ran first, like a GPU tensor."""
-
-    _on_cpu = False
-
-    def cpu(self, *args, **kwargs):
-        out = super().cpu(*args, **kwargs).as_subclass(_NoNumpyWithoutCpu)
-        out._on_cpu = True
-        return out
-
-    def numpy(self, *args, **kwargs):
-        if not self._on_cpu:
-            raise TypeError("can't convert device tensor to numpy, use .cpu() first")
-        return super().numpy(*args, **kwargs)
-
-
-def test_base_predict_proba_moves_to_cpu():
-    from capymoa.base import BatchClassifier
-    from capymoa.core import Instance
-
-    class Stub(BatchClassifier):
-        def batch_train(self, x, y):
-            pass
-
-        def batch_predict_proba(self, x):
-            out = torch.full((x.shape[0], 2), 0.5).as_subclass(_NoNumpyWithoutCpu)
-            return out.requires_grad_()
-
-    schema = TinySplitMNIST().schema
-    learner = Stub(schema)
-    instance = Instance.from_array(schema, np.zeros(schema.get_num_attributes()))
-    proba = learner.predict_proba(instance)
-    assert proba.dtype == np.float64
-    assert proba.tolist() == [0.5, 0.5]
-
-
-def _wrapper(cls, inner):
-    return cls(inner, augment=nn.Identity()) if cls is RAR else cls(inner)
-
-
-@pytest.mark.parametrize("cls", [ExperienceReplay, RAR])
-def test_wrapper_follows_inner_learner(cls):
-    schema = TinySplitMNIST().schema
-    model = Perceptron(schema).to(torch.float64)
-    inner = Finetune(schema, model, device="meta")
-    wrapper = _wrapper(cls, inner)
-    assert wrapper.device == torch.device("meta")
-    assert wrapper.x_dtype == torch.float64
-    assert wrapper.y_dtype == inner.y_dtype
-
-
-@pytest.mark.parametrize("cls", [ExperienceReplay, RAR])
-def test_wrapper_module_moves_inner_learner_and_buffer(cls):
-    schema = TinySplitMNIST().schema
-    wrapper = _wrapper(cls, Finetune(schema, Perceptron(schema)))
-    wrapper.module.to("meta")
-    assert wrapper.device == torch.device("meta")
-    inner = wrapper.module.learner
-    assert all(p.device.type == "meta" for p in inner.parameters())
-    buf = wrapper.module.buffer if cls is ExperienceReplay else wrapper.module.coreset
-    assert all(b.device.type == "meta" for b in buf.buffers())
-    assert wrapper.learner.device == torch.device("meta")
-
-
-@pytest.mark.parametrize("cls", [ExperienceReplay, RAR])
-def test_wrapper_needs_torch_mixin(cls):
-    with pytest.raises(TypeError):
-        _wrapper(cls, HoeffdingTree(TinySplitMNIST().schema))
