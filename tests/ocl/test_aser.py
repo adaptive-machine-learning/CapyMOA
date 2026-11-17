@@ -155,19 +155,20 @@ def test_aser_single_training_pass_and_prediction(dtype):
     assert int(model[1].num_batches_tracked) == 1
     learner.batch_train(x, y)
     assert int(model[1].num_batches_tracked) == 2
-    model[1].eval()
-    modes = [m.training for m in model.modules()]
     state = {name: value.clone() for name, value in model.state_dict().items()}
     learner._features(x.to(dtype))
     probabilities = learner.batch_predict_proba(x)
     torch.testing.assert_close(probabilities.sum(1), torch.ones(4, dtype=dtype))
-    assert modes == [m.training for m in model.modules()]
+    assert not model.training
     for name, value in model.state_dict().items():
         torch.testing.assert_close(value, state[name])
     instance = Instance.from_array(learner.schema, x[0].numpy())
     np.testing.assert_allclose(
         learner.predict_proba(instance), probabilities[0].numpy(), rtol=1e-5
     )
+    # Training after prediction sets train mode again, so batch norm updates.
+    learner.batch_train(x, y)
+    assert int(model[1].num_batches_tracked) == 3
     # With empty memory, a batch-normalized encoder still cannot train a singleton.
     single = _tiny_aser(model=nn.Linear(2, 3).to(dtype))
     single.train(LabeledInstance.from_array(single.schema, x[0].numpy(), 0))

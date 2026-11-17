@@ -207,20 +207,15 @@ class ASER(BatchClassifier):
 
     @torch.no_grad()
     def _features(self, x: Tensor) -> Tensor:
-        """Encode chunks without changing gradients or model training modes."""
-        modes = {module: module.training for module in self._model.modules()}
+        """Encode chunks in eval mode. The caller must reset train mode."""
         self._model.eval()
-        try:
-            chunks = [
-                self._feature_extractor(part.reshape(-1, *self._shape)).reshape(
-                    part.shape[0], -1
-                )
-                for part in x.split(self._feature_batch_size)
-            ]
-            return torch.cat(chunks)
-        finally:
-            for module, training in modes.items():
-                module.training = training
+        chunks = [
+            self._feature_extractor(part.reshape(-1, *self._shape)).reshape(
+                part.shape[0], -1
+            )
+            for part in x.split(self._feature_batch_size)
+        ]
+        return torch.cat(chunks)
 
     def _shapley(self, ex: Tensor, ey: Tensor, cx: Tensor, cy: Tensor) -> Tensor:
         """Score candidates against evaluation points in the same feature space."""
@@ -349,11 +344,12 @@ class ASER(BatchClassifier):
         y = y.to(device=self.device, dtype=self.y_dtype)
         if y.shape != (len(x),) or ((y < 0) | (y >= self._num_classes)).any():
             raise ValueError("y must contain one valid class index per example")
-        self._model.train()
         losses = []
         for _ in range(self._substeps):
             self._optimiser.zero_grad()
             replay = self._retrieve(x, y)
+            # Retrieval encodes in eval mode.
+            self._model.train()
             combined = torch.cat((replay["x"], x)).reshape(-1, *self._shape)
             loss = F.cross_entropy(self._model(combined), torch.cat((replay["y"], y)))
             loss.backward()
@@ -364,20 +360,12 @@ class ASER(BatchClassifier):
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        """Return class probabilities while preserving the model's modes.
+        """Return class probabilities, leaving the model in eval mode.
 
-        The OCL loop delegates mode handling to the learner. Restoring each
-        submodule's flag also keeps standalone predictions safe between updates.
+        The OCL loop does not set modes. ``batch_train`` sets train mode itself.
         """
-        modes = {module: module.training for module in self._model.modules()}
         self._model.eval()
-        try:
-            return self._model(self._prepare_x(x).reshape(-1, *self._shape)).softmax(
-                dim=1
-            )
-        finally:
-            for module, training in modes.items():
-                module.training = training
+        return self._model(self._prepare_x(x).reshape(-1, *self._shape)).softmax(dim=1)
 
     def predict_proba(self, instance: Instance) -> LabelProbabilities:
         """Return single-instance probabilities on CPU."""
