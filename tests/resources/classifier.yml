@@ -267,22 +267,12 @@
   skip_test_save_then_load: "MOA's StreamingRandomPatchesClassifier is not serializable"
 
 # Python base learners and drift detectors. MOA runs them through proxies.
-# Nested specs list every param, since `test_accuracy` compares them exactly.
 - id: OnlineBagging-SGDClassifier
   learner: capymoa.classifier.OnlineBagging
   params:
     base_learner: &sgd
       learner: capymoa.classifier.SGDClassifier
-      params:
-        loss: hinge
-        penalty: l2
-        alpha: 0.0001
-        l1_ratio: 0.15
-        fit_intercept: true
-        epsilon: 0.1
-        n_jobs: null
-        learning_rate: optimal
-        eta0: 0.01
+      params: {}
     ensemble_size: 3
   accuracy: 83.80
   win_accuracy: 78.0
@@ -342,19 +332,7 @@
     lambda_param: 1.0
     drift_detection_method: &abcd
       learner: capymoa.drift.detectors.abcd.ABCD
-      params:
-        delta_drift: 0.002
-        delta_warn: 0.01
-        model_id: pca
-        split_type: ed
-        encoding_factor: 0.5
-        update_epochs: 50
-        num_splits: 20
-        max_size: .inf
-        subspace_threshold: 2.5
-        n_min: 100
-        maximum_absolute_value: 1.0
-        bonferroni: false
+      params: {}
     warning_detection_method: *abcd
   accuracy: 82.70
   win_accuracy: 77.0
