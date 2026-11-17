@@ -60,7 +60,7 @@ class AndersonDarling(BaseDataDriftDetector):
         alpha: float = 0.05,
         correction: Literal["bonferroni", "none"] = "bonferroni",
         auto_fit_samples: int | None = None,
-    ):
+    ) -> None:
         """Create an Anderson-Darling data drift detector.
 
         :param window_size: Number of observations in the sliding window.

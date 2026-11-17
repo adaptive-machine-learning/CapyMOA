@@ -70,7 +70,7 @@ class MMD(BaseDataDriftDetector):
         kernel: Callable | None = None,
         n_permutations: int = 100,
         auto_fit_samples: int | None = None,
-    ):
+    ) -> None:
         """Create an MMD data drift detector.
 
         :param window_size: Number of observations in the sliding window.

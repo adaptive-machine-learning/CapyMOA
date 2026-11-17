@@ -47,12 +47,11 @@ class LAST(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
-        random_seed: int | None = None,
+        schema: Schema,
         split_criterion: str | SplitCriterion = "InfoGainSplitCriterion",
         change_detector: BaseDriftDetector | None = None,
-        monitor_distribution=False,
-        leaf_prediction: int = "NaiveBayesAdaptive",
+        monitor_distribution: bool = False,
+        leaf_prediction: str = "NaiveBayesAdaptive",
         nb_threshold: int = 0,
         numeric_attribute_observer: str = "GaussianNumericAttributeClassObserver",
         binary_split: bool = False,
@@ -61,11 +60,11 @@ class LAST(MOAClassifier):
         stop_mem_management: bool = True,
         remove_poor_attrs: bool = False,
         disable_prepruning: bool = True,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Construct Local Adaptive Streaming Tree.
 
-        :param schema: Stream schema.
-        :param random_seed: Seed for reproducibility.
+        :param schema: Describes the stream's structure and types.
         :param split_criterion: Split criterion to use.
         :param change_detector: The change detector created at leaf nodes
             that determines splitting time upon increase in error or impurity of class
@@ -85,6 +84,7 @@ class LAST(MOAClassifier):
         :param remove_poor_attrs: If True, disable poor attributes to reduce memory
             usage.
         :param disable_prepruning: If True, disable merit-based tree pre-pruning.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         if change_detector is None:
             change_detector = ADWIN()

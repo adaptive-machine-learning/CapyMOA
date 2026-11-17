@@ -42,21 +42,21 @@ class StreamingGradientBoostedTrees(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
-        random_seed: int | None = None,
-        base_learner="trees.FIMTDD -s VarianceReductionSplitCriterion -g 25 -c 0.05 -e -p",
+        schema: Schema,
+        base_learner: str
+        | MOARegressor = "trees.FIMTDD -s VarianceReductionSplitCriterion -g 25 -c 0.05 -e -p",
         boosting_iterations: int = 100,
         percentage_of_features: int = 75,
-        learning_rate=0.0125,
+        learning_rate: float = 0.0125,
         disable_one_hot: bool = False,
         multiply_hessian_by: int = 1,
         skip_training: int = 1,
         use_squared_loss: bool = False,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Streaming Gradient Boosted Trees (SGBT) Classifier
 
-        :param schema: The schema of the stream.
-        :param random_seed: The random seed passed to the MOA learner.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to be trained. Default FIMTDD -s VarianceReductionSplitCriterion -g 25 -c 0.05 -e -p.
         :param boosting_iterations: The number of boosting iterations.
         :param percentage_of_features: The percentage of features to use.
@@ -65,6 +65,7 @@ class StreamingGradientBoostedTrees(MOAClassifier):
         :param multiply_hessian_by: The multiply hessian by this parameter to generate weights for multiple iterations.
         :param skip_training: Skip training of 1/skip_training instances. skip_training=1 means no skipping is performed (train on all instances).
         :param use_squared_loss: Whether to use squared loss for classification.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         random_seed = resolve_seed(random_seed)

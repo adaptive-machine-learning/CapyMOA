@@ -187,7 +187,7 @@ class RWalk(TorchMixin[_RWalkModule], BatchClassifier, Handler):
     ) -> None:
         """Construct an RWalk learner.
 
-        :param schema: Stream schema used by the classifier interface.
+        :param schema: Describes the stream's structure and types.
         :param model: Torch model that outputs class logits.
         :param optimiser: Optimiser used to update ``model`` parameters.
         :param lambda_: Weight of the RWalk regularisation term.

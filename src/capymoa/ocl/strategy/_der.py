@@ -53,14 +53,14 @@ class DER(TorchMixin[_DERModule], BatchClassifier):
     ) -> None:
         """Construct a DER learner.
 
-        :param schema: Stream schema.
+        :param schema: Describes the stream's structure and types.
         :param model: Torch model that outputs class logits.
         :param optimiser: Optimiser for the parameters of ``model``.
         :param augment: Augmentation for a batch of examples shaped like
             ``schema.shape``. Defaults to no augmentation.
         :param alpha: Weight of the logit replay loss.
         :param buffer_capacity: Number of replay samples to keep.
-        :param seed: Random seed.
+        :param seed: Seed for all random choices.
         :param substeps: Optimisation steps per batch. Each step uses a new random
             augmentation of the batch and the replay samples.
         :param device: Compute device.

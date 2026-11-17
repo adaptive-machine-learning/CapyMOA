@@ -268,10 +268,10 @@ class L2P(TorchMixin[_L2PModule], BatchClassifier, Handler):
         ),
         device: torch.device | str = "cpu",
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct L2P learner.
 
-        :param schema: Schema describing the datastream.
+        :param schema: Describes the stream's structure and types.
         :param task_mask: A boolean tensor of shape (num_tasks, num_classes) indicating
             which classes belong to each task.
         :param vit: Vision transformer backbone or the name of a pretrained model from
@@ -282,8 +282,7 @@ class L2P(TorchMixin[_L2PModule], BatchClassifier, Handler):
         :param pull_constraint_coeff: Coefficient for the pull constraint loss term.
         :param optimizer: Function that takes model parameters and returns an optimizer instance.
         :param device: Device to run the model on, e.g., "cpu" or "cuda".
-        :param random_seed: Random seed for reproducibility.
-        :param logger: Optional logger for tracking training metrics.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         super().__init__(schema, random_seed)
         if isinstance(vit, str):

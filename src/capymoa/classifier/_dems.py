@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from moa.classifiers.meta import DynamicEnsembleMemberSelection as _MOA_DEMS
 
 from capymoa.base import MOAClassifier
@@ -31,13 +33,12 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
-        random_seed: int | None = None,
+        schema: Schema,
         ensemble_class: str = "StreamingRandomPatches",  # StreamingRandomPatches / SRP or AdaptiveRandomForest / ARF
         base_learner: str = "trees.HoeffdingTree -g 50 -c 0.01",
         tree_learner: str = "ARFHoeffdingTree -e 2000000 -g 50 -c 0.01",
         ensemble_size: int = 100,
-        max_features=0.6,
+        max_features: float | Literal["sqrt"] | None = 0.6,
         training_method: str = "RandomPatches",
         lambda_param: float = 6.0,
         number_of_jobs: int = 1,
@@ -50,9 +51,11 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
         disable_background_learner: bool = False,
         k_value: int = 5,
         disable_self_optimising: bool = False,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Dynamic Ensemble Member Selection (DEMS) Classifier.
 
+        :param schema: Describes the stream's structure and types.
         :param ensemble_class: which ensemble to use ("StreamingRandomPatches" or "AdaptiveRandomForest").
         :param base_learner: base classifier (used by SRP).
         :param tree_learner: ARF tree learner (only used by ARF, cannot be changed).
@@ -72,6 +75,7 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
         :param disable_background_learner: if True, turns off background learners.
         :param k_value: fixed K for DEMS when self-optimising is disabled.
         :param disable_self_optimising: if True, use the fixed k_value instead of self-optimising.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         ensemble_class_map = {
             "StreamingRandomPatches": "StreamingRandomPatches",

@@ -4,6 +4,7 @@ from moa.classifiers.meta import OzaBagAdwin as _MOA_OzaBagAdwin
 from moa.classifiers.meta.minibatch import OzaBagAdwinMB as _MOA_OzaBagAdwinMB
 
 from capymoa.base import Classifier, MOAClassifier
+from capymoa.stream import Schema
 
 
 class OnlineAdwinBagging(MOAClassifier):
@@ -63,19 +64,21 @@ class OnlineAdwinBagging(MOAClassifier):
 
     def __init__(
         self,
-        schema=None,
-        random_seed: int | None = None,
+        schema: Schema,
         base_learner: str | Classifier | None = None,
-        ensemble_size=100,
-        minibatch_size=None,
-        number_of_jobs=None,
-    ):
+        ensemble_size: int = 100,
+        minibatch_size: int | None = None,
+        number_of_jobs: int | None = None,
+        random_seed: int | None = None,
+    ) -> None:
         """Constructor for online ADWIN bagging.
 
-        :param schema: The schema of the stream. If not provided, it will be inferred from the data.
-        :param random_seed: Seed for the random number generator.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to use. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
+        :param minibatch_size: The number of instances a learner accumulates before training.
+        :param number_of_jobs: The number of CPU cores used for multi-threading. By default, tasks run sequentially.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         self.base_learner = (

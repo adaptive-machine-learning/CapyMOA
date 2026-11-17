@@ -36,7 +36,7 @@ class GeometricMovingAverage(MOADriftDetector):
         min_n_instances: int = 30,
         lambda_: float = 1.0,
         alpha: float = 0.99,
-    ):
+    ) -> None:
         """Create a Geometric Moving Average drift detector.
 
         :param min_n_instances: Minimum number of instances to observe before change

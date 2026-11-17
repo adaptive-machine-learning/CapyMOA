@@ -47,8 +47,7 @@ class HoeffdingTree(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
-        random_seed: int | None = None,
+        schema: Schema,
         grace_period: int = 200,
         split_criterion: str | SplitCriterion = "InfoGainSplitCriterion",
         confidence: float = 1e-3,
@@ -62,11 +61,11 @@ class HoeffdingTree(MOAClassifier):
         stop_mem_management: bool = True,
         remove_poor_attrs: bool = False,
         disable_prepruning: bool = True,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Construct Hoeffding Tree.
 
-        :param schema: Stream schema.
-        :param random_seed: Seed for reproducibility.
+        :param schema: Describes the stream's structure and types.
         :param grace_period: Number of instances a leaf should observe between split
             attempts.
         :param split_criterion: Split criterion to use.
@@ -89,6 +88,7 @@ class HoeffdingTree(MOAClassifier):
         :param remove_poor_attrs: If True, disable poor attributes to reduce memory
             usage.
         :param disable_prepruning: If True, disable merit-based tree pre-pruning.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         mapping = {
             "grace_period": "-g",

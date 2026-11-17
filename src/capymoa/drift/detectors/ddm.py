@@ -41,7 +41,7 @@ class DDM(MOADriftDetector):
         min_n_instances: int = 30,
         warning_level: float = 2.0,
         out_control_level: float = 3.0,
-    ):
+    ) -> None:
         """Create a DDM drift detector.
 
         :param min_n_instances: Minimum number of instances to observe before change

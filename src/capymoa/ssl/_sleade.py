@@ -45,7 +45,6 @@ class SLEADE(MOAClassifierSSL):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int | None = None,
         ensemble_size: int = 10,
         confidence_strategy: Literal["Sum", "ArgMax"] = "ArgMax",
         enable_random_threshold: bool = False,
@@ -71,11 +70,11 @@ class SLEADE(MOAClassifierSSL):
         drift_detection_method: BaseDriftDetector | None = None,
         unsupervised_detection_weight_window: int = 20,
         labeled_window_limit: int = 100,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Construct the SLEADE semi-supervised ensemble.
 
-        :param schema: Stream schema.
-        :param random_seed: Random seed.
+        :param schema: Describes the stream's structure and types.
         :param ensemble_size: Number of learners in the base ensemble. SLEADE is
             built on :class:`~capymoa.classifier.StreamingRandomPatches`, which is
             configured internally with its own drift detection and background
@@ -113,6 +112,7 @@ class SLEADE(MOAClassifierSSL):
             weight pseudo-labelled instances after an unsupervised detection.
         :param labeled_window_limit: Maximum number of labelled instances kept in
             the sliding window used to quick-start learners.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         if student_learner is None:
             student_learner = HoeffdingTree(

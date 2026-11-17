@@ -4,20 +4,30 @@ from moa.classifiers.predictioninterval import MVEPredictionInterval as MOA_MVE
 
 from capymoa.base import (
     MOAPredictionIntervalLearner,
+    MOARegressor,
 )
 from capymoa.core.moa._cli import cli_str_regressor
 from capymoa.regressor import AdaptiveRandomForestRegressor
+from capymoa.stream import Schema
 
 
 class MVE(MOAPredictionIntervalLearner):
     def __init__(
         self,
-        schema=None,
-        CLI=None,
+        schema: Schema,
+        base_learner: str | MOARegressor | None = None,
+        confidence_level: float = 0.95,
         random_seed: int | None = None,
-        base_learner=None,
-        confidence_level=0.95,
-    ):
+    ) -> None:
+        """Construct an MVE prediction interval learner.
+
+        :param schema: Describes the stream's structure and types.
+        :param base_learner: The base regressor to use. It can be a CLI string or a
+            CapyMOA regressor. If not provided, an AdaptiveRandomForestRegressor is
+            used.
+        :param confidence_level: The confidence level of the prediction interval, in (0, 1).
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
+        """
         mappings = {"base_learner": "-l", "confidence_level": "-c"}
 
         config_str = ""
@@ -48,14 +58,12 @@ class MVE(MOAPredictionIntervalLearner):
 
         self.moa_learner = MOA_MVE()
 
-        if CLI is None:
-            self.moa_learner.getOptions().setViaCLIString(config_str)
-            self.moa_learner.prepareForUse()
-            self.moa_learner.resetLearning()
+        self.moa_learner.getOptions().setViaCLIString(config_str)
+        self.moa_learner.prepareForUse()
+        self.moa_learner.resetLearning()
 
         super().__init__(
             schema=schema,
-            CLI=CLI,
             random_seed=random_seed,
             moa_learner=self.moa_learner,
         )

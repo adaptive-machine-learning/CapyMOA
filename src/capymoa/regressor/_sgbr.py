@@ -33,21 +33,21 @@ class StreamingGradientBoostedRegression(MOARegressor):
 
     def __init__(
         self,
-        schema: Schema | None = None,
-        random_seed: int | None = None,
-        base_learner="meta.OzaBag -s 10 -l (trees.FIMTDD -s VarianceReductionSplitCriterion -g 50 -c 0.01 -e)",
+        schema: Schema,
+        base_learner: str
+        | MOARegressor = "meta.OzaBag -s 10 -l (trees.FIMTDD -s VarianceReductionSplitCriterion -g 50 -c 0.01 -e)",
         boosting_iterations: int = 10,
         percentage_of_features: int = 75,
-        learning_rate=1.0,
+        learning_rate: float = 1.0,
         disable_one_hot: bool = False,
         multiply_hessian_by: int = 1,
         skip_training: int = 1,
         use_squared_loss: bool = False,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Streaming Gradient Boosted Regression (SGBR) Regressor
 
-        :param schema: The schema of the stream.
-        :param random_seed: The random seed passed to the MOA learner.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to be trained. Default meta.OzaBag -s 10 -l (trees.FIMTDD -s VarianceReductionSplitCriterion -g 50 -c 0.01 -e).
         :param boosting_iterations: The number of boosting iterations. Default 10.
         :param percentage_of_features: The percentage of features to use.
@@ -56,6 +56,7 @@ class StreamingGradientBoostedRegression(MOARegressor):
         :param multiply_hessian_by: The multiply hessian by this parameter to generate weights for multiple iterations.
         :param skip_training: Skip training of 1/skip_training instances. skip_training=1 means no skipping is performed (train on all instances).
         :param use_squared_loss: Whether to use squared loss for classification.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         random_seed = resolve_seed(random_seed)

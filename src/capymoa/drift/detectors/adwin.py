@@ -38,7 +38,7 @@ class ADWIN(MOADriftDetector):
 
     _moa_detector_type = _ADWINChangeDetector
 
-    def __init__(self, delta: float = 0.002):
+    def __init__(self, delta: float = 0.002) -> None:
         """Create an ADWIN drift detector.
 
         :param delta: Confidence parameter used by ADWIN's change test. Smaller values
