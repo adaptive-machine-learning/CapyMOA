@@ -72,7 +72,7 @@ def assert_ssl_evaluation(
         pytest.param(
             partial(_make_osnn, optim_steps=10),
             CovtypeTiny,
-            26.3,
+            29.1,
             None,
             marks=pytest.mark.torch,
         ),

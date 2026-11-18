@@ -17,7 +17,7 @@ from moa.streams import InstanceStream
 from tqdm import tqdm
 
 from capymoa._utils import batched
-from capymoa.base import Classifier, MOAPredictionIntervalLearner
+from capymoa.base import Classifier, MOAClassifier, MOAPredictionIntervalLearner
 from capymoa.core import LabeledInstance, mersenne_twister, random_argmax
 from capymoa.evaluation.results import RunInfo
 from capymoa.stream import Stream
@@ -104,8 +104,10 @@ class _Run:
         *,
         store_y: bool,
         store_predictions: bool,
+        tie_seed: int = 1,
     ):
         self.learner = learner
+        self.tie_seed = tie_seed
         self.cumulative = cumulative
         self.windowed = windowed
         self.store_y = store_y
@@ -117,20 +119,26 @@ class _Run:
     def predict(self, instance) -> Any:
         """Predict one instance.
 
-        A classifier that has probabilities breaks ties at random. The loop owns
-        that random state, seeded with the learner's seed. A prediction that is
-        not tied does not use the generator.
+        Matches MOA's Java loops. A classifier breaks ties at random with
+        :func:`random_argmax`, which follows ``randMaxIndex`` in Java. The loop
+        owns the random state, seeded with ``tie_seed``. A MOA learner ties on
+        its raw votes. Any other classifier ties on ``predict_proba``.
         """
         learner = self.learner
         if not isinstance(learner, Classifier):
             return learner.predict(instance)
-        try:
-            proba = learner.predict_proba(instance)
-        except NotImplementedError:
-            return learner.predict(instance)
+        if isinstance(learner, MOAClassifier):
+            scores = learner.moa_learner.getVotesForInstance(instance.java_instance)
+        else:
+            try:
+                scores = learner.predict_proba(instance)
+            except NotImplementedError:
+                return learner.predict(instance)
         if self._tie_rng is None:
-            self._tie_rng = mersenne_twister(learner.random_seed)
-        return random_argmax(proba, self._tie_rng)
+            self._tie_rng = mersenne_twister(self.tie_seed)
+        schema = getattr(learner, "schema", None)
+        num_classes = None if schema is None else schema.get_num_classes()
+        return random_argmax(scores, self._tie_rng, num_classes)
 
     def test_then_train(
         self, batch: Sequence[Any]

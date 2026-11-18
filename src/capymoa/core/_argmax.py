@@ -21,13 +21,39 @@ def mersenne_twister(seed: int) -> np.random.Generator:
     return np.random.Generator(bit_generator)
 
 
-def random_argmax(x: np.ndarray, rng: np.random.Generator) -> int:
+def _next_int(rng: np.random.Generator, n: int) -> int:
+    """Integer in ``[0, n)``, as ``nextInt(n)`` of Java's commons-math.
+
+    Uses the top 31 bits of one raw 32-bit output. A power of two scales the
+    bits. Any other ``n`` takes the remainder and redraws if the 31-bit value
+    falls in the uneven top range.
+    """
+    bit_generator = rng.bit_generator
+    if not isinstance(bit_generator, np.random.MT19937):
+        raise TypeError("rng must be backed by MT19937, see mersenne_twister")
+    if n & -n == n:
+        return (n * (int(bit_generator.random_raw()) >> 1)) >> 31
+    while True:
+        bits = int(bit_generator.random_raw()) >> 1
+        val = bits % n
+        if bits - val + (n - 1) < 2**31:  # Java checks this for int overflow
+            return val
+
+
+def random_argmax(
+    x: np.ndarray, rng: np.random.Generator, num_classes: int | None = None
+) -> int:
     """Index of the largest value, breaking ties at random.
 
     Unlike :func:`numpy.argmax`, which always picks the first of equal values,
-    this picks one of the ``k`` tied indices. A tie uses one raw 32-bit output
-    ``r`` of ``rng`` and picks tied index number ``(r * k) >> 32``. This is easy
-    to repeat in Java, so Python and Java agree. No tie uses no output.
+    this picks one of the ``k`` tied indices. It follows ``randMaxIndex`` in
+    MOA's Java evaluation loops, so Python and Java agree:
+
+    * ``NaN`` never wins.
+    * No tie: return the index and do not use ``rng``.
+    * A tie: draw ``nextInt(k)`` and return the tied index with that rank.
+    * Empty or all ``NaN`` values: every label ties, so draw
+      ``nextInt(num_classes)``. With fewer than two labels return 0.
 
     >>> import numpy as np
     >>> from capymoa.core import mersenne_twister, random_argmax
@@ -39,17 +65,19 @@ def random_argmax(x: np.ndarray, rng: np.random.Generator) -> int:
 
     :param x: Values to search. Flattened first.
     :param rng: Generator from :func:`mersenne_twister`.
+    :param num_classes: Number of labels, used when ``x`` has no valid value.
+        Defaults to ``len(x)``.
     :return: Index of a largest value.
     """
-    x = np.asarray(x).ravel()
-    tied = np.flatnonzero(x == x.max())
+    x = np.asarray(x, dtype=np.float64).ravel()
+    valid = ~np.isnan(x)
+    if not valid.any():
+        n = len(x) if num_classes is None else num_classes
+        return 0 if n < 2 else _next_int(rng, n)
+    tied = np.flatnonzero(x == x[valid].max())
     if len(tied) == 1:
         return int(tied[0])
-    bit_generator = rng.bit_generator
-    if not isinstance(bit_generator, np.random.MT19937):
-        raise TypeError("rng must be backed by MT19937, see mersenne_twister")
-    raw = int(bit_generator.random_raw())
-    return int(tied[(raw * len(tied)) >> 32])
+    return int(tied[_next_int(rng, len(tied))])
 
 
 def uniform_proba(num_classes: int) -> LabelProbabilities:

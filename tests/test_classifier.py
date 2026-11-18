@@ -424,7 +424,7 @@ def test_untrained_predict_is_label_zero():
     assert {learner.predict(instance) for _ in range(20)} == {0}
 
 
-def test_loop_breaks_ties_at_random_but_seeded():
+def test_loop_breaks_ties_at_random_with_tie_seed():
     """The evaluation loop picks among tied labels. A seed makes it repeat."""
     from sklearn.linear_model import SGDClassifier
 
@@ -437,13 +437,14 @@ def test_loop_breaks_ties_at_random_but_seeded():
     instance = next(stream)
 
     def preds(seed: int) -> list[int]:
-        learner = SKClassifier(SGDClassifier(), schema, random_seed=seed)
+        learner = SKClassifier(SGDClassifier(), schema)
         run = _Run(
             learner,
             ClassificationEvaluator(schema=schema),
             None,
             store_y=False,
             store_predictions=False,
+            tie_seed=seed,
         )
         return [run.predict(instance) for _ in range(50)]
 
