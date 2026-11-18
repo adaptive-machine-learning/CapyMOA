@@ -21,7 +21,7 @@ traditional continual learning, OCL restricts training to a single data pass.
 >>> from capymoa.ocl import evaluate_ocl
 >>> import numpy as np
 >>> scenario = TinySplitMNIST()
->>> learner = HoeffdingTree(scenario.schema)
+>>> learner = HoeffdingTree(scenario.schema, random_seed=0)
 >>> results = evaluate_ocl(learner, scenario.train_loaders(32), scenario.test_loaders(32))
 
 The final accuracy is the accuracy on all tasks after finishing training on all

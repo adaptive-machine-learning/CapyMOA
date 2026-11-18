@@ -5,6 +5,7 @@ from sklearn.linear_model import (
 )
 
 from capymoa.base import SKRegressor
+from capymoa.base._seed import resolve_seed
 from capymoa.stream._stream import Schema
 
 # Maps the passive aggressive loss onto the equivalent scikit-learn learning
@@ -54,7 +55,7 @@ class PassiveAggressiveRegressor(SKRegressor):
             "epsilon_insensitive", "squared_epsilon_insensitive"
         ] = "epsilon_insensitive",
         average: bool = False,
-        random_seed=1,
+        random_seed: int | None = None,
     ):
         """Construct a passive aggressive regressor.
 
@@ -83,6 +84,7 @@ class PassiveAggressiveRegressor(SKRegressor):
                 f"{sorted(_LOSS_TO_LEARNING_RATE)}."
             )
 
+        random_seed = resolve_seed(random_seed)
         super().__init__(
             _SKSGDRegressor(
                 loss="epsilon_insensitive",

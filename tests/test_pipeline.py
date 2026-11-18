@@ -303,7 +303,9 @@ def test_elements_are_applied_in_order(elec):
     pipeline = BasePipeline(
         [
             Recorder(_normaliser(elec.get_schema())),
-            Trainer(OnlineBagging(schema=elec.get_schema(), ensemble_size=3)),
+            Trainer(
+                OnlineBagging(schema=elec.get_schema(), ensemble_size=3, random_seed=1)
+            ),
         ]
     )
     pipeline.pass_forward(elec.next_instance())
@@ -313,7 +315,9 @@ def test_elements_are_applied_in_order(elec):
 def test_pipeline_matches_equivalent_manual_loop(elec):
     """A ClassifierPipeline must score exactly as the hand-written loop it replaces."""
     stream_a = ElectricityTiny()
-    learner = OnlineBagging(schema=stream_a.get_schema(), ensemble_size=3)
+    learner = OnlineBagging(
+        schema=stream_a.get_schema(), ensemble_size=3, random_seed=1
+    )
     evaluator = ClassificationEvaluator(schema=stream_a.get_schema())
     while stream_a.has_more_instances():
         instance = stream_a.next_instance()
@@ -323,7 +327,7 @@ def test_pipeline_matches_equivalent_manual_loop(elec):
 
     stream_b = ElectricityTiny()
     pipeline = ClassifierPipeline().add_classifier(
-        OnlineBagging(schema=stream_b.get_schema(), ensemble_size=3)
+        OnlineBagging(schema=stream_b.get_schema(), ensemble_size=3, random_seed=1)
     )
     results = evaluate_classifier(stream_b, pipeline, optimise=False)
 
@@ -338,7 +342,9 @@ def test_transformer_pipeline_matches_equivalent_manual_loop():
     """
     stream_a = ElectricityTiny()
     transformer_a = _normaliser(stream_a.get_schema())
-    learner_a = OnlineBagging(schema=transformer_a.get_schema(), ensemble_size=3)
+    learner_a = OnlineBagging(
+        schema=transformer_a.get_schema(), ensemble_size=3, random_seed=1
+    )
     evaluator = ClassificationEvaluator(schema=stream_a.get_schema())
     while stream_a.has_more_instances():
         instance = stream_a.next_instance()
@@ -353,7 +359,9 @@ def test_transformer_pipeline_matches_equivalent_manual_loop():
         ClassifierPipeline()
         .add_transformer(transformer_b)
         .add_classifier(
-            OnlineBagging(schema=transformer_b.get_schema(), ensemble_size=3)
+            OnlineBagging(
+                schema=transformer_b.get_schema(), ensemble_size=3, random_seed=1
+            )
         )
     )
     results = evaluate_classifier(stream_b, pipeline, optimise=False)

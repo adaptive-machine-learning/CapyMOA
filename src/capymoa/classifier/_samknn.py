@@ -29,7 +29,7 @@ class SAMkNN(MOAClassifier):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         k: int = 5,
         limit: int = 5000,
         min_stm_size: int = 50,

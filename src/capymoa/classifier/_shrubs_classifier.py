@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 
 from capymoa.base import Classifier
+from capymoa.base._seed import resolve_seed
 from capymoa.classifier._shrubs_ensemble import _ShrubEnsembles
 from capymoa.stream._stream import Schema
 
@@ -23,7 +24,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = ShrubsClassifier(stream.get_schema())
+    >>> classifier = ShrubsClassifier(stream.get_schema(), random_seed=1)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.0f}")
     86
@@ -38,7 +39,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         loss: Literal["mse", "ce", "h2"] = "ce",
         step_size: float | Literal["adaptive"] = "adaptive",
         ensemble_regularizer: Literal["hard-L0", "L0", "L1", "none"] = "hard-L0",
@@ -104,6 +105,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
             from. Note, that if you set random_state to an integer the exact
             same clone is used for any DT object
         """
+        random_seed = resolve_seed(random_seed)
         if sk_dt is None:
             sk_dt = DecisionTreeClassifier(
                 splitter="best",
@@ -111,7 +113,10 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
                 max_depth=None,
                 random_state=random_seed,
             )
-        Classifier.__init__(self, schema, sk_dt.random_state)
+        seed = (
+            sk_dt.random_state if isinstance(sk_dt.random_state, int) else random_seed
+        )
+        Classifier.__init__(self, schema, seed)
         _ShrubEnsembles.__init__(
             self,
             schema,

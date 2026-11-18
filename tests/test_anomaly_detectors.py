@@ -395,9 +395,9 @@ def test_generator_is_derived_from_the_seed_attribute(case, monkeypatch):
     """
     original_init = AnomalyDetector.__init__
 
-    def resolving_init(self, schema, random_seed=1):
+    def resolving_init(self, schema, random_seed=None):
         original_init(self, schema=schema, random_seed=random_seed)
-        self.random_seed = RESOLVED_SEED
+        self._random_seed = RESOLVED_SEED
 
     monkeypatch.setattr(AnomalyDetector, "__init__", resolving_init)
 
@@ -510,27 +510,23 @@ def test_does_not_rewrite_the_global_numpy_rng(case, seed):
 
 
 # --------------------------------------------------------------------------
-# 5. None is stored and used unchanged. No claim about reproducibility.
+# 5. None is resolved to an int seed. No claim about reproducibility.
 # --------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("case", ALL_CASES, ids=_ids(ALL_CASES))
-def test_none_seed_is_stored_unchanged(case):
-    """An explicit ``None`` must reach the instance as ``None``.
+def test_none_seed_is_resolved_to_an_int(case):
+    """An explicit ``None`` must become the int seed actually used.
 
-    This is the only thing asserted about ``None``. Whether the result
-    reproduces is not asserted, because that is the open question: with
-    ``None`` meaning "draw entropy" (see #451) it must not, and a component
-    that quietly turned ``None`` into a fixed seed would be the other half
-    of the same mistake.
+    The ``random_seed`` attribute has to describe the run, so a caller can
+    reuse it to reproduce the result.
     """
     schema = _schema()
     detector = case.build(schema, None)
 
-    assert detector.random_seed is None, (
-        f"{case.name} turned an explicit random_seed=None into "
-        f"{detector.random_seed!r}. None has to survive to the attribute, "
-        "so a caller can see that nothing was seeded."
+    assert isinstance(detector.random_seed, int), (
+        f"{case.name} kept random_seed={detector.random_seed!r} for an "
+        "explicit None instead of resolving it to an int."
     )
 
     scores = _trace(lambda s: case.build(s, None), schema)

@@ -38,7 +38,14 @@ class KNN(MOAClassifier):
             25–27, 2012. Proceedings , pages 313–323, 2012.
     """
 
-    def __init__(self, schema=None, CLI=None, random_seed=1, k=3, window_size=1000):
+    def __init__(
+        self,
+        schema=None,
+        CLI=None,
+        random_seed: int | None = None,
+        k=3,
+        window_size=1000,
+    ):
         # Important, should create the MOA object before invoking the super class __init__
         self.moa_learner = _moa_kNN()
         super().__init__(

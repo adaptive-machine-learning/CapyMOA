@@ -26,7 +26,7 @@ class NaiveBayes(MOAClassifier):
     84.8
     """
 
-    def __init__(self, schema: Schema | None = None, random_seed: int = 0):
+    def __init__(self, schema: Schema | None = None, random_seed: int | None = None):
         super().__init__(
             moa_learner=moa_bayes.NaiveBayes(), schema=schema, random_seed=random_seed
         )

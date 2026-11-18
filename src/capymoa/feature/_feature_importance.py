@@ -6,6 +6,7 @@ from typing import Any
 from jpype import _jpype
 
 from capymoa.base import Classifier, MOAClassifier
+from capymoa.base._seed import resolve_seed
 from capymoa.stream import Schema
 
 
@@ -87,7 +88,7 @@ class FeatureImportanceClassifier(Classifier):
     def __init__(
         self,
         schema: Schema | None = None,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         window_size: int | None = None,
     ):
         Classifier.__init__(self, schema=schema, random_seed=random_seed)
@@ -162,9 +163,10 @@ class MOAFeatureImportanceClassifier(FeatureImportanceClassifier, MOAClassifier)
         self,
         schema: Schema | None = None,
         base_learner: Any = None,
-        random_seed: int = 1,
+        random_seed: int | None = None,
         window_size: int | None = None,
     ):
+        random_seed = resolve_seed(random_seed)
         FeatureImportanceClassifier.__init__(
             self,
             schema=schema,

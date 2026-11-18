@@ -23,7 +23,7 @@ class AutoClass(MOAClassifier):
     def __init__(
         self,
         schema: Schema = None,
-        random_seed: int = 0,
+        random_seed: int | None = None,
         configuration_json: str = "../../data/settings_autoclass.json",
         base_classifiers: list[Classifier] | None = None,
         number_active_classifiers: int = 1,

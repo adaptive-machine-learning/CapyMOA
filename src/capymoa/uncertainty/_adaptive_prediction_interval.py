@@ -14,7 +14,7 @@ class AdaPI(MOAPredictionIntervalLearner):
         self,
         schema=None,
         CLI=None,
-        random_seed=1,
+        random_seed: int | None = None,
         base_learner=None,
         confidence_level=0.95,
         limit=0.1,

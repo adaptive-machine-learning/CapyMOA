@@ -2,17 +2,19 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any, overload
 
+import jpype
 import numpy as np
 from jpype import _jpype
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
+from capymoa.base._seed import _SeededMixin
 from capymoa.core import Instance, LabeledInstance, LabelIndex, LabelProbabilities
 from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
 
 
-class Classifier(LearnerParamsMixin, ABC):
+class Classifier(_SeededMixin, LearnerParamsMixin, ABC):
     """Base class for classifiers.
 
     In machine learning, a classifier is a supervised learner that assigns a
@@ -20,18 +22,16 @@ class Classifier(LearnerParamsMixin, ABC):
     value.
     """
 
-    random_seed: int
-    """The random seed for reproducibility.
-
-    When implementing a classifier ensure random number generators are seeded.
-    """
-
     schema: Schema
     """The schema representing the instances."""
 
-    def __init__(self, schema: Schema, random_seed: int = 1):
-        self.random_seed = random_seed
+    def __init__(self, schema: Schema, random_seed: int | None = None):
+        """
+        :param schema: Describes the structure of the datastream.
+        :param random_seed: Seed for reproducibility.
+        """
         self.schema = schema
+        self._init_seed(random_seed)
 
     def __str__(self) -> str:
         """Return a label/name for the classifier.
@@ -112,18 +112,18 @@ class MOAClassifier(Classifier):
     def __init__(
         self,
         moa_learner,
-        schema=None,
+        schema: Schema,
         CLI: str | None = None,
-        random_seed=1,
+        random_seed: int | None = None,
     ): ...
 
     @overload
     def __init__(
         self,
         moa_learner,
-        schema=None,
+        schema: Schema,
         CLI: None = None,
-        random_seed=1,
+        random_seed: int | None = None,
         *,
         options: Mapping[str, Any],
     ): ...
@@ -131,9 +131,9 @@ class MOAClassifier(Classifier):
     def __init__(
         self,
         moa_learner,
-        schema=None,
+        schema: Schema,
         CLI=None,
-        random_seed=1,
+        random_seed: int | None = None,
         options: Mapping[str, Any] | None = None,
     ):
         """
@@ -163,8 +163,10 @@ class MOAClassifier(Classifier):
 
     def __str__(self):
         # Removes the package information from the name of the learner.
-        full_name = str(self.moa_learner.getClass().getCanonicalName())
-        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        if isinstance(self.moa_learner, jpype.JObject):
+            full_name = str(self.moa_learner.getClass().getCanonicalName())
+            return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        return str(self.moa_learner)
 
     def cli_help(self):
         return str(self.moa_learner.getOptions().getHelpString())
@@ -246,7 +248,10 @@ class SKClassifier(Classifier):
     """The underlying scikit-learn object."""
 
     def __init__(
-        self, sklearner: _SKClassifierMixin, schema: Schema = None, random_seed: int = 1
+        self,
+        sklearner: _SKClassifierMixin,
+        schema: Schema,
+        random_seed: int | None = None,
     ):
         """Construct a scikit-learn classifier wrapper.
 

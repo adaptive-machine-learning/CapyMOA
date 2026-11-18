@@ -1,3 +1,4 @@
+import inspect
 import os
 from contextlib import nullcontext
 from dataclasses import dataclass
@@ -29,6 +30,9 @@ from capymoa.regressor import (
 )
 from capymoa.regressor.evaluate import RegressionEvaluator, RegressionWindowedEvaluator
 from capymoa.stream import Stream
+
+SEED = 1
+"""Seed for every regressor that takes one, so results are exact."""
 
 
 @dataclass(frozen=True)
@@ -67,7 +71,7 @@ CASES = [
     Case(SGDRegressor, 4.63, 3.61),
     Case(ShrubsRegressor, 5.21, 4.76),
     Case(StochasticGradientTree, 15.49, 16.19),
-    Case(StreamingGradientBoostedRegression, 3.09, 2.21),
+    Case(StreamingGradientBoostedRegression, 3.12, 2.15),
     Case(OnlineBaggingRegressor, 7.10, 4.38),
 ]
 """Add your new test cases here ^^"""
@@ -78,7 +82,10 @@ def test_regressor(case: Case):
     """Update TEST_CASES to add more regressors to test."""
     stream = Fried()
     schema = stream.get_schema()
-    learner = case.type(schema=schema, **(case.options or {}))
+    options = dict(case.options or {})
+    if "random_seed" in inspect.signature(case.type).parameters:
+        options["random_seed"] = SEED
+    learner = case.type(schema=schema, **options)
     evaluator = RegressionEvaluator(schema=schema)
     win_evaluator = RegressionWindowedEvaluator(schema=schema, window_size=100)
 

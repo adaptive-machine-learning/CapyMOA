@@ -5,6 +5,7 @@ from sklearn.linear_model import (
 )
 
 from capymoa.base import SKClassifier
+from capymoa.base._seed import resolve_seed
 from capymoa.stream._stream import Schema
 
 
@@ -87,6 +88,7 @@ class SGDClassifier(SKClassifier):
         :param random_seed: Seed for reproducibility.
         """
 
+        random_seed = resolve_seed(random_seed)
         super().__init__(
             _SKSGDClassifier(
                 loss=loss,

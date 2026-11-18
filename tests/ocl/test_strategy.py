@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from functools import partial
@@ -38,6 +39,10 @@ from capymoa.stream import Schema
 approx = partial(pytest.approx, abs=1.5)
 
 
+SEED = 0
+"""Seed for every learner that takes one, so results are exact."""
+
+
 @dataclass(frozen=True)
 class Result:
     accuracy_final: float
@@ -73,7 +78,11 @@ def new_constructor(
 ) -> Callable[[Schema], Classifier]:
     """Create a new learner instance with the given hyperparameters."""
 
-    def constructor(schema: Schema, **extra_kwargs) -> Classifier:
+    def constructor(
+        schema: Schema, random_seed: int | None = None, **extra_kwargs
+    ) -> Classifier:
+        if "random_seed" in inspect.signature(learner).parameters:
+            extra_kwargs["random_seed"] = random_seed
         model = Perceptron(schema)
         optimiser = optimiser_type(model.parameters(), lr=lr)
         return learner(
@@ -87,10 +96,10 @@ def new_constructor(
     return constructor
 
 
-def _new_rar(schema):
+def _new_rar(schema, random_seed=None):
     # RAR test case constructor
     return RAR(
-        Finetune(schema, Perceptron(schema)),
+        Finetune(schema, Perceptron(schema), random_seed=random_seed),
         augment=nn.Dropout(p=0.2),
         repeats=2,
     )
@@ -151,7 +160,13 @@ TEST_CASES: list[Case] = [
         lambda s: SLDA(s, pre_processor(), 512),
         Result(87.5, 54.5, 67.7),
     ),
-    Case("RanPAC", lambda s: RanPAC(s, projection_dim=512), Result(80.0, 48.0, 62.4)),
+    Case(
+        "RanPAC",
+        lambda s, random_seed=None: RanPAC(
+            s, projection_dim=512, random_seed=random_seed
+        ),
+        Result(78.0, 46.7, 60.8),
+    ),
     Case("NCM", NCM, Result(71.5, 46.2, 67.5)),
     Case(
         "NCM_with_preprocessor",
@@ -160,7 +175,9 @@ TEST_CASES: list[Case] = [
     ),
     Case(
         "ExperienceReplay",
-        lambda schema: ExperienceReplay(Finetune(schema, Perceptron)),
+        lambda schema, random_seed=None: ExperienceReplay(
+            Finetune(schema, Perceptron, random_seed=random_seed)
+        ),
         Result(28.5, 20.1, 3.0),
     ),
     Case(
@@ -281,6 +298,8 @@ def test_ocl_classifier(case: Case):
     torch.use_deterministic_algorithms(True)
 
     kwargs = {}
+    if "random_seed" in inspect.signature(case.constructor).parameters:
+        kwargs["random_seed"] = SEED
     if case.task_mask:
         kwargs["task_mask"] = scenario.task_mask
     learner = case.constructor(scenario.schema, **kwargs)  # type: ignore
