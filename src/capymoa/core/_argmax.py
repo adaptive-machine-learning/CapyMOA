@@ -65,11 +65,15 @@ def random_argmax(
 
     :param x: Values to search. Flattened first.
     :param rng: Generator from :func:`mersenne_twister`.
-    :param num_classes: Number of labels, used when ``x`` has no valid value.
-        Defaults to ``len(x)``.
+    :param num_classes: Number of labels. Values past it are ignored, and it
+        is the number of ties when ``x`` has no valid value. Defaults to
+        ``len(x)``.
     :return: Index of a largest value.
     """
     x = np.asarray(x, dtype=np.float64).ravel()
+    if num_classes is not None:
+        # Some learners return more votes than the stream has labels.
+        x = x[:num_classes]
     valid = ~np.isnan(x)
     if not valid.any():
         n = len(x) if num_classes is None else num_classes

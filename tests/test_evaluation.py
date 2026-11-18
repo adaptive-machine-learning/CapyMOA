@@ -60,8 +60,8 @@ def test_evaluate_classifier_mapping():
     """One pass over the stream gives the same results as one pass per learner."""
     stream = SEA(function=1)
     learners = {
-        "nb": NaiveBayes(schema=stream.get_schema(), random_seed=1),
-        "ht": HoeffdingTree(schema=stream.get_schema(), random_seed=1),
+        "nb": NaiveBayes(schema=stream.get_schema()),
+        "ht": HoeffdingTree(schema=stream.get_schema()),
     }
 
     together = evaluate_classifier(stream, learners, max_instances=100)
@@ -73,7 +73,7 @@ def test_evaluate_classifier_mapping():
     alone = {
         name: evaluate_classifier(
             stream,
-            type(learner)(schema=stream.get_schema(), random_seed=1),
+            type(learner)(schema=stream.get_schema()),
             max_instances=100,
             optimise=False,
         )

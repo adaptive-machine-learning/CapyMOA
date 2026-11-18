@@ -24,6 +24,10 @@ from capymoa.evaluation._loop import (
 )
 from capymoa.stream import Stream
 
+#: MOA's Java loop breaks ties with a generator seeded with 1. Use the same
+#: seed so the Java and Python loops give the same predictions.
+_JAVA_TIE_SEED = 1
+
 _PER_CLASS_METRICS = [key for key in PerClass.__annotations__ if key != "label"]
 
 
@@ -195,7 +199,7 @@ def evaluate_classifier(
             ClassificationWindowedEvaluator(schema=schema, window_size=window_size),
             store_y=store_y,
             store_predictions=store_predictions,
-            tie_seed=getattr(learner, "random_seed", None),
+            tie_seed=_JAVA_TIE_SEED,
         )
         out = _prequential_loop_fast(stream, run, max_instances=max_instances)
         return _classifier_results(
@@ -216,7 +220,7 @@ def evaluate_classifier(
             windowed,
             store_y=store_y,
             store_predictions=store_predictions,
-            tie_seed=getattr(each, "random_seed", None),
+            tie_seed=_JAVA_TIE_SEED,
         )
     outs = _prequential_loop(
         stream,
