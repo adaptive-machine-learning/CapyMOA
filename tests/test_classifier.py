@@ -220,24 +220,20 @@ class TestClassifier:
 
         n_classes = 10
         length = 50
-        did_predict = False
 
         stream = RandomTreeGenerator(num_classes=n_classes)
         learner = case.new_learner(stream.get_schema())
 
-        # Learner must abstain before it is trained, unless it's declared to
-        # legitimately predict beforehand (e.g. a randomly-initialised NN).
+        # Learner must predict before it is trained.
         first_instance = next(stream)
-        if case.predicts_before_training:
-            assert (
-                learner.predict(first_instance) is not None
-                and learner.predict_proba(first_instance) is not None
-            ), "Expected prediction before training."
-        else:
-            assert (
-                learner.predict(first_instance) is None
-                and learner.predict_proba(first_instance) is None
-            ), "Expected abstention before training."
+        first_proba = learner.predict_proba(first_instance)
+        assert learner.predict(first_instance) in range(n_classes)
+        assert first_proba.shape == (n_classes,)
+        assert first_proba.sum() == pytest.approx(1.0)
+        if not case.predicts_before_training:
+            assert first_proba == pytest.approx(np.full(n_classes, 1 / n_classes)), (
+                "Expected a uniform prediction before training."
+            )
 
         # Prequential loop (predict, then train)
         for instance in islice(stream, length):
@@ -246,36 +242,28 @@ class TestClassifier:
             y_proba = learner.predict_proba(instance)
             learner.train(instance)
 
-            if y_proba is not None and y_pred is not None:
-                did_predict = True
-
-                assert isinstance(y_proba, np.ndarray), (
-                    f"Wrong type, expected `np.ndarray` but got `{type(y_proba)}`"
-                )
-                assert y_proba.dtype == np.float64, (
-                    f"Wrong dtype, expected `np.float64` but got `{y_proba.dtype}`"
-                )
-                # `predict_proba` must always be shaped by the schema, some methods
-                # incorrectly use observed classes.
-                # (https://github.com/adaptive-machine-learning/backlog/issues/96).
-                assert y_proba.shape == (n_classes,), (
-                    f"Wrong shape, expected ({n_classes},) but got `{y_proba.shape}`"
-                )
-                assert y_proba.sum() == pytest.approx(1.0), (
-                    f"Probabilities must sum to 1, expected 1 but got `{y_proba.sum()}`"
-                )
-                # `predict` must return a built-in `int`, not `numpy.int64`.
-                assert isinstance(y_pred, int), (
-                    f"Wrong type, expected int got `{type(y_pred)}`"
-                )
-                assert 0 <= y_pred < n_classes, (
-                    f"Wrong class, expected 0 <= y_pred < {n_classes} but got {y_pred}."
-                )
-
-            else:
-                assert y_pred is None and y_proba is None
-
-        assert did_predict, f"Over {length} steps nothing was predicted."
+            assert isinstance(y_proba, np.ndarray), (
+                f"Wrong type, expected `np.ndarray` but got `{type(y_proba)}`"
+            )
+            assert y_proba.dtype == np.float64, (
+                f"Wrong dtype, expected `np.float64` but got `{y_proba.dtype}`"
+            )
+            # `predict_proba` must always be shaped by the schema, some methods
+            # incorrectly use observed classes.
+            # (https://github.com/adaptive-machine-learning/backlog/issues/96).
+            assert y_proba.shape == (n_classes,), (
+                f"Wrong shape, expected ({n_classes},) but got `{y_proba.shape}`"
+            )
+            assert y_proba.sum() == pytest.approx(1.0), (
+                f"Probabilities must sum to 1, expected 1 but got `{y_proba.sum()}`"
+            )
+            # `predict` must return a built-in `int`, not `numpy.int64`.
+            assert isinstance(y_pred, int), (
+                f"Wrong type, expected int got `{type(y_pred)}`"
+            )
+            assert 0 <= y_pred < n_classes, (
+                f"Wrong class, expected 0 <= y_pred < {n_classes} but got {y_pred}."
+            )
 
     def test_save_then_load(self, case: Case, tmp_path: Path):
         """Check that a learner saved and then loaded behaves the same as the original."""
@@ -357,7 +345,9 @@ class TestClassifier:
                 # Declared deterministic: seed 1 and seed 2 must match
                 # exactly, not just reproducible (same seed gives the
                 # same result).
-                assert l1a_y_pred == l2_y_pred, (
+                # Ties (such as an untrained learner) are broken at random by seed.
+                has_tie = (l1a_y_proba == l1a_y_proba.max()).sum() > 1
+                assert has_tie or l1a_y_pred == l2_y_pred, (
                     f"{case.id} is declared always_deterministic, but seeds 1 "
                     f"and 2 predicted differently ({l1a_y_pred} vs {l2_y_pred}) "
                     f"after {i} instances."
@@ -392,3 +382,20 @@ class TestClassifier:
                 "Expected learners with different seeds to produce at least one"
                 " different prediction."
             )
+
+
+def test_untrained_predict_is_random_but_seeded():
+    """An untrained learner predicts uniformly at random, repeatable by seed."""
+    from sklearn.linear_model import SGDClassifier
+
+    from capymoa.base import SKClassifier
+
+    stream = RandomTreeGenerator(num_classes=10)
+    instance = next(stream)
+
+    def preds(seed: int) -> list[int]:
+        learner = SKClassifier(SGDClassifier(), stream.get_schema(), random_seed=seed)
+        return [learner.predict(instance) for _ in range(50)]
+
+    assert len(set(preds(1))) > 1, "Expected more than one label."
+    assert preds(1) == preds(1)

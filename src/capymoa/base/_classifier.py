@@ -48,26 +48,53 @@ class Classifier(LearnerParamsMixin, ABC):
         """
 
     @abstractmethod
-    def predict_proba(self, instance: Instance) -> LabelProbabilities | None:
+    def predict_proba(self, instance: Instance) -> LabelProbabilities:
         """Return probability estimates for each label.
 
+        Must work at any time, even before training. If the classifier can not
+        predict yet, return a uniform distribution over the labels.
+
         :param instance: The instance to estimate the probabilities for.
-        :return: An array of probabilities for each label or ``None`` if the
-            classifier is unable to make a prediction.
+        :return: An array of probabilities for each label.
         """
 
-    def predict(self, instance: Instance) -> LabelIndex | None:
+    def predict(self, instance: Instance) -> LabelIndex:
         """Predict the label of an instance.
 
         The base implementation calls :func:`predict_proba` and returns the
         label with the highest probability.
 
         :param instance: The instance to predict the label for.
-        :return: The predicted label or ``None`` if the classifier is unable
-            to make a prediction.
+        :return: The predicted label.
         """
-        prediction = self.predict_proba(instance)
-        return int(np.argmax(prediction)) if prediction is not None else None
+        return self._argmax(self.predict_proba(instance))
+
+    def _argmax(self, proba: LabelProbabilities) -> LabelIndex:
+        """Index of the largest probability, breaking exact ties at random.
+
+        A learner that can not predict yet returns a uniform distribution. A
+        plain ``argmax`` would always pick label 0, so we pick among the tied
+        labels.
+
+        The generator is a Mersenne Twister with legacy seeding, as in the SSL
+        evaluation loop. MOA's Java loop uses the same generator (commons-math
+        ``MersenneTwister(seed)``). Both draw one raw 32-bit output ``r`` per
+        tie, and pick tied label ``(r * k) >> 32`` of the ``k`` tied labels.
+        """
+        proba = np.asarray(proba).ravel()
+        tied = np.flatnonzero(proba == proba.max())
+        if len(tied) == 1:
+            return int(tied[0])
+        if getattr(self, "_tie_mt", None) is None:
+            self._tie_mt = np.random.MT19937()
+            self._tie_mt._legacy_seeding(getattr(self, "random_seed", 1))
+        raw = int(self._tie_mt.random_raw())
+        return int(tied[(raw * len(tied)) >> 32])
+
+    def _uniform_proba(self) -> LabelProbabilities:
+        """Uniform distribution over the labels in the schema."""
+        n = self.schema.get_num_classes()
+        return np.full(n, 1.0 / n, dtype=np.float64)
 
 
 class MOAClassifier(Classifier):
@@ -145,14 +172,26 @@ class MOAClassifier(Classifier):
     def train(self, instance):
         self.moa_learner.trainOnInstance(instance.java_instance)
 
-    def predict_proba(self, instance) -> LabelProbabilities | None:
+    def predict(self, instance) -> LabelIndex:
+        # Same as MOA: the first label with the highest vote, or label 0 when the
+        # learner gives no votes (MOA's ``Utils.maxIndex``). No random tie-break.
+        votes = self.moa_learner.getVotesForInstance(instance.java_instance)
+        best, best_index = None, 0
+        for i, vote in enumerate(votes):
+            # ``nan > x`` is false, so NaN never wins (unlike ``np.argmax``).
+            if best is None or vote > best:
+                best, best_index = vote, i
+        return best_index
+
+    def predict_proba(self, instance) -> LabelProbabilities:
         votes = np.array(self.moa_learner.getVotesForInstance(instance.java_instance))
         total = votes.sum()
         # MOA returns unnormalised scores. Their scale depends on the learner
         # (counts for majority class, tiny likelihood products for Naive Bayes).
-        # Reject only votes that carry no prediction: empty, non-finite or all zero.
+        # Votes that carry no prediction (empty, non-finite or all zero) give a
+        # uniform distribution.
         if votes.size == 0 or not np.isfinite(total) or total <= 0.0:
-            return None
+            return self._uniform_proba()
         # MOA sizes votes by the classes seen so far. Pad with zeros to match the schema.
         num_classes = self.schema.get_num_classes()
         if votes.size < num_classes:
@@ -185,7 +224,7 @@ class SKClassifier(Classifier):
     ...     prediction = learner.predict(instance)
     ...     print(f"True: {instance.y_index}, Predicted: {prediction}")
     ...     learner.train(instance)
-    True: 1, Predicted: None
+    True: 1, Predicted: 0
     True: 1, Predicted: 1
     True: 1, Predicted: 1
     True: 1, Predicted: 1
@@ -240,16 +279,16 @@ class SKClassifier(Classifier):
         )
         self._trained_at_least_once = True
 
-    def predict(self, instance: Instance) -> LabelIndex | None:
+    def predict(self, instance: Instance) -> LabelIndex:
         if not self._trained_at_least_once:
             # scikit-learn does not allows invoking predict in a model that was not fit before
-            return None
+            return self._argmax(self._uniform_proba())
         return int(self.sklearner.predict([instance.x])[0])
 
-    def predict_proba(self, instance: Instance) -> LabelProbabilities | None:
+    def predict_proba(self, instance: Instance) -> LabelProbabilities:
         if not self._trained_at_least_once:
             # scikit-learn does not allows invoking predict in a model that was not fit before
-            return None
+            return self._uniform_proba()
         elif not hasattr(self.sklearner, "predict_proba"):
             # When classifiers do not implement predict_proba use a one-hot encoding
             proba = np.zeros((self.schema.get_num_classes(),), dtype=np.float64)

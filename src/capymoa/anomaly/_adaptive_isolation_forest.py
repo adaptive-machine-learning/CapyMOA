@@ -390,7 +390,7 @@ class AdaptiveIsolationForest(AnomalyDetector):
 
         return score
 
-    def predict(self, instance) -> LabelIndex | None:
+    def predict(self, instance) -> LabelIndex:
         """Predict is not implemented for anomaly detection.
 
         :param instance: The instance to predict.

@@ -38,7 +38,7 @@ def assert_ssl_evaluation(
     )
 
     assert results["cumulative"]["accuracy"] == pytest.approx(expectation), (
-        f"Expected accuracy of {expectation} but got {results['cumulative'].accuracy()}"
+        f"Expected accuracy of {expectation} but got {results['cumulative']['accuracy']}"
         + f" for learner {learner} on stream {stream}"
     )
 
@@ -56,7 +56,7 @@ def assert_ssl_evaluation(
         pytest.param(
             partial(_make_osnn, optim_steps=10),
             CovtypeTiny,
-            26.3,
+            29.1,
             None,
             marks=pytest.mark.torch,
         ),

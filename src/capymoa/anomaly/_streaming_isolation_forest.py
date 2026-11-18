@@ -486,7 +486,7 @@ class StreamingIsolationForest(AnomalyDetector):
 
         return score
 
-    def predict(self, instance: LabeledInstance) -> LabelIndex | None:
+    def predict(self, instance: LabeledInstance) -> LabelIndex:
         raise NotImplementedError(
             "StreamingIsolationForest does not implement predict. Use score_instance instead."
         )

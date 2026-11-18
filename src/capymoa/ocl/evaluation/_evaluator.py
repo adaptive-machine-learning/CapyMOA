@@ -46,12 +46,10 @@ class _OCLEvaluator(Handler):
         eval_step_id: int,
         test_task_id: int,
         y_true: LabelIndex,
-        y_pred: LabelIndex | None,
+        y_pred: LabelIndex,
     ):
         """Record a prediction when using holdout evaluation."""
-        if y_pred is not None:
-            self.cm[train_task_id, eval_step_id, test_task_id, y_true, y_pred] += 1
-        # TODO: handle missing predictions
+        self.cm[train_task_id, eval_step_id, test_task_id, y_true, y_pred] += 1
 
     def attach_with(self, source: Dispatcher) -> "Handler":
         source.subscribe(events.EvalBatchPredict, self._on_eval_batch)

@@ -123,7 +123,7 @@ class OnlineIsolationForest(AnomalyDetector):
     def __str__(self):
         return "Online Isolation Forest"
 
-    def predict(self, instance: Instance) -> LabelIndex | None:
+    def predict(self, instance: Instance) -> LabelIndex:
         pass
 
     def score_instance(self, instance: Instance) -> float:

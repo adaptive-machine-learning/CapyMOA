@@ -24,7 +24,14 @@ class Regressor(LearnerParamsMixin, ABC):
 
     @abstractmethod
     def predict(self, instance: RegressionInstance) -> TargetValue:
-        pass
+        """Predict the target value of an instance.
+
+        Must work at any time, even before training. If the regressor can not
+        predict yet, return a default value such as ``0.0``.
+
+        :param instance: The instance to predict the target value for.
+        :return: The predicted target value.
+        """
 
 
 class MOARegressor(Regressor):
@@ -119,12 +126,9 @@ class SKRegressor(Regressor):
     >>> for _ in range(10):
     ...     instance = stream.next_instance()
     ...     prediction = learner.predict(instance)
-    ...     if prediction is not None:
-    ...         print(f"y_value: {instance.y_value}, y_prediction: {prediction:.2f}")
-    ...     else:
-    ...         print(f"y_value: {instance.y_value}, y_prediction: None")
+    ...     print(f"y_value: {instance.y_value}, y_prediction: {prediction:.2f}")
     ...     learner.train(instance)
-    y_value: 17.949, y_prediction: None
+    y_value: 17.949, y_prediction: 0.00
     y_value: 13.815, y_prediction: 0.60
     y_value: 20.766, y_prediction: 1.30
     y_value: 18.301, y_prediction: 1.86
@@ -181,5 +185,5 @@ class SKRegressor(Regressor):
     def predict(self, instance: Instance) -> float:
         if not self._trained_at_least_once:
             # scikit-learn does not allows invoking predict in a model that was not fit before
-            return None
+            return 0.0
         return self.sklearner.predict([instance.x])[0]

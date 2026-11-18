@@ -71,9 +71,11 @@ class AnomalyDetector(LearnerParamsMixin, ABC):
         pass
 
     @abstractmethod
-    def predict(self, instance: Instance) -> LabelIndex | None:
-        # Returns the predicted label for the instance.
-        pass
+    def predict(self, instance: Instance) -> LabelIndex:
+        """Return the predicted label for the instance.
+
+        Must work at any time, even before training.
+        """
 
     @abstractmethod
     def score_instance(self, instance: Instance) -> float:

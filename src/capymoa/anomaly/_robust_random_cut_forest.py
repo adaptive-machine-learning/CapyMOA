@@ -549,7 +549,7 @@ class RobustRandomCutForest(AnomalyDetector):
         for tree in self._trees:
             tree.train(instance)
 
-    def predict(self, instance: Instance) -> int | None:
+    def predict(self, instance: Instance) -> int:
         return super().predict(instance)
 
     def score_instance(self, instance: Instance) -> float:

@@ -24,7 +24,7 @@ class SGDClassifier(SKClassifier):
     >>> learner = SGDClassifier(schema)
     >>> results = evaluate_classifier(stream, learner, max_instances=1000)
     >>> results["cumulative"]["accuracy"]
-    84.2
+    84.3
     """
 
     sklearner: _SKSGDClassifier

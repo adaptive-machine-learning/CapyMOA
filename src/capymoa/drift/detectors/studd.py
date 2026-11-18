@@ -95,7 +95,8 @@ class STUDD(BaseDriftDetector):
         :param teacher_prediction: The prediction made by the teacher model for this instance.
         :type teacher_prediction: Any
         """
-        # Ignore if no teacher prediction is provided yet (abstains).
+        # Ignore if no teacher prediction reached the detector (for example,
+        # it sits before the learner in a pipeline).
         if teacher_prediction is None:
             return
 
