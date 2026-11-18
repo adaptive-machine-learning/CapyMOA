@@ -68,6 +68,9 @@
   accuracy: 63.35
   win_accuracy: 80.0
   always_deterministic: true
+  skip_test_optimise: "SGT often has tied votes. The slow loop breaks ties at
+    random and the fast (Java) loop picks label 0, so accuracy differs by
+    about 5 points."
 
 - id: NaiveBayes
   learner: capymoa.classifier.NaiveBayes

@@ -56,12 +56,6 @@ New metrics
   ``batch_size``. Before, ``prequential_evaluation`` raised ``TypeError`` for
   these arguments on those learners.
 
-* **No abstentions.** Learners must predict at any time, even before
-  training. ``predict`` and ``predict_proba`` no longer return ``None``.
-  When a learner can not predict yet, it should return a uniform
-  distribution (classifiers) or ``0.0`` (regressors). ``allow_abstaining`` is
-  gone from ``ShrubsClassifier`` and ``ClassificationEvaluator``.
-
 Migration guide
 ~~~~~~~~~~~~~~~
 

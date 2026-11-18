@@ -9,7 +9,13 @@ from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
 from capymoa.base._seed import _SeededMixin
-from capymoa.core import Instance, LabeledInstance, LabelIndex, LabelProbabilities
+from capymoa.core import (
+    Instance,
+    LabeledInstance,
+    LabelIndex,
+    LabelProbabilities,
+    random_argmax,
+)
 from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
 
@@ -70,26 +76,10 @@ class Classifier(_SeededMixin, LearnerParamsMixin, ABC):
         return self._argmax(self.predict_proba(instance))
 
     def _argmax(self, proba: LabelProbabilities) -> LabelIndex:
-        """Index of the largest probability, breaking exact ties at random.
-
-        A learner that can not predict yet returns a uniform distribution. A
-        plain ``argmax`` would always pick label 0, so we pick among the tied
-        labels.
-
-        The generator is a Mersenne Twister with legacy seeding, as in the SSL
-        evaluation loop. MOA's Java loop uses the same generator (commons-math
-        ``MersenneTwister(seed)``). Both draw one raw 32-bit output ``r`` per
-        tie, and pick tied label ``(r * k) >> 32`` of the ``k`` tied labels.
-        """
-        proba = np.asarray(proba).ravel()
-        tied = np.flatnonzero(proba == proba.max())
-        if len(tied) == 1:
-            return int(tied[0])
-        if getattr(self, "_tie_mt", None) is None:
-            self._tie_mt = np.random.MT19937()
-            self._tie_mt._legacy_seeding(getattr(self, "random_seed", 1))
-        raw = int(self._tie_mt.random_raw())
-        return int(tied[(raw * len(tied)) >> 32])
+        """Largest probability's index. A uniform prediction picks a random label."""
+        if getattr(self, "_tie_rng", None) is None:
+            self._tie_rng = np.random.default_rng(self.random_seed)
+        return random_argmax(proba, self._tie_rng)
 
     def _uniform_proba(self) -> LabelProbabilities:
         """Uniform distribution over the labels in the schema."""
@@ -174,17 +164,6 @@ class MOAClassifier(Classifier):
     def train(self, instance):
         self.moa_learner.trainOnInstance(instance.java_instance)
 
-    def predict(self, instance) -> LabelIndex:
-        # Same as MOA: the first label with the highest vote, or label 0 when the
-        # learner gives no votes (MOA's ``Utils.maxIndex``). No random tie-break.
-        votes = self.moa_learner.getVotesForInstance(instance.java_instance)
-        best, best_index = None, 0
-        for i, vote in enumerate(votes):
-            # ``nan > x`` is false, so NaN never wins (unlike ``np.argmax``).
-            if best is None or vote > best:
-                best, best_index = vote, i
-        return best_index
-
     def predict_proba(self, instance) -> LabelProbabilities:
         votes = np.array(self.moa_learner.getVotesForInstance(instance.java_instance))
         total = votes.sum()
@@ -220,7 +199,7 @@ class SKClassifier(Classifier):
     >>> from capymoa.datasets import ElectricityTiny
     >>> stream = ElectricityTiny()
     >>> sklearner = SGDClassifier(random_state=1)
-    >>> learner = SKClassifier(sklearner, stream.get_schema())
+    >>> learner = SKClassifier(sklearner, stream.get_schema(), random_seed=1)
     >>> for _ in range(10):
     ...     instance = stream.next_instance()
     ...     prediction = learner.predict(instance)
