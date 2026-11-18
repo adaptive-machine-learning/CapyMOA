@@ -173,20 +173,6 @@ def score_instance(tree, instance, total_instances):
     return normalized_score
 
 
-def print_tree_info(node):
-    if node is None:
-        return
-
-    # Print information about the current node
-    print(
-        f"Node ID: {node.node_id}, Height: {node.height}, Data Shape: {None if node.data is None else node.data.shape}"
-    )
-
-    # Recursively print information for left and right children
-    print_tree_info(node.left)
-    print_tree_info(node.right)
-
-
 class RandomHistogramForest:
     def __init__(self, num_trees, max_height, window_size, number_of_features):
         self.num_trees = num_trees
@@ -253,12 +239,6 @@ class RandomHistogramForest:
         return np.mean(
             [score_instance(tree, instance, total_instances) for tree in self.forest]
         )
-
-    def print_forest_info(self):
-        for i, tree in enumerate(self.forest):
-            print(f"Tree {i + 1}:")
-            print_tree_info(tree)
-            print("-" * 50)
 
 
 class StreamRHF(AnomalyDetector):
