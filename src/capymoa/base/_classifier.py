@@ -5,6 +5,7 @@ from typing import Any, overload
 import jpype
 import numpy as np
 from jpype import _jpype
+from moa.core import Utils
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
@@ -15,6 +16,7 @@ from capymoa.core import (
     LabelIndex,
     LabelProbabilities,
     random_argmax,
+    uniform_proba,
 )
 from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
@@ -73,18 +75,11 @@ class Classifier(_SeededMixin, LearnerParamsMixin, ABC):
         :param instance: The instance to predict the label for.
         :return: The predicted label.
         """
-        return self._argmax(self.predict_proba(instance))
-
-    def _argmax(self, proba: LabelProbabilities) -> LabelIndex:
-        """Largest probability's index. A uniform prediction picks a random label."""
+        # Equal probabilities, such as an untrained learner's uniform
+        # prediction, are broken at random.
         if getattr(self, "_tie_rng", None) is None:
             self._tie_rng = np.random.default_rng(self.random_seed)
-        return random_argmax(proba, self._tie_rng)
-
-    def _uniform_proba(self) -> LabelProbabilities:
-        """Uniform distribution over the labels in the schema."""
-        n = self.schema.get_num_classes()
-        return np.full(n, 1.0 / n, dtype=np.float64)
+        return random_argmax(self.predict_proba(instance), self._tie_rng)
 
 
 class MOAClassifier(Classifier):
@@ -164,6 +159,13 @@ class MOAClassifier(Classifier):
     def train(self, instance):
         self.moa_learner.trainOnInstance(instance.java_instance)
 
+    def predict(self, instance) -> LabelIndex:
+        # MOA learners have no predict method. MOA's own evaluators and
+        # ``correctlyClassifies`` take ``Utils.maxIndex`` of the votes: the first
+        # label with the highest vote, or label 0 with no votes. Match that.
+        votes = self.moa_learner.getVotesForInstance(instance.java_instance)
+        return int(Utils.maxIndex(votes))
+
     def predict_proba(self, instance) -> LabelProbabilities:
         votes = np.array(self.moa_learner.getVotesForInstance(instance.java_instance))
         total = votes.sum()
@@ -172,7 +174,7 @@ class MOAClassifier(Classifier):
         # Votes that carry no prediction (empty, non-finite or all zero) give a
         # uniform distribution.
         if votes.size == 0 or not np.isfinite(total) or total <= 0.0:
-            return self._uniform_proba()
+            return uniform_proba(self.schema.get_num_classes())
         # MOA sizes votes by the classes seen so far. Pad with zeros to match the schema.
         num_classes = self.schema.get_num_classes()
         if votes.size < num_classes:
@@ -266,13 +268,13 @@ class SKClassifier(Classifier):
     def predict(self, instance: Instance) -> LabelIndex:
         if not self._trained_at_least_once:
             # scikit-learn does not allows invoking predict in a model that was not fit before
-            return self._argmax(self._uniform_proba())
+            return super().predict(instance)
         return int(self.sklearner.predict([instance.x])[0])
 
     def predict_proba(self, instance: Instance) -> LabelProbabilities:
         if not self._trained_at_least_once:
             # scikit-learn does not allows invoking predict in a model that was not fit before
-            return self._uniform_proba()
+            return uniform_proba(self.schema.get_num_classes())
         elif not hasattr(self.sklearner, "predict_proba"):
             # When classifiers do not implement predict_proba use a one-hot encoding
             proba = np.zeros((self.schema.get_num_classes(),), dtype=np.float64)

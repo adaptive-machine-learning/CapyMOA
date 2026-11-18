@@ -57,7 +57,7 @@ partial_fit_count = 0
 while elec_stream.has_more_instances():
     instance = elec_stream.next_instance()
 
-    prediction = -1
+    prediction = 0  # Guess the first label until the model is fitted
     if (
         partial_fit_count > 0
     ):  # scikit-learn does not allow invoking predict in a model that has not been previously fitted

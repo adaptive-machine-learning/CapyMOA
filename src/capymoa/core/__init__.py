@@ -16,7 +16,7 @@ from ._instance import (  # isort: skip
     TargetValue,
     _AnyInstance,
 )
-from ._argmax import random_argmax  # isort: skip
+from ._argmax import random_argmax, uniform_proba  # isort: skip
 from . import io, moa, torch
 
 __all__ = [
@@ -33,4 +33,5 @@ __all__ = [
     "moa",
     "random_argmax",
     "torch",
+    "uniform_proba",
 ]

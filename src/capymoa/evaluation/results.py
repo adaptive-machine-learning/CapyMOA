@@ -11,13 +11,13 @@ compared and put in a :class:`pandas.DataFrame`.
 >>> stream = ElectricityTiny()
 >>> results = evaluate_classifier(
 ...     stream,
-...     {"ht": HoeffdingTree(stream.get_schema(), random_seed=1), "nb": NaiveBayes(stream.get_schema(), random_seed=1)},
+...     {"ht": HoeffdingTree(stream.get_schema()), "nb": NaiveBayes(stream.get_schema())},
 ...     max_instances=1000,
 ... )
 >>> pd.DataFrame([r["cumulative"] for r in results.values()], index=list(results))[["accuracy"]].round(1)
     accuracy
-ht      84.2
-nb      84.9
+ht      84.4
+nb      84.8
 """
 
 from typing import NotRequired

@@ -351,8 +351,5 @@ class OSNN(ClassifierSSL):
         proba = torch.cat((1 - proba, proba), dim=1).detach().numpy()
         return proba
 
-    def predict(self, instance):
-        return self._argmax(self.predict_proba(instance))
-
     def __str__(self):
         return f"OSNN(num_center={self.Network.num_centers}, window_size={self.window_size}, beta={self.Network.beta}, gamma={self.Network.gamma})"
