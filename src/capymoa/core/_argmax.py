@@ -70,18 +70,28 @@ def random_argmax(
         ``len(x)``.
     :return: Index of a largest value.
     """
-    x = np.asarray(x, dtype=np.float64).ravel()
-    if num_classes is not None:
+    if type(x) is not np.ndarray or x.dtype != np.float64 or x.ndim != 1:
+        x = np.asarray(x, dtype=np.float64).ravel()
+    if num_classes is not None and num_classes < x.shape[0]:
         # Some learners return more votes than the stream has labels.
         x = x[:num_classes]
-    valid = ~np.isnan(x)
-    if not valid.any():
-        n = len(x) if num_classes is None else num_classes
-        return 0 if n < 2 else _next_int(rng, n)
-    tied = np.flatnonzero(x == x[valid].max())
-    if len(tied) == 1:
-        return int(tied[0])
-    return int(tied[_next_int(rng, len(tied))])
+    if x.shape[0]:
+        i = int(x.argmax())  # argmax treats NaN as the largest value
+        m = x[i]
+        if m == m:
+            # Fast path. argmax returns a NaN if any, so no NaN here.
+            k = int(np.count_nonzero(x == m))
+            if k == 1:
+                return i
+            return int(np.flatnonzero(x == m)[_next_int(rng, k)])
+        valid = ~np.isnan(x)
+        if valid.any():
+            tied = np.flatnonzero(x == x[valid].max())
+            if len(tied) == 1:
+                return int(tied[0])
+            return int(tied[_next_int(rng, len(tied))])
+    n = len(x) if num_classes is None else num_classes
+    return 0 if n < 2 else _next_int(rng, n)
 
 
 def uniform_proba(num_classes: int) -> LabelProbabilities:
