@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 
 from capymoa.base import Classifier
+from capymoa.base._seed import resolve_seed
 from capymoa.classifier.evaluate import (
     ClassificationEvaluator,
     ClassificationWindowedEvaluator,
@@ -15,6 +16,7 @@ from capymoa.classifier.evaluate import (
     PerClassWindows,
 )
 from capymoa.evaluation._loop import (
+    JAVA_TIE_SEED,
     _LoopOutput,
     _prequential_loop,
     _prequential_loop_fast,
@@ -23,10 +25,6 @@ from capymoa.evaluation._loop import (
     _use_java_loop,
 )
 from capymoa.stream import Stream
-
-#: MOA's Java loop breaks ties with a generator seeded with 1. Use the same
-#: seed so the Java and Python loops give the same predictions.
-_JAVA_TIE_SEED = 1
 
 _PER_CLASS_METRICS = [key for key in PerClass.__annotations__ if key != "label"]
 
@@ -104,6 +102,7 @@ def evaluate_classifier(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    tie_seed: int | None = JAVA_TIE_SEED,
 ) -> ClassifierResults: ...
 @overload
 def evaluate_classifier(
@@ -117,6 +116,7 @@ def evaluate_classifier(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    tie_seed: int | None = JAVA_TIE_SEED,
 ) -> dict[str, ClassifierResults]: ...
 def evaluate_classifier(
     stream: Stream,
@@ -129,6 +129,7 @@ def evaluate_classifier(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    tie_seed: int | None = JAVA_TIE_SEED,
 ) -> ClassifierResults | dict[str, ClassifierResults]:
     """Test-then-train a classifier, or many on one pass over a stream.
 
@@ -175,8 +176,13 @@ def evaluate_classifier(
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
     :param batch_size: Instances per mini-batch, for batch learners.
+    :param tie_seed: Seed for the random choice between equal predictions, such
+        as before a learner has trained. The default matches the Java loop. Any
+        other seed uses the Python loop, even with ``optimise``. ``None`` draws a
+        new seed.
     :return: The results, or a dict of results by name for a mapping.
     """
+    tie_seed = resolve_seed(tie_seed)
     many = isinstance(learner, Mapping)
     if many and not learner:
         raise ValueError("No learners to evaluate.")
@@ -192,6 +198,7 @@ def evaluate_classifier(
         optimise=optimise,
         window_size=window_size,
         batch_size=batch_size,
+        tie_seed=tie_seed,
     ):
         run = _Run(
             learner,
@@ -199,7 +206,7 @@ def evaluate_classifier(
             ClassificationWindowedEvaluator(schema=schema, window_size=window_size),
             store_y=store_y,
             store_predictions=store_predictions,
-            tie_seed=_JAVA_TIE_SEED,
+            tie_seed=tie_seed,
         )
         out = _prequential_loop_fast(stream, run, max_instances=max_instances)
         return _classifier_results(
@@ -220,7 +227,7 @@ def evaluate_classifier(
             windowed,
             store_y=store_y,
             store_predictions=store_predictions,
-            tie_seed=_JAVA_TIE_SEED,
+            tie_seed=tie_seed,
         )
     outs = _prequential_loop(
         stream,

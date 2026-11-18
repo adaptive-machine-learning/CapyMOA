@@ -38,6 +38,11 @@ class _LoopOutput:
     other: dict[str, float] = field(default_factory=dict)
 
 
+#: The seed of the Java loop's tie-break generator. The Java classification loop
+#: takes no seed, so it always uses this one.
+JAVA_TIE_SEED = 1
+
+
 def _use_java_loop(
     stream: Stream,
     learner,
@@ -45,13 +50,18 @@ def _use_java_loop(
     optimise: bool,
     window_size: int | None,
     batch_size: int = 1,
+    tie_seed: int = JAVA_TIE_SEED,
 ) -> bool:
-    """Whether MOA can run the whole loop in Java."""
+    """Whether MOA can run the whole loop in Java.
+
+    The Java loop can not take a tie seed, so any other seed needs the Python loop.
+    """
     moa_learner = getattr(learner, "moa_learner", None)
     return (
         optimise
         and window_size is not None
         and batch_size == 1
+        and tie_seed == JAVA_TIE_SEED
         and moa_learner is not None
         # refuse prediction interval learner
         and not isinstance(moa_learner, MOAPredictionIntervalLearner)
