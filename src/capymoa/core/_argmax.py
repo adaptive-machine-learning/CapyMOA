@@ -78,7 +78,7 @@ def random_argmax(
     if x.shape[0]:
         i = int(x.argmax())  # argmax treats NaN as the largest value
         m = x[i]
-        if m == m:
+        if m == m:  # noqa: PLR0124 (NaN check)
             # Fast path. argmax returns a NaN if any, so no NaN here.
             k = int(np.count_nonzero(x == m))
             if k == 1:
