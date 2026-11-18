@@ -22,7 +22,7 @@ class SGDClassifier(SKClassifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>> stream = ElectricityTiny()
     >>> schema = stream.get_schema()
-    >>> learner = SGDClassifier(schema, random_seed=1)
+    >>> learner = SGDClassifier(schema)
     >>> results = evaluate_classifier(stream, learner, max_instances=1000)
     >>> results["cumulative"]["accuracy"]
     84.2

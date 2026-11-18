@@ -410,25 +410,3 @@ def test_fast_loop_refuses_custom_test_then_train():
     )
     with pytest.raises(TypeError, match="custom test_then_train"):
         _prequential_loop_fast(stream, run, max_instances=10)
-
-
-def test_evaluate_classifier_tie_seed():
-    """``tie_seed`` sets the random choice between equal predictions."""
-
-    def first_prediction(tie_seed: int, optimise: bool = True) -> int:
-        stream = ElectricityTiny()
-        results = evaluate_classifier(
-            stream,
-            NaiveBayes(stream.get_schema()),
-            max_instances=1,
-            optimise=optimise,
-            store_predictions=True,
-            tie_seed=tie_seed,
-        )
-        return results["y_pred"][0]
-
-    # An untrained learner ties, so the first prediction follows the seed.
-    assert {first_prediction(seed) for seed in range(2, 20)} == {0, 1}
-    assert first_prediction(5) == first_prediction(5)
-    # The default seed gives the same result in the Java and Python loops.
-    assert first_prediction(1, optimise=True) == first_prediction(1, optimise=False)

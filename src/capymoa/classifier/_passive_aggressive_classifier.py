@@ -26,7 +26,7 @@ class PassiveAggressiveClassifier(SKClassifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = PassiveAggressiveClassifier(stream.get_schema(), random_seed=1)
+    >>> classifier = PassiveAggressiveClassifier(stream.get_schema())
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     84.3

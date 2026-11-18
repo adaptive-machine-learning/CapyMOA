@@ -17,9 +17,8 @@ from moa.streams import InstanceStream
 from tqdm import tqdm
 
 from capymoa._utils import batched
-from capymoa.base import Classifier, MOAClassifier, MOAPredictionIntervalLearner
-from capymoa.base._seed import resolve_seed
-from capymoa.core import LabeledInstance, mersenne_twister, random_argmax
+from capymoa.base import MOAPredictionIntervalLearner
+from capymoa.core import LabeledInstance
 from capymoa.evaluation.results import RunInfo
 from capymoa.stream import Stream
 from capymoa.stream.drift import DriftStream, RecurrentConceptDriftStream
@@ -38,11 +37,6 @@ class _LoopOutput:
     other: dict[str, float] = field(default_factory=dict)
 
 
-#: The seed of the Java loop's tie-break generator. The Java classification loop
-#: takes no seed, so it always uses this one.
-JAVA_TIE_SEED = 1
-
-
 def _use_java_loop(
     stream: Stream,
     learner,
@@ -50,18 +44,13 @@ def _use_java_loop(
     optimise: bool,
     window_size: int | None,
     batch_size: int = 1,
-    tie_seed: int = JAVA_TIE_SEED,
 ) -> bool:
-    """Whether MOA can run the whole loop in Java.
-
-    The Java loop can not take a tie seed, so any other seed needs the Python loop.
-    """
+    """Whether MOA can run the whole loop in Java."""
     moa_learner = getattr(learner, "moa_learner", None)
     return (
         optimise
         and window_size is not None
         and batch_size == 1
-        and tie_seed == JAVA_TIE_SEED
         and moa_learner is not None
         # refuse prediction interval learner
         and not isinstance(moa_learner, MOAPredictionIntervalLearner)
@@ -115,41 +104,14 @@ class _Run:
         *,
         store_y: bool,
         store_predictions: bool,
-        tie_seed: int | None = None,
     ):
         self.learner = learner
-        self.tie_seed = resolve_seed(tie_seed)
         self.cumulative = cumulative
         self.windowed = windowed
         self.store_y = store_y
         self.store_predictions = store_predictions
         self._y_true: list = []
         self._y_pred: list = []
-        self._tie_rng: np.random.Generator | None = None
-
-    def predict(self, instance) -> Any:
-        """Predict one instance.
-
-        Matches MOA's Java loops. A classifier breaks ties at random with
-        :func:`random_argmax`, which follows ``randMaxIndex`` in Java. The loop
-        owns the random state, seeded with ``tie_seed``. A MOA learner ties on
-        its raw votes. Any other classifier ties on ``predict_proba``.
-        """
-        learner = self.learner
-        if not isinstance(learner, Classifier):
-            return learner.predict(instance)
-        if isinstance(learner, MOAClassifier):
-            scores = learner.moa_learner.getVotesForInstance(instance.java_instance)
-        else:
-            try:
-                scores = learner.predict_proba(instance)
-            except NotImplementedError:
-                return learner.predict(instance)
-        if self._tie_rng is None:
-            self._tie_rng = mersenne_twister(self.tie_seed)
-        schema = getattr(learner, "schema", None)
-        num_classes = None if schema is None else schema.get_num_classes()
-        return random_argmax(scores, self._tie_rng, num_classes)
 
     def test_then_train(
         self, batch: Sequence[Any]
@@ -175,7 +137,7 @@ class _Run:
             learner.batch_train(torch_x, torch_y)
         else:
             for instance in batch:
-                yb_pred.append(self.predict(instance))
+                yb_pred.append(learner.predict(instance))
                 learner.train(instance)
         return yb_true, yb_pred
 

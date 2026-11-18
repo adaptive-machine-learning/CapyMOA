@@ -43,7 +43,6 @@ class _SSLRun(_Run):
             windowed,
             store_y=store_y,
             store_predictions=store_predictions,
-            tie_seed=random_seed,
         )
         self.delay_length = delay_length
         self.label_probability = label_probability
@@ -67,7 +66,7 @@ class _SSLRun(_Run):
             while self._delayed and self._delayed[0][0] <= self._seen:
                 learner.train(self._delayed.popleft()[1])
 
-            y_pred.append(self.predict(instance))
+            y_pred.append(learner.predict(instance))
             y_true.append(instance.y_index)
 
             if self._rand.random(dtype=np.float64) >= self.label_probability:

@@ -360,7 +360,6 @@ class TestClassifier:
             l1b_y_proba = l1_b.predict_proba(instance)
             l2_y_proba = l2.predict_proba(instance)
 
-            has_tie = (l1a_y_proba == l1a_y_proba.max()).sum() > 1
             assert l1a_y_pred == l1b_y_pred, (
                 "Expected learners with the same seed to predict the same, "
                 f"but got {l1a_y_pred} and {l1b_y_pred} after {i} instances."
@@ -374,8 +373,7 @@ class TestClassifier:
                 # Declared deterministic: seed 1 and seed 2 must match
                 # exactly, not just reproducible (same seed gives the
                 # same result).
-                # Ties (such as an untrained learner) are broken at random by seed.
-                assert has_tie or l1a_y_pred == l2_y_pred, (
+                assert l1a_y_pred == l2_y_pred, (
                     f"{case.id} is declared always_deterministic, but seeds 1 "
                     f"and 2 predicted differently ({l1a_y_pred} vs {l2_y_pred}) "
                     f"after {i} instances."
@@ -422,32 +420,3 @@ def test_untrained_predict_is_label_zero():
     learner = SKClassifier(SGDClassifier(), stream.get_schema())
     instance = next(stream)
     assert {learner.predict(instance) for _ in range(20)} == {0}
-
-
-def test_loop_breaks_ties_at_random_with_tie_seed():
-    """The evaluation loop picks among tied labels. A seed makes it repeat."""
-    from sklearn.linear_model import SGDClassifier
-
-    from capymoa.base import SKClassifier
-    from capymoa.classifier.evaluate import ClassificationEvaluator
-    from capymoa.evaluation._loop import _Run
-
-    stream = RandomTreeGenerator(num_classes=10)
-    schema = stream.get_schema()
-    instance = next(stream)
-
-    def preds(seed: int) -> list[int]:
-        learner = SKClassifier(SGDClassifier(), schema)
-        run = _Run(
-            learner,
-            ClassificationEvaluator(schema=schema),
-            None,
-            store_y=False,
-            store_predictions=False,
-            tie_seed=seed,
-        )
-        return [run.predict(instance) for _ in range(50)]
-
-    assert len(set(preds(1))) > 1, "Expected more than one label."
-    assert preds(1) == preds(1)
-    assert preds(1) != preds(2)
