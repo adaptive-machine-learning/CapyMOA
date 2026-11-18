@@ -56,7 +56,7 @@ class EnergyDistance(BaseDataDriftDetector):
         threshold: float = 0.5,
         correction: Literal["bonferroni", "none"] = "bonferroni",
         auto_fit_samples: int | None = None,
-    ):
+    ) -> None:
         """Create an energy distance data drift detector.
 
         :param window_size: Number of observations in the sliding window.

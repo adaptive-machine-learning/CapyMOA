@@ -149,15 +149,15 @@ class RSHash(AnomalyDetector):
         w: int = 4,
         p: int = 10_000,
         seed: int | None = None,
-    ):
+    ) -> None:
         """Construct an RS-Hash anomaly detector.
 
-        :param schema: Schema of the stream.
+        :param schema: Describes the stream's structure and types.
         :param m: Number of ensemble components.
         :param s: Sliding window length.
         :param w: Number of hash tables per component.
         :param p: Hash range per component.
-        :param seed: Random seed. `None` draws from system entropy.
+        :param seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         super().__init__(schema, random_seed=seed)

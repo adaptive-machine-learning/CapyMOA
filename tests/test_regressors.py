@@ -34,6 +34,8 @@ from capymoa.stream import Stream
 SEED = 1
 """Seed for every regressor that takes one, so results are exact."""
 
+FRIED_SCHEMA = FriedTiny().get_schema()
+
 
 @dataclass(frozen=True)
 class Case:
@@ -45,6 +47,8 @@ class Case:
     """Expected windowed RMSE"""
     options: dict | None = None
     """Keyword arguments to pass to the regressor constructor."""
+    serializable: bool = True
+    """If not set, expect saving the regressor to raise."""
 
     @property
     def id(self) -> str:
@@ -73,6 +77,14 @@ CASES = [
     Case(StochasticGradientTree, 15.49, 16.19),
     Case(StreamingGradientBoostedRegression, 3.12, 2.15),
     Case(OnlineBaggingRegressor, 7.10, 4.38),
+    # Java cannot serialize the proxies MOA uses to run Python learners.
+    Case(
+        OnlineBaggingRegressor,
+        4.68,
+        3.61,
+        {"base_learner": SGDRegressor(FRIED_SCHEMA), "ensemble_size": 5},
+        serializable=False,
+    ),
 ]
 """Add your new test cases here ^^"""
 
@@ -106,7 +118,7 @@ def test_regressor(case: Case):
     assert actual == pytest.approx(expected, abs=0.01)
 
     # Test that the model can be saved and loaded.
-    subtest_save_and_load(learner, stream, True)
+    subtest_save_and_load(learner, stream, case.serializable)
 
 
 def test_streaming_gradient_boosted_regression_predicts_numeric_targets():

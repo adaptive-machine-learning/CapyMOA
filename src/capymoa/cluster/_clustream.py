@@ -14,14 +14,14 @@ class Clustream(MOAClusterer):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         time_window: int = 1000,
         max_num_kernels: int = 100,
         kernel_radi_factor: float = 2,
-    ):
+    ) -> None:
         """Clustream clusterer.
 
-        :param schema: The schema of the stream.
+        :param schema: Describes the stream's structure and types.
         :param time_window: The size of the time window.
         :param max_num_kernels: Maximum number of micro kernels to use.
         :param kernel_radi_factor: Multiplier for the kernel radius

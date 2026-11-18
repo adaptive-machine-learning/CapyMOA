@@ -9,7 +9,7 @@ class Perceptron(nn.Module):
     def __init__(self, schema: Schema, hidden_size: int = 50):
         """Initialize the model.
 
-        :param schema: Schema describing the data types and shapes.
+        :param schema: Describes the stream's structure and types.
         :param hidden_size: Number of hidden units in the first layer.
         """
         super().__init__()

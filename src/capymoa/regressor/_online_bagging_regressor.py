@@ -31,18 +31,18 @@ class OnlineBaggingRegressor(MOARegressor):
 
     def __init__(
         self,
-        schema: Schema | None = None,
-        random_seed: int | None = None,
-        base_learner=None,
+        schema: Schema,
+        base_learner: str | MOARegressor | None = None,
         ensemble_size: int = 100,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Construct an Online bagging regressor using online bootstrap sampling.
 
-        :param schema: The schema of the stream.
-        :param random_seed: Seed for the random number generator.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to use. It can be a CLI string, a CapyMOA
             regressor, or a MOA Java object. If not provided, a default FIMTDD is used.
         :param ensemble_size: The number of base learners in the ensemble.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         self.base_learner = "trees.FIMTDD" if base_learner is None else base_learner
         self.ensemble_size = ensemble_size

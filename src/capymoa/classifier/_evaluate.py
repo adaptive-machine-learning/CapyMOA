@@ -148,12 +148,12 @@ def evaluate_classifier(
 
     >>> from capymoa.classifier import NaiveBayes
     >>> learners = {
-    ...     "ht": HoeffdingTree(stream.get_schema()),
-    ...     "nb": NaiveBayes(stream.get_schema()),
+    ...     "ht": HoeffdingTree(stream.get_schema(), random_seed=1),
+    ...     "nb": NaiveBayes(stream.get_schema(), random_seed=1),
     ... }
     >>> results = evaluate_classifier(stream, learners, max_instances=1000)
     >>> print(f"{results['ht']['cumulative']['accuracy']:.1f} {results['nb']['cumulative']['accuracy']:.1f}")
-    84.4 84.8
+    84.2 84.9
 
     :param stream: The stream to evaluate on. Restarted if ``restart_stream``.
     :param learner: The learner to evaluate, or a mapping of names to learners.

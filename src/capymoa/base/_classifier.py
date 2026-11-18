@@ -33,8 +33,8 @@ class Classifier(_SeededMixin, LearnerParamsMixin, ABC):
 
     def __init__(self, schema: Schema, random_seed: int | None = None):
         """
-        :param schema: Describes the structure of the datastream.
-        :param random_seed: Seed for reproducibility.
+        :param schema: Describes the stream's structure and types.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         self.schema = schema
         self._init_seed(random_seed)
@@ -236,8 +236,8 @@ class SKClassifier(Classifier):
 
         :param sklearner: A scikit-learn classifier object to wrap that must
             implements ``partial_fit`` and ``predict``.
-        :param schema: Describes the structure of the datastream.
-        :param random_seed: Random seed for reproducibility.
+        :param schema: Describes the stream's structure and types.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         :raises ValueError: If the scikit-learn algorithm does not implement
             ``partial_fit`` or ``predict``.
         """

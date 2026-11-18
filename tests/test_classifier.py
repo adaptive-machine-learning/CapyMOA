@@ -122,6 +122,18 @@ def _load_cases() -> list[Case]:
 CASES = _load_cases()
 
 
+def _is_subset(expected: Any, actual: Any) -> bool:
+    """Return True if ``expected`` matches ``actual``, recursing into dicts.
+
+    Lets cases give only some params of a nested learner.
+    """
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        return all(
+            k in actual and _is_subset(v, actual[k]) for k, v in expected.items()
+        )
+    return expected == actual
+
+
 def _probas_close(a: np.ndarray | None, b: np.ndarray | None) -> bool:
     """Return True if both are None or both are numerically close."""
     if a is None or b is None:
@@ -148,7 +160,7 @@ class TestClassifier:
         missing = {
             k: (v, params.get(k, "<missing>"))
             for k, v in expected.items()
-            if k not in params or params[k] != v
+            if k not in params or not _is_subset(v, params[k])
         }
         assert not missing, (
             "Provided parameters must be a subset of the resolved parameters. "

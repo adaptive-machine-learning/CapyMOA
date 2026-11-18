@@ -35,6 +35,6 @@ class EWMAChart(MOADriftDetector):
 
     _moa_detector_type = _EWMAChartDM
 
-    def __init__(self, min_n_instances: int = 30, lambda_: float = 0.2):
+    def __init__(self, min_n_instances: int = 30, lambda_: float = 0.2) -> None:
         cli = f"-n {min_n_instances} -l {lambda_} "
         super().__init__(cli=cli)

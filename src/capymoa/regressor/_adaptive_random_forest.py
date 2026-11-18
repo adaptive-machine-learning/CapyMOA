@@ -1,5 +1,7 @@
 # Library imports
 
+from typing import Literal
+
 from moa.classifiers.meta import (
     AdaptiveRandomForestRegressor as _AdaptiveRandomForestRegressor,
 )
@@ -11,6 +13,7 @@ from capymoa.core.moa._cli import (
     cli_str_drift_detector,
 )
 from capymoa.drift.base_detector import MOADriftDetector
+from capymoa.stream import Schema
 
 from ._arffimtdd import ARFFIMTDD
 
@@ -49,23 +52,20 @@ class AdaptiveRandomForestRegressor(MOARegressor):
 
     def __init__(
         self,
-        schema=None,
+        schema: Schema,
+        tree_learner: ARFFIMTDD | str | None = None,
+        ensemble_size: int = 100,
+        max_features: float | Literal["sqrt"] | None = 0.6,
+        lambda_param: float = 6.0,
+        drift_detection_method: MOADriftDetector | str | None = None,
+        warning_detection_method: MOADriftDetector | str | None = None,
+        disable_drift_detection: bool = False,
+        disable_background_learner: bool = False,
         random_seed: int | None = None,
-        tree_learner=None,
-        ensemble_size=100,
-        max_features=0.6,
-        lambda_param=6.0,
-        drift_detection_method=None,
-        warning_detection_method=None,
-        disable_drift_detection=False,
-        disable_background_learner=False,
-    ):
+    ) -> None:
         """Construct an Adaptive Random Forest Regressor
 
-        :param schema: The schema of the stream. If not provided, it will be inferred from the data.
-        :param CLI: Command Line Interface (CLI) options for configuring the ARF algorithm.
-            If not provided, default options will be used.
-        :param random_seed: Seed for the random number generator.
+        :param schema: Describes the stream's structure and types.
         :param tree_learner: The tree learner to use. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
         :param max_features: The maximum number of features to consider when splitting a node.
@@ -79,6 +79,7 @@ class AdaptiveRandomForestRegressor(MOARegressor):
         :param warning_detection_method: The method used for warning detection.
         :param disable_drift_detection: Whether to disable drift detection.
         :param disable_background_learner: Whether to disable background learning.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         if isinstance(max_features, float) and 0.0 <= max_features <= 1.0:
             m_features_mode = "Percentage (M * (m / 100))"

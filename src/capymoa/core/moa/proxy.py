@@ -45,11 +45,13 @@ from capymoa.base import (
     ClassifierSSL,
     Clusterer,
     ClusteringResult,
+    LearnerParamsMixin,
     LearnerSpec,
     PredictionIntervalLearner,
     Regressor,
     learner_from_params,
 )
+from capymoa.base._learner_params import _serialize_param
 from capymoa.core import LabeledInstance, RegressionInstance
 from capymoa.drift.base_detector import BaseDriftDetector
 from capymoa.feature import FeatureImportanceClassifier
@@ -65,6 +67,7 @@ __all__ = [
     "ProxyJavaPredictionIntervalLearner",
     "ProxyJavaRegressor",
     "ProxyNotImplementedError",
+    "to_java_proxy",
 ]
 
 
@@ -159,7 +162,12 @@ class _ProxyLearner(_ProxyOptionHandler):
 
     @jpype.JOverride
     def copy(self) -> Any:
-        return type(self)(self._learner_spec)
+        # MOA ensembles use copies without preparing them or setting their context.
+        proxy = type(self)(self._learner_spec)
+        proxy._schema = self._schema
+        proxy._random_seed = self._random_seed
+        proxy.prepareForUse()
+        return proxy
 
     @jpype.JOverride
     def isRandomizable(self) -> bool:
@@ -227,7 +235,8 @@ class ProxyJavaClassifier(_ProxyLearner):
 
     @jpype.JOverride
     def correctlyClassifies(self, instance: SamoaInstance) -> bool:
-        raise ProxyNotImplementedError(self, "correctlyClassifies")
+        votes = self.getVotesForInstance(instance)
+        return int(np.argmax(votes)) == int(instance.classValue())
 
     @property
     def _py_classifier(self) -> Classifier:
@@ -236,7 +245,11 @@ class ProxyJavaClassifier(_ProxyLearner):
 
     @jpype.JOverride
     def trainOnInstance(self, instance_or_example: SamoaInstance | Example) -> None:
-        self._py_classifier.train(self._to_py(instance_or_example))
+        instance = self._to_py(instance_or_example)
+        # Python learners take no weights, so train ``round(weight)`` times. This
+        # matches the Poisson weights of bagging, but only approximates boosting.
+        for _ in range(round(instance.java_instance.weight())):
+            self._py_classifier.train(instance)
 
     @jpype.JOverride
     def getVotesForInstance(
@@ -246,9 +259,11 @@ class ProxyJavaClassifier(_ProxyLearner):
         py_instance = self._to_py(instance_or_example)
         y_hat = self._py_classifier.predict_proba(py_instance)
 
-        if y_hat is None:
-            n_classes = self._schema.get_num_classes()
-            y_hat = np.full(n_classes, 1.0 / n_classes)
+        if np.ptp(y_hat) == 0:
+            # Python learners give a uniform prediction when they can not
+            # predict yet. MOA reads zero votes as "no prediction", and some
+            # meta-learners (such as SRP) fail on untrained uniform votes.
+            y_hat = np.zeros(self._schema.get_num_classes())
 
         return cast(Any, jpype.JArray(jpype.JDouble))(y_hat)
 
@@ -314,16 +329,12 @@ class ProxyJavaRegressor(ProxyJavaClassifier):
         return self._py_learner
 
     @jpype.JOverride
-    def trainOnInstance(self, instance_or_example: SamoaInstance | Example) -> None:
-        self._py_regressor.train(self._to_py(instance_or_example))
-
-    @jpype.JOverride
     def getVotesForInstance(
         self, instance_or_example: SamoaInstance | Example
     ) -> MutableSequence[float]:
         py_instance = self._to_py(instance_or_example)
         y_hat = self._py_regressor.predict(py_instance)
-        votes = [] if y_hat is None else [float(y_hat)]
+        votes = [float(y_hat)]
         return cast(Any, jpype.JArray(jpype.JDouble))(votes)
 
 
@@ -527,3 +538,36 @@ class ProxyJavaClusterer(_ProxyLearner):
     @jpype.JOverride
     def getVotesForInstance(self, instance: SamoaInstance) -> MutableSequence[float]:
         raise ProxyNotImplementedError(self, "getVotesForInstance")
+
+
+_PROXIES: list[tuple[type, type]] = [
+    # Most specific first.
+    (PredictionIntervalLearner, ProxyJavaPredictionIntervalLearner),
+    (FeatureImportanceClassifier, ProxyJavaFeatureImportanceClassifier),
+    (ClassifierSSL, ProxyJavaClassifierSSL),
+    (Regressor, ProxyJavaRegressor),
+    (Classifier, ProxyJavaClassifier),
+    (AnomalyDetector, ProxyJavaAnomalyDetector),
+    (Clusterer, ProxyJavaClusterer),
+    (BaseDriftDetector, ProxyJavaDriftDetector),
+]
+
+
+def to_java_proxy(learner: LearnerParamsMixin) -> Any:
+    """Wrap a python learner in the matching Java proxy.
+
+    The proxy builds new learners from ``learner.get_params()`` and
+    ``learner.schema``, so MOA never changes ``learner``.
+
+    >>> from capymoa.classifier import SGDClassifier
+    >>> from capymoa.datasets import ElectricityTiny
+    >>> type(to_java_proxy(SGDClassifier(ElectricityTiny().schema))).__name__
+    'ProxyJavaClassifier'
+    """
+    for py_type, proxy_type in _PROXIES:
+        if isinstance(learner, py_type):
+            proxy = proxy_type(_serialize_param(learner))
+            if isinstance(proxy, _ProxyLearner):
+                proxy.setModelContext(learner.schema.get_moa_header())
+            return proxy
+    raise TypeError(f"No Java proxy for {type(learner).__name__}.")

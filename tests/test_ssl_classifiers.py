@@ -25,6 +25,18 @@ def _make_sleade(**kwargs):
     return SLEADE(random_seed=SEED, **kwargs)
 
 
+def _make_sleade_with_python_learners(schema, **kwargs):
+    from capymoa.classifier import SGDClassifier
+    from capymoa.drift.detectors import ABCD
+
+    return _make_sleade(
+        schema=schema,
+        student_learner=SGDClassifier(schema),
+        drift_detection_method=ABCD(),
+        **kwargs,
+    )
+
+
 def assert_ssl_evaluation(
     learner: ClassifierSSL,
     stream: Stream,
@@ -53,14 +65,14 @@ def assert_ssl_evaluation(
         pytest.param(
             partial(_make_osnn, optim_steps=10),
             ElectricityTiny,
-            46.1,
+            46.7,
             None,
             marks=pytest.mark.torch,
         ),
         pytest.param(
             partial(_make_osnn, optim_steps=10),
             CovtypeTiny,
-            29.1,
+            29.7,
             None,
             marks=pytest.mark.torch,
         ),
@@ -78,12 +90,20 @@ def assert_ssl_evaluation(
             None,
             marks=pytest.mark.torch,
         ),
+        pytest.param(
+            partial(_make_sleade_with_python_learners, ensemble_size=3),
+            ElectricityTiny,
+            50.8,
+            None,
+            marks=pytest.mark.torch,
+        ),
     ],
     ids=[
         "OSNN_ElectricityTiny",
         "OSNN_CovtypeTiny",
         "SLEADE_ElectricityTiny",
         "SLEADE_CovtypeTiny",
+        "SLEADE-SGDClassifier-ABCD_ElectricityTiny",
     ],
 )
 def test_ssl_classifiers(

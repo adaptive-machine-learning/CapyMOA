@@ -24,7 +24,6 @@ def test_anomaly_detector_params_roundtrip():
     clone = HalfSpaceTrees.from_params(schema, params, learner.random_seed)
 
     assert params == {
-        "CLI": None,
         "window_size": 100,
         "number_of_trees": 5,
         "max_depth": 7,

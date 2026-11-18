@@ -27,23 +27,3 @@ class OptionalDependencyError(ImportError):
             f"{dependency} is required for {feature}.\n"
             f"Install it with: pip install capymoa[torch]"
         )
-
-
-def _requires_torch(feature: str) -> None:
-    """Raise :class:`OptionalDependencyError` if PyTorch is not installed.
-
-    Call this at the top of a lazy import path so the user gets an actionable
-    message instead of a bare ``ModuleNotFoundError: No module named 'torch'``.
-
-    :param feature: What the user was trying to use, e.g. ``"capymoa.ocl"``.
-    """
-    from importlib.util import find_spec
-
-    try:
-        found = find_spec("torch") is not None
-    except (ImportError, ValueError):
-        # A finder may raise rather than return None when torch is absent or
-        # deliberately blocked (e.g. via a sys.meta_path import blocker).
-        found = False
-    if not found:
-        raise OptionalDependencyError("PyTorch", feature)

@@ -268,3 +268,103 @@
   accuracy: 92.5
   win_accuracy: 84.0
   skip_test_save_then_load: "MOA's StreamingRandomPatchesClassifier is not serializable"
+
+# Python base learners and drift detectors. MOA runs them through proxies.
+- id: OnlineBagging-SGDClassifier
+  learner: capymoa.classifier.OnlineBagging
+  params:
+    base_learner: &sgd
+      learner: capymoa.classifier.SGDClassifier
+      params: {}
+    ensemble_size: 3
+  accuracy: 83.80
+  win_accuracy: 78.0
+  skip_test_save_then_load: &no_save "Java cannot serialize Python learners."
+
+- id: LeveragingBagging-SGDClassifier
+  learner: capymoa.classifier.LeveragingBagging
+  params: {base_learner: *sgd, ensemble_size: 2}
+  accuracy: 85.75
+  win_accuracy: 80.0
+  skip_test_save_then_load: *no_save
+
+- id: OnlineAdwinBagging-SGDClassifier
+  learner: capymoa.classifier.OnlineAdwinBagging
+  params: {base_learner: *sgd, ensemble_size: 3}
+  accuracy: 83.80
+  win_accuracy: 78.0
+  skip_test_save_then_load: *no_save
+
+- id: OzaBoost-SGDClassifier
+  learner: capymoa.classifier.OzaBoost
+  params: {base_learner: *sgd, boosting_iterations: 3}
+  accuracy: 85.50
+  win_accuracy: 80.0
+  skip_test_save_then_load: *no_save
+
+- id: OnlineSmoothBoost-SGDClassifier
+  learner: capymoa.classifier.OnlineSmoothBoost
+  params: {base_learner: *sgd, boosting_iterations: 3}
+  accuracy: 84.70
+  win_accuracy: 83.0
+  skip_test_save_then_load: *no_save
+  always_deterministic: true
+
+- id: DynamicWeightedMajority-SGDClassifier
+  learner: capymoa.classifier.DynamicWeightedMajority
+  params: {base_learner: *sgd}
+  accuracy: 84.85
+  win_accuracy: 83.0
+  skip_test_save_then_load: *no_save
+  always_deterministic: true
+  predicts_before_training: "DynamicWeightedMajority has a default prediction of 0."
+
+- id: CSMOTE-SGDClassifier
+  learner: capymoa.classifier.CSMOTE
+  params: {base_learner: *sgd}
+  accuracy: 65.25
+  win_accuracy: 64.0
+  skip_test_save_then_load: *no_save
+  always_deterministic: true
+
+- id: StreamingRandomPatches-SGDClassifier-ABCD
+  learner: capymoa.classifier.StreamingRandomPatches
+  params:
+    base_learner: *sgd
+    ensemble_size: 2
+    lambda_param: 1.0
+    drift_detection_method: &abcd
+      learner: capymoa.drift.detectors.abcd.ABCD
+      params: {}
+    warning_detection_method: *abcd
+  accuracy: 82.70
+  win_accuracy: 77.0
+  skip_test_save_then_load: *no_save
+
+- id: AdaptiveRandomForestClassifier-ABCD
+  learner: capymoa.classifier.AdaptiveRandomForestClassifier
+  params:
+    ensemble_size: 5
+    drift_detection_method: *abcd
+    warning_detection_method: *abcd
+  accuracy: 87.75
+  win_accuracy: 86.0
+  skip_test_save_then_load: *no_save
+
+- id: DynamicEnsembleMemberSelection-ABCD
+  learner: capymoa.classifier.DynamicEnsembleMemberSelection
+  params:
+    ensemble_size: 5
+    drift_detection_method: *abcd
+    warning_detection_method: *abcd
+  accuracy: 91.25
+  win_accuracy: 88.0
+  skip_test_save_then_load: *no_save
+
+- id: LAST-ABCD
+  learner: capymoa.classifier.LAST
+  params: {change_detector: *abcd}
+  accuracy: 83.95
+  win_accuracy: 91.0
+  skip_test_save_then_load: *no_save
+  always_deterministic: true

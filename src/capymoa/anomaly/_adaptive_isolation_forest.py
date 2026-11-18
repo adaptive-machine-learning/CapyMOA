@@ -255,23 +255,22 @@ class AdaptiveIsolationForest(AnomalyDetector):
     def __init__(
         self,
         schema: Schema,
-        window_size=256,
-        n_trees=100,
-        height=None,
+        window_size: int = 256,
+        n_trees: int = 100,
+        height: int | None = None,
         seed: int | None = None,
-        m_trees=10,
-        weights=0.5,
-    ):
+        m_trees: int = 10,
+        weights: float = 0.5,
+    ) -> None:
         """Construct an Adaptive Isolation Forest anomaly detector.
 
-        :param schema: The schema of the stream.
+        :param schema: Describes the stream's structure and types.
         :param window_size: Size of the sliding window for training trees.
         :param n_trees: Number of trees in the ensemble.
         :param height: Maximum height of trees. If None, calculated as ceil(log2(window_size)).
-        :param seed: Random seed for reproducibility. `None` draws from system entropy.
+        :param seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         :param m_trees: Number of candidate trees to generate when replacing.
         :param weights: Weight for combining tree size and max mass scores (0-1).
-        :param skip_default_strategy: If True, skip default replacement when quality score doesn't improve.
         """
         super().__init__(schema=schema, random_seed=seed)
         self.n_trees = n_trees

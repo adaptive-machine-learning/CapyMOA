@@ -10,6 +10,7 @@ from torch.optim import Optimizer
 
 from capymoa.base import BatchClassifier
 from capymoa.core import Instance, LabelProbabilities
+from capymoa.core.torch import ProjectionModel
 from capymoa.ocl.evaluation.events import TrainTaskEnd
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._replay import ReservoirSampler
@@ -62,6 +63,7 @@ class SCR(BatchClassifier, Handler):
     caller seeds its model and random augmentation.
     Features and class labels must fit a fixed classification schema.
 
+    >>> from capymoa.core.torch import ProjectionModel
     >>> from capymoa.ocl.strategy import SCR
     >>> from capymoa.stream import Schema
     >>> import torch
@@ -69,11 +71,17 @@ class SCR(BatchClassifier, Handler):
     >>> schema = Schema.from_custom(
     ...     ["x0", "x1", "class"], "class", {"class": ["a", "b"]}
     ... )
-    >>> class Model(nn.Module):
+    >>> class Model(ProjectionModel):
     ...     def __init__(self):
     ...         super().__init__()
-    ...         self.feature_extractor = nn.Sequential(nn.Linear(2, 8), nn.ReLU())
-    ...         self.projection = nn.Linear(8, 4)
+    ...         self.encoder = nn.Sequential(nn.Linear(2, 8), nn.ReLU())
+    ...         self.head = nn.Linear(8, 4)
+    ...     def features(self, x):
+    ...         return self.encoder(x)
+    ...     def project(self, features):
+    ...         return self.head(features)
+    ...     def forward(self, x):
+    ...         return self.project(self.features(x))
     >>> model = Model()
     >>> learner = SCR(schema, model, torch.optim.SGD(model.parameters(), lr=0.1),
     ...               augment=lambda x: x.flip(-1))
@@ -110,7 +118,7 @@ class SCR(BatchClassifier, Handler):
         """Construct an SCR learner.
 
         :param schema: Fixed classification schema, including input shape.
-        :param model: Module with callable ``feature_extractor`` and ``projection``.
+        :param model: A :class:`~capymoa.core.torch.ProjectionModel`.
         :param optimiser: Optimizer containing the model's trainable parameters.
         :param augment: Shape-preserving callable producing the second view.
         :param temperature: Positive supervised contrastive loss temperature.
@@ -161,10 +169,8 @@ class SCR(BatchClassifier, Handler):
         self._shape = tuple(schema.shape)
         self._num_features = schema.get_num_attributes()
         self._num_classes = schema.get_num_classes()
-        if not callable(getattr(model, "feature_extractor", None)) or not callable(
-            getattr(model, "projection", None)
-        ):
-            raise TypeError("model must provide feature_extractor and projection")
+        if not isinstance(model, ProjectionModel):
+            raise TypeError("model must be a ProjectionModel")
         if not isinstance(optimiser, Optimizer):
             raise TypeError("optimiser must be a torch optimizer")
         owned = {id(p) for group in optimiser.param_groups for p in group["params"]}
@@ -198,7 +204,7 @@ class SCR(BatchClassifier, Handler):
         return x.to(device=self.device, dtype=self.x_dtype).reshape(-1, *self._shape)
 
     def _encode(self, x: Tensor) -> Tensor:
-        features = self._model.feature_extractor(x)
+        features = self._model.features(x)
         return features.reshape(x.shape[0], -1)
 
     def _step(self, x: Tensor, y: Tensor, scale: float = 1.0) -> Tensor:
@@ -209,8 +215,8 @@ class SCR(BatchClassifier, Handler):
             raise ValueError("augment must preserve the batch shape")
         views = torch.stack(
             [
-                F.normalize(self._model.projection(self._encode(x)), dim=1),
-                F.normalize(self._model.projection(self._encode(augmented)), dim=1),
+                F.normalize(self._model.project(self._encode(x)), dim=1),
+                F.normalize(self._model.project(self._encode(augmented)), dim=1),
             ],
             dim=1,
         )

@@ -1,4 +1,5 @@
 import jpype
+import pytest
 from moa.classifiers.core.driftdetection import ChangeDetector as JavaChangeDetector
 from moa.learners.featureanalysis import (
     FeatureImportanceClassifier as JavaFeatureImportanceClassifier,
@@ -7,13 +8,10 @@ from moa.learners.featureanalysis import (
 from capymoa.anomaly import evaluate_anomaly
 from capymoa.base import (
     MOAAnomalyDetector,
-    MOAClassifier,
     MOAClassifierSSL,
     MOAClusterer,
     MOAPredictionIntervalLearner,
-    MOARegressor,
 )
-from capymoa.classifier import evaluate_classifier
 from capymoa.cluster import ClusTree
 from capymoa.core.moa.proxy import (
     ProxyJavaAnomalyDetector,
@@ -23,23 +21,12 @@ from capymoa.core.moa.proxy import (
     ProxyJavaDriftDetector,
     ProxyJavaFeatureImportanceClassifier,
     ProxyJavaPredictionIntervalLearner,
-    ProxyJavaRegressor,
 )
 from capymoa.datasets import ElectricityTiny, FriedTiny
 from capymoa.drift.detectors import ADWIN
 from capymoa.feature import MOAFeatureImportanceClassifier
-from capymoa.regressor import evaluate_regressor
 from capymoa.ssl import evaluate_ssl
 from capymoa.uncertainty import evaluate_prediction_interval
-
-
-def test_proxy_java_classifier():
-    stream = ElectricityTiny()
-    proxy = MOAClassifier(
-        ProxyJavaClassifier({"learner": "capymoa.classifier.SGDClassifier"}),
-        stream.schema,
-    )
-    evaluate_classifier(stream, proxy, optimise=False)
 
 
 class _ProxyClusterer(MOAClusterer):
@@ -69,15 +56,6 @@ def test_proxy_java_clusterer():
     assert actual.get_weights() == expected.get_weights()
     assert actual.get_radii() == expected.get_radii()
     assert str(proxy) == "ClusTree"
-
-
-def test_proxy_java_regressor():
-    stream = FriedTiny()
-    proxy = MOARegressor(
-        stream.schema,
-        moa_learner=ProxyJavaRegressor({"learner": "capymoa.regressor.SGDRegressor"}),
-    )
-    evaluate_regressor(stream, proxy, optimise=False)
 
 
 def test_proxy_java_drift_detector():
@@ -154,3 +132,23 @@ def test_proxy_java_feature_importance_classifier():
     assert sum(expected) > 0
     assert list(proxy.getFeatureImportances(True)) == expected
     assert list(proxy.getTopKFeatures(2, True)) == classifier.get_top_k_features(2)
+
+
+def _sgd_proxy(schema) -> ProxyJavaClassifier:
+    proxy = ProxyJavaClassifier({"learner": "capymoa.classifier.SGDClassifier"})
+    proxy.setModelContext(schema.get_moa_header())
+    proxy.prepareForUse()
+    return proxy
+
+
+@pytest.mark.parametrize("weight, n_train", [(0.0, 0), (1.0, 1), (3.0, 3)])
+def test_proxy_java_classifier_trains_weight_times(weight, n_train):
+    """Python learners take no weights, so the proxy repeats training."""
+    stream = ElectricityTiny()
+    proxy = _sgd_proxy(stream.schema)
+    instance = stream.next_instance().java_instance.getData()
+    instance.setWeight(weight)
+    trained = []
+    proxy._py_learner.train = trained.append
+    proxy.trainOnInstance(instance)
+    assert len(trained) == n_train

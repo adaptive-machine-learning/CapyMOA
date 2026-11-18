@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 
 from capymoa.base import BatchClassifier
-from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
+from capymoa.ocl.evaluate.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._optim import reset_optimizer_state
 from capymoa.ocl.util.functional import hinton_distillation_loss
@@ -38,7 +38,7 @@ class LWF(BatchClassifier, nn.Module, Handler):
     ) -> None:
         """Construct an LWF learner.
 
-        :param schema: Stream schema used by the classifier interface.
+        :param schema: Describes the stream's structure and types.
         :param model: Torch model that outputs class logits.
         :param optimiser: Optimiser used to update ``model`` parameters.
         :param alpha: Weight of the distillation loss term.

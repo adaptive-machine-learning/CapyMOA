@@ -53,7 +53,7 @@ class KLDivergence(BaseDataDriftDetector):
         threshold: float = 0.1,
         correction: Literal["bonferroni", "none"] = "bonferroni",
         auto_fit_samples: int | None = None,
-    ):
+    ) -> None:
         """Create a KL divergence data drift detector.
 
         :param window_size: Number of observations in the sliding window.
