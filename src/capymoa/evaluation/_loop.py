@@ -18,6 +18,7 @@ from tqdm import tqdm
 
 from capymoa._utils import batched
 from capymoa.base import Classifier, MOAClassifier, MOAPredictionIntervalLearner
+from capymoa.base._seed import resolve_seed
 from capymoa.core import LabeledInstance, mersenne_twister, random_argmax
 from capymoa.evaluation.results import RunInfo
 from capymoa.stream import Stream
@@ -104,10 +105,10 @@ class _Run:
         *,
         store_y: bool,
         store_predictions: bool,
-        tie_seed: int = 1,
+        tie_seed: int | None = None,
     ):
         self.learner = learner
-        self.tie_seed = tie_seed
+        self.tie_seed = resolve_seed(tie_seed)
         self.cumulative = cumulative
         self.windowed = windowed
         self.store_y = store_y

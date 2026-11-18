@@ -195,6 +195,7 @@ def evaluate_classifier(
             ClassificationWindowedEvaluator(schema=schema, window_size=window_size),
             store_y=store_y,
             store_predictions=store_predictions,
+            tie_seed=getattr(learner, "random_seed", None),
         )
         out = _prequential_loop_fast(stream, run, max_instances=max_instances)
         return _classifier_results(
@@ -215,6 +216,7 @@ def evaluate_classifier(
             windowed,
             store_y=store_y,
             store_predictions=store_predictions,
+            tie_seed=getattr(each, "random_seed", None),
         )
     outs = _prequential_loop(
         stream,
