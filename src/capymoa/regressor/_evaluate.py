@@ -44,6 +44,7 @@ def evaluate_regressor(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> RegressorResults: ...
 @overload
 def evaluate_regressor(
@@ -57,6 +58,7 @@ def evaluate_regressor(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> dict[str, RegressorResults]: ...
 def evaluate_regressor(
     stream: Stream,
@@ -69,6 +71,7 @@ def evaluate_regressor(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> RegressorResults | dict[str, RegressorResults]:
     """Test-then-train a regressor, or many on one pass over a stream.
 
@@ -115,6 +118,8 @@ def evaluate_regressor(
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
     :param batch_size: Instances per mini-batch, for batch learners.
+    :param warmup: Number of instances, from the start, to train on without testing.
+        They count towards ``max_instances``. The Java loop is not used if above zero.
     :return: The results, or a dict of results by name for a mapping.
     """
     many = isinstance(learner, Mapping)
@@ -132,6 +137,7 @@ def evaluate_regressor(
         optimise=optimise,
         window_size=window_size,
         batch_size=batch_size,
+        warmup=warmup,
     ):
         run = _Run(
             learner,
@@ -166,6 +172,7 @@ def evaluate_regressor(
         max_instances=max_instances,
         progress_bar=progress_bar,
         batch_size=batch_size,
+        warmup=warmup,
     )
     results = {
         n: _regressor_results(n, stream, out, runs[n].cumulative, runs[n].windowed)

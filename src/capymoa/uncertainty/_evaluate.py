@@ -52,6 +52,7 @@ def evaluate_uncertainty(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> UncertaintyResults: ...
 @overload
 def evaluate_uncertainty(
@@ -65,6 +66,7 @@ def evaluate_uncertainty(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> dict[str, UncertaintyResults]: ...
 def evaluate_uncertainty(
     stream: Stream,
@@ -77,6 +79,7 @@ def evaluate_uncertainty(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> UncertaintyResults | dict[str, UncertaintyResults]:
     """Test-then-train a prediction interval learner, or many on one pass over a stream.
 
@@ -115,6 +118,8 @@ def evaluate_uncertainty(
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
     :param batch_size: Instances per mini-batch, for batch learners.
+    :param warmup: Number of instances, from the start, to train on without testing.
+        They count towards ``max_instances``. The Java loop is not used if above zero.
     :return: The results, or a dict of results by name for a mapping.
     """
     many = isinstance(learner, Mapping)
@@ -145,6 +150,7 @@ def evaluate_uncertainty(
         max_instances=max_instances,
         progress_bar=progress_bar,
         batch_size=batch_size,
+        warmup=warmup,
     )
     results = {
         n: _results(n, stream, out, runs[n].cumulative, runs[n].windowed)

@@ -44,6 +44,7 @@ def _use_java_loop(
     optimise: bool,
     window_size: int | None,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> bool:
     """Whether MOA can run the whole loop in Java."""
     moa_learner = getattr(learner, "moa_learner", None)
@@ -51,6 +52,7 @@ def _use_java_loop(
         optimise
         and window_size is not None
         and batch_size == 1
+        and warmup == 0
         and moa_learner is not None
         # refuse prediction interval learner
         and not isinstance(moa_learner, MOAPredictionIntervalLearner)
@@ -141,6 +143,26 @@ class _Run:
                 learner.train(instance)
         return yb_true, yb_pred
 
+    def warm(self, batch: Sequence[Any]) -> None:
+        """Train on a batch. Nothing is tested or measured."""
+        learner = self.learner
+        if _is_batch(learner):
+            import torch  # optional extra; a Batch learner guarantees it
+
+            np_x = np.stack([instance.x for instance in batch])
+            torch_x = torch.from_numpy(np_x).to(
+                device=learner.device, dtype=learner.x_dtype
+            )
+            y = [
+                i.y_index if isinstance(i, LabeledInstance) else i.y_value
+                for i in batch
+            ]
+            torch_y = torch.tensor(y, dtype=learner.y_dtype, device=learner.device)
+            learner.batch_train(torch_x, torch_y)
+        else:
+            for instance in batch:
+                learner.train(instance)
+
     def step(self, batch: Sequence[Any]) -> None:
         """Test-then-train on a batch, then update the evaluators."""
         y_true, y_pred = self.test_then_train(batch)
@@ -205,6 +227,7 @@ def _prequential_loop(
     progress_bar: bool | tqdm = False,
     progress_prefix: str = "Eval",
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> dict[str, _LoopOutput]:
     """Test-then-train every learner on the stream, going over it once.
 
@@ -212,19 +235,31 @@ def _prequential_loop(
     its own evaluators.
 
     :param runs: The learners to run, by name.
+    :param warmup: Number of instances, from the start, to train on without
+        testing. They count towards ``max_instances``.
     """
+    if warmup < 0:
+        raise ValueError("warmup must be zero or positive.")
     if batch_size != 1 and not all(_is_batch(run.learner) for run in runs.values()):
         raise ValueError(
             "The learner is not a batch learner, but batch_size is set to a value greater than 1."
         )
     instances = 0
+    seen = 0
     start_wallclock, start_cpu = time.time(), time.process_time()
     bar = _progress_bar(progress_bar, progress_prefix, runs, stream, max_instances)
     for batch in batched(islice(stream, max_instances), batch_size):
-        for run in runs.values():
-            run.step(batch)
+        n_warm = min(max(warmup - seen, 0), len(batch))
+        seen += len(batch)
+        if n_warm:
+            for run in runs.values():
+                run.warm(batch[:n_warm])
+            batch = batch[n_warm:]
+        if batch:
+            for run in runs.values():
+                run.step(batch)
         instances += len(batch)
-        bar.update(len(batch))
+        bar.update(n_warm + len(batch))
     bar.close()
     wallclock = time.time() - start_wallclock
     cpu_time = time.process_time() - start_cpu
