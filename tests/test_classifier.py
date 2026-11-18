@@ -66,6 +66,9 @@ class Case:
     length_test_determinism: int = 50
     """Number of stream instances to replay in the determinism test."""
 
+    warmup: int = 0
+    """Number of instances to train on before testing. Passed to the evaluator."""
+
     needs_torch: bool = False
     """If set this learner requires PyTorch. Deselected by `-m "not torch"`."""
 
@@ -152,7 +155,11 @@ class TestClassifier:
         stream = ElectricityTiny()
         learner = case.new_learner(stream.schema)
         results = evaluate_classifier(
-            stream, learner, window_size=WINDOW_SIZE, batch_size=case.batch_size
+            stream,
+            learner,
+            window_size=WINDOW_SIZE,
+            batch_size=case.batch_size,
+            warmup=case.warmup,
         )
         params = learner.get_params()
 
@@ -200,7 +207,11 @@ class TestClassifier:
         stream = ElectricityTiny()
         fast_learner = case.new_learner(stream.schema)
         if not _use_java_loop(
-            stream, fast_learner, optimise=True, window_size=WINDOW_SIZE
+            stream,
+            fast_learner,
+            optimise=True,
+            window_size=WINDOW_SIZE,
+            warmup=case.warmup,
         ):
             pytest.skip("Learner does not support the fast prequential loop.")
 
