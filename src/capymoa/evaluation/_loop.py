@@ -17,8 +17,8 @@ from moa.streams import InstanceStream
 from tqdm import tqdm
 
 from capymoa._utils import batched
-from capymoa.base import MOAPredictionIntervalLearner
-from capymoa.core import LabeledInstance
+from capymoa.base import Classifier, MOAPredictionIntervalLearner
+from capymoa.core import LabeledInstance, mersenne_twister, random_argmax
 from capymoa.evaluation.results import RunInfo
 from capymoa.stream import Stream
 from capymoa.stream.drift import DriftStream, RecurrentConceptDriftStream
@@ -112,6 +112,25 @@ class _Run:
         self.store_predictions = store_predictions
         self._y_true: list = []
         self._y_pred: list = []
+        self._tie_rng: np.random.Generator | None = None
+
+    def predict(self, instance) -> Any:
+        """Predict one instance.
+
+        A classifier that has probabilities breaks ties at random. The loop owns
+        that random state, seeded with the learner's seed. A prediction that is
+        not tied does not use the generator.
+        """
+        learner = self.learner
+        if not isinstance(learner, Classifier):
+            return learner.predict(instance)
+        try:
+            proba = learner.predict_proba(instance)
+        except NotImplementedError:
+            return learner.predict(instance)
+        if self._tie_rng is None:
+            self._tie_rng = mersenne_twister(learner.random_seed)
+        return random_argmax(proba, self._tie_rng)
 
     def test_then_train(
         self, batch: Sequence[Any]
@@ -137,7 +156,7 @@ class _Run:
             learner.batch_train(torch_x, torch_y)
         else:
             for instance in batch:
-                yb_pred.append(learner.predict(instance))
+                yb_pred.append(self.predict(instance))
                 learner.train(instance)
         return yb_true, yb_pred
 

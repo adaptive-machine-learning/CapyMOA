@@ -412,18 +412,41 @@ class TestClassifier:
             )
 
 
-def test_untrained_predict_is_random_but_seeded():
-    """An untrained learner predicts uniformly at random, repeatable by seed."""
+def test_untrained_predict_is_label_zero():
+    """An untrained learner predicts label 0, the first of equal probabilities."""
     from sklearn.linear_model import SGDClassifier
 
     from capymoa.base import SKClassifier
 
     stream = RandomTreeGenerator(num_classes=10)
+    learner = SKClassifier(SGDClassifier(), stream.get_schema())
+    instance = next(stream)
+    assert {learner.predict(instance) for _ in range(20)} == {0}
+
+
+def test_loop_breaks_ties_at_random_but_seeded():
+    """The evaluation loop picks among tied labels. A seed makes it repeat."""
+    from sklearn.linear_model import SGDClassifier
+
+    from capymoa.base import SKClassifier
+    from capymoa.classifier.evaluate import ClassificationEvaluator
+    from capymoa.evaluation._loop import _Run
+
+    stream = RandomTreeGenerator(num_classes=10)
+    schema = stream.get_schema()
     instance = next(stream)
 
     def preds(seed: int) -> list[int]:
-        learner = SKClassifier(SGDClassifier(), stream.get_schema(), random_seed=seed)
-        return [learner.predict(instance) for _ in range(50)]
+        learner = SKClassifier(SGDClassifier(), schema, random_seed=seed)
+        run = _Run(
+            learner,
+            ClassificationEvaluator(schema=schema),
+            None,
+            store_y=False,
+            store_predictions=False,
+        )
+        return [run.predict(instance) for _ in range(50)]
 
     assert len(set(preds(1))) > 1, "Expected more than one label."
     assert preds(1) == preds(1)
+    assert preds(1) != preds(2)

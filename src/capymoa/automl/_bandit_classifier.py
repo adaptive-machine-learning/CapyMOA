@@ -1,4 +1,3 @@
-import inspect
 import json
 import random
 from typing import Any
@@ -229,11 +228,7 @@ class BanditClassifier(Classifier):
                     self.active_models.append(model)
                 else:
                     # Model is a class, instantiate it
-                    # Seed the model so its random tie-breaks are reproducible.
-                    kwargs = {}
-                    if "random_seed" in inspect.signature(model).parameters:
-                        kwargs["random_seed"] = self.random_seed
-                    clf_instance = model(schema=self.schema, **kwargs)
+                    clf_instance = model(schema=self.schema)
                     self.active_models.append(clf_instance)
 
                 # Create an evaluator for this model

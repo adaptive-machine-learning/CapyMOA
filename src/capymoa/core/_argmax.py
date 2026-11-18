@@ -3,26 +3,53 @@ import numpy as np
 from ._instance import LabelProbabilities
 
 
+def mersenne_twister(seed: int) -> np.random.Generator:
+    """Mersenne Twister generator with the same seeding as Java.
+
+    The seed goes through the original ``init_genrand``, so the raw 32-bit
+    outputs match those of ``MersenneTwister(seed)`` in Java (commons-math).
+
+    >>> from capymoa.core import mersenne_twister
+    >>> int(mersenne_twister(5489).bit_generator.random_raw())
+    3499211612
+
+    :param seed: Seed for the generator.
+    :return: A generator backed by ``MT19937``.
+    """
+    bit_generator = np.random.MT19937()
+    bit_generator._legacy_seeding(seed)
+    return np.random.Generator(bit_generator)
+
+
 def random_argmax(x: np.ndarray, rng: np.random.Generator) -> int:
     """Index of the largest value, breaking ties at random.
 
     Unlike :func:`numpy.argmax`, which always picks the first of equal values,
-    this picks one of the tied indices with ``rng``.
+    this picks one of the ``k`` tied indices. A tie uses one raw 32-bit output
+    ``r`` of ``rng`` and picks tied index number ``(r * k) >> 32``. This is easy
+    to repeat in Java, so Python and Java agree. No tie uses no output.
 
     >>> import numpy as np
-    >>> from capymoa.core import random_argmax
-    >>> rng = np.random.default_rng(1)
+    >>> from capymoa.core import mersenne_twister, random_argmax
+    >>> rng = mersenne_twister(1)
     >>> random_argmax(np.array([0.1, 0.7, 0.2]), rng)
     1
     >>> sorted({random_argmax(np.zeros(3), rng) for _ in range(100)})
     [0, 1, 2]
 
     :param x: Values to search. Flattened first.
-    :param rng: Random generator used to break ties.
+    :param rng: Generator from :func:`mersenne_twister`.
     :return: Index of a largest value.
     """
     x = np.asarray(x).ravel()
-    return int(rng.choice(np.flatnonzero(x == x.max())))
+    tied = np.flatnonzero(x == x.max())
+    if len(tied) == 1:
+        return int(tied[0])
+    bit_generator = rng.bit_generator
+    if not isinstance(bit_generator, np.random.MT19937):
+        raise TypeError("rng must be backed by MT19937, see mersenne_twister")
+    raw = int(bit_generator.random_raw())
+    return int(tied[(raw * len(tied)) >> 32])
 
 
 def uniform_proba(num_classes: int) -> LabelProbabilities:

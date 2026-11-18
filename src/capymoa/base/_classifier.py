@@ -5,7 +5,6 @@ from typing import Any, overload
 import jpype
 import numpy as np
 from jpype import _jpype
-from moa.core import Utils
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
@@ -15,7 +14,6 @@ from capymoa.core import (
     LabeledInstance,
     LabelIndex,
     LabelProbabilities,
-    random_argmax,
     uniform_proba,
 )
 from capymoa.core.moa._options import set_moa_options
@@ -70,16 +68,14 @@ class Classifier(_SeededMixin, LearnerParamsMixin, ABC):
         """Predict the label of an instance.
 
         The base implementation calls :func:`predict_proba` and returns the
-        label with the highest probability.
+        label with the highest probability. The first label wins a tie, so an
+        untrained classifier predicts label 0. Evaluation loops break ties at
+        random with :func:`capymoa.core.random_argmax`.
 
         :param instance: The instance to predict the label for.
         :return: The predicted label.
         """
-        # Equal probabilities, such as an untrained learner's uniform
-        # prediction, are broken at random.
-        if getattr(self, "_tie_rng", None) is None:
-            self._tie_rng = np.random.default_rng(self.random_seed)
-        return random_argmax(self.predict_proba(instance), self._tie_rng)
+        return int(np.argmax(self.predict_proba(instance)))
 
 
 class MOAClassifier(Classifier):
@@ -158,13 +154,6 @@ class MOAClassifier(Classifier):
 
     def train(self, instance):
         self.moa_learner.trainOnInstance(instance.java_instance)
-
-    def predict(self, instance) -> LabelIndex:
-        # MOA learners have no predict method. MOA's own evaluators and
-        # ``correctlyClassifies`` take ``Utils.maxIndex`` of the votes: the first
-        # label with the highest vote, or label 0 with no votes. Match that.
-        votes = self.moa_learner.getVotesForInstance(instance.java_instance)
-        return int(Utils.maxIndex(votes))
 
     def predict_proba(self, instance) -> LabelProbabilities:
         votes = np.array(self.moa_learner.getVotesForInstance(instance.java_instance))

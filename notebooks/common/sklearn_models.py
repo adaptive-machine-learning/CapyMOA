@@ -57,12 +57,11 @@ partial_fit_count = 0
 while elec_stream.has_more_instances():
     instance = elec_stream.next_instance()
 
-    prediction = 0  # Guess the first label until the model is fitted
     if (
         partial_fit_count > 0
     ):  # scikit-learn does not allow invoking predict in a model that has not been previously fitted
         prediction = sklearn_SGD.predict([instance.x])[0]
-    ob_evaluator.update(instance.y_index, prediction)
+        ob_evaluator.update(instance.y_index, prediction)
     sklearn_SGD.partial_fit(
         [instance.x], [instance.y_index], classes=elec_stream.schema.get_label_indexes()
     )
