@@ -220,12 +220,11 @@ class TestClassifier:
         )
         slow_accuracy = slow_results["cumulative"]["accuracy"]
         slow_win_accuracy = slow_results["windowed"]["accuracy"][-1]
-        # The slow loop breaks ties at random. The fast (Java) loop picks label 0.
-        assert slow_accuracy == pytest.approx(fast_accuracy, abs=4.0), (
+        assert slow_accuracy == pytest.approx(fast_accuracy), (
             "Slow (optimise=False) loop cumulative accuracy does not match "
             f"the fast loop, expected {fast_accuracy} but got {slow_accuracy}."
         )
-        assert slow_win_accuracy == pytest.approx(fast_win_accuracy, abs=4.0), (
+        assert slow_win_accuracy == pytest.approx(fast_win_accuracy), (
             "Slow (optimise=False) loop windowed accuracy does not match "
             f"the fast loop, expected {fast_win_accuracy} but got {slow_win_accuracy}."
         )
@@ -361,12 +360,8 @@ class TestClassifier:
             l1b_y_proba = l1_b.predict_proba(instance)
             l2_y_proba = l2.predict_proba(instance)
 
-            # Learners that ignore the seed (always deterministic) break ties at
-            # random, such as before training, so only compare when no tie.
             has_tie = (l1a_y_proba == l1a_y_proba.max()).sum() > 1
-            assert (has_tie and case.always_deterministic) or (
-                l1a_y_pred == l1b_y_pred
-            ), (
+            assert l1a_y_pred == l1b_y_pred, (
                 "Expected learners with the same seed to predict the same, "
                 f"but got {l1a_y_pred} and {l1b_y_pred} after {i} instances."
             )

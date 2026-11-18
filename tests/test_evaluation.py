@@ -79,11 +79,9 @@ def test_evaluate_classifier_mapping():
         )
         for name, learner in learners.items()
     }
-    # Accuracy is in percent. The slow loop breaks ties at random, so allow
-    # a couple of instances to differ.
     for name in learners:
         assert together[name]["cumulative"]["accuracy"] == pytest.approx(
-            alone[name]["cumulative"]["accuracy"], abs=2.0
+            alone[name]["cumulative"]["accuracy"], abs=0.001
         )
     stream.restart()
     for _ in range(100):
@@ -357,8 +355,7 @@ def test_optimise_flag_does_not_change_results(make_stream):
         )
         accuracies.append(results["cumulative"]["accuracy"])
 
-    # The Python loop breaks ties at random. The Java loop picks label 0.
-    assert accuracies[0] == pytest.approx(accuracies[1], abs=0.2)
+    assert accuracies[0] == pytest.approx(accuracies[1], abs=0.01)
 
 
 @pytest.mark.parametrize(
