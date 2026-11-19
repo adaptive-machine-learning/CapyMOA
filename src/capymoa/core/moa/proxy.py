@@ -259,12 +259,6 @@ class ProxyJavaClassifier(_ProxyLearner):
         py_instance = self._to_py(instance_or_example)
         y_hat = self._py_classifier.predict_proba(py_instance)
 
-        if np.ptp(y_hat) == 0:
-            # Python learners give a uniform prediction when they can not
-            # predict yet. MOA reads zero votes as "no prediction", and some
-            # meta-learners (such as SRP) fail on untrained uniform votes.
-            y_hat = np.zeros(self._schema.get_num_classes())
-
         return cast(Any, jpype.JArray(jpype.JDouble))(y_hat)
 
     @jpype.JOverride

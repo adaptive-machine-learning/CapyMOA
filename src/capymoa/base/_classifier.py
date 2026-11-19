@@ -5,7 +5,6 @@ from typing import Any, overload
 import jpype
 import numpy as np
 from jpype import _jpype
-from moa.core import Utils
 from sklearn.base import ClassifierMixin as _SKClassifierMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
@@ -69,8 +68,7 @@ class Classifier(_SeededMixin, LearnerParamsMixin, ABC):
         """Predict the label of an instance.
 
         The base implementation calls :func:`predict_proba` and returns the
-        label with the highest probability. The first label wins a tie, so an
-        untrained classifier predicts label 0, like MOA.
+        label with the highest probability.
 
         :param instance: The instance to predict the label for.
         :return: The predicted label.
@@ -154,12 +152,6 @@ class MOAClassifier(Classifier):
 
     def train(self, instance):
         self.moa_learner.trainOnInstance(instance.java_instance)
-
-    def predict(self, instance) -> LabelIndex:
-        # MOA's own prediction: the first label with the highest vote, or label 0
-        # with no votes. Same as the Java evaluation loops.
-        votes = self.moa_learner.getVotesForInstance(instance.java_instance)
-        return int(Utils.maxIndex(votes))
 
     def predict_proba(self, instance) -> LabelProbabilities:
         votes = np.array(self.moa_learner.getVotesForInstance(instance.java_instance))

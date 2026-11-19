@@ -408,15 +408,3 @@ class TestClassifier:
                 "Expected learners with different seeds to produce at least one"
                 " different prediction."
             )
-
-
-def test_untrained_predict_is_label_zero():
-    """An untrained learner predicts label 0, the first of equal probabilities."""
-    from sklearn.linear_model import SGDClassifier
-
-    from capymoa.base import SKClassifier
-
-    stream = RandomTreeGenerator(num_classes=10)
-    learner = SKClassifier(SGDClassifier(), stream.get_schema())
-    instance = next(stream)
-    assert {learner.predict(instance) for _ in range(20)} == {0}
