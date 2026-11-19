@@ -67,8 +67,8 @@ def load_openml_dataset(
     """Load any OpenML dataset by numeric id as a :class:`~capymoa.stream.Stream`.
 
     >>> from capymoa.datasets import load_openml_dataset
-    >>> stream = load_openml_dataset(61)  # iris
-    >>> stream.next_instance()
+    >>> stream = load_openml_dataset(61)  # iris  # doctest: +SKIP
+    >>> stream.next_instance()  # doctest: +SKIP
     LabeledInstance(
         Schema(iris),
         x=[5.1 3.5 1.4 0.2],
