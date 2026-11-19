@@ -175,7 +175,7 @@ def evaluate_classifier(
     :param progress_bar: Enable, disable, or give a progress bar.
     :param batch_size: Instances per mini-batch, for batch learners.
     :param warmup: Number of instances, from the start, to train on without testing.
-        They count towards ``max_instances``. The Java loop is not used if above zero.
+        They count towards ``max_instances``.
     :return: The results, or a dict of results by name for a mapping.
     """
     many = isinstance(learner, Mapping)
@@ -193,7 +193,6 @@ def evaluate_classifier(
         optimise=optimise,
         window_size=window_size,
         batch_size=batch_size,
-        warmup=warmup,
     ):
         run = _Run(
             learner,
@@ -202,7 +201,9 @@ def evaluate_classifier(
             store_y=store_y,
             store_predictions=store_predictions,
         )
-        out = _prequential_loop_fast(stream, run, max_instances=max_instances)
+        out = _prequential_loop_fast(
+            stream, run, max_instances=max_instances, warmup=warmup
+        )
         return _classifier_results(
             str(learner), stream, out, run.cumulative, run.windowed
         )
