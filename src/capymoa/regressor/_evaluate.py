@@ -44,6 +44,7 @@ def evaluate_regressor(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    nan_value: float | None = 0.0,
 ) -> RegressorResults: ...
 @overload
 def evaluate_regressor(
@@ -57,6 +58,7 @@ def evaluate_regressor(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    nan_value: float | None = 0.0,
 ) -> dict[str, RegressorResults]: ...
 def evaluate_regressor(
     stream: Stream,
@@ -69,6 +71,7 @@ def evaluate_regressor(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    nan_value: float | None = 0.0,
 ) -> RegressorResults | dict[str, RegressorResults]:
     """Test-then-train a regressor, or many on one pass over a stream.
 
@@ -115,6 +118,9 @@ def evaluate_regressor(
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
     :param batch_size: Instances per mini-batch, for batch learners.
+    :param nan_value: A regressor returns ``NaN`` when it can not make a good
+        prediction. That is an abstention, and it is scored as this value
+        instead. ``None`` scores the ``NaN``, which makes the metrics ``NaN``.
     :return: The results, or a dict of results by name for a mapping.
     """
     many = isinstance(learner, Mapping)
@@ -135,8 +141,10 @@ def evaluate_regressor(
     ):
         run = _Run(
             learner,
-            RegressionEvaluator(schema=schema),
-            RegressionWindowedEvaluator(schema=schema, window_size=window_size),
+            RegressionEvaluator(schema=schema, nan_value=nan_value),
+            RegressionWindowedEvaluator(
+                schema=schema, window_size=window_size, nan_value=nan_value
+            ),
             store_y=store_y,
             store_predictions=store_predictions,
         )
@@ -151,11 +159,11 @@ def evaluate_regressor(
         windowed = None
         if window_size is not None:
             windowed = RegressionWindowedEvaluator(
-                schema=schema, window_size=window_size
+                schema=schema, window_size=window_size, nan_value=nan_value
             )
         runs[name] = _Run(
             each,
-            RegressionEvaluator(schema=schema),
+            RegressionEvaluator(schema=schema, nan_value=nan_value),
             windowed,
             store_y=store_y,
             store_predictions=store_predictions,

@@ -17,8 +17,13 @@ from moa.streams import InstanceStream
 from tqdm import tqdm
 
 from capymoa._utils import batched
-from capymoa.base import MOAPredictionIntervalLearner
+from capymoa.base import BatchClassifier, Classifier, MOAPredictionIntervalLearner
 from capymoa.core import LabeledInstance
+from capymoa.evaluation._abstain import (
+    AbstentionHook,
+    batch_proba_abstains,
+    proba_abstains,
+)
 from capymoa.evaluation.results import RunInfo
 from capymoa.stream import Stream
 from capymoa.stream.drift import DriftStream, RecurrentConceptDriftStream
@@ -112,6 +117,29 @@ class _Run:
         self.store_predictions = store_predictions
         self._y_true: list = []
         self._y_pred: list = []
+        #: Whether each prediction of the last batch was an abstention. Empty when
+        #: the learner does not report it.
+        self._abstained: list[bool] = []
+
+    def predict(self, instance) -> Any:
+        """Predict one instance and note if the classifier abstained.
+
+        A classifier abstains when its confidence is equal to or below chance.
+        The note goes in ``self._abstained``.
+        """
+        learner = self.learner
+        if not isinstance(learner, Classifier):
+            return learner.predict(instance)
+        try:
+            proba = learner.predict_proba(instance)
+        except NotImplementedError:  # A pipeline has no probabilities.
+            return learner.predict(instance)
+        schema = getattr(learner, "schema", None)  # OSNN has none
+        n = np.size(proba) if schema is None else schema.get_num_classes()
+        self._abstained.append(proba_abstains(proba, n))
+        if type(learner).predict is Classifier.predict:
+            return int(np.argmax(proba))  # What predict would do, without a 2nd call.
+        return learner.predict(instance)
 
     def test_then_train(
         self, batch: Sequence[Any]
@@ -133,21 +161,31 @@ class _Run:
             torch_y = torch.tensor(
                 yb_true, dtype=learner.y_dtype, device=learner.device
             )
-            yb_pred = learner.batch_predict(torch_x).tolist()
+            if type(learner).batch_predict is BatchClassifier.batch_predict:
+                proba = learner.batch_predict_proba(torch_x)
+                yb_pred = proba.argmax(1).tolist()
+                self._abstained.extend(
+                    batch_proba_abstains(proba.detach().cpu().numpy()).tolist()
+                )
+            else:
+                yb_pred = learner.batch_predict(torch_x).tolist()
             learner.batch_train(torch_x, torch_y)
         else:
             for instance in batch:
-                yb_pred.append(learner.predict(instance))
+                yb_pred.append(self.predict(instance))
                 learner.train(instance)
         return yb_true, yb_pred
 
     def step(self, batch: Sequence[Any]) -> None:
         """Test-then-train on a batch, then update the evaluators."""
+        self._abstained = []
         y_true, y_pred = self.test_then_train(batch)
-        for t, p in zip(y_true, y_pred, strict=True):
-            self.cumulative.update(t, p)
+        # Only classifiers report abstentions. A regressor's are its NaN.
+        extra = [{"abstained": a} for a in self._abstained] or [{}] * len(y_true)
+        for t, p, kwargs in zip(y_true, y_pred, extra, strict=True):
+            self.cumulative.update(t, p, **kwargs)
             if self.windowed is not None:
-                self.windowed.update(t, p)
+                self.windowed.update(t, p, **kwargs)
         if self.store_y:
             self._y_true.extend(y_true)
         if self.store_predictions:
@@ -256,11 +294,24 @@ def _prequential_loop_fast(
     window_size = windowed.window_size
     start_wallclock, start_cpu = time.time(), time.process_time()
     limit = -1 if max_instances is None else max_instances
+    # Count abstentions as the Java loop reports each result. Only the
+    # classification and regression evaluators count them.
+    counts_abstentions = hasattr(cumulative, "_per_window")
+    evaluator = cumulative.moa_basic_evaluator
+    if counts_abstentions:
+        schema = cumulative.schema
+        hook = AbstentionHook(
+            evaluator,
+            window_size,
+            schema.get_num_classes() if schema.is_classification() else None,
+            cumulative.__dict__.get("nan_value"),
+        )
+        evaluator = hook.proxy
     if ssl is None:
         moa_results = EfficientEvaluationLoops.PrequentialEvaluation(
             stream.moa_stream,
             learner.moa_learner,
-            cumulative.moa_basic_evaluator,
+            evaluator,
             windowed.moa_evaluator,
             limit,
             window_size,
@@ -272,7 +323,7 @@ def _prequential_loop_fast(
         moa_results = EfficientEvaluationLoops.PrequentialSSLEvaluation(
             stream.moa_stream,
             learner.moa_learner,
-            cumulative.moa_basic_evaluator,
+            evaluator,
             windowed.moa_evaluator,
             limit,
             window_size,
@@ -287,7 +338,12 @@ def _prequential_loop_fast(
     wallclock = time.time() - start_wallclock
     cpu_time = time.process_time() - start_cpu
 
-    windowed.result_windows = list(moa_results.windowedResults or [])
+    rows = list(moa_results.windowedResults or [])
+    if counts_abstentions:
+        counts = hook.window_counts(len(rows))
+        rows = [[*row, count] for row, count in zip(rows, counts)]
+        cumulative.abstentions = hook.total
+    windowed.result_windows = rows
     other = moa_results.otherMeasurements or {}
     return _LoopOutput(
         instances=int(cumulative.metrics_dict()["instances"]),
@@ -361,5 +417,9 @@ def _results_body(
     keys = [*metrics, *whole_stream_only]
     return {
         **info,
-        "cumulative": {key: float(values[key]) for key in keys if key in values},
+        "cumulative": {
+            key: int(values[key]) if key == "abstentions" else float(values[key])
+            for key in keys
+            if key in values
+        },
     }

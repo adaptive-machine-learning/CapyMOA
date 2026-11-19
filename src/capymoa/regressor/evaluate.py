@@ -25,6 +25,10 @@ from capymoa.evaluation.results import RunInfo, Windows
 class RegressorWindows(Windows):
     """The windowed metrics of a regressor, one entry per window."""
 
+    #: Abstentions in each window: predictions that were ``NaN``, because the
+    #: regressor could not make a good prediction.
+    abstentions: np.ndarray
+
     #: Mean absolute error, in units of the target.
     mae: np.ndarray
     #: Root mean squared error, in units of the target.
@@ -41,6 +45,10 @@ class RegressorWindows(Windows):
 
 class RegressorCumulative(TypedDict):
     """The metrics over the whole stream of a regressor."""
+
+    #: Abstentions over the whole stream: predictions that were ``NaN``, because
+    #: the regressor could not make a good prediction.
+    abstentions: int
 
     #: Mean absolute error, in units of the target.
     mae: float
@@ -74,9 +82,31 @@ class RegressionEvaluator:
     """
     Wrapper for the Regression Performance Evaluator from MOA.
     By default, it uses the MOA BasicRegressionPerformanceEvaluator as moa_evaluator.
+
+    A regressor that can not make a good prediction returns ``NaN``. The
+    evaluator counts it in ``abstentions`` and scores ``nan_value`` instead.
     """
 
-    def __init__(self, schema=None, window_size=None, moa_evaluator=None):
+    #: Whether ``abstentions`` is the count of the current window only.
+    _per_window = False
+
+    def __init__(
+        self,
+        schema=None,
+        window_size=None,
+        moa_evaluator=None,
+        nan_value: float | None = 0.0,
+    ):
+        """
+        :param schema: The schema of the stream.
+        :param window_size: Number of instances in a window.
+        :param moa_evaluator: The MOA evaluator to wrap.
+        :param nan_value: Score this value in place of a ``NaN`` prediction.
+            ``None`` scores the ``NaN``, which makes the metrics ``NaN``.
+        """
+        self.nan_value = nan_value
+        self.abstentions = 0
+        self._window_abstentions = 0
         self.instances_seen = 0
         self.result_windows = []
         self.window_size = window_size
@@ -118,8 +148,19 @@ class RegressionEvaluator:
         return self.instances_seen
 
     def update(self, y, y_pred: float):
+        """Update the evaluator with the ground-truth and the prediction.
+
+        :param y: The target value.
+        :param y_pred: The predicted value. ``NaN`` is an abstention: it is
+            counted and replaced by ``nan_value``.
+        """
         if y is None:
             raise ValueError(f"Invalid ground-truth y = {y}")
+        if np.isnan(y_pred):
+            self.abstentions += 1
+            self._window_abstentions += 1
+            if self.nan_value is not None:
+                y_pred = self.nan_value
 
         self._instance.setClassValue(y)
         example = InstanceExample(self._instance)
@@ -132,11 +173,8 @@ class RegressionEvaluator:
 
         # If the window_size is set, then check if it should record the intermediary results.
         if self.window_size is not None and self.instances_seen % self.window_size == 0:
-            performance_values = [
-                measurement.getValue()
-                for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
-            ]
-            self.result_windows.append(performance_values)
+            self.result_windows.append(self.metrics())
+            self._window_abstentions = 0
 
     def metrics_header(self):
         performance_measurements = self.moa_basic_evaluator.getPerformanceMeasurements()
@@ -144,12 +182,16 @@ class RegressionEvaluator:
             _translate_metric_name("".join(measurement.getName()), to="capymoa")
             for measurement in performance_measurements
         ]
-        return performance_names
+        return [*performance_names, "abstentions"]
 
     def metrics(self):
+        count = self._window_abstentions if self._per_window else self.abstentions
         return [
-            measurement.getValue()
-            for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
+            *(
+                measurement.getValue()
+                for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
+            ),
+            count,
         ]
 
     def metrics_dict(self):
@@ -196,14 +238,22 @@ class RegressionWindowedEvaluator(RegressionEvaluator):
     IMPORTANT: The results for the last window are always through ```metrics()```, if the window_size does not
     perfectly divide the stream, the metrics corresponding to the last remaining instances in the last window can
     be obtained by invoking ```metrics()```
+
+    ``abstentions`` counts the whole stream, and the ``abstentions`` column of
+    each window counts that window.
     """
 
-    def __init__(self, schema=None, window_size=1000):
+    _per_window = True
+
+    def __init__(self, schema=None, window_size=1000, nan_value: float | None = 0.0):
         self.moa_evaluator = WindowRegressionPerformanceEvaluator()
         self.moa_evaluator.widthOption.setValue(window_size)
 
         super().__init__(
-            schema=schema, window_size=window_size, moa_evaluator=self.moa_evaluator
+            schema=schema,
+            window_size=window_size,
+            moa_evaluator=self.moa_evaluator,
+            nan_value=nan_value,
         )
 
     def mae(self):
