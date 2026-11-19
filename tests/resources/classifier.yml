@@ -5,6 +5,29 @@
   accuracy: 85.0
   win_accuracy: 92.0
 
+# A Java ensemble with a python base learner (wrapped in a proxy).
+- id: OnlineBagging-SGDClassifier
+  learner: capymoa.classifier.OnlineBagging
+  params:
+    ensemble_size: 5
+    base_learner:
+      learner: capymoa.classifier.SGDClassifier
+      params:
+        loss: log_loss
+        penalty: l2
+        alpha: 0.0001
+        l1_ratio: 0.15
+        fit_intercept: true
+        epsilon: 0.1
+        n_jobs: null
+        learning_rate: optimal
+        eta0: 0.01
+
+  accuracy: 84.8
+  win_accuracy: 80.0
+  skip_test_save_then_load: "MOA saves models with Java serialization. The python
+    base learner is a JPype proxy, which Java cannot serialize."
+
 - id: "AdaptiveRandomForestClassifier"
   learner: "capymoa.classifier.AdaptiveRandomForestClassifier"
   params: {}

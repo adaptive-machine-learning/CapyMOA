@@ -17,6 +17,8 @@ from typing import (
     cast,
 )
 
+from capymoa.base._seed import resolve_seed
+
 P = ParamSpec("P")
 TClass = TypeVar("TClass", bound=type)
 
@@ -196,6 +198,9 @@ class LearnerParamsMixin:
         random_seed: int | None = None,
     ) -> Any:
         """Construct an instance from parameters produced by ``get_params``."""
+        # Resolve once, so nested learners do not draw a seed before this one.
+        if "random_seed" in _get_construction_kwargs(cls, schema, None, {}):
+            random_seed = resolve_seed(random_seed)
         resolved = {
             key: _deserialize_param(value, schema, random_seed)
             for key, value in (params or {}).items()
