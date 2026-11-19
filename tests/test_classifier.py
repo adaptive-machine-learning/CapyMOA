@@ -207,16 +207,16 @@ class TestClassifier:
         stream = ElectricityTiny()
         fast_learner = case.new_learner(stream.schema)
         if not _use_java_loop(
-            stream,
-            fast_learner,
-            optimise=True,
-            window_size=WINDOW_SIZE,
-            warmup=case.warmup,
+            stream, fast_learner, optimise=True, window_size=WINDOW_SIZE
         ):
             pytest.skip("Learner does not support the fast prequential loop.")
 
         fast_results = evaluate_classifier(
-            stream, fast_learner, window_size=WINDOW_SIZE, batch_size=case.batch_size
+            stream,
+            fast_learner,
+            window_size=WINDOW_SIZE,
+            batch_size=case.batch_size,
+            warmup=case.warmup,
         )
         fast_accuracy = fast_results["cumulative"]["accuracy"]
         fast_win_accuracy = fast_results["windowed"]["accuracy"][-1]
@@ -228,6 +228,7 @@ class TestClassifier:
             window_size=WINDOW_SIZE,
             optimise=False,
             batch_size=case.batch_size,
+            warmup=case.warmup,
         )
         slow_accuracy = slow_results["cumulative"]["accuracy"]
         slow_win_accuracy = slow_results["windowed"]["accuracy"][-1]

@@ -119,7 +119,7 @@ def evaluate_uncertainty(
     :param progress_bar: Enable, disable, or give a progress bar.
     :param batch_size: Instances per mini-batch, for batch learners.
     :param warmup: Number of instances, from the start, to train on without testing.
-        They count towards ``max_instances``. The Java loop is not used if above zero.
+        They count towards ``max_instances``.
     :return: The results, or a dict of results by name for a mapping.
     """
     many = isinstance(learner, Mapping)

@@ -12,7 +12,7 @@ from itertools import islice
 from typing import Any
 
 import numpy as np
-from moa.evaluation import EfficientEvaluationLoops
+from moa.evaluation import EfficientEvaluationLoops, HookableEvaluationLoop
 from moa.streams import InstanceStream
 from tqdm import tqdm
 
@@ -44,7 +44,6 @@ def _use_java_loop(
     optimise: bool,
     window_size: int | None,
     batch_size: int = 1,
-    warmup: int = 0,
 ) -> bool:
     """Whether MOA can run the whole loop in Java."""
     moa_learner = getattr(learner, "moa_learner", None)
@@ -52,7 +51,6 @@ def _use_java_loop(
         optimise
         and window_size is not None
         and batch_size == 1
-        and warmup == 0
         and moa_learner is not None
         # refuse prediction interval learner
         and not isinstance(moa_learner, MOAPredictionIntervalLearner)
@@ -275,6 +273,7 @@ def _prequential_loop_fast(
     *,
     max_instances: int | None,
     ssl: tuple[int, int, float, int] | None = None,
+    warmup: int = 0,
 ) -> _LoopOutput:
     """The test-then-train loop of one learner, run by MOA in Java.
 
@@ -284,7 +283,13 @@ def _prequential_loop_fast(
 
     :param ssl: ``(initial_window_size, delay_length, label_probability,
         random_seed)`` for semi-supervised evaluation, else ``None``.
+    :param warmup: Number of instances, from the start, to train on without
+        testing. They count towards ``max_instances``. Not for ``ssl``.
     """
+    if warmup < 0:
+        raise ValueError("warmup must be zero or positive.")
+    if warmup and ssl is not None:
+        raise ValueError("warmup is not supported for semi-supervised evaluation.")
     if type(run).test_then_train is not _Run.test_then_train:
         raise TypeError("The Java loop cannot run a custom test_then_train.")
     learner, cumulative, windowed = run.learner, run.cumulative, run.windowed
@@ -292,7 +297,14 @@ def _prequential_loop_fast(
     start_wallclock, start_cpu = time.time(), time.process_time()
     limit = -1 if max_instances is None else max_instances
     if ssl is None:
-        moa_results = EfficientEvaluationLoops.PrequentialEvaluation(
+        # Only these take a warmup. ``PrequentialEvaluation`` picks one of them
+        # by the type of the target, as done here.
+        evaluate = (
+            EfficientEvaluationLoops.prequentialEvaluationClassification
+            if stream.get_schema().is_classification()
+            else EfficientEvaluationLoops.prequentialEvaluationRegression
+        )
+        moa_results = evaluate(
             stream.moa_stream,
             learner.moa_learner,
             cumulative.moa_basic_evaluator,
@@ -301,6 +313,8 @@ def _prequential_loop_fast(
             window_size,
             run.store_y,
             run.store_predictions,
+            warmup,
+            HookableEvaluationLoop(),
         )
     else:
         initial_window_size, delay_length, label_probability, random_seed = ssl

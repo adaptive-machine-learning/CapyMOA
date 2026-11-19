@@ -5,7 +5,7 @@ import jpype
 
 import capymoa
 
-_MOA_JAR_HASH = "af96c31328b8b61a994084f9f978c932ad2054d00090f8c9f3c2bdc8106294c7"
+_MOA_JAR_HASH = "1d4d4fe87382a9f344c05bea66626e0d0797a628d9ba8fe3df67060fdcc85587"
 
 
 def test_imports() -> None:
