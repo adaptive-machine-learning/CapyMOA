@@ -52,14 +52,14 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
         enable-cache: true
 
-    # A cache entry is never updated once saved. Hash the files that choose which
-    # datasets to download, so new downloads (e.g. OpenML in doctests) get cached.
-    - name: Cache Test Datasets
-      id: cache-test-datasets
-      uses: actions/cache@v4
+    # Restore the newest dataset cache. "Save Test Datasets" saves a new one when
+    # the data changes, e.g. when a test downloads a new dataset.
+    - name: Restore Test Datasets
+      id: restore-test-datasets
+      uses: actions/cache/restore@v4
       with:
         path: data
-        key: test-datasets-${{ hashFiles('src/capymoa/**/*.py', 'tests/**/*.py') }}
+        key: test-datasets-
         restore-keys: test-datasets-
 
     # Run ALL tests that do NOT require any optional dependencies.
@@ -87,6 +87,16 @@ jobs:
         uv --quiet run --exact
         --extra dev --extra torch-cpu
         invoke test.doctest --coverage
+
+    - name: Save Test Datasets
+      if: >-
+        always() &&
+        steps.restore-test-datasets.outputs.cache-matched-key
+        != format('test-datasets-{0}', hashFiles('data/**'))
+      uses: actions/cache/save@v4
+      with:
+        path: data
+        key: test-datasets-${{ hashFiles('data/**') }}
 
     - name: Combine Test Coverages & Generate XML Report
       run: |
@@ -121,11 +131,13 @@ jobs:
     - uses: astral-sh/setup-uv@v6
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    - name: Cache Notebook Datasets
-      uses: actions/cache@v4
+    # Restore the newest dataset cache, see "Restore Test Datasets".
+    - name: Restore Notebook Datasets
+      id: restore-notebook-datasets
+      uses: actions/cache/restore@v4
       with:
         path: data
-        key: notebook-datasets-${{ hashFiles('src/capymoa/**/*.py', 'notebooks/**/*.py') }}
+        key: notebook-datasets-
         restore-keys: notebook-datasets-
     - name: Install Dependencies
       run: |
@@ -148,6 +160,16 @@ jobs:
         uv --quiet run --exact
         --extra dev --extra doc --extra torch-cpu
         invoke docs.build
+
+    - name: Save Notebook Datasets
+      if: >-
+        always() &&
+        steps.restore-notebook-datasets.outputs.cache-matched-key
+        != format('notebook-datasets-{0}', hashFiles('data/**'))
+      uses: actions/cache/save@v4
+      with:
+        path: data
+        key: notebook-datasets-${{ hashFiles('data/**') }}
 
     - name: Artifact name
       run: echo DOC_ARTIFACT_NAME=doc-${GITHUB_REF//\//-} >> $GITHUB_ENV
