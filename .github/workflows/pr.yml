@@ -52,12 +52,15 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
         enable-cache: true
 
+    # A cache entry is never updated once saved. Hash the files that choose which
+    # datasets to download, so new downloads (e.g. OpenML in doctests) get cached.
     - name: Cache Test Datasets
       id: cache-test-datasets
       uses: actions/cache@v4
       with:
         path: data
-        key: "test-datasets"
+        key: test-datasets-${{ hashFiles('src/capymoa/**/*.py', 'tests/**/*.py') }}
+        restore-keys: test-datasets-
 
     # Run ALL tests that do NOT require any optional dependencies.
     - name: PyTest (base)
@@ -122,7 +125,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: data
-        key: "test-datasets"
+        key: notebook-datasets-${{ hashFiles('src/capymoa/**/*.py', 'notebooks/**/*.py') }}
+        restore-keys: notebook-datasets-
     - name: Install Dependencies
       run: |
         sudo apt-get install -y pandoc
