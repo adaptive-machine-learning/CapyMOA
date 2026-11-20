@@ -14,6 +14,7 @@ This document describes the code review process for CapyMOA. It is intended for 
    information. These commit messages generate the changelog and release notes! You
    could use this [semantic commit
    generator](https://jadsonlucena.github.io/semantic-commit-generator/) to help you.
+   Add an `Assisted-by:` LLM disclosure if an LLM was predominantly used.
 
 ## Commit Messages
 
