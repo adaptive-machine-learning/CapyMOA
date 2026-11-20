@@ -14,22 +14,12 @@
 # ---
 
 # %% [markdown]
-# # A custom drift detector in Adaptive Random Forest
+# # Custom Drift Detectors
 #
-# {class}`~capymoa.classifier.AdaptiveRandomForestClassifier` (ARF) runs in Java (MOA).
-# Each tree has a drift detector that watches its errors. When the detector fires, the
-# tree is replaced. This notebook shows how to write a drift detector in Python and use
-# it inside ARF.
-#
-# * We write a detector that compares two windows with a t-test.
-# * We test it on a simple stream.
-# * We use it in ARF and compare it with DDM, a common detector, and with no detection.
-#
-# ---
-#
-# *More information about CapyMOA can be found at* https://www.capymoa.org.
-#
-# **last update on 19/11/2026**
+# Some CapyMOA learners accept a custom drift detector, so they can adapt to
+# distribution shifts. This includes learners written in Java (MOA), using CapyMOA's
+# Java proxy module ({mod}`capymoa.core.moa.proxy`). In this tutorial we write a basic
+# drift detector and use it in Adaptive Random Forest.
 
 # %% tags=["remove-cell"]
 # This cell is hidden on capymoa.org. See docs/contributing/docs.rst
@@ -38,24 +28,16 @@ from capymoa._nbmock import is_nb_fast
 # %% [markdown]
 # ## A t-test drift detector
 #
-# We keep the detector as simple as we can, to show what is needed. Any other test or
-# distance would work the same way.
+# Drift detectors often follow these steps:
 #
-# The detector splits its input into windows of `window_size` values. When a window is
-# full, it compares the window with the one before using Welch's t-test
-# ({func}`scipy.stats.ttest_ind`). If the p-value is below `alpha`, the means differ and
-# it signals a drift.
-#
-# ARF gives each detector a stream of errors: `1` if the tree was wrong and `0` if it
-# was right. So the detector checks if the error rate has changed.
-#
-# We extend {class}`~capymoa.drift.base_detector.BaseDriftDetector` and implement
-# `add_element`. It sets `in_concept_change`, which
-# {meth}`~capymoa.drift.base_detector.BaseDriftDetector.detected_change` returns, and
-# records where drifts happen in `detection_index`.
+# 1. Collect and group data.
+# 2. Describe each group.
+# 3. Measure the dissimilarity between groups.
+# 4. Raise an alarm if the dissimilarity passes a threshold.
 
 # %%
-from scipy.stats import ttest_ind
+import numpy as np
+from scipy.stats import ttest_ind_from_stats
 
 from capymoa.drift.base_detector import BaseDriftDetector
 
@@ -69,36 +51,56 @@ class TTestDetector(BaseDriftDetector):
         super().__init__()
         self.window_size = window_size
         self.alpha = alpha
-        self.reference = None
-        self.current = []
+        self.idx = 0
+        self.i = 0
+        self.win_present = np.zeros((window_size,))
+        self.win_past = np.zeros((window_size,))
 
     def add_element(self, element: float) -> None:
         self.idx += 1
         self.in_concept_change = False
 
-        self.current.append(element)
-        if len(self.current) < self.window_size:
-            return
+        # 1. Collect and group data into present and past ring buffers.
+        i = self.i % self.window_size
+        self.win_past[i] = self.win_present[i]  # Move from present to past window.
+        self.win_present[i] = element  # Add new element to present window.
+        self.i += 1
 
-        # The window is full. Compare it with the window before.
-        if self.reference is not None:
-            p_value = ttest_ind(self.reference, self.current, equal_var=False).pvalue
+        # Wait for both windows to fill before running the t-test.
+        if self.i >= self.window_size * 2:
+            # 2. Describe each group. Computing the mean and std incrementally would be
+            # faster.
+            mean_present, std_present = (
+                np.mean(self.win_present),
+                np.std(self.win_present),
+            )
+            mean_past, std_past = np.mean(self.win_past), np.std(self.win_past)
+
+            # 3. Run the t-test on the group statistics.
+            _, p_value = ttest_ind_from_stats(
+                mean1=mean_present,
+                std1=std_present,
+                nobs1=self.window_size,
+                mean2=mean_past,
+                std2=std_past,
+                nobs2=self.window_size,
+                equal_var=True,
+                alternative="greater",
+            )
+
+            # 4. Raise an alarm if the error rate increases.
             if p_value < self.alpha:
+                # Reset, so both windows must fill again.
+                self.i = 0
                 self.in_concept_change = True
                 self.detection_index.append(self.idx)
-        self.reference = self.current
-        self.current = []
 
 
 # %% [markdown]
-# ## Test on a simple stream
-#
-# We make a stream of errors. The error rate is 10% for the first 2000 values and 40%
-# after, so there is a drift at value **2000**.
+# Test `TTestDetector` on a simple stream:
 
 # %%
 import matplotlib.pyplot as plt
-import numpy as np
 
 DRIFT_AT = 2000
 
@@ -123,28 +125,7 @@ plt.legend()
 plt.show()
 
 # %% [markdown]
-# The detector finds the drift one window after it happens, with no false alarms.
-
-# %% [markdown]
-# ## Use it in Adaptive Random Forest
-#
-# ARF takes two detectors for each tree:
-#
-# * `warning_detection_method`: when it fires, the tree starts training a background tree.
-# * `drift_detection_method`: when it fires, the background tree replaces the tree.
-#
-# We use a {class}`~capymoa.stream.drift.DriftStream` made of three random tree concepts
-# with abrupt drifts at 5000 and 10000. We compare three versions of ARF with 10 trees:
-#
-# * ARF with our t-test detector. The warning detector uses a larger `alpha`, so it
-#   fires before the drift detector.
-# * ARF with {class}`~capymoa.drift.detectors.DDM`, a common drift detector.
-# * ARF with drift detection turned off.
-#
-# CapyMOA wraps the Python detector in a proxy
-# ({func}`~capymoa.core.moa.proxy.to_java_proxy`), so MOA can call it like a Java
-# detector. MOA builds a new detector for each tree from the class name and
-# {meth}`~capymoa.base.LearnerParamsMixin.get_params`, so trees do not share state.
+# Use `TTestDetector` as the drift detector in Adaptive Random Forest:
 
 # %%
 from capymoa.classifier import AdaptiveRandomForestClassifier, evaluate_classifier
@@ -200,17 +181,3 @@ for name, result in results.items():
     print(f"{name}: {result['cumulative']['accuracy']:.2f}% accuracy")
 
 plot_windowed_results(*results.values(), metric="accuracy")
-
-# %% [markdown]
-# Before the first drift, all three versions are close. After each drift, ARF without
-# detection keeps its old trees and recovers slowly. With our t-test detector, ARF
-# replaces trees that start to fail and recovers almost as well as with DDM.
-#
-# ## Limits
-#
-# * **Fixed windows.** The detector only checks once per window, so it finds a drift up
-#   to `window_size` values late. ADWIN picks its window size by itself.
-# * **False alarms.** Each full window is a new test. With `alpha=0.01`, about 1 in 100
-#   tests on a stable stream signals a drift by chance.
-# * **Speed.** Java calls Python for every instance and every tree, so a Python detector
-#   is slower than a Java one.
