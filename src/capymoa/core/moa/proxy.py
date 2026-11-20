@@ -259,8 +259,11 @@ class ProxyJavaClassifier(_ProxyLearner):
         py_instance = self._to_py(instance_or_example)
         y_hat = self._py_classifier.predict_proba(py_instance)
 
-        if y_hat is None:
-            # Zero votes, like an untrained MOA learner.
+        if np.ptp(y_hat) == 0:
+            # A Python learner that can not predict yet gives a uniform
+            # prediction. MOA reads zero votes as "no prediction". Some
+            # meta-learners, such as SRP, fail on non-zero votes from a member
+            # that has not trained.
             y_hat = np.zeros(self._schema.get_num_classes())
 
         return cast(Any, jpype.JArray(jpype.JDouble))(y_hat)
@@ -332,7 +335,7 @@ class ProxyJavaRegressor(ProxyJavaClassifier):
     ) -> MutableSequence[float]:
         py_instance = self._to_py(instance_or_example)
         y_hat = self._py_regressor.predict(py_instance)
-        votes = [0.0] if y_hat is None else [float(y_hat)]
+        votes = [float(y_hat)]
         return cast(Any, jpype.JArray(jpype.JDouble))(votes)
 
 

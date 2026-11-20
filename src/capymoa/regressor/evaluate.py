@@ -117,18 +117,12 @@ class RegressionEvaluator:
     def get_instances_seen(self):
         return self.instances_seen
 
-    def update(self, y, y_pred: float | None):
+    def update(self, y, y_pred: float):
         if y is None:
             raise ValueError(f"Invalid ground-truth y = {y}")
 
         self._instance.setClassValue(y)
         example = InstanceExample(self._instance)
-
-        # The learner did not produce a prediction for this instance, thus y_pred is None
-        if y_pred is None:
-            # We used to produce a warning here, but since `None` predictions are common
-            # at the beginning of training, most warnings that were not useful.
-            y_pred = 0.0
 
         # Different from classification, there is no need to copy the prediction array, just override the value.
         self.pred_template[0] = y_pred

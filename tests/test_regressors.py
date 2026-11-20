@@ -30,7 +30,7 @@ from capymoa.regressor import (
     evaluate_regressor,
 )
 from capymoa.regressor.evaluate import RegressionEvaluator, RegressionWindowedEvaluator
-from capymoa.stream import Schema, Stream
+from capymoa.stream import Stream
 
 SEED = 1
 """Seed for every regressor that takes one, so results are exact."""
@@ -163,15 +163,6 @@ def test_online_bagging_regressor_base_learner():
             str(sub.getClass().getSimpleName()) == "FIMTDD" for sub in sub_learners
         )
         assert sub_learners[0].gracePeriodOption.getValue() == 50
-
-
-def test_none_predict():
-    """Test that a prediction of None is handled."""
-    schema = Schema.from_custom(features=["x", "y"], target="y")
-    evaluator = RegressionEvaluator(schema=schema)
-    win_evaluator = RegressionWindowedEvaluator(schema=schema, window_size=100)
-    evaluator.update(1.0, None)
-    win_evaluator.update(1.0, None)
 
 
 def _score(classifier: Regressor, stream: Stream, limit=100) -> float:

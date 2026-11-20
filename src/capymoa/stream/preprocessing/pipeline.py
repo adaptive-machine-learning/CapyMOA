@@ -485,7 +485,7 @@ class ClassifierPipeline(BasePipeline, Classifier):
         """Predict the class label for an instance.
 
         :param instance: Instance to classify.
-        :returns: Predicted label, or ``None`` if unavailable.
+        :returns: Predicted label, or ``None`` if the pipeline has no learner.
         """
         _inst, pred = self.pass_forward_predict(instance)
         return pred
@@ -612,7 +612,7 @@ class RandomSearchClassifierPE(ClassifierPipelineElement, Classifier):
         """Predict the class label using the highest-scoring classifier.
 
         :param instance: Instance to classify.
-        :returns: Predicted label, or ``None`` if unavailable.
+        :returns: Predicted label, or ``None`` if the pipeline has no learner.
         """
         _inst, pred = self.pass_forward_predict(instance)
         return pred

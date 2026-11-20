@@ -34,11 +34,11 @@ The accuracy on each task after training on each task:
 
 >>> with np.printoptions(precision=2):
 ...     print(results['accuracy_matrix'])
-[[0.9  0.05 0.05 0.05 0.08]
- [0.88 0.9  0.   0.   0.05]
- [0.77 0.82 0.62 0.   0.03]
- [0.77 0.82 0.6  0.52 0.03]
- [0.77 0.85 0.57 0.52 0.75]]
+[[0.9  0.   0.   0.3  0.  ]
+ [0.88 0.9  0.   0.12 0.  ]
+ [0.77 0.82 0.62 0.12 0.  ]
+ [0.77 0.82 0.6  0.52 0.  ]
+ [0.77 0.82 0.57 0.52 0.75]]
 
 Notice that the accuracies in the upper triangle are close to zero because the
 learner has not trained on those tasks yet. The diagonal contains the accuracy
@@ -46,7 +46,7 @@ on each task after training on that task. The lower triangle contains the
 accuracy on each task after training on all tasks.
 
 >>> print(f"Forward Transfer: {results['forward_transfer']:0.2f}")
-Forward Transfer: 0.03
+Forward Transfer: 0.05
 
 >>> print(f"Backward Transfer: {results['backward_transfer']:0.2f}")
 Backward Transfer: -0.07

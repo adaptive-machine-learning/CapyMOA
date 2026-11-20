@@ -131,7 +131,7 @@ class BatchClassifier(Classifier, Batch, ABC):
         ).view(1)
         return self.batch_train(x, y)
 
-    def predict_proba(self, instance: Instance) -> LabelProbabilities | None:
+    def predict_proba(self, instance: Instance) -> LabelProbabilities:
         """Calls :func:`batch_predict_proba` with a batch of size 1."""
         x = torch.from_numpy(instance.x.reshape(1, -1))
         x = x.to(self.device, self.x_dtype)
