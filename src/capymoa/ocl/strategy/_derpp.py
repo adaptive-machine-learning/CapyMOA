@@ -6,7 +6,6 @@ from math import isfinite
 import torch
 from torch import Tensor, nn
 
-from capymoa.core import Instance, LabelProbabilities
 from capymoa.stream import Schema
 
 from ._der import DER
@@ -106,42 +105,32 @@ class DERPP(DER):
 
         self._optimiser.zero_grad()
         n = x.shape[0]
-        z = self._model(self._augment(x.view(-1, *self._shape)))
+        z = self._module.model(self._module.augment(x.view(-1, *self._shape)))
         # Preserve targets even if the model returns a view of mutable parameters.
         stored_z = z.detach().clone()
-        loss = self._criterion(z, y)
-        if self._buffer.count > 0:
-            dark_replay = self._buffer.sample(n)
-            xp = dark_replay["x"].to(self.device).view(-1, *self._shape)
-            zp = dark_replay["z"].to(self.device)
-            loss = loss + self._alpha * self._logit_loss(
-                self._model(self._augment(xp)), zp
+        loss = self._module.criterion(z, y)
+        if self._module.buffer.count > 0:
+            dark_replay = self._module.buffer.sample(n)
+            xp = dark_replay["x"].view(-1, *self._shape)
+            zp = dark_replay["z"]
+            loss = loss + self._alpha * self._module.logit_loss(
+                self._module.model(self._module.augment(xp)), zp
             )
-            label_replay = self._buffer.sample(n)
-            xp = label_replay["x"].to(self.device).view(-1, *self._shape)
-            yp = label_replay["y"].to(self.device)
-            loss = loss + self._beta * self._criterion(
-                self._model(self._augment(xp)), yp
+            label_replay = self._module.buffer.sample(n)
+            xp = label_replay["x"].view(-1, *self._shape)
+            yp = label_replay["y"]
+            loss = loss + self._beta * self._module.criterion(
+                self._module.model(self._module.augment(xp)), yp
             )
         if not torch.isfinite(loss):
             raise ValueError("DERPP loss is not finite")
         if update_buffer:
-            self._buffer.update(x=x, z=stored_z, y=y)
+            self._module.buffer.update(x=x, z=stored_z, y=y)
         loss.backward()
         self._optimiser.step()
-
-    def predict_proba(self, instance: Instance) -> LabelProbabilities:
-        """Return single-instance probabilities on CPU, including for GPU models."""
-        x = torch.as_tensor(instance.x).reshape(1, -1)
-        return (
-            self.batch_predict_proba(x)
-            .to(device="cpu", dtype=torch.float64)
-            .numpy()
-            .reshape(-1)
-        )
 
     def __str__(self) -> str:
         return (
             f"DERPP(alpha={self._alpha}, beta={self._beta}, "
-            f"buffer_capacity={self._buffer.capacity})"
+            f"buffer_capacity={self._module.buffer.capacity})"
         )

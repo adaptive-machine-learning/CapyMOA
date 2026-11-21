@@ -6,8 +6,7 @@ import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from capymoa.base import BatchClassifier
-from capymoa.core import Instance, LabelProbabilities
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.core.torch import FeatureModel
 from capymoa.ocl.util._replay import ReservoirSampler
 from capymoa.stream import Schema
@@ -41,7 +40,16 @@ def _knn_shapley(
     return torch.zeros_like(sorted_values).scatter(1, order, sorted_values)
 
 
-class ASER(BatchClassifier):
+class _ASERModule(nn.Module):
+    """Torch state of ASER."""
+
+    def __init__(self, model: FeatureModel, buffer: ReservoirSampler) -> None:
+        super().__init__()
+        self.model = model
+        self.buffer = buffer
+
+
+class ASER(TorchMixin[_ASERModule], BatchClassifier):
     """Adversarial Shapley Value Experience Replay (ASER).
 
     ASER [#aser]_ uses KNN-Shapley values of latent features for both replay
@@ -163,8 +171,6 @@ class ASER(BatchClassifier):
             raise TypeError("model must be a FeatureModel")
         if not isinstance(optimiser, torch.optim.Optimizer):
             raise TypeError("optimiser must be a torch optimizer")
-        self.device = torch.device(device)
-        self._model = model.to(self.device)
         trainable = {id(p) for p in model.parameters() if p.requires_grad}
         owned = {id(p) for group in optimiser.param_groups for p in group["params"]}
         if not trainable <= owned or not owned <= {id(p) for p in model.parameters()}:
@@ -176,11 +182,12 @@ class ASER(BatchClassifier):
         self._num_classes = schema.get_num_classes()
         self._rng = torch.Generator().manual_seed(seed)
         # Reuse named storage and sequential filling, never Algorithm R replacement.
-        self._buffer = ReservoirSampler(
+        buffer = ReservoirSampler(
             buffer_capacity,
             {"x": ((self._num_features,), self.x_dtype), "y": ((), self.y_dtype)},
             self._rng,
-        ).to(self.device)
+        )
+        self._module = _ASERModule(model, buffer).to(device)
         self._class_indices: dict[int, set[int]] = {}
         self._seen = 0
         self._replay_batch_size = replay_batch_size
@@ -193,20 +200,20 @@ class ASER(BatchClassifier):
         self.last_loss: float | None = None
 
     def _prepare_x(self, x: Tensor) -> Tensor:
-        """Flatten and move inputs after checking their schema width."""
+        """Flatten inputs after checking their schema width."""
         if x.ndim < 2 or x.shape[0] == 0:
             raise ValueError("x must contain a non-empty batch")
         flat = x.reshape(x.shape[0], -1)
         if flat.shape[1] != self._num_features:
             raise ValueError("feature count does not match the schema")
-        return flat.to(device=self.device, dtype=self.x_dtype)
+        return flat
 
     @torch.no_grad()
     def _features(self, x: Tensor) -> Tensor:
         """Encode chunks in eval mode. The caller must reset train mode."""
-        self._model.eval()
+        self._module.model.eval()
         chunks = [
-            self._model.features(part.reshape(-1, *self._shape)).reshape(
+            self._module.model.features(part.reshape(-1, *self._shape)).reshape(
                 part.shape[0], -1
             )
             for part in x.split(self._feature_batch_size)
@@ -224,7 +231,7 @@ class ASER(BatchClassifier):
 
     def _random_indices(self, count: int, excluded: Tensor | None = None) -> Tensor:
         """Draw up to count memory indices without replacement, omitting exclusions."""
-        available = torch.ones(self._buffer.count, dtype=torch.bool)
+        available = torch.ones(self._module.buffer.count, dtype=torch.bool)
         if excluded is not None:
             available[excluded.cpu()] = False
         indices = available.nonzero(as_tuple=True)[0]
@@ -245,8 +252,8 @@ class ASER(BatchClassifier):
 
     def _retrieve(self, x: Tensor, y: Tensor) -> dict[str, Tensor]:
         """Use random warm-up, then rank a balanced candidate pool for replay."""
-        memory = self._buffer.array()
-        if self._seen <= self._buffer.capacity:
+        memory = self._module.buffer.array()
+        if self._seen <= self._module.buffer.capacity:
             chosen = self._random_indices(self._replay_batch_size)
         else:
             candidates = self._balanced_indices()
@@ -289,7 +296,7 @@ class ASER(BatchClassifier):
 
     def _write(self, indices: Tensor, x: Tensor, y: Tensor) -> None:
         """Replace memory rows and keep their class-index cache in sync."""
-        memory = self._buffer.array()
+        memory = self._module.buffer.array()
         for index, label in zip(indices.cpu().tolist(), y.cpu().tolist()):
             old = int(memory["y"][index])
             self._class_indices[old].discard(index)
@@ -300,21 +307,21 @@ class ASER(BatchClassifier):
     @torch.no_grad()
     def _update_memory(self, x: Tensor, y: Tensor) -> None:
         """Fill free slots, then replace candidates using cooperative Shapley values."""
-        fill = min(self._buffer.capacity - self._buffer.count, len(x))
-        start = self._buffer.count
+        fill = min(self._module.buffer.capacity - self._module.buffer.count, len(x))
+        start = self._module.buffer.count
         if fill:
-            self._buffer.update(x=x[:fill], y=y[:fill])
+            self._module.buffer.update(x=x[:fill], y=y[:fill])
             for index, label in enumerate(y[:fill].cpu().tolist(), start=start):
                 self._class_indices.setdefault(label, set()).add(index)
         remaining_x, remaining_y = x[fill:], y[fill:]
-        if self._buffer.count == self._buffer.capacity:
-            memory = self._buffer.array()
+        if self._module.buffer.count == self._module.buffer.capacity:
+            memory = self._module.buffer.array()
             # Include underrepresented incoming classes so they can enter memory.
             threshold = torch.rand((), generator=self._rng).item() / self._num_classes
             counts = torch.zeros(self._num_classes, device=self.device)
             for label, indices in self._class_indices.items():
                 counts[label] = len(indices)
-            minority = counts[remaining_y] / self._buffer.capacity < threshold
+            minority = counts[remaining_y] / self._module.buffer.capacity < threshold
             evaluation = self._balanced_indices()
             ex = torch.cat((memory["x"][evaluation], remaining_x[minority]))
             ey = torch.cat((memory["y"][evaluation], remaining_y[minority]))
@@ -337,7 +344,6 @@ class ASER(BatchClassifier):
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         """Retrieve history, train once per substep, then update memory once."""
         x = self._prepare_x(x)
-        y = y.to(device=self.device, dtype=self.y_dtype)
         if y.shape != (len(x),) or ((y < 0) | (y >= self._num_classes)).any():
             raise ValueError("y must contain one valid class index per example")
         losses = []
@@ -345,9 +351,11 @@ class ASER(BatchClassifier):
             self._optimiser.zero_grad()
             replay = self._retrieve(x, y)
             # Retrieval encodes in eval mode.
-            self._model.train()
+            self._module.model.train()
             combined = torch.cat((replay["x"], x)).reshape(-1, *self._shape)
-            loss = F.cross_entropy(self._model(combined), torch.cat((replay["y"], y)))
+            loss = F.cross_entropy(
+                self._module.model(combined), torch.cat((replay["y"], y))
+            )
             loss.backward()
             self._optimiser.step()
             losses.append(loss.detach())
@@ -360,18 +368,10 @@ class ASER(BatchClassifier):
 
         The OCL loop does not set modes. ``batch_train`` sets train mode itself.
         """
-        self._model.eval()
-        return self._model(self._prepare_x(x).reshape(-1, *self._shape)).softmax(dim=1)
-
-    def predict_proba(self, instance: Instance) -> LabelProbabilities:
-        """Return single-instance probabilities on CPU."""
-        x = torch.as_tensor(instance.x).reshape(1, -1)
-        return (
-            self.batch_predict_proba(x)
-            .to(device="cpu", dtype=torch.float64)
-            .numpy()
-            .reshape(-1)
+        self._module.model.eval()
+        return self._module.model(self._prepare_x(x).reshape(-1, *self._shape)).softmax(
+            dim=1
         )
 
     def __str__(self) -> str:
-        return f"ASER(score_type={self._score_type}, knn_k={self._knn_k}, buffer_capacity={self._buffer.capacity})"
+        return f"ASER(score_type={self._score_type}, knn_k={self._knn_k}, buffer_capacity={self._module.buffer.capacity})"

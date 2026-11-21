@@ -133,9 +133,9 @@ def test_aser_shapley_replacement_and_minority_class(monkeypatch):
     learner._update_memory(new_x, new_y)
     expected = x.clone()
     expected[7] = new_x[0]
-    torch.testing.assert_close(learner._buffer.array()["x"], expected)
+    torch.testing.assert_close(learner.module.buffer.array()["x"], expected)
     assert learner._class_indices == {0: {0, 1, 2, 3}, 1: {4, 5, 6}, 2: {7}}
-    assert learner._buffer.count == 8 and learner._seen == 10
+    assert learner.module.buffer.count == 8 and learner._seen == 10
 
 
 def test_aser_warmup_sampling_and_small_memory(monkeypatch):
@@ -159,7 +159,7 @@ def test_aser_warmup_sampling_and_small_memory(monkeypatch):
     small = _tiny_aser(buffer_capacity=1)
     small.batch_train(torch.eye(2), torch.tensor([0, 1]))
     small.batch_train(torch.eye(2), torch.tensor([1, 2]))
-    assert small._seen == 4 and small._buffer.count == 1
+    assert small._seen == 4 and small.module.buffer.count == 1
     assert np.isfinite(small.last_loss)
 
 
@@ -168,13 +168,13 @@ def test_aser_single_training_pass_and_prediction(dtype):
     model = _bn_net().to(dtype)
     batch_norm = model.encoder[1]
     learner = _tiny_aser(model=model)
-    x, y = torch.eye(2).repeat(2, 1), torch.tensor([0, 1, 0, 1])
+    x, y = torch.eye(2, dtype=dtype).repeat(2, 1), torch.tensor([0, 1, 0, 1])
     learner.batch_train(x, y)
     assert int(batch_norm.num_batches_tracked) == 1
     learner.batch_train(x, y)
     assert int(batch_norm.num_batches_tracked) == 2
     state = {name: value.clone() for name, value in model.state_dict().items()}
-    learner._features(x.to(dtype))
+    learner._features(x)
     probabilities = learner.batch_predict_proba(x)
     torch.testing.assert_close(probabilities.sum(1), torch.ones(4, dtype=dtype))
     assert not model.training
@@ -211,7 +211,7 @@ def test_aser_combined_update_with_singleton_and_replay(substeps, monkeypatch):
 
     def retrieve(current_x, current_y):
         # Current data must not enter memory between substeps.
-        assert learner._buffer.count == len(replay_y)
+        assert learner.module.buffer.count == len(replay_y)
         return {"x": replay_x, "y": replay_y}
 
     monkeypatch.setattr(learner, "_retrieve", retrieve)
@@ -241,7 +241,7 @@ def test_aser_combined_update_with_singleton_and_replay(substeps, monkeypatch):
     assert learner.last_loss == pytest.approx(
         torch.stack(expected_losses).mean().item()
     )
-    assert learner._buffer.count == learner._seen == len(combined_y)
+    assert learner.module.buffer.count == learner._seen == len(combined_y)
 
 
 def test_aser_reproducibility_and_private_cache():
@@ -259,10 +259,10 @@ def test_aser_reproducibility_and_private_cache():
         for offset in range(4):
             learner.batch_train(x + offset, (y + offset) % 3)
         results.append(learner)
-    for key, value in results[0]._model.state_dict().items():
-        torch.testing.assert_close(value, results[1]._model.state_dict()[key])
+    for key, value in results[0].module.model.state_dict().items():
+        torch.testing.assert_close(value, results[1].module.model.state_dict()[key])
     torch.testing.assert_close(
-        results[0]._buffer.array()["x"], results[1]._buffer.array()["x"]
+        results[0].module.buffer.array()["x"], results[1].module.buffer.array()["x"]
     )
     assert results[0]._class_indices == results[1]._class_indices
     assert results[0]._class_indices is not results[1]._class_indices

@@ -35,6 +35,7 @@ from capymoa.ocl.strategy import (
     RanPAC,
     RWalk,
 )
+from capymoa.ocl.strategy.l2p import L2P, L2PViT
 from capymoa.stream import Schema
 
 # PyTorch is notorious for non-deterministic behavior between versions and platforms.
@@ -56,12 +57,17 @@ class Result:
 @dataclass(frozen=True)
 class Case:
     name: str
-    constructor: Callable[[Schema], Classifier]
-    expected: Result
+    constructor: Callable[..., Classifier]
+    # `None` skips the accuracy check, the shared torch checks still run.
+    expected: Result | None
     batch_size: int = 32
     epochs: int = 1
     continual_evaluations: int = 1
     task_mask: bool = False
+    # Learner uses `TorchMixin`, so the shared module checks apply.
+    torch: bool = True
+    # State outside ``module`` changes predictions after a load (strict xfail).
+    restore_xfail: str | None = None
 
 
 def pre_processor() -> nn.Module:
@@ -99,21 +105,21 @@ def new_constructor(
     return constructor
 
 
-def _new_rar(schema, random_seed=None):
+def _new_rar(schema, random_seed=None, **kwargs):
     # RAR test case constructor
     return RAR(
-        Finetune(schema, Perceptron(schema), random_seed=random_seed),
+        Finetune(schema, Perceptron(schema), random_seed=random_seed, **kwargs),
         augment=nn.Dropout(p=0.2),
         repeats=2,
     )
 
 
-def _new_der(schema: Schema) -> DER:
+def _new_der(schema: Schema, **kwargs) -> DER:
     model = Perceptron(schema)
-    return DER(schema, model, torch.optim.Adam(model.parameters(), lr=0.001))
+    return DER(schema, model, torch.optim.Adam(model.parameters(), lr=0.001), **kwargs)
 
 
-def _new_aser(schema: Schema) -> ASER:
+def _new_aser(schema: Schema, **kwargs) -> ASER:
     class Model(FeatureModel):
         def __init__(self):
             super().__init__()
@@ -129,10 +135,10 @@ def _new_aser(schema: Schema) -> ASER:
             return self.head(self.features(x))
 
     model = Model()
-    return ASER(schema, model, torch.optim.SGD(model.parameters(), lr=0.1))
+    return ASER(schema, model, torch.optim.SGD(model.parameters(), lr=0.1), **kwargs)
 
 
-def _new_scr(schema: Schema) -> SCR:
+def _new_scr(schema: Schema, **kwargs) -> SCR:
     class Model(ProjectionModel):
         def __init__(self):
             super().__init__()
@@ -158,7 +164,26 @@ def _new_scr(schema: Schema) -> SCR:
         augment=nn.Dropout(p=0.2),
         buffer_capacity=200,
         replay_batch_size=32,
+        **kwargs,
     )
+
+
+class _DummyViT(L2PViT, nn.Module):
+    def get_embedding_size(self) -> int:
+        return 8
+
+    def get_patch_embed(self, pixel_values):
+        return torch.zeros((pixel_values.size(0), 4, 8), device=pixel_values.device)
+
+    def forward_encoder(self, prompts, patch_embed):
+        return torch.zeros((patch_embed.size(0), 4, 8), device=patch_embed.device)
+
+    def forward_query(self, patch_embed):
+        return torch.zeros((patch_embed.size(0), 8), device=patch_embed.device)
+
+
+def _new_l2p(schema: Schema, **kwargs) -> L2P:
+    return L2P(schema, TinySplitMNIST().task_mask, vit=_DummyViT(), **kwargs)
 
 
 """
@@ -175,9 +200,25 @@ TEST_CASES: list[Case] = [
     # uses Naive Bayes at its leaves, whose likelihood products fall below that
     # threshold, so most of its predictions were being thrown away and scored
     # as misses.
-    Case("HoeffdingTree", HoeffdingTree, Result(69.50, 45.50, 56.3), batch_size=1),
-    Case("HoeffdingTree", HoeffdingTree, Result(69.50, 45.70, 51.0), batch_size=32),
-    Case("RAR", _new_rar, Result(47.50, 29.20, 8.10)),
+    Case(
+        "HoeffdingTree",
+        HoeffdingTree,
+        Result(69.50, 45.50, 56.3),
+        batch_size=1,
+        torch=False,
+    ),
+    Case(
+        "HoeffdingTree",
+        HoeffdingTree,
+        Result(69.50, 45.70, 51.0),
+        batch_size=32,
+        torch=False,
+    ),
+    Case(
+        "RAR",
+        _new_rar,
+        Result(47.50, 29.20, 8.10),
+    ),
     Case(
         "Finetune",
         partial(Finetune, model=Perceptron),
@@ -185,29 +226,38 @@ TEST_CASES: list[Case] = [
         epochs=2,
         continual_evaluations=2,
     ),
-    Case("SLDA", SLDA, Result(80.5, 51.4, 63.0)),
+    Case(
+        "SLDA",
+        SLDA,
+        Result(80.5, 51.4, 63.0),
+    ),
     Case(
         "SLDA_with_preprocessor",
-        lambda s: SLDA(s, pre_processor(), 512),
+        lambda s, **kw: SLDA(s, pre_processor(), 512, **kw),
         Result(87.5, 54.5, 67.7),
     ),
     Case(
         "RanPAC",
-        lambda s, random_seed=None: RanPAC(
-            s, projection_dim=512, random_seed=random_seed
+        lambda s, random_seed=None, **kw: RanPAC(
+            s, projection_dim=512, random_seed=random_seed, **kw
         ),
         Result(78.0, 46.7, 60.8),
+        restore_xfail="sample count is a plain int and weights are cached",
     ),
-    Case("NCM", NCM, Result(71.5, 46.2, 67.5)),
+    Case(
+        "NCM",
+        NCM,
+        Result(71.5, 46.2, 67.5),
+    ),
     Case(
         "NCM_with_preprocessor",
-        lambda s: NCM(s, pre_processor(), 512),
+        lambda s, **kw: NCM(s, pre_processor(), 512, **kw),
         Result(69.5, 45.0, 66.8),
     ),
     Case(
         "ExperienceReplay",
-        lambda schema, random_seed=None: ExperienceReplay(
-            Finetune(schema, Perceptron, random_seed=random_seed)
+        lambda schema, random_seed=None, **kw: ExperienceReplay(
+            Finetune(schema, Perceptron, random_seed=random_seed, **kw)
         ),
         Result(28.5, 20.1, 3.0),
     ),
@@ -216,7 +266,12 @@ TEST_CASES: list[Case] = [
         _new_der,
         Result(29.5, 20.5, 2.9),
     ),
-    Case("SCR", _new_scr, Result(65.0, 44.8, 63.6)),
+    Case(
+        "SCR",
+        _new_scr,
+        Result(65.0, 44.8, 63.6),
+        restore_xfail="replay buffer count is a plain int",
+    ),
     Case(
         "DERPP",
         new_constructor(
@@ -228,11 +283,16 @@ TEST_CASES: list[Case] = [
     ),
     Case(
         "GDumb",
-        lambda schema: GDumb(schema, Perceptron(schema), 2, 32, 200),
+        lambda schema, **kw: GDumb(schema, Perceptron(schema), 2, 32, 200, **kw),
         # Changed from (40.5, 26.6, 0.0) when the offline fit's DataLoader
         # shuffle became seed-controlled instead of drawing from the global
         # torch RNG; the new values are fully deterministic.
         Result(37.5, 27.0, 0.0),
+    ),
+    Case(
+        "L2P",
+        _new_l2p,
+        None,  # Accuracy needs the real ViT, see test_l2p.py.
     ),
     Case(
         "EWC",
@@ -319,8 +379,29 @@ TEST_CASES: list[Case] = [
 ]
 
 
-@pytest.mark.parametrize("case", TEST_CASES, ids=[test.name for test in TEST_CASES])
+def _params(cases: list[Case]):
+    return [pytest.param(c, id=c.name) for c in cases]
+
+
+ACCURACY_CASES = _params([c for c in TEST_CASES if c.expected is not None])
+# Every case that uses `TorchMixin` gets the shared module checks below.
+TORCH_CASES = _params([c for c in TEST_CASES if c.torch])
+RESTORE_CASES = [
+    pytest.param(
+        c,
+        id=c.name,
+        marks=[pytest.mark.xfail(strict=True, reason=c.restore_xfail)]
+        if c.restore_xfail
+        else [],
+    )
+    for c in TEST_CASES
+    if c.torch
+]
+
+
+@pytest.mark.parametrize("case", ACCURACY_CASES)
 def test_ocl_classifier(case: Case):
+    assert case.expected is not None
     scenario = TinySplitMNIST()
 
     # Set random seeds for reproducibility
@@ -381,3 +462,47 @@ def test_ocl_classifier(case: Case):
     ]
     assert len(r["anytime"]["task"]) == total_eval
     assert "task" in r["ttt"]["windowed"]
+
+
+def _build(case: Case, **kwargs) -> Classifier:
+    scenario = TinySplitMNIST()
+    if case.task_mask:
+        kwargs["task_mask"] = scenario.task_mask
+    torch.manual_seed(0)
+    return case.constructor(scenario.schema, **kwargs)
+
+
+def _tensors(module: nn.Module) -> list[torch.Tensor]:
+    return [*module.parameters(), *module.buffers()]
+
+
+def _batch(learner, n: int = 16):
+    schema = learner.schema
+    x = torch.rand(n, schema.get_num_attributes(), dtype=learner.x_dtype)
+    y = torch.randint(0, schema.get_num_classes(), (n,), dtype=learner.y_dtype)
+    return x, y
+
+
+@pytest.mark.parametrize("case", RESTORE_CASES)
+def test_state_dict_round_trip(case: Case):
+    """A checkpoint of ``module`` holds all state needed to predict."""
+    trained, other = _build(case), _build(case)
+    x, y = _batch(trained)
+    for _ in range(3):
+        trained.batch_train(x, y)
+    # Train ``other`` on different data, so a load that misses state shows up.
+    other.batch_train(*_batch(other, n=8))
+    other.module.load_state_dict(trained.module.state_dict())
+    with torch.no_grad():
+        torch.testing.assert_close(
+            other.batch_predict_proba(x), trained.batch_predict_proba(x)
+        )
+
+
+@pytest.mark.parametrize("case", TORCH_CASES)
+def test_meta_device_construction(case: Case):
+    learner = _build(case, device="meta")
+    assert learner.device == torch.device("meta")
+    tensors = _tensors(learner.module)
+    assert tensors
+    assert all(t.device.type == "meta" for t in tensors)

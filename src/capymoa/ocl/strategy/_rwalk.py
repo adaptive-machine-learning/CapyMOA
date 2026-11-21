@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 from torch.nn.functional import relu
 
-from capymoa.base import BatchClassifier
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.ocl.evaluate.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._buffer_list import BufferList
@@ -118,7 +118,39 @@ def zero_(buffers: Sequence[Tensor]) -> None:
         buffer.zero_()
 
 
-class RWalk(BatchClassifier, nn.Module, Handler):
+class _RWalkModule(nn.Module):
+    """Torch state of RWalk."""
+
+    def __init__(
+        self,
+        model: nn.Module,
+        task_mask: Tensor | None,
+        anchor_params: BufferList,
+        penalties: BufferList,
+        task_scores: BufferList,
+        iter_importances: BufferList,
+        iter_grads: BufferList,
+        pre_step_params: BufferList,
+        checkpoint_params: BufferList,
+        checkpoint_losses: BufferList,
+        checkpoint_scores: BufferList,
+    ) -> None:
+        super().__init__()
+        self.model = model
+        self.criterion = nn.CrossEntropyLoss()
+        self.anchor_params = anchor_params
+        self.penalties = penalties
+        self.task_scores = task_scores
+        self.iter_importances = iter_importances
+        self.iter_grads = iter_grads
+        self.pre_step_params = pre_step_params
+        self.checkpoint_params = checkpoint_params
+        self.checkpoint_losses = checkpoint_losses
+        self.checkpoint_scores = checkpoint_scores
+        self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
+
+
+class RWalk(TorchMixin[_RWalkModule], BatchClassifier, Handler):
     """Riemannian Walk (RWalk) learner.
 
     RWalk [#f1]_ is a regularisation-based continual learning strategy that, like EWC,
@@ -148,7 +180,7 @@ class RWalk(BatchClassifier, nn.Module, Handler):
         lambda_: float,
         alpha: float = 0.9,
         delta_t: int = 10,
-        device: torch.device | None = None,
+        device: torch.device | str = "cpu",
         mask_test: bool = False,
         mask_train: bool = False,
         task_mask: Tensor | None = None,
@@ -174,9 +206,7 @@ class RWalk(BatchClassifier, nn.Module, Handler):
             ``task_mask``.
         """
         super().__init__(schema, 0)
-        nn.Module.__init__(self)
-        if device is None:
-            device = torch.device("cpu")
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         if (mask_train or mask_test) and task_mask is None:
             raise ValueError(
                 "Task schedule must be provided for task incremental or labels trick scenarios."
@@ -188,8 +218,6 @@ class RWalk(BatchClassifier, nn.Module, Handler):
         if delta_t < 1:
             raise ValueError("delta_t must be at least 1.")
 
-        self.device = device
-
         # Hyperparameters
         self._lambda = lambda_
         self._alpha = alpha
@@ -199,53 +227,61 @@ class RWalk(BatchClassifier, nn.Module, Handler):
 
         # Modules
         self._optimiser = optimiser
-        self._model = model
-        self._criterion = torch.nn.CrossEntropyLoss()
 
         # Persistent regularisation buffers
         params = list(trainable_params(model))
-        self._anchor_params = BufferList([param.clone().detach() for param in params])
-        self._penalties = BufferList([torch.zeros_like(param) for param in params])
-        self._task_scores = BufferList([torch.zeros_like(param) for param in params])
+        anchor_params = BufferList([param.clone().detach() for param in params])
+        penalties = BufferList([torch.zeros_like(param) for param in params])
+        task_scores = BufferList([torch.zeros_like(param) for param in params])
 
         # Task-local running statistics
-        self._iter_importances = BufferList([torch.zeros_like(p) for p in params])
-        self._iter_grads = BufferList([torch.zeros_like(param) for param in params])
-        self._pre_step_params = BufferList([torch.zeros_like(p) for p in params])
-        self._checkpoint_params = BufferList([p.clone().detach() for p in params])
-        self._checkpoint_losses = BufferList([torch.zeros_like(p) for p in params])
-        self._checkpoint_scores = BufferList([torch.zeros_like(p) for p in params])
+        iter_importances = BufferList([torch.zeros_like(p) for p in params])
+        iter_grads = BufferList([torch.zeros_like(param) for param in params])
+        pre_step_params = BufferList([torch.zeros_like(p) for p in params])
+        checkpoint_params = BufferList([p.clone().detach() for p in params])
+        checkpoint_losses = BufferList([torch.zeros_like(p) for p in params])
+        checkpoint_scores = BufferList([torch.zeros_like(p) for p in params])
 
         # Task tracking
         self._train_task = 0
         self._test_task = 0
         self._steps_since_checkpoint = 0
         self._has_completed_task = False
-        if task_mask is None:
-            self._task_mask = None
-        else:
-            self._task_mask = nn.Buffer(task_mask)
 
-        # Move all model parameters and buffers to the specified device
-        self.to(device)
+        # All torch state lives in one private module
+        self._module = _RWalkModule(
+            model,
+            task_mask,
+            anchor_params,
+            penalties,
+            task_scores,
+            iter_importances,
+            iter_grads,
+            pre_step_params,
+            checkpoint_params,
+            checkpoint_losses,
+            checkpoint_scores,
+        ).to(device)
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self._model.train()
+        self._module.model.train()
 
         self._optimiser.zero_grad()
         y_hat = self._train_forward(x)
-        loss = self._criterion(y_hat, y)
+        loss = self._module.criterion(y_hat, y)
         loss.backward()
 
-        copy_params_(self._model, self._pre_step_params)
-        copy_grads_(self._model, self._iter_grads)
-        update_importances_(self._iter_importances, self._iter_grads, self._alpha)
+        copy_params_(self._module.model, self._module.pre_step_params)
+        copy_grads_(self._module.model, self._module.iter_grads)
+        update_importances_(
+            self._module.iter_importances, self._module.iter_grads, self._alpha
+        )
 
         if self._train_task > 0:
             reg_loss = self._lambda * weighted_l2_reg(
-                trainable_params(self._model),
-                self._anchor_params,
-                self._penalties,
+                trainable_params(self._module.model),
+                self._module.anchor_params,
+                self._module.penalties,
                 device=self.device,
             )
             reg_loss.backward()
@@ -253,10 +289,10 @@ class RWalk(BatchClassifier, nn.Module, Handler):
         self._optimiser.step()
 
         accumulate_loss_(
-            self._checkpoint_losses,
-            trainable_params(self._model),
-            self._pre_step_params,
-            self._iter_grads,
+            self._module.checkpoint_losses,
+            trainable_params(self._module.model),
+            self._module.pre_step_params,
+            self._module.iter_grads,
         )
 
         self._steps_since_checkpoint += 1
@@ -265,7 +301,7 @@ class RWalk(BatchClassifier, nn.Module, Handler):
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        self._model.eval()
+        self._module.model.eval()
         y_hat = self._test_forward(x)
         return torch.softmax(y_hat, dim=1)
 
@@ -290,20 +326,26 @@ class RWalk(BatchClassifier, nn.Module, Handler):
             self._flush_checkpoint_scores()
 
         if self._has_completed_task:
-            update_task_scores_(self._checkpoint_scores, self._task_scores)
+            update_task_scores_(
+                self._module.checkpoint_scores, self._module.task_scores
+            )
 
         for task_score, checkpoint_score in zip(
-            self._task_scores, self._checkpoint_scores, strict=True
+            self._module.task_scores, self._module.checkpoint_scores, strict=True
         ):
             task_score.copy_(checkpoint_score)
 
-        set_penalties_(self._penalties, self._iter_importances, self._task_scores)
-        copy_params_(self._model, self._anchor_params)
+        set_penalties_(
+            self._module.penalties,
+            self._module.iter_importances,
+            self._module.task_scores,
+        )
+        copy_params_(self._module.model, self._module.anchor_params)
 
-        zero_(self._checkpoint_losses)
-        zero_(self._checkpoint_scores)
-        zero_(self._iter_importances)
-        copy_params_(self._model, self._checkpoint_params)
+        zero_(self._module.checkpoint_losses)
+        zero_(self._module.checkpoint_scores)
+        zero_(self._module.iter_importances)
+        copy_params_(self._module.model, self._module.checkpoint_params)
         self._steps_since_checkpoint = 0
         self._has_completed_task = True
 
@@ -311,28 +353,32 @@ class RWalk(BatchClassifier, nn.Module, Handler):
     def _flush_checkpoint_scores(self) -> None:
         """Commit the current checkpoint segment into the task scores."""
         update_scores_(
-            scores=self._checkpoint_scores,
-            params=list(trainable_params(self._model)),
-            losses=self._checkpoint_losses,
-            importances=self._iter_importances,
-            old_params=self._checkpoint_params,
+            scores=self._module.checkpoint_scores,
+            params=list(trainable_params(self._module.model)),
+            losses=self._module.checkpoint_losses,
+            importances=self._module.iter_importances,
+            old_params=self._module.checkpoint_params,
         )
-        zero_(self._checkpoint_losses)
-        copy_params_(self._model, self._checkpoint_params)
+        zero_(self._module.checkpoint_losses)
+        copy_params_(self._module.model, self._module.checkpoint_params)
         self._steps_since_checkpoint = 0
 
     def _test_forward(self, x: Tensor) -> Tensor:
         """Compute logits for inference, optionally applying a test-task mask."""
-        y_hat = self._model(x)
-        if self._task_mask is not None and self._mask_test:
-            y_hat = y_hat.masked_fill(self._task_mask[self._test_task] == 0, NEG_INF)
+        y_hat = self._module.model(x)
+        if self._module.task_mask is not None and self._mask_test:
+            y_hat = y_hat.masked_fill(
+                self._module.task_mask[self._test_task] == 0, NEG_INF
+            )
         return y_hat
 
     def _train_forward(self, x: Tensor) -> Tensor:
         """Compute logits for training, optionally applying a train-task mask."""
-        y_hat = self._model(x)
-        if self._task_mask is not None and self._mask_train:
-            y_hat = y_hat.masked_fill(self._task_mask[self._train_task] == 0, NEG_INF)
+        y_hat = self._module.model(x)
+        if self._module.task_mask is not None and self._mask_train:
+            y_hat = y_hat.masked_fill(
+                self._module.task_mask[self._train_task] == 0, NEG_INF
+            )
         return y_hat
 
     def __str__(self) -> str:
