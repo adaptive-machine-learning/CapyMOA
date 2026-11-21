@@ -5,6 +5,9 @@ the only thing exercising it was `notebooks/common/pipelines.py`, which nbmake r
 without checking output. See adaptive-machine-learning/backlog#87 and #154.
 """
 
+import re
+from html.parser import HTMLParser
+
 import pytest
 from jpype import JException
 from moa.streams.filters import (
@@ -610,3 +613,171 @@ def test_matching_wiring_is_never_rejected(stream_cls):
         MOATransformer(schema=transformer.get_schema(), moa_filter=AddNoiseFilter())
     )
     assert len(pipeline.elements) == 2
+
+
+# ============================================================================
+# Jupyter rendering (_repr_html_), backlog#154 workstream 3
+# ============================================================================
+
+
+def _full_pipeline(stream):
+    """Transformers, a classifier and a drift detector: one step of each kind."""
+    from capymoa.drift.monitors import prediction_is_correct
+
+    normaliser = _normaliser(stream.get_schema())
+    return (
+        ClassifierPipeline()
+        .add_transformer(normaliser)
+        .add_classifier(OnlineBagging(schema=normaliser.get_schema(), ensemble_size=5))
+        .add_drift_detector(ADWIN(), prediction_is_correct())
+    )
+
+
+class _TagBalance(HTMLParser):
+    """Record tags that are opened but not closed in the right order."""
+
+    def __init__(self):
+        super().__init__()
+        self.stack, self.errors = [], []
+
+    def handle_starttag(self, tag, attrs):
+        self.stack.append(tag)
+
+    def handle_endtag(self, tag):
+        if not self.stack or self.stack[-1] != tag:
+            self.errors.append(f"unexpected </{tag}>, open: {self.stack}")
+        else:
+            self.stack.pop()
+
+
+def test_repr_html_names_every_step(elec):
+    html = _full_pipeline(elec)._repr_html_()
+    for name in ("NormalisationFilter", "OnlineBagging", "ADWINChangeDetector"):
+        assert name in html
+
+
+def test_repr_html_labels_each_kind_of_step(elec):
+    html = _full_pipeline(elec)._repr_html_()
+    for kind in ("Transformer", "Classifier", "Drift detector"):
+        assert kind in html
+
+
+def test_repr_html_shows_the_parameters_of_a_step(elec):
+    """The sklearn-style detail: a step expands to show its get_params()."""
+    html = _full_pipeline(elec)._repr_html_()
+    assert "<details" in html
+    assert "ensemble_size" in html
+    assert "delta" in html, "the drift detector's parameters should show too"
+
+
+def test_repr_html_names_what_a_drift_detector_monitors(elec):
+    html = _full_pipeline(elec)._repr_html_()
+    assert "monitors prediction_is_correct" in html
+
+
+def test_repr_html_shows_a_shrinking_feature_set(elec):
+    pipeline = ClassifierPipeline().add_transformer(_hasher(elec.get_schema(), 3))
+    pipeline.pass_forward(elec.next_instance())
+    assert "6 &rarr; 3 attributes" in pipeline._repr_html_()
+
+
+def test_repr_html_nests_inner_pipelines(elec):
+    inner = BasePipeline().add_transformer(_normaliser(elec.get_schema()))
+    outer = ClassifierPipeline([inner])
+    html = outer._repr_html_()
+    assert html.count('class="cm-nested"') == 1
+    assert "BasePipeline" in html and "ClassifierPipeline" in html
+
+
+def test_repr_html_handles_an_empty_pipeline():
+    assert "no steps" in BasePipeline()._repr_html_()
+
+
+@pytest.mark.parametrize(
+    "pipeline_cls", [BasePipeline, ClassifierPipeline, RegressorPipeline]
+)
+def test_repr_html_works_for_every_pipeline_type(pipeline_cls):
+    assert pipeline_cls()._repr_html_().startswith("<div")
+
+
+class _HostileStep:
+    """A custom pipeline element whose name and parameters are markup.
+
+    Deliberately not a subclass of a known element type: those are named from
+    other attributes (a transformer from its MOA filter), so only a custom
+    element reaches the code path that names a step by ``str()``.
+    """
+
+    def pass_forward(self, instance):
+        return instance
+
+    def pass_forward_predict(self, instance, prediction=None):
+        return instance, prediction
+
+    def get_schema(self):
+        return None
+
+    def get_input_schema(self):
+        return None
+
+    def __str__(self):
+        return "<script>alert(1)</script>"
+
+
+def test_repr_html_escapes_step_names():
+    """A step's name is text, never markup."""
+    html = BasePipeline().add_pipeline_element(_HostileStep())._repr_html_()
+    assert "<script>" not in html
+    assert (
+        '<span class="cm-name">&lt;script&gt;alert(1)&lt;/script&gt;</span>' in html
+    ), "the name itself must be escaped, not only the text fallback"
+
+
+def test_repr_html_is_well_formed(elec):
+    for pipeline in (_full_pipeline(elec), BasePipeline()):
+        checker = _TagBalance()
+        checker.feed(pipeline._repr_html_())
+        assert checker.errors == []
+        assert checker.stack == [], f"unclosed tags: {checker.stack}"
+
+
+def test_repr_html_scopes_styles_to_each_render(elec):
+    """Two pipelines in one notebook must not share, or fight over, styles."""
+    first = _full_pipeline(elec)._repr_html_()
+    second = BasePipeline()._repr_html_()
+    first_id = re.search(r'id="(capymoa-pipeline-\d+)"', first).group(1)
+    second_id = re.search(r'id="(capymoa-pipeline-\d+)"', second).group(1)
+    assert first_id != second_id
+    assert "#ROOT" not in first, "the style placeholder must be replaced"
+    assert f"#{first_id} .cm-step" in first
+
+
+def test_repr_html_falls_back_to_text_without_styles(elec):
+    """Viewers that strip <style> must still show something readable."""
+    pipeline = _full_pipeline(elec)
+    html = pipeline._repr_html_()
+    assert '<pre class="cm-fallback">' in html
+    assert str(pipeline).split(" | ")[0] in html
+    assert 'class="cm-container" hidden' in html
+
+
+def test_repr_html_does_not_theme_by_operating_system():
+    """Regression: a dark palette keyed on the OS drew dark boxes on light notebooks.
+
+    `prefers-color-scheme` reports the operating system, not the notebook, so
+    the diagram inherits the notebook's colours instead.
+    """
+    css = re.search(r"<style>(.*?)</style>", BasePipeline()._repr_html_(), re.DOTALL)
+    assert "prefers-color-scheme" not in css.group(1)
+    assert "color: inherit" in css.group(1)
+
+
+def test_repr_html_returns_none_rather_than_raising(monkeypatch):
+    """A broken display hook must let Jupyter fall back to text, not show a traceback."""
+    import capymoa.stream.preprocessing._html as html_module
+
+    def broken(pipeline):
+        raise RuntimeError("renderer bug")
+
+    monkeypatch.setattr(html_module, "render", broken)
+    assert BasePipeline()._repr_html_() is None
