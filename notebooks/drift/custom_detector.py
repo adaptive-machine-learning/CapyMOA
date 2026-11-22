@@ -17,9 +17,9 @@
 # # Custom Drift Detectors
 #
 # Some CapyMOA learners accept a custom drift detector, so they can adapt to
-# distribution shifts. This includes learners written in Java (MOA), using CapyMOA's
-# Java proxy module ({mod}`capymoa.core.moa.proxy`). In this tutorial we write a basic
-# drift detector and use it in Adaptive Random Forest.
+# distribution shifts. This includes using Python drift detectors in Java (MOA)
+# learners, with CapyMOA's Java proxy ({mod}`capymoa.core.moa.proxy`). In this tutorial
+# we write a basic drift detector and use it in Adaptive Random Forest.
 
 # %% tags=["remove-cell"]
 # This cell is hidden on capymoa.org. See docs/contributing/docs.rst
@@ -181,3 +181,34 @@ for name, result in results.items():
     print(f"{name}: {result['cumulative']['accuracy']:.2f}% accuracy")
 
 plot_windowed_results(*results.values(), metric="accuracy")
+
+# %% [markdown]
+# ## Limits
+#
+# Using Python drift detectors in Java learners has some limits:
+#
+# * The Java learner does not use the object you pass. Instead, it uses the object's
+#   configuration to construct new detectors. So constructor parameters must be simple
+#   values (numbers, strings, lists, ...) that
+#   {meth}`~capymoa.base.LearnerParamsMixin.get_params` can capture, and any state in
+#   the passed object is lost.
+# * {func}`~capymoa.core.io.save_model` cannot save a Python detector inside a Java
+#   learner because it relies on Java serialization.
+# * Large numbers of Python detectors (such as one per ensemble member) can be slow.
+# * Unsupported MOA methods (such as options, estimation, or delay) raise
+#   {class}`~capymoa.core.moa.proxy.ProxyNotImplementedError` (see
+#   {mod}`capymoa.core.moa.proxy`).
+#
+# If you run into any of these limits, please open an issue on the CapyMOA repository so
+# we can prioritize addressing it for a future release and figure out a workaround for
+# your research.
+#
+# ```{admonition} See also
+# :class: seealso
+#
+# - {mod}`capymoa.core.moa.proxy`: the adapter that lets MOA call Python detectors.
+# - {doc}`/notebooks/classifier/java_ensemble_python_learner`: use the same approach to
+#   plug a Python learner into a Java ensemble.
+# - {doc}`/contributing/moa/moa_integration`: go the other way, write a method in
+#   Java and use it from Python.
+# ```

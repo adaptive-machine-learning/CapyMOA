@@ -76,10 +76,9 @@ class NearestCentroid(Classifier):
 # Pass an instance of the learner as `base_learner`. CapyMOA automatically wraps it in
 # an adapter ({func}`~capymoa.core.moa.proxy.to_java_proxy`) so MOA can use it.
 #
-# The ensemble does not use the object you pass. Instead, it uses it as a prototype to
-# configure its members. This lets each member have its own seed, state, and schema.
-#
-# This has some limits:
+# The ensemble does not use the object you pass. Instead, it uses the object's
+# configuration to construct the ensemble members. This lets each member be constructed
+# independently with its own seed, state, and schema. But this approach has limits:
 #
 # * Constructor parameters must be simple values (numbers, strings, lists, ...) or other
 #   CapyMOA learners, so they can be captured by
@@ -123,11 +122,30 @@ plot_windowed_results(*results.values(), metric="accuracy")
 # %% [markdown]
 # ## Limits
 #
-# * **Speed.** Python base learners (members) can be slow when used in large numbers.
-# * **Instance weights.** Some MOA learners weight training instances. CapyMOA's Java
-#   proxy applies a weight by training on the instance repeatedly.
-# * **Saving.** {func}`~capymoa.core.io.save_model` uses Java serialization, which cannot
-#   save a Python learner inside a Java ensemble.
-# * **MOA-only methods.** Some MOA methods, such as the options or the model size, are
-#   not supported. They raise {class}`~capymoa.core.moa.proxy.ProxyNotImplementedError`
-#   (see {mod}`capymoa.core.moa.proxy`). Please open an issue if you hit one.
+# Using Python base learners in Java ensembles has some limits:
+#
+# * Since the passed objects are used only for their configuration, any training done
+#   before is lost.
+# * {func}`~capymoa.core.io.save_model` cannot save a Python learner inside a Java
+#   ensemble because it relies on Java serialization.
+# * Large numbers of Python base learners (members) can be slow.
+# * Weighted training instances from MOA learners are handled by CapyMOA's Java proxy by
+#   training on the instance repeatedly. This is a common approach for training with
+#   weighted instances without algorithmic support in the base learner.
+# * Unsupported MOA methods (such as options or model size) raise
+#   {class}`~capymoa.core.moa.proxy.ProxyNotImplementedError` (see
+#   {mod}`capymoa.core.moa.proxy`).
+#
+# If you run into any of these limits, please open an issue on the CapyMOA repository so
+# we can prioritize addressing it for a future release and figure out a workaround for
+# your research.
+#
+# ```{admonition} See also
+# :class: seealso
+#
+# - {mod}`capymoa.core.moa.proxy`: the adapter that lets MOA call Python learners.
+# - {doc}`/notebooks/drift/custom_detector`: use the same approach to plug a Python
+#   drift detector into a Java learner.
+# - {doc}`/contributing/moa/moa_integration`: go the other way, write a method in
+#   Java and use it from Python.
+# ```
