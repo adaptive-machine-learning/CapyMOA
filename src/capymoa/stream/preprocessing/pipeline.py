@@ -154,12 +154,17 @@ class TransformerPipelineElement(PipelineElement):
         self.transformer = transformer
 
     def pass_forward(self, instance: Instance) -> Instance:
-        """Transform and return an instance.
+        """Transform an instance, then train the transformer on it.
+
+        Transforming first means the transformer's output for an instance
+        never depends on that instance's own label.
 
         :param instance: Input instance.
         :returns: Transformed instance.
         """
-        return self.transformer.transform_instance(instance)
+        transformed = self.transformer.transform_instance(instance)
+        self.transformer.train(instance)
+        return transformed
 
     def pass_forward_predict(
         self, instance: Instance, prediction: Any = None

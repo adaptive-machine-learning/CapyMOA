@@ -9,6 +9,7 @@ from ._feature_importance import (
     FeatureImportanceClassifier,
     MOAFeatureImportanceClassifier,
 )
+from ._selector import TopKFeatureSelector
 from .visualization import (
     plot_feature_importance,
     plot_windowed_feature_importance,
@@ -17,6 +18,7 @@ from .visualization import (
 __all__ = [
     "FeatureImportanceClassifier",
     "MOAFeatureImportanceClassifier",
+    "TopKFeatureSelector",
     "plot_feature_importance",
     "plot_windowed_feature_importance",
 ]
