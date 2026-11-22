@@ -1,4 +1,7 @@
+import functools
 from abc import ABC, abstractmethod
+from collections.abc import Callable
+from typing import Any
 
 from moa.classifiers.core.driftdetection import (
     AbstractChangeDetector as _AbstractChangeDetector,
@@ -6,19 +9,71 @@ from moa.classifiers.core.driftdetection import (
 from typing_extensions import override
 
 from capymoa.base._learner_params import LearnerParamsMixin
+from capymoa.drift.events import DriftEvent, WarningEvent
+from capymoa.events import Dispatcher, Event
+
+
+def _emit_after(add_element: Callable[..., Any]) -> Callable[..., Any]:
+    """Wrap ``add_element`` so the detector emits events after it runs.
+
+    An event is emitted for each entry ``add_element`` adds to
+    ``warning_index`` or ``detection_index``. The history is used rather than
+    ``in_warning_zone`` and ``in_concept_change``, because some detectors leave
+    those flags unchanged when they return early.
+    """
+
+    @functools.wraps(add_element)
+    def wrapper(self: "BaseDriftDetector", *args: Any, **kwargs: Any) -> Any:
+        # A subclass calling super().add_element() must not emit twice.
+        if getattr(self, "_adding_element", False):
+            return add_element(self, *args, **kwargs)
+
+        n_warnings, n_drifts = len(self.warning_index), len(self.detection_index)
+        self._adding_element = True
+        try:
+            result = add_element(self, *args, **kwargs)
+        finally:
+            self._adding_element = False
+
+        for index in self.warning_index[n_warnings:]:
+            self.events.notify(WarningEvent(self, index))
+        for index in self.detection_index[n_drifts:]:
+            self.events.notify(DriftEvent(self, index))
+        return result
+
+    return wrapper
 
 
 class BaseDriftDetector(LearnerParamsMixin, ABC):
-    """Drift Detector"""
+    """Drift Detector
+
+    A detector emits a :class:`~capymoa.drift.events.WarningEvent` or a
+    :class:`~capymoa.drift.events.DriftEvent` each time it records a warning or
+    a drift. Subscribe through :attr:`events`, and see :mod:`capymoa.drift.events`
+    for an example. :attr:`emits` lists the events a detector can emit.
+    """
+
+    emits: tuple[type[Event], ...] = (WarningEvent, DriftEvent)
+    """The events this detector emits through :attr:`events`."""
 
     REQUIRES_FIT: bool = False
     """If ``True``, this detector needs a reference distribution before
     it can detect change. Concept drift detectors leave this as
     ``False`` and only use :meth:`add_element`."""
 
+    def __init_subclass__(cls, **kwargs) -> None:
+        super().__init_subclass__(**kwargs)
+        add_element = cls.__dict__.get("add_element")
+        if add_element is not None and not getattr(
+            add_element, "__isabstractmethod__", False
+        ):
+            cls.add_element = _emit_after(add_element)
+
     def __init__(self):
         super().__init__()
 
+        self.events = Dispatcher(emits=self.emits)
+        """Subscribe here to be called on a warning or a drift."""
         self.in_concept_change = None
         self.in_warning_zone = None
         self.detection_index = []
