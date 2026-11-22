@@ -356,6 +356,13 @@ ob_evaluator.accuracy()
 str(pipeline)
 
 # %% [markdown]
+# In a notebook, a pipeline left as the last line of a cell draws as a diagram.
+# Each step shows the schema it works on. Click a learner to see its parameters.
+
+# %%
+pipeline
+
+# %% [markdown]
 # ### Alternative syntax
 #
 # * An alternative syntax to define the pipeline is shown below.

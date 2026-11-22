@@ -462,6 +462,21 @@ class BasePipeline(PipelineElement):
     def __str__(self):
         return " | ".join(str(element) for element in self.elements)
 
+    def _repr_html_(self) -> str | None:
+        """Show the pipeline as a diagram in Jupyter.
+
+        Each step is a box. Click one to see its parameters. Returns ``None`` if
+        the diagram cannot be drawn, so Jupyter falls back to plain text rather
+        than showing an error where the pipeline should be.
+        """
+        from ._html import render
+
+        try:
+            return render(self)
+        except Exception:  # noqa: BLE001
+            # A display hook must never raise. None makes Jupyter show plain text.
+            return None
+
 
 class ClassifierPipeline(BasePipeline, Classifier):
     """
