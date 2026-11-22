@@ -459,6 +459,37 @@ def test_feature_changing_filter_reports_its_new_shape(
     assert not transformer.get_schema().is_compatible_with(in_schema)
 
 
+@pytest.mark.parametrize("stream_cls", STREAMS, ids=_ids(STREAMS))
+@pytest.mark.parametrize(
+    "filter_cls", FEATURE_PRESERVING_FILTERS, ids=_ids(FEATURE_PRESERVING_FILTERS)
+)
+def test_feature_preserving_filter_knows_its_output_before_data(filter_cls, stream_cls):
+    """MOA publishes no header before data, so this rests on preserves_attributes.
+
+    Also keeps MOATransformer's list of value-only filters in step with
+    FEATURE_PRESERVING_FILTERS above.
+    """
+    transformer = MOATransformer(
+        schema=stream_cls().get_schema(), moa_filter=filter_cls()
+    )
+    assert transformer.preserves_attributes
+    assert transformer.is_output_schema_known()
+
+
+@pytest.mark.parametrize("filter_cls,cli,expected", FEATURE_CHANGING_FILTERS)
+def test_feature_changing_filter_output_is_unknown_until_data(
+    filter_cls, cli, expected, elec
+):
+    transformer = MOATransformer(
+        schema=elec.get_schema(), moa_filter=filter_cls(), CLI=cli
+    )
+    assert not transformer.preserves_attributes
+    assert not transformer.is_output_schema_known()
+
+    transformer.transform_instance(elec.next_instance())
+    assert transformer.is_output_schema_known()
+
+
 @pytest.mark.parametrize(
     "filter_cls,cli", BROKEN_FILTERS, ids=_ids([f for f, _ in BROKEN_FILTERS])
 )
@@ -679,6 +710,40 @@ def test_repr_html_shows_a_shrinking_feature_set(elec):
     pipeline = ClassifierPipeline().add_transformer(_hasher(elec.get_schema(), 3))
     pipeline.pass_forward(elec.next_instance())
     assert "6 &rarr; 3 attributes" in pipeline._repr_html_()
+
+
+_UNKNOWN_NOTE = "unknown until an instance has passed through"
+
+
+def test_repr_html_marks_an_output_not_known_yet(elec):
+    """Before data, a filter that may resize the features shows `?`, not a guess."""
+    pipeline = ClassifierPipeline().add_transformer(_hasher(elec.get_schema(), 3))
+    html = pipeline._repr_html_()
+    assert "6 &rarr; ? attributes" in html
+    assert _UNKNOWN_NOTE in html
+    assert "6 attributes" not in html, "the old guess, the input size, must not show"
+
+
+def test_repr_html_drops_the_mark_once_data_has_flowed(elec):
+    pipeline = ClassifierPipeline().add_transformer(_hasher(elec.get_schema(), 3))
+    pipeline.pass_forward(elec.next_instance())
+    html = pipeline._repr_html_()
+    assert "?" not in re.sub(r"<style>.*?</style>", "", html, flags=re.DOTALL)
+    assert _UNKNOWN_NOTE not in html
+
+
+def test_repr_html_does_not_mark_a_filter_that_keeps_the_attributes(elec):
+    html = ClassifierPipeline().add_transformer(_normaliser(elec.get_schema()))
+    html = html._repr_html_()
+    assert "6 attributes" in html
+    assert _UNKNOWN_NOTE not in html
+
+
+def test_repr_html_marks_a_nested_pipeline_whose_output_is_unknown(elec):
+    inner = BasePipeline().add_transformer(_hasher(elec.get_schema(), 3))
+    html = ClassifierPipeline([inner])._repr_html_()
+    assert html.count("&rarr; ? attributes") == 3, "inner step, inner and outer heads"
+    assert html.count(_UNKNOWN_NOTE) == 1, "one note per diagram"
 
 
 def test_repr_html_nests_inner_pipelines(elec):

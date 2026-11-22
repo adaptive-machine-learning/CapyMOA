@@ -67,6 +67,7 @@ _CSS = """
   border: 1px dashed var(--cm-border); border-radius: 6px; padding: 6px 8px;
 }
 #ROOT .cm-empty { opacity: 0.65; font-style: italic; }
+#ROOT .cm-note { font-size: 0.8em; opacity: 0.65; margin-top: 6px; }
 #ROOT table { margin: 4px 0 2px; font-size: 0.85em; border-collapse: collapse; }
 #ROOT td { padding: 1px 10px 1px 0; vertical-align: top; }
 #ROOT td.cm-key { opacity: 0.65; }
@@ -77,11 +78,17 @@ def render(pipeline: BasePipeline) -> str:
     """Return the HTML for ``pipeline``, styles included."""
     root_id = f"capymoa-pipeline-{next(_render_ids)}"
     text = f"{type(pipeline).__name__}: {str(pipeline) or 'no steps'}"
+    note = (
+        ""
+        if _output_known(pipeline)
+        else '<div class="cm-note">? Number of attributes unknown until an '
+        "instance has passed through.</div>"
+    )
     return (
         f'<div id="{root_id}" class="cm-root">'
         f"<style>{_CSS.replace('#ROOT', '#' + root_id)}</style>"
         f'<pre class="cm-fallback">{html.escape(text)}</pre>'
-        f'<div class="cm-container" hidden>{_render_pipeline(pipeline)}</div>'
+        f'<div class="cm-container" hidden>{_render_pipeline(pipeline)}{note}</div>'
         "</div>"
     )
 
@@ -169,11 +176,29 @@ def _describe(
     return "", "Step", str(element), None, _shape(element)
 
 
+def _output_known(element: PipelineElement) -> bool:
+    """Return ``False`` if a transformer in ``element`` has not reported its output.
+
+    MOA filters learn their output schema from the first instance, so before
+    any data a pipeline cannot say how many attributes a transformer emits.
+    """
+    from .pipeline import BasePipeline, TransformerPipelineElement
+
+    if isinstance(element, BasePipeline):
+        return all(_output_known(inner) for inner in element.elements)
+    if isinstance(element, TransformerPipelineElement):
+        is_known = getattr(element.transformer, "is_output_schema_known", None)
+        return True if is_known is None else bool(is_known())
+    return True
+
+
 def _shape(element: PipelineElement) -> str:
     """Describe the schema an element works on, or return an empty string."""
     incoming = element.get_input_schema()
     outgoing = element.get_schema()
-    if incoming is not None and outgoing is not None:
+    if incoming is not None and not _output_known(element):
+        text = f"{incoming.get_num_attributes()} &rarr; ? attributes"
+    elif incoming is not None and outgoing is not None:
         n_in, n_out = incoming.get_num_attributes(), outgoing.get_num_attributes()
         text = (
             f"{n_in} attributes"
