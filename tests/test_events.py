@@ -104,6 +104,7 @@ def test_subscribe_rejects_a_non_event_type():
         Dispatcher().subscribe("DriftEvent", print)  # type: ignore[arg-type]
 
 
+@pytest.mark.torch
 def test_ocl_events_module_is_an_alias():
     import capymoa.events
     import capymoa.ocl.events
