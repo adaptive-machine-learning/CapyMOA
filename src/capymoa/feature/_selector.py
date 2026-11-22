@@ -56,8 +56,8 @@ class TopKFeatureSelector(Transformer):
     Before the warm-up ends, :meth:`get_schema` returns ``None`` and
     :meth:`transform_instance` raises, because the output is not known yet.
 
-    Importance comes from :class:`~capymoa.feature.MOAFeatureImportanceClassifier`
-    wrapping an adaptive random forest by default. A single Hoeffding tree
+    Importance comes from a :class:`~capymoa.feature.FeatureImportanceClassifier`,
+    an adaptive random forest by default. A single Hoeffding tree
     scores no feature until its first split, which can take longer than a
     warm-up.
 
@@ -80,8 +80,7 @@ class TopKFeatureSelector(Transformer):
         :param warmup: The number of training instances to score features on
             before selecting.
         :param scorer: A feature-importance classifier for ``schema``. If
-            ``None``, an adaptive random forest wrapped in
-            :class:`~capymoa.feature.MOAFeatureImportanceClassifier` is used.
+            ``None``, an adaptive random forest is used.
         :param random_seed: Seed for the default scorer. Ignored when
             ``scorer`` is given.
         :raises ValueError: If the schema is not for classification, or ``k``
