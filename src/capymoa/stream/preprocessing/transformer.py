@@ -34,6 +34,21 @@ class Transformer(ABC):
         """
         return self.get_schema()
 
+    def train(self, instance: Instance) -> None:
+        """Update the transformer from a training instance.
+
+        A pipeline calls this when it trains, for example in
+        :meth:`~capymoa.stream.preprocessing.ClassifierPipeline.train`, after
+        :meth:`transform_instance` has transformed the same instance. It is
+        never called when the pipeline predicts, so a transformer that learns from
+        labels (a supervised feature selector, for example) does it here.
+
+        Does nothing by default. Transformers that update their state while
+        transforming, as MOA filters do, need not override it.
+
+        :param instance: The instance as it entered this transformer.
+        """
+
     def is_output_schema_known(self) -> bool:
         """Return whether :meth:`get_schema` describes the real output yet.
 
