@@ -1,3 +1,4 @@
+import hashlib
 import math
 import sys
 
@@ -31,7 +32,19 @@ class RSHashCountMinSketch:
 
     def _indices(self, x: np.ndarray) -> list[int]:
         payload = x.tobytes()
-        return [hash((key, payload)) % self.p for key in self.hash_keys]
+        # Python's builtin hash() is randomized per process, so seed keys alone
+        # do not make the sketch reproducible across runs. Digest the payload
+        # under the key instead: a stable, keyed hash.
+        return [
+            int.from_bytes(
+                hashlib.blake2b(
+                    payload, key=key.to_bytes(8, "big"), digest_size=8
+                ).digest(),
+                "big",
+            )
+            % self.p
+            for key in self.hash_keys
+        ]
 
     def add(self, x: np.ndarray) -> None:
         for k, i in enumerate(self._indices(x)):
@@ -116,7 +129,7 @@ class RSHash(AnomalyDetector):
     >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
-    >>> learner = RSHash(schema, s=256)
+    >>> learner = RSHash(schema, s=256, seed=42)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -135,16 +148,16 @@ class RSHash(AnomalyDetector):
         s: int = 1000,
         w: int = 4,
         p: int = 10_000,
-        seed: int = 42,
-    ):
+        seed: int | None = None,
+    ) -> None:
         """Construct an RS-Hash anomaly detector.
 
-        :param schema: Schema of the stream.
+        :param schema: Describes the stream's structure and types.
         :param m: Number of ensemble components.
         :param s: Sliding window length.
         :param w: Number of hash tables per component.
         :param p: Hash range per component.
-        :param seed: Random seed.
+        :param seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         super().__init__(schema, random_seed=seed)
@@ -154,7 +167,7 @@ class RSHash(AnomalyDetector):
         self.p = p
         self.d = schema.get_num_attributes()
 
-        self.rng = np.random.default_rng(seed)
+        self.rng = np.random.default_rng(self.random_seed)
 
         self.components: list[RSHashComponent] = []
         self.window: list[Instance] = []

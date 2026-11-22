@@ -4,21 +4,32 @@ from moa.classifiers.predictioninterval import AdaptivePredictionInterval as MOA
 
 from capymoa.base import (
     MOAPredictionIntervalLearner,
+    MOARegressor,
 )
 from capymoa.core.moa._cli import cli_str_regressor
 from capymoa.regressor import AdaptiveRandomForestRegressor
+from capymoa.stream import Schema
 
 
 class AdaPI(MOAPredictionIntervalLearner):
     def __init__(
         self,
-        schema=None,
-        CLI=None,
-        random_seed=1,
-        base_learner=None,
-        confidence_level=0.95,
-        limit=0.1,
-    ):
+        schema: Schema,
+        base_learner: str | MOARegressor | None = None,
+        confidence_level: float = 0.95,
+        limit: float = 0.1,
+        random_seed: int | None = None,
+    ) -> None:
+        """Construct an AdaPI prediction interval learner.
+
+        :param schema: Describes the stream's structure and types.
+        :param base_learner: The base regressor to use. It can be a CLI string or a
+            CapyMOA regressor. If not provided, an AdaptiveRandomForestRegressor is
+            used.
+        :param confidence_level: The confidence level of the prediction interval, in (0, 1).
+        :param limit: Lower limit of the scalar that scales the interval width. The scalar adapts to the observed coverage.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
+        """
         mappings = {
             "base_learner": "-l",
             "confidence_level": "-c",
@@ -53,14 +64,12 @@ class AdaPI(MOAPredictionIntervalLearner):
 
         self.moa_learner = MOA_AdaPI()
 
-        if CLI is None:
-            self.moa_learner.getOptions().setViaCLIString(config_str)
-            self.moa_learner.prepareForUse()
-            self.moa_learner.resetLearning()
+        self.moa_learner.getOptions().setViaCLIString(config_str)
+        self.moa_learner.prepareForUse()
+        self.moa_learner.resetLearning()
 
         super().__init__(
             schema=schema,
-            CLI=CLI,
             random_seed=random_seed,
             moa_learner=self.moa_learner,
         )

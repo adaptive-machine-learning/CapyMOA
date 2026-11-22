@@ -94,7 +94,7 @@ def evaluate_anomaly(
     >>> from capymoa.datasets import ElectricityTiny
     >>> stream = ElectricityTiny()
     >>> results = evaluate_anomaly(
-    ...     stream, HalfSpaceTrees(stream.get_schema()), max_instances=1000
+    ...     stream, HalfSpaceTrees(stream.get_schema(), random_seed=1), max_instances=1000
     ... )
     >>> print(f"{results['cumulative']['auc']:.2f}")
     0.38

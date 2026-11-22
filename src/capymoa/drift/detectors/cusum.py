@@ -34,7 +34,7 @@ class CUSUM(MOADriftDetector):
         min_n_instances: int = 30,
         delta: float = 0.005,
         lambda_: float = 50,
-    ):
+    ) -> None:
         """Create a CUSUM drift detector.
 
         :param min_n_instances: Minimum number of instances to observe before change

@@ -1015,12 +1015,10 @@ class AbruptDrift(Drift):
 class IndexedCycle:
     """
     An iterator that cycles through an iterable, returning tuples of (index, item).
-
-    Provides methods for replacing items at specific indices and resetting the cycle.
     """
 
     def __init__(self, iterable):
-        self._data = list(iterable)  # Create a copy for modification
+        self._data = list(iterable)  # Create a copy
         self._index = -1
         self._cycle = cycle(self._data)
 
@@ -1035,24 +1033,6 @@ class IndexedCycle:
         item = next(self._cycle)
 
         return self._index, item
-
-    def replace_and_move_to(self, index, new_item):
-        """
-        Replaces the item at the specified index in the original data and moves it to the new position.
-
-        Raises:
-            ValueError: If the index is out of range.
-        """
-
-        if not 0 <= index < len(self._data):
-            raise ValueError("Index out of range")
-
-        self._data[index] = new_item
-        self._cycle = cycle(self._data)  # Reset the cycle with modified data
-
-        # move to new index
-        while self._index != index:
-            _, _ = self.__next__()
 
 
 def get_class_and_init_attributes_with_values(obj):

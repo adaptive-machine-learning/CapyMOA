@@ -1,6 +1,6 @@
-from capymoa._cli import classifier_cli_str
 from capymoa.stream import Schema
 from capymoa.base import MOAClassifier
+from typing import Any
 from typing import Literal
 from {{j_package}} import {{j_class}} as _{{j_class}}
 
@@ -27,6 +27,7 @@ class {{j_class}}(MOAClassifier):
     def __init__(
         self,
         schema: Schema,
+        random_seed: int = 1,
         {%- for option in options %}
         {{option.name}}: {{option.type}} = {{option.default}},
         {%- endfor %}
@@ -37,22 +38,9 @@ class {{j_class}}(MOAClassifier):
         {%- endfor %}
         """
 
-        {% for option in options if option.option_type == "MoaClassOption" %}
-        if isinstance({{option.name}}, MOAClassifier):
-            {{option.name}} = classifier_cli_str({{option.name}})
-        {%- endfor %}
-
-        cli = []
-        {% for option in options -%}
-        {%- if option.type == "bool" -%}
-        cli += ["-{{option.cli_char}}"] if {{option.name}} else []
-        {%- elif option.option_type == "MoaClassOption" -%}
-        cli += [f"-{{option.cli_char}} {{'({' ~ option.name ~ '})'}}"]
-        {%- elif option.option_type == "MultiChoiceOption" -%}
-        cli += [f"-{{option.cli_char}} '{{'{' ~ option.name ~ '}'}}'"]
-         {%- elif option.option_type == "FlagOption" -%}
-        {%- else -%}
-        cli += [f"-{{option.cli_char}} {{'{' ~ option.name ~ '}'}}"]
-        {%- endif %}
-        {% endfor %}
-        super().__init__(moa_learner=_{{j_class}}, schema=schema, CLI=" ".join(cli))
+        options = {
+            {%- for option in options %}
+            "{{option.java_name}}": {{option.name}},
+            {%- endfor %}
+        }
+        super().__init__(moa_learner=_{{j_class}}, schema=schema, random_seed=random_seed, options=options)

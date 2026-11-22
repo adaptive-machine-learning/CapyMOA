@@ -38,7 +38,6 @@ class PLASTIC(MOAClassifier):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int = 1,
         grace_period: int = 200,
         reevaluation_period: int = 200,
         nominal_estimator: str = "NominalAttributeClassObserver",
@@ -51,10 +50,11 @@ class PLASTIC(MOAClassifier):
         leaf_prediction: Literal["MC", "NB", "NBA"] = "NBA",
         max_depth: int = 20,
         max_branch_length: int = 5,
+        random_seed: int | None = None,
     ) -> None:
         """Construct PLASTIC classifier.
 
-        :param random_seed: The random seed passed to the MOA learner.
+        :param schema: Describes the stream's structure and types.
         :param grace_period: The number of instances a leaf should observe between split
             attempts.
         :param reevaluation_period: The number of instances an internal node should
@@ -78,6 +78,7 @@ class PLASTIC(MOAClassifier):
         :param max_depth: Maximum allowed depth of tree.
         :param max_branch_length: Maximum allowed length of branches during
             restructuring.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         cli = []

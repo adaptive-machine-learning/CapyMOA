@@ -48,7 +48,7 @@ class KolmogorovSmirnov(BaseDataDriftDetector):
         auto_fit_samples: int | None = None,
         alternative: Literal["two-sided", "less", "greater"] = "two-sided",
         method: Literal["auto", "exact", "approx", "asymp"] = "auto",
-    ):
+    ) -> None:
         """Create a Kolmogorov-Smirnov data drift detector.
 
         :param window_size: Number of observations in the sliding window.

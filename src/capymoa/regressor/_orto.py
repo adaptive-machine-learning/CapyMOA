@@ -27,7 +27,7 @@ class ORTO(MOARegressor):
         >>> from capymoa.regressor import evaluate_regressor
     >>> stream = Fried()
     >>> schema = stream.get_schema()
-    >>> learner = ORTO(schema)
+    >>> learner = ORTO(schema, random_seed=1)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
     >>> results["cumulative"]["rmse"]
     9.228075678265904
@@ -55,9 +55,9 @@ class ORTO(MOARegressor):
         learning_ratio_const: bool = False,
         random_seed: int | None = None,
     ) -> None:
-        """
-        Construct ORTO.
+        """Construct ORTO.
 
+        :param schema: Describes the stream's structure and types.
         :param max_trees: The maximum number of trees contained in the option tree.
         :param max_option_level: The maximal depth at which option nodes can be created.
         :param option_decay_factor: The option decay factor that determines how many options can be selected at a given level.
@@ -75,6 +75,7 @@ class ORTO(MOARegressor):
         :param learning_ratio: Learning ratio to used for training the Perceptrons in the leaves.
         :param learning_ratio_decay_factor: Learning rate decay factor (not used when learning rate is constant).
         :param learning_ratio_const: Keep learning rate constant instead of decaying.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         cli = []
 

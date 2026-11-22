@@ -2,6 +2,7 @@ import torch
 from torch import Tensor, nn
 
 from capymoa.base import BatchClassifier
+from capymoa.base._seed import resolve_seed
 from capymoa.stream import Schema
 
 from ._ncm import _batch_cumulative_mean
@@ -120,10 +121,11 @@ class SLDA(BatchClassifier):
         num_features: int | None = None,
         ridge: float = 1e-3,
         device: torch.device | str | None = None,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Initialize a SLDA classifier.
 
-        :param schema: Describes the shape and type of the data.
+        :param schema: Describes the stream's structure and types.
         :param pre_processor: A pre-processing module to apply to the input
             data, defaults to an identity module.
         :param num_features: Number of features once pre-processed, defaults to
@@ -131,8 +133,9 @@ class SLDA(BatchClassifier):
         :param ridge: Added to the covariance diagonal so it can be inverted,
             defaults to 1e-3.
         :param device: Device to run the model on, defaults to CPU.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
-        super().__init__(schema)
+        super().__init__(schema, random_seed)
         if pre_processor is None:
             pre_processor = nn.Identity()
         if device is None:
@@ -217,7 +220,7 @@ class RanPAC(SLDA):
     >>> from capymoa.ocl.datasets import TinySplitMNIST
     >>> from capymoa.ocl import evaluate_ocl
     >>> scenario = TinySplitMNIST()
-    >>> learner = RanPAC(scenario.schema, projection_dim=512)
+    >>> learner = RanPAC(scenario.schema, projection_dim=512, random_seed=1)
     >>> results = evaluate_ocl(
     ...     learner,
     ...     scenario.train_loaders(32),
@@ -237,17 +240,18 @@ class RanPAC(SLDA):
         projection_dim: int = 5000,
         ridge: float = 1e-3,
         device: torch.device | str | None = None,
-        random_seed: int = 1,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Initialize a RanPAC classifier.
 
-        :param schema: Describes the shape and type of the data.
+        :param schema: Describes the stream's structure and types.
         :param projection_dim: Number of random features :math:`M`, defaults to 5000.
         :param ridge: Added to the covariance diagonal so it can be inverted,
             defaults to 1e-3.
         :param device: Device to run the model on, defaults to CPU.
-        :param random_seed: Seed for the random projection, defaults to 1.
+        :param random_seed: Seed for the random projection.
         """
+        random_seed = resolve_seed(random_seed)
         generator = torch.Generator().manual_seed(random_seed)
         projection = nn.utils.skip_init(
             nn.Linear, schema.get_num_attributes(), projection_dim, bias=False
@@ -260,5 +264,5 @@ class RanPAC(SLDA):
             num_features=projection_dim,
             ridge=ridge,
             device=device,
+            random_seed=random_seed,
         )
-        self.random_seed = random_seed

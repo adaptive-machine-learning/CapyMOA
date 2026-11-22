@@ -5,6 +5,7 @@ from sklearn.linear_model import (
 )
 
 from capymoa.base import SKClassifier
+from capymoa.base._seed import resolve_seed
 from capymoa.stream._stream import Schema
 
 
@@ -53,10 +54,10 @@ class SGDClassifier(SKClassifier):
         learning_rate: Literal["constant", "optimal", "invscaling"] = "optimal",
         eta0: float = 0.01,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct stochastic gradient descent classifier.
 
-        :param schema: Describes the datastream's structure.
+        :param schema: Describes the stream's structure and types.
         :param loss: The loss function to be used.
         :param penalty: The penalty (aka regularization term) to be used.
         :param alpha: Constant that multiplies the regularization term.
@@ -78,15 +79,10 @@ class SGDClassifier(SKClassifier):
         :param eta0: The initial learning rate for the 'constant', 'invscaling' or
             'adaptive' schedules. The default value is 0.0 as ``eta0`` is not used by
             the default schedule 'optimal'.
-        :param class_weight: Weights associated with classes. If not given, all classes
-            are supposed to have weight one.
-
-            The "balanced" mode uses the values of y to automatically adjust
-            weights inversely proportional to class frequencies in the input data
-            as ``n_samples / (n_classes * np.bincount(y))``.
-        :param random_seed: Seed for reproducibility.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
+        random_seed = resolve_seed(random_seed)
         super().__init__(
             _SKSGDClassifier(
                 loss=loss,

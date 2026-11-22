@@ -67,7 +67,7 @@ class Loda(AnomalyDetector):
     >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
-    >>> learner = Loda(schema, n_projections=10, window_size=100, random_state=42)
+    >>> learner = Loda(schema, n_projections=10, window_size=100, random_seed=42)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -88,24 +88,23 @@ class Loda(AnomalyDetector):
         n_projections: int = 100,
         window_size: int = 256,
         max_bins: str | int = "auto",
-        random_state: int = 42,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Initialize the Loda anomaly detector.
 
-        :param schema: Schema of the data stream.
+        :param schema: Describes the stream's structure and types.
         :param n_projections: Number of random projection histograms in the ensemble.
         :param window_size: Number of recent instances used to fit each histogram.
         :param max_bins: Upper bound on bins per histogram. ``"auto"`` uses ``floor(n / log n)``
             via the Birge-Rozenholc criterion; an integer caps the search at that value.
-        :param random_state: Random seed for reproducibility.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
-        super().__init__(schema=schema, random_seed=random_state)
+        super().__init__(schema=schema, random_seed=random_seed)
         self.n_projections = n_projections
         self.window_size = window_size
         self.max_bins = max_bins
-        self.random_state = random_state
-        self.rng = np.random.default_rng(random_state)
+        self.rng = np.random.default_rng(self.random_seed)
         self.n = 0  # number of instances seen
         self._setup()
 

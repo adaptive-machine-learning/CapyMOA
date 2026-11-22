@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 
 from capymoa.base import Classifier
+from capymoa.base._seed import resolve_seed
 from capymoa.classifier._shrubs_ensemble import _ShrubEnsembles
 from capymoa.stream._stream import Schema
 
@@ -23,7 +24,7 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = ShrubsClassifier(stream.get_schema())
+    >>> classifier = ShrubsClassifier(stream.get_schema(), random_seed=1)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.0f}")
     86
@@ -38,7 +39,6 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int = 1,
         loss: Literal["mse", "ce", "h2"] = "ce",
         step_size: float | Literal["adaptive"] = "adaptive",
         ensemble_regularizer: Literal["hard-L0", "L0", "L1", "none"] = "hard-L0",
@@ -51,11 +51,11 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
         batch_size: int = 32,
         sk_dt: DecisionTreeClassifier | None = None,
         allow_abstaining: bool = True,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Initializes the ShrubEnsemble classifier with the given parameters.
 
-        :param random_seed: The random seed used to build the default decision
-            tree if ``sk_dt`` is not given.
+        :param schema: Describes the stream's structure and types.
         :param loss: The loss function to be used. Supported values are ``"mse"``,
             ``"ce"``, and ``"h2"``.
         :param step_size: The step size (i.e. learning rate of SGD) for updating
@@ -106,7 +106,10 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
             same clone is used for any DT object
         :param allow_abstaining: bool - If true, then None is returned if there is no
             model in the ensemble (i.e. it was pruned away or no data has been seen yet)
+        :param random_seed: The random seed used to build the default decision
+            tree if ``sk_dt`` is not given.
         """
+        random_seed = resolve_seed(random_seed)
         if sk_dt is None:
             sk_dt = DecisionTreeClassifier(
                 splitter="best",
@@ -114,7 +117,10 @@ class ShrubsClassifier(_ShrubEnsembles, Classifier):
                 max_depth=None,
                 random_state=random_seed,
             )
-        Classifier.__init__(self, schema, sk_dt.random_state)
+        seed = (
+            sk_dt.random_state if isinstance(sk_dt.random_state, int) else random_seed
+        )
+        Classifier.__init__(self, schema, seed)
         _ShrubEnsembles.__init__(
             self,
             schema,

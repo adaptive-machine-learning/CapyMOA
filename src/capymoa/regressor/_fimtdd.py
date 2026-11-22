@@ -31,7 +31,7 @@ class FIMTDD(MOARegressor):
         >>> from capymoa.regressor import evaluate_regressor
     >>> stream = Fried()
     >>> schema = stream.get_schema()
-    >>> learner = FIMTDD(schema)
+    >>> learner = FIMTDD(schema, random_seed=1)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
     >>> results["cumulative"]["rmse"]
     7.363273627701553
@@ -55,9 +55,9 @@ class FIMTDD(MOARegressor):
         learning_ratio_const: bool = False,
         random_seed: int | None = None,
     ) -> None:
-        """
-        Construct FIMTDD.
+        """Construct FIMTDD.
 
+        :param schema: Describes the stream's structure and types.
         :param split_criterion: Split criterion to use.
         :param grace_period: Number of instances a leaf should observe between split attempts.
         :param split_confidence: Allowed error in split decision, values close to 0 will take long to decide.
@@ -71,6 +71,7 @@ class FIMTDD(MOARegressor):
         :param learning_ratio: Learning ratio to used for training the Perceptrons in the leaves.
         :param learning_ratio_decay_factor: Learning rate decay factor (not used when learning rate is constant).
         :param learning_ratio_const: Keep learning rate constant instead of decaying.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         cli = []
 

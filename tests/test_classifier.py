@@ -1,3 +1,5 @@
+import inspect
+
 """Test harness for classifiers in the CapyMOA framework.
 
 Add new methods to `tests/resources/classifier.yml`. Review `Case` for the required
@@ -83,7 +85,9 @@ class Case:
     builds can compound and flip a single prediction. Leave unset (exact
     comparison) for everything else."""
 
-    def new_learner(self, schema: Schema, random_seed: int = RANDOM_SEED) -> Classifier:
+    def new_learner(
+        self, schema: Schema, random_seed: int | None = RANDOM_SEED
+    ) -> Classifier:
         params = _names_to_torch_objects(self.learner, self.params)
         spec = LearnerSpec(learner=self.learner, params=params)
         return learner_from_params(spec, schema, random_seed=random_seed)
@@ -118,6 +122,18 @@ def _load_cases() -> list[Case]:
 CASES = _load_cases()
 
 
+def _is_subset(expected: Any, actual: Any) -> bool:
+    """Return True if ``expected`` matches ``actual``, recursing into dicts.
+
+    Lets cases give only some params of a nested learner.
+    """
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        return all(
+            k in actual and _is_subset(v, actual[k]) for k, v in expected.items()
+        )
+    return expected == actual
+
+
 def _probas_close(a: np.ndarray | None, b: np.ndarray | None) -> bool:
     """Return True if both are None or both are numerically close."""
     if a is None or b is None:
@@ -144,7 +160,7 @@ class TestClassifier:
         missing = {
             k: (v, params.get(k, "<missing>"))
             for k, v in expected.items()
-            if k not in params or params[k] != v
+            if k not in params or not _is_subset(v, params[k])
         }
         assert not missing, (
             "Provided parameters must be a subset of the resolved parameters. "
@@ -321,6 +337,13 @@ class TestClassifier:
             learner.train(instance)
             loaded.train(instance)
 
+    def test_no_seed(self, case: Case):
+        """Check that a learner with no seed draws a random seed from numpy"""
+        stream = RandomTreeGenerator(num_classes=5)
+        np.random.seed(0)
+        learner = case.new_learner(stream.get_schema(), random_seed=None)
+        assert learner.random_seed == 209652396
+
     def test_determinism(self, case: Case):
         """Check that learner is deterministic."""
         length = case.length_test_determinism
@@ -334,6 +357,11 @@ class TestClassifier:
         l1_a = case.new_learner(stream.get_schema(), random_seed=1)
         l1_b = case.new_learner(stream.get_schema(), random_seed=1)
         l2 = case.new_learner(stream.get_schema(), random_seed=2)
+
+        # Learners with no randomness take no seed, so they cannot report one.
+        if "random_seed" in inspect.signature(type(l1_a)).parameters:
+            assert l1_a.random_seed == l1_b.random_seed == 1
+            assert l2.random_seed == 2
 
         for i, instance in enumerate(islice(stream, length)):
             # Get predictions

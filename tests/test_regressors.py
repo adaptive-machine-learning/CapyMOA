@@ -1,3 +1,4 @@
+import inspect
 import os
 from contextlib import nullcontext
 from dataclasses import dataclass
@@ -19,6 +20,7 @@ from capymoa.regressor import (
     FadingTargetMean,
     KNNRegressor,
     NoChange,
+    OnlineBaggingRegressor,
     PassiveAggressiveRegressor,
     SGDRegressor,
     ShrubsRegressor,
@@ -28,6 +30,11 @@ from capymoa.regressor import (
 )
 from capymoa.regressor.evaluate import RegressionEvaluator, RegressionWindowedEvaluator
 from capymoa.stream import Schema, Stream
+
+SEED = 1
+"""Seed for every regressor that takes one, so results are exact."""
+
+FRIED_SCHEMA = FriedTiny().get_schema()
 
 
 @dataclass(frozen=True)
@@ -40,6 +47,8 @@ class Case:
     """Expected windowed RMSE"""
     options: dict | None = None
     """Keyword arguments to pass to the regressor constructor."""
+    serializable: bool = True
+    """If not set, expect saving the regressor to raise."""
 
     @property
     def id(self) -> str:
@@ -66,7 +75,16 @@ CASES = [
     Case(SGDRegressor, 4.63, 3.61),
     Case(ShrubsRegressor, 5.21, 4.76),
     Case(StochasticGradientTree, 15.49, 16.19),
-    Case(StreamingGradientBoostedRegression, 3.09, 2.21),
+    Case(StreamingGradientBoostedRegression, 3.12, 2.15),
+    Case(OnlineBaggingRegressor, 7.10, 4.38),
+    # Java cannot serialize the proxies MOA uses to run Python learners.
+    Case(
+        OnlineBaggingRegressor,
+        4.68,
+        3.61,
+        {"base_learner": SGDRegressor(FRIED_SCHEMA), "ensemble_size": 5},
+        serializable=False,
+    ),
 ]
 """Add your new test cases here ^^"""
 
@@ -76,7 +94,10 @@ def test_regressor(case: Case):
     """Update TEST_CASES to add more regressors to test."""
     stream = Fried()
     schema = stream.get_schema()
-    learner = case.type(schema=schema, **(case.options or {}))
+    options = dict(case.options or {})
+    if "random_seed" in inspect.signature(case.type).parameters:
+        options["random_seed"] = SEED
+    learner = case.type(schema=schema, **options)
     evaluator = RegressionEvaluator(schema=schema)
     win_evaluator = RegressionWindowedEvaluator(schema=schema, window_size=100)
 
@@ -97,7 +118,7 @@ def test_regressor(case: Case):
     assert actual == pytest.approx(expected, abs=0.01)
 
     # Test that the model can be saved and loaded.
-    subtest_save_and_load(learner, stream, True)
+    subtest_save_and_load(learner, stream, case.serializable)
 
 
 def test_streaming_gradient_boosted_regression_predicts_numeric_targets():
@@ -121,6 +142,25 @@ def test_streaming_gradient_boosted_regression_predicts_numeric_targets():
     assert numeric_predictions
     assert any(prediction != 0.0 for prediction in numeric_predictions)
     assert len(rounded_predictions) > 1
+
+
+def test_online_bagging_regressor_base_learner():
+    """A CLI string and a CapyMOA regressor configure the same base learner."""
+    schema = FriedTiny().get_schema()
+    from_cli = OnlineBaggingRegressor(
+        schema, base_learner="trees.FIMTDD -g 50", ensemble_size=3
+    )
+    from_wrapper = OnlineBaggingRegressor(
+        schema, base_learner=FIMTDD(schema, grace_period=50), ensemble_size=3
+    )
+    assert str(from_cli) == "OnlineBaggingRegressor"
+    for learner in (from_cli, from_wrapper):
+        sub_learners = learner.moa_learner.getSubClassifiers()
+        assert len(sub_learners) == 3
+        assert all(
+            str(sub.getClass().getSimpleName()) == "FIMTDD" for sub in sub_learners
+        )
+        assert sub_learners[0].gracePeriodOption.getValue() == 50
 
 
 def test_none_predict():
