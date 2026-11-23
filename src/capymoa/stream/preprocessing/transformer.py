@@ -34,12 +34,53 @@ class Transformer(ABC):
         """
         return self.get_schema()
 
+    def train(self, instance: Instance) -> None:
+        """Update the transformer from a training instance.
+
+        A pipeline calls this when it trains, for example in
+        :meth:`~capymoa.stream.preprocessing.ClassifierPipeline.train`, after
+        :meth:`transform_instance` has transformed the same instance. It is
+        never called when the pipeline predicts, so a transformer that learns from
+        labels (a supervised feature selector, for example) does it here.
+
+        Does nothing by default. Transformers that update their state while
+        transforming, as MOA filters do, need not override it.
+
+        :param instance: The instance as it entered this transformer.
+        """
+
+    def is_output_schema_known(self) -> bool:
+        """Return whether :meth:`get_schema` describes the real output yet.
+
+        Defaults to ``True``. A transformer that learns its output schema from
+        the data, as MOA filters do, returns ``False`` until it has seen an
+        instance.
+        """
+        return True
+
     @abstractmethod
     def restart(self):
         raise NotImplementedError
 
 
+#: MOA filters that rewrite values but keep the attribute set. Checked by
+#: running each on ElectricityTiny, CovtypeTiny and FriedTiny.
+_ATTRIBUTE_PRESERVING_FILTERS = frozenset(
+    {
+        "moa.streams.filters.AddNoiseFilter",
+        "moa.streams.filters.NormalisationFilter",
+        "moa.streams.filters.ReplacingMissingValuesFilter",
+        "moa.streams.filters.StandardisationFilter",
+    }
+)
+
+
 class MOATransformer(Transformer):
+    #: ``True`` if the filter keeps the attribute set, so the output schema is
+    #: known before any data. Set from the filter's class. Set it to ``True`` on
+    #: an instance to declare it for a filter that is not in the known list.
+    preserves_attributes: bool
+
     def __init__(
         self,
         schema=None,
@@ -57,6 +98,11 @@ class MOATransformer(Transformer):
                 self.moa_filter.getOptions().setViaCLIString(CLI)
             else:
                 raise RuntimeError("Must provide a moa_filter to set via CLI.")
+
+        self.preserves_attributes = (
+            moa_filter is not None
+            and str(moa_filter.getClass().getName()) in _ATTRIBUTE_PRESERVING_FILTERS
+        )
 
         if self.moa_filter is not None:
             # Must call this method exactly here, because prepareForUse invoke the method to initialize the
@@ -77,11 +123,10 @@ class MOATransformer(Transformer):
             # since -- reuse it instead of asking the filter again.
             self._output_schema = self.schema
         else:
-            # Attempt to learn the post-filter schema up front. Filters that
-            # only rewrite values (normalisation, added noise) publish a
-            # header immediately; filters that change the attribute set
-            # publish one only after the first instance, so this is retried
-            # in transform_instance.
+            # Attempt to learn the post-filter schema up front. In practice
+            # no filter in moa.jar publishes a header before it has seen an
+            # instance (checked 2026-11-22), so this is retried in
+            # transform_instance. See preserves_attributes.
             self._output_schema = self._derive_filter_schema()
 
         queue = FilteredQueueStream()
@@ -157,6 +202,14 @@ class MOATransformer(Transformer):
         published a header yet.
         """
         return self._output_schema or self.schema
+
+    def is_output_schema_known(self) -> bool:
+        """Return whether :meth:`get_schema` describes the real output yet.
+
+        ``True`` once an instance has passed through, or straight away if the
+        filter keeps the attribute set (see :attr:`preserves_attributes`).
+        """
+        return self._output_schema is not None or self.preserves_attributes
 
     def get_input_schema(self) -> Schema:
         """Return the schema of instances entering this transformer."""

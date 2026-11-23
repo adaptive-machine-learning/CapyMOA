@@ -52,12 +52,14 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
         enable-cache: true
 
+    # Restore the newest dataset cache and save a new one after the run, so new
+    # downloads are kept. See "Update a cache" in the actions/cache docs.
     - name: Cache Test Datasets
-      id: cache-test-datasets
       uses: actions/cache@v4
       with:
         path: data
-        key: "test-datasets"
+        key: test-datasets-${{ github.run_id }}
+        restore-keys: test-datasets-
 
     # Run ALL tests that do NOT require any optional dependencies.
     - name: PyTest (base)
@@ -118,11 +120,13 @@ jobs:
     - uses: astral-sh/setup-uv@v6
       with:
         python-version: ${{ env.PYTHON_VERSION }}
+    # See "Cache Test Datasets".
     - name: Cache Notebook Datasets
       uses: actions/cache@v4
       with:
         path: data
-        key: "test-datasets"
+        key: notebook-datasets-${{ github.run_id }}
+        restore-keys: notebook-datasets-
     - name: Install Dependencies
       run: |
         sudo apt-get install -y pandoc

@@ -63,6 +63,25 @@ def _features_to_string(
     )
 
 
+def _java_to_x(moa_instance) -> FeatureVector:
+    """Copy the features of a MOA instance into a NumPy array, skipping the target.
+
+    One ``toDoubleArray`` call is much faster than one JPype call per attribute.
+    This will need to change if we ever support multi-target instances.
+    """
+    # ``np.asarray`` would give a read-only view and save ~0.1us, but read-only
+    # arrays break in-place edits and make ``torch.from_numpy`` warn.
+    values = np.array(moa_instance.toDoubleArray())
+    target = moa_instance.classIndex()
+    last = len(values) - 1
+    if target == last:
+        # Most common case. A slice is much faster than ``np.delete``.
+        return values[:last]
+    elif 0 <= target < last:
+        return np.concatenate((values[:target], values[target + 1 :]))
+    return values
+
+
 class Instance:
     """An instance is a single data point in a stream. It contains a feature vector
     and a schema that describes the datastream it belongs to.
@@ -209,17 +228,7 @@ class Instance:
         if self._x is not None:
             return self._x
         elif self._java_instance is not None:
-            # Fill the feature vector with values from the Java instance. But skip the
-            # target attribute!
-            # This will need to be changed if we ever support multi-target instances.
-            moa_instance = self.java_instance.getData()
-            target_index = moa_instance.classIndex()
-            values = [
-                moa_instance.value(i)
-                for i in range(moa_instance.numAttributes())
-                if target_index != i
-            ]
-            self._x = np.array(values)
+            self._x = _java_to_x(self._java_instance.getData())
             return self._x
         else:
             raise ValueError("Instance has no feature vector")

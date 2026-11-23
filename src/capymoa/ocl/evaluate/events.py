@@ -1,5 +1,10 @@
 """Event definitions for OCL evaluation loops.
 
+Each event class is a subclass of :class:`~capymoa.events.Event`, and none
+subclasses another, so subscribing to :class:`TrainTaskBegin` receives only the
+start of each task. Subscribe to :class:`TrainTaskEvent` or :class:`TestTaskEvent`
+to receive every event within a task.
+
 Events emit in the following order:
 
 ..  code-block:: text
@@ -29,17 +34,26 @@ class TrainBegin(Event):
 
 
 @dataclass
-class TrainTaskBegin(Event):
-    """On training start for a task."""
+class TrainTaskEvent(Event):
+    """Base class for events during a training task.
+
+    Subscribing to it receives :class:`TrainTaskBegin`,
+    :class:`TrainBatchPredict` and :class:`TrainTaskEnd`.
+    """
 
     train_task: int
-    """The ID of the training task that has begun."""
+    """The ID of the current training task."""
     global_step: int
     """A monotonically increasing integer that counts training and evaluation steps."""
 
 
 @dataclass
-class TrainBatchPredict(TrainTaskBegin):
+class TrainTaskBegin(TrainTaskEvent):
+    """On training start for a task."""
+
+
+@dataclass
+class TrainBatchPredict(TrainTaskEvent):
     """After predicting on a training batch, but before training on it."""
 
     batch: int
@@ -52,7 +66,7 @@ class TrainBatchPredict(TrainTaskBegin):
     """The predicted batch."""
 
 
-class TrainTaskEnd(TrainTaskBegin):
+class TrainTaskEnd(TrainTaskEvent):
     """On training end for a task."""
 
 
@@ -61,13 +75,17 @@ class TestBegin(Event):
 
 
 @dataclass
-class TestTaskBegin(Event):
-    """On evaluation start for a task."""
+class TestTaskEvent(Event):
+    """Base class for events during an evaluation task.
+
+    Subscribing to it receives :class:`TestTaskBegin`,
+    :class:`EvalBatchPredict` and :class:`TestTaskEnd`.
+    """
 
     train_task: int
     """The ID of the training task that is being evaluated."""
     test_task: int
-    """The ID of the test task that has begun."""
+    """The ID of the current test task."""
     continual_eval: int
     """If multiple evaluations are performed during each training task, this counts
     which evaluation pass is being performed. Otherwise will be 0."""
@@ -76,7 +94,12 @@ class TestTaskBegin(Event):
 
 
 @dataclass
-class EvalBatchPredict(TestTaskBegin):
+class TestTaskBegin(TestTaskEvent):
+    """On evaluation start for a task."""
+
+
+@dataclass
+class EvalBatchPredict(TestTaskEvent):
     """After predicting on an evaluation batch, but before any updates."""
 
     batch: int
@@ -89,7 +112,7 @@ class EvalBatchPredict(TestTaskBegin):
     """The predicted batch."""
 
 
-class TestTaskEnd(TestTaskBegin):
+class TestTaskEnd(TestTaskEvent):
     """On evaluation end for a task."""
 
 

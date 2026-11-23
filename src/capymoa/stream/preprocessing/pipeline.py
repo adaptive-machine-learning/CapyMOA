@@ -154,12 +154,17 @@ class TransformerPipelineElement(PipelineElement):
         self.transformer = transformer
 
     def pass_forward(self, instance: Instance) -> Instance:
-        """Transform and return an instance.
+        """Transform an instance, then train the transformer on it.
+
+        Transforming first means the transformer's output for an instance
+        never depends on that instance's own label.
 
         :param instance: Input instance.
         :returns: Transformed instance.
         """
-        return self.transformer.transform_instance(instance)
+        transformed = self.transformer.transform_instance(instance)
+        self.transformer.train(instance)
+        return transformed
 
     def pass_forward_predict(
         self, instance: Instance, prediction: Any = None
@@ -456,6 +461,21 @@ class BasePipeline(PipelineElement):
 
     def __str__(self):
         return " | ".join(str(element) for element in self.elements)
+
+    def _repr_html_(self) -> str | None:
+        """Show the pipeline as a diagram in Jupyter.
+
+        Each step is a box. Click one to see its parameters. Returns ``None`` if
+        the diagram cannot be drawn, so Jupyter falls back to plain text rather
+        than showing an error where the pipeline should be.
+        """
+        from ._html import render
+
+        try:
+            return render(self)
+        except Exception:  # noqa: BLE001
+            # A display hook must never raise. None makes Jupyter show plain text.
+            return None
 
 
 class ClassifierPipeline(BasePipeline, Classifier):

@@ -66,6 +66,9 @@ class Case:
     length_test_determinism: int = 50
     """Number of stream instances to replay in the determinism test."""
 
+    warmup: int = 0
+    """Number of instances to train on before testing. Passed to the evaluator."""
+
     needs_torch: bool = False
     """If set this learner requires PyTorch. Deselected by `-m "not torch"`."""
 
@@ -152,7 +155,11 @@ class TestClassifier:
         stream = ElectricityTiny()
         learner = case.new_learner(stream.schema)
         results = evaluate_classifier(
-            stream, learner, window_size=WINDOW_SIZE, batch_size=case.batch_size
+            stream,
+            learner,
+            window_size=WINDOW_SIZE,
+            batch_size=case.batch_size,
+            warmup=case.warmup,
         )
         params = learner.get_params()
 
@@ -205,7 +212,11 @@ class TestClassifier:
             pytest.skip("Learner does not support the fast prequential loop.")
 
         fast_results = evaluate_classifier(
-            stream, fast_learner, window_size=WINDOW_SIZE, batch_size=case.batch_size
+            stream,
+            fast_learner,
+            window_size=WINDOW_SIZE,
+            batch_size=case.batch_size,
+            warmup=case.warmup,
         )
         fast_accuracy = fast_results["cumulative"]["accuracy"]
         fast_win_accuracy = fast_results["windowed"]["accuracy"][-1]
@@ -217,6 +228,7 @@ class TestClassifier:
             window_size=WINDOW_SIZE,
             optimise=False,
             batch_size=case.batch_size,
+            warmup=case.warmup,
         )
         slow_accuracy = slow_results["cumulative"]["accuracy"]
         slow_win_accuracy = slow_results["windowed"]["accuracy"][-1]
