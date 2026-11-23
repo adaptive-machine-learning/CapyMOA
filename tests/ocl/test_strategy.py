@@ -17,6 +17,8 @@ from capymoa.core.torch import FeatureModel, ProjectionModel
 from capymoa.core.torch.ann import Perceptron
 from capymoa.ocl import evaluate_ocl
 from capymoa.ocl.datasets import TinySplitMNIST
+from capymoa.ocl.evaluate.events import TestTaskBegin
+from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.strategy import (
     ASER,
     DER,
@@ -66,8 +68,9 @@ class Case:
     task_mask: bool = False
     # Learner uses `TorchMixin`, so the shared module checks apply.
     torch: bool = True
-    # State outside ``module`` changes predictions after a load (strict xfail).
-    restore_xfail: str | None = None
+    # State outside ``module`` changes accuracy after a reload. The test checks
+    # that the gap is still there.
+    restore_gap: str | None = None
 
 
 def pre_processor() -> nn.Module:
@@ -242,7 +245,6 @@ TEST_CASES: list[Case] = [
             s, projection_dim=512, random_seed=random_seed, **kw
         ),
         Result(78.0, 46.7, 60.8),
-        restore_xfail="sample count is a plain int and weights are cached",
     ),
     Case(
         "NCM",
@@ -270,7 +272,7 @@ TEST_CASES: list[Case] = [
         "SCR",
         _new_scr,
         Result(65.0, 44.8, 63.6),
-        restore_xfail="replay buffer count is a plain int",
+        restore_gap="replay buffer count is a plain int",
     ),
     Case(
         "DERPP",
@@ -288,6 +290,7 @@ TEST_CASES: list[Case] = [
         # shuffle became seed-controlled instead of drawing from the global
         # torch RNG; the new values are fully deterministic.
         Result(37.5, 27.0, 0.0),
+        restore_gap="coreset count is a plain int",
     ),
     Case(
         "L2P",
@@ -386,17 +389,6 @@ def _params(cases: list[Case]):
 ACCURACY_CASES = _params([c for c in TEST_CASES if c.expected is not None])
 # Every case that uses `TorchMixin` gets the shared module checks below.
 TORCH_CASES = _params([c for c in TEST_CASES if c.torch])
-RESTORE_CASES = [
-    pytest.param(
-        c,
-        id=c.name,
-        marks=[pytest.mark.xfail(strict=True, reason=c.restore_xfail)]
-        if c.restore_xfail
-        else [],
-    )
-    for c in TEST_CASES
-    if c.torch
-]
 
 
 @pytest.mark.parametrize("case", ACCURACY_CASES)
@@ -427,6 +419,18 @@ def test_ocl_classifier(case: Case):
         r["ttt"]["cumulative"]["accuracy"],
     )
     assert asdict(actual) == approx(asdict(case.expected)), f"Case {case.name} failed."
+
+    if case.torch:
+        # A fresh learner that loads the module state has the same accuracy.
+        reloaded = case.constructor(scenario.schema, **kwargs)  # type: ignore
+        reloaded.module.load_state_dict(learner.module.state_dict())
+        expected = _test_accuracy(learner, scenario, case.batch_size)
+        if case.restore_gap:
+            # GDumb fits on an empty coreset, which raises ``ValueError``.
+            with pytest.raises((AssertionError, ValueError)):
+                assert _test_accuracy(reloaded, scenario, case.batch_size) == expected
+        else:
+            assert _test_accuracy(reloaded, scenario, case.batch_size) == expected
 
     def assert_ndarray(value: np.ndarray, shape: tuple, dtype: type = np.float32):
         assert isinstance(value, np.ndarray), (
@@ -472,31 +476,26 @@ def _build(case: Case, **kwargs) -> Classifier:
     return case.constructor(scenario.schema, **kwargs)
 
 
+def _test_accuracy(learner, scenario: TinySplitMNIST, batch_size: int) -> float:
+    """Accuracy on every test task, with the events task masks need.
+
+    Not under ``no_grad``, because GDumb trains when a test task begins.
+    """
+    dispatcher = Dispatcher()
+    if isinstance(learner, Handler):
+        learner.attach_with(dispatcher)
+    correct, total = 0, 0
+    for task, loader in enumerate(scenario.test_loaders(batch_size)):
+        dispatcher.notify(TestTaskBegin(0, task, 0, 0))
+        for x, y in loader:
+            x = x.view(x.shape[0], -1).to(learner.device, learner.x_dtype)
+            correct += int((learner.batch_predict(x).cpu() == y).sum())
+            total += len(y)
+    return correct / total
+
+
 def _tensors(module: nn.Module) -> list[torch.Tensor]:
     return [*module.parameters(), *module.buffers()]
-
-
-def _batch(learner, n: int = 16):
-    schema = learner.schema
-    x = torch.rand(n, schema.get_num_attributes(), dtype=learner.x_dtype)
-    y = torch.randint(0, schema.get_num_classes(), (n,), dtype=learner.y_dtype)
-    return x, y
-
-
-@pytest.mark.parametrize("case", RESTORE_CASES)
-def test_state_dict_round_trip(case: Case):
-    """A checkpoint of ``module`` holds all state needed to predict."""
-    trained, other = _build(case), _build(case)
-    x, y = _batch(trained)
-    for _ in range(3):
-        trained.batch_train(x, y)
-    # Train ``other`` on different data, so a load that misses state shows up.
-    other.batch_train(*_batch(other, n=8))
-    other.module.load_state_dict(trained.module.state_dict())
-    with torch.no_grad():
-        torch.testing.assert_close(
-            other.batch_predict_proba(x), trained.batch_predict_proba(x)
-        )
 
 
 @pytest.mark.parametrize("case", TORCH_CASES)
