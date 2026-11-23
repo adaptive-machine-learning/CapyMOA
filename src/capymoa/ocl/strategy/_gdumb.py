@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
@@ -62,7 +64,8 @@ class GDumb(TorchMixin[_GDumbModule], BatchClassifier, Handler):
         self.batch_size = batch_size
         self.lr = lr
 
-        self.original_state_dict = model.state_dict()
+        # Copy, since ``state_dict()`` shares memory with the live weights.
+        self.original_state_dict = deepcopy(model.state_dict())
         self._seed = seed
         coreset = GreedySampler(
             capacity,

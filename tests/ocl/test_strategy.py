@@ -286,10 +286,9 @@ TEST_CASES: list[Case] = [
     Case(
         "GDumb",
         lambda schema, **kw: GDumb(schema, Perceptron(schema), 2, 32, 200, **kw),
-        # Changed from (40.5, 26.6, 0.0) when the offline fit's DataLoader
-        # shuffle became seed-controlled instead of drawing from the global
-        # torch RNG; the new values are fully deterministic.
-        Result(37.5, 27.0, 0.0),
+        # Changed from (37.5, 27.0, 0.0) when GDumb began to reset to its
+        # initial weights before each fit, as the method intends.
+        Result(24.0, 21.6, 0.2),
         restore_gap="coreset count is a plain int",
     ),
     Case(
