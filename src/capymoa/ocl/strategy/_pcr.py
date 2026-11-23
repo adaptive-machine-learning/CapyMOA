@@ -239,12 +239,7 @@ class PCR(BatchClassifier):
     def predict_proba(self, instance: Instance) -> LabelProbabilities:
         """Return single-instance probabilities on CPU, including for GPU models."""
         x = torch.as_tensor(instance.x).reshape(1, -1)
-        return (
-            self.batch_predict_proba(x)
-            .to(device="cpu", dtype=torch.float64)
-            .numpy()
-            .reshape(-1)
-        )
+        return self.batch_predict_proba(x).cpu().to(torch.float64).numpy().reshape(-1)
 
     def __str__(self) -> str:
         return f"PCR(temperature={self._loss.temperature}, buffer_capacity={self._buffer.capacity})"
