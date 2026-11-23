@@ -29,8 +29,7 @@ import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from capymoa.base import BatchClassifier
-from capymoa.core import Instance, LabelProbabilities
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.ocl.util._replay import ReservoirSampler
 from capymoa.stream import Schema
 
@@ -87,7 +86,22 @@ def _precondition_gradient(layer: nn.Module, inverse: Tensor) -> None:
         layer.bias.grad.copy_(transformed[:, -1].reshape_as(layer.bias))
 
 
-class LPR(BatchClassifier):
+class _LPRModule(nn.Module):
+    """Torch state of LPR."""
+
+    def __init__(
+        self,
+        model: nn.Module,
+        buffer: ReservoirSampler,
+        augment: Callable[[Tensor], Tensor] | None,
+    ) -> None:
+        super().__init__()
+        self.model = model
+        self.buffer = buffer
+        self.augment = augment
+
+
+class LPR(TorchMixin[_LPRModule], BatchClassifier):
     """Layerwise Proximal Replay (LPR).
 
     LPR [#lpr]_ preconditions mean cross-entropy gradients on current and replay
@@ -202,8 +216,6 @@ class LPR(BatchClassifier):
             raise TypeError("augment must be callable or None")
         if not isinstance(optimiser, torch.optim.Optimizer):
             raise TypeError("optimiser must be a torch optimizer")
-        self.device = torch.device(device)
-        self._model = model.to(self.device)
         self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         if self.x_dtype not in (torch.float32, torch.float64):
             raise ValueError("LPR supports float32 and float64 models")
@@ -242,17 +254,15 @@ class LPR(BatchClassifier):
                 "LPR requires a trainable Linear, Conv2d or BatchNorm2d layer"
             )
         self._optimiser = optimiser
-        self._augment = (
-            augment.to(self.device) if isinstance(augment, nn.Module) else augment
-        )
         self._shape = tuple(schema.shape)
         self._num_features = schema.get_num_attributes()
         self._rng = torch.Generator().manual_seed(seed)
-        self._buffer = ReservoirSampler(
+        buffer = ReservoirSampler(
             buffer_capacity,
             {"x": ((self._num_features,), self.x_dtype), "y": ((), self.y_dtype)},
             self._rng,
-        ).to(self.device)
+        )
+        self._module = _LPRModule(model, buffer, augment).to(device)
         self._strengths = (omega_0, linear_omega_0, conv_omega_0, bn_omega_0)
         self._exponents = (beta, conv_beta, bn_beta)
         self._replay_batch_size = replay_batch_size
@@ -272,14 +282,16 @@ class LPR(BatchClassifier):
         x = x.reshape(len(x), -1)
         if x.shape[1] != self._num_features:
             raise ValueError("feature count does not match the schema")
-        return x.to(device=self.device, dtype=self.x_dtype)
+        return x
 
     def _sample(self, count: int) -> dict[str, Tensor]:
         """Sample memory without replacement."""
-        indices = torch.randperm(self._buffer.count, generator=self._rng)[:count].to(
-            self.device
-        )
-        return {key: value[indices] for key, value in self._buffer.array().items()}
+        indices = torch.randperm(self._module.buffer.count, generator=self._rng)[
+            :count
+        ].to(self.device)
+        return {
+            key: value[indices] for key, value in self._module.buffer.array().items()
+        }
 
     def _scale(self, layer: nn.Module, per_example: int) -> float:
         """Return the layer's stability and spatial scale."""
@@ -299,9 +311,9 @@ class LPR(BatchClassifier):
     def _refresh_preconditioners(self) -> None:
         """Cache covariance inverses from historical layer inputs."""
         n = (
-            self._buffer.count
+            self._module.buffer.count
             if self._update_n_data is None
-            else min(self._buffer.count, self._update_n_data)
+            else min(self._module.buffer.count, self._update_n_data)
         )
         if n == 0:
             return
@@ -319,14 +331,14 @@ class LPR(BatchClassifier):
             return hook
 
         hooks = []
-        modes = {layer: layer.training for layer in self._model.modules()}
+        modes = {layer: layer.training for layer in self._module.model.modules()}
         try:
             for name, layer in self._layers.items():
                 hooks.append(layer.register_forward_hook(capture(name)))
-            self._model.eval()
+            self._module.model.eval()
             for batch in memory.split(self._update_batch_size):
                 inputs.clear()
-                self._model(batch.reshape(-1, *self._shape))
+                self._module.model(batch.reshape(-1, *self._shape))
                 for name, values in inputs.items():
                     covariance, per_example = _covariance(values, self._layers[name])
                     scaled = self._scale(self._layers[name], per_example) * covariance
@@ -350,28 +362,27 @@ class LPR(BatchClassifier):
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         """Train on current and replay data with preconditioned gradients."""
         x = self._prepare_x(x)
-        y = y.to(device=self.device, dtype=self.y_dtype)
         if (
             y.shape != (len(x),)
             or ((y < 0) | (y >= self.schema.get_num_classes())).any()
         ):
             raise ValueError("y must contain one valid class index per example")
         losses = []
-        self._model.train()
+        self._module.model.train()
         for _ in range(self._substeps):
             train_x, train_y = x.reshape(-1, *self._shape), y
-            if self._buffer.count:
+            if self._module.buffer.count:
                 replay = self._sample(self._replay_batch_size)
                 train_x = torch.cat((train_x, replay["x"].reshape(-1, *self._shape)))
                 train_y = torch.cat((y, replay["y"]))
-            if self._augment is not None:
-                augmented = self._augment(train_x.clone())
+            if self._module.augment is not None:
+                augmented = self._module.augment(train_x.clone())
                 if augmented.shape != train_x.shape:
                     raise ValueError("augment must preserve the batch shape")
                 train_x = augmented
             self._optimiser.zero_grad()
-            loss = F.cross_entropy(self._model(train_x), train_y)
-            if self._buffer.count and self._iterations % self._update_every == 0:
+            loss = F.cross_entropy(self._module.model(train_x), train_y)
+            if self._module.buffer.count and self._iterations % self._update_every == 0:
                 self._refresh_preconditioners()
             loss.backward()
             for name, inverse in self._preconditioners.items():
@@ -379,29 +390,21 @@ class LPR(BatchClassifier):
             self._optimiser.step()
             self._iterations += 1
             losses.append(loss.detach())
-        self._buffer.update(x=x, y=y)
+        self._module.buffer.update(x=x, y=y)
         self.last_loss = torch.stack(losses).mean().item()
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
         """Predict probabilities and restore model modes."""
-        modes = {layer: layer.training for layer in self._model.modules()}
-        self._model.eval()
+        modes = {layer: layer.training for layer in self._module.model.modules()}
+        self._module.model.eval()
         try:
-            return self._model(self._prepare_x(x).reshape(-1, *self._shape)).softmax(1)
+            return self._module.model(
+                self._prepare_x(x).reshape(-1, *self._shape)
+            ).softmax(1)
         finally:
             for layer, training in modes.items():
                 layer.training = training
 
-    def predict_proba(self, instance: Instance) -> LabelProbabilities:
-        """Return one instance's probabilities as a CPU array."""
-        x = torch.as_tensor(instance.x).reshape(1, -1)
-        return (
-            self.batch_predict_proba(x)
-            .to(device="cpu", dtype=torch.float64)
-            .numpy()
-            .reshape(-1)
-        )
-
     def __str__(self) -> str:
-        return f"LPR(omega_0={self._strengths[0]}, beta={self._exponents[0]}, buffer_capacity={self._buffer.capacity})"
+        return f"LPR(omega_0={self._strengths[0]}, beta={self._exponents[0]}, buffer_capacity={self._module.buffer.capacity})"
