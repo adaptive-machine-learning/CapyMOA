@@ -19,6 +19,8 @@ class _LWFModule(nn.Module):
     def __init__(self, model: nn.Module, task_mask: Tensor | None) -> None:
         super().__init__()
         self.model = model
+        #: Frozen copy of ``model`` from the end of the previous task.
+        self.teacher = deepcopy(model).eval().requires_grad_(False)
         self.criterion = nn.CrossEntropyLoss()
         self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
 
@@ -80,7 +82,6 @@ class LWF(TorchMixin[_LWFModule], BatchClassifier, Handler):
 
         self._optimiser = optimiser
 
-        self._teacher: torch.nn.Module | None = None
         self._train_task = 0
         self._test_task = 0
 
@@ -113,12 +114,7 @@ class LWF(TorchMixin[_LWFModule], BatchClassifier, Handler):
     def _on_train_task_begin(self, event: TrainTaskBegin) -> None:
         reset_optimizer_state(self._optimiser)
         if event.train_task > 0:
-            self._teacher = (
-                deepcopy(self._module.model)
-                .to(self.device)
-                .eval()
-                .requires_grad_(False)
-            )
+            self._module.teacher.load_state_dict(self._module.model.state_dict())
         self._train_task = event.train_task
 
     def _on_test_task_begin(self, event: TestTaskBegin) -> None:
@@ -140,17 +136,12 @@ class LWF(TorchMixin[_LWFModule], BatchClassifier, Handler):
             )
         return y_hat
 
-    @torch.no_grad()
-    def _teacher_forward(self, x: Tensor) -> Tensor:
-        if self._teacher is None:
-            raise RuntimeError("Teacher model is not available before task 1.")
-        return self._teacher(x)
-
     def _distillation_loss(self, x: Tensor, student_logits: Tensor) -> Tensor:
-        if self._teacher is None:
+        if self._train_task == 0:
             return torch.tensor(0.0, device=self.device)
 
-        teacher_logits = self._teacher_forward(x)
+        with torch.no_grad():
+            teacher_logits = self._module.teacher(x)
 
         return hinton_distillation_loss(
             teacher_logits=teacher_logits,
