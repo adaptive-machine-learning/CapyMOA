@@ -74,7 +74,7 @@ __all__ = [
 class ProxyNotImplementedError(NotImplementedError):
     """Exception raised for methods that are not implemented in the proxy class."""
 
-    def __init__(self, parent: Any, fn_name: str):
+    def __init__(self, parent: Any, fn_name: str):  # noqa: D107
         super().__init__(
             f"{parent._learner_spec['learner']}: {fn_name} method is not implemented in the proxy class."
         )
@@ -435,7 +435,7 @@ class ProxyJavaDriftDetector(_ProxyOptionHandler):
     https://github.com/Waikato/moa/blob/master/moa/src/main/java/moa/classifiers/core/driftdetection/ChangeDetector.java
     """
 
-    def __init__(self, learner_spec: LearnerSpec):
+    def __init__(self, learner_spec: LearnerSpec):  # noqa: D107
         super().__init__(learner_spec)
         self._py_detector: BaseDriftDetector = self._build()
 

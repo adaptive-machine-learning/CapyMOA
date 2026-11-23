@@ -110,7 +110,7 @@ class AnomalyDetectionEvaluator:
     BasicAUCImbalancedPerformanceEvaluator
     """
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         schema: Schema = None,
         window_size=None,
@@ -215,7 +215,7 @@ class AnomalyDetectionWindowedEvaluator:
     WindowAUCImbalancedPerformanceEvaluator
     """
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         schema: Schema = None,
         window_size=None,

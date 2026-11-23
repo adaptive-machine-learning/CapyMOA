@@ -69,7 +69,7 @@ class BaseDriftDetector(LearnerParamsMixin, ABC):
         ):
             cls.add_element = _emit_after(add_element)
 
-    def __init__(self):
+    def __init__(self):  # noqa: D107
         super().__init__()
 
         self.events = Dispatcher(emits=self.emits)

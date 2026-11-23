@@ -54,7 +54,7 @@ class SigmoidFn(TransitionFn):
     boundary between the left and right task.
     """
 
-    def __init__(self, width: float, seed: int | None = None) -> None:
+    def __init__(self, width: float, seed: int | None = None) -> None:  # noqa: D107
         super().__init__()
         if not (0.0 <= width <= 1.0):
             raise ValueError("width must be between 0.0 and 1.0")

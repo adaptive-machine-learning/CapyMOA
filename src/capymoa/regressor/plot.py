@@ -110,7 +110,7 @@ def plot_predictions_vs_ground_truth(
         plt.savefig(figure_path + figure_name)
 
 
-def plot_regression_results(
+def plot_regression_results(  # noqa: D103
     # cope with data
     *results,  # results value from regression models
     ground_truth=None,  # stored ground truths

@@ -20,7 +20,7 @@ class OptionalDependencyError(ImportError):
     Install it with: pip install capymoa[torch]
     """
 
-    def __init__(self, dependency: str = "PyTorch", feature: str = "this feature"):
+    def __init__(self, dependency: str = "PyTorch", feature: str = "this feature"):  # noqa: D107
         self._dependency = dependency
         self._feature = feature
         super().__init__(

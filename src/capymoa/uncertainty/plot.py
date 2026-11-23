@@ -12,7 +12,7 @@ import seaborn as sns
 from capymoa.evaluation.plot import _plot_drifts
 
 
-def plot_prediction_interval(
+def plot_prediction_interval(  # noqa: D103
     *results,
     ground_truth=None,
     start=0,
