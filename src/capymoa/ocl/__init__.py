@@ -21,7 +21,7 @@ traditional continual learning, OCL restricts training to a single data pass.
 >>> from capymoa.ocl import evaluate_ocl
 >>> import numpy as np
 >>> scenario = TinySplitMNIST()
->>> learner = HoeffdingTree(scenario.schema)
+>>> learner = HoeffdingTree(scenario.schema, random_seed=0)
 >>> results = evaluate_ocl(learner, scenario.train_loaders(32), scenario.test_loaders(32))
 
 The final accuracy is the accuracy on all tasks after finishing training on all
@@ -34,11 +34,11 @@ The accuracy on each task after training on each task:
 
 >>> with np.printoptions(precision=2):
 ...     print(results['accuracy_matrix'])
-[[0.9  0.05 0.05 0.05 0.08]
- [0.88 0.9  0.   0.   0.05]
- [0.77 0.82 0.62 0.   0.03]
- [0.77 0.82 0.6  0.52 0.03]
- [0.77 0.85 0.57 0.52 0.75]]
+[[0.9  0.   0.   0.3  0.  ]
+ [0.88 0.9  0.   0.12 0.  ]
+ [0.77 0.82 0.62 0.12 0.  ]
+ [0.77 0.82 0.6  0.52 0.  ]
+ [0.77 0.82 0.57 0.52 0.75]]
 
 Notice that the accuracies in the upper triangle are close to zero because the
 learner has not trained on those tasks yet. The diagonal contains the accuracy
@@ -46,7 +46,7 @@ on each task after training on that task. The lower triangle contains the
 accuracy on each task after training on all tasks.
 
 >>> print(f"Forward Transfer: {results['forward_transfer']:0.2f}")
-Forward Transfer: 0.03
+Forward Transfer: 0.05
 
 >>> print(f"Backward Transfer: {results['backward_transfer']:0.2f}")
 Backward Transfer: -0.07
@@ -54,8 +54,8 @@ Backward Transfer: -0.07
 
 # PyTorch is an optional extra; this whole module requires it.
 try:
-    from . import datasets, evaluation, events, plot, strategy, util
-    from .evaluation._loop import evaluate_ocl
+    from . import datasets, evaluate, events, plot, strategy, util
+    from ._evaluate import evaluate_ocl
 except ModuleNotFoundError as _err:  # pragma: no cover
     if (_err.name or "").split(".")[0] in ("torch", "torchvision"):
         from capymoa.exception import OptionalDependencyError
@@ -65,8 +65,8 @@ except ModuleNotFoundError as _err:  # pragma: no cover
 
 __all__ = [
     "datasets",
+    "evaluate",
     "evaluate_ocl",
-    "evaluation",
     "events",
     "plot",
     "strategy",

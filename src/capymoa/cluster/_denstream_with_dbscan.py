@@ -14,7 +14,7 @@ class Denstream_with_dbscan(MOAClusterer):
 
     def __init__(
         self,
-        schema: Schema | None = None,
+        schema: Schema,
         horizon: int = 1000,
         epsilon: float = 0.02,
         beta: float = 0.2,
@@ -23,10 +23,10 @@ class Denstream_with_dbscan(MOAClusterer):
         offline_option: float = 2,
         lambda_option: float = 0.25,
         speed: int = 100,
-    ):
+    ) -> None:
         """Clustream clusterer.
 
-        :param schema: The schema of the stream
+        :param schema: Describes the stream's structure and types.
         :param horizon: The size of the time window
         :param epsilon: The epsilon neighborhood
                 :param beta: The beta parameter

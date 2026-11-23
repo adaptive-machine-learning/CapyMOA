@@ -3,13 +3,16 @@
 The results need ``store_y=True`` and ``store_predictions=True``.
 """
 
+from collections.abc import Sequence
 from datetime import datetime
+from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
 from capymoa.evaluation.plot import _plot_drifts
+from capymoa.regressor.evaluate import RegressorResults
 
 
 def plot_predictions_vs_ground_truth(
@@ -111,38 +114,86 @@ def plot_predictions_vs_ground_truth(
 
 
 def plot_regression_results(
-    # cope with data
-    *results,  # results value from regression models
-    ground_truth=None,  # stored ground truths
-    start=0,  # the start point of plotting
-    end=1e10,  # the end
-    # options for users
-    plot_target=True,
-    plot_predictions=True,
-    plot_residuals=True,
-    # target_type='line',  # line or dots
-    add_target_markers=True,
-    target_marker="*",  # can be any markers supported by matplotlib
-    predictions_type="dots",  # line or dots
-    predictions_marker=".",  # can be any markers supported by matplotlib
-    absolute_residuals=False,
-    plot_hist_residuals=False,
-    kde_residuals=False,
-    hist_bins=None,
-    # color options
-    color_target=None,
-    color_predictions=None,  # if specified, MUST have same amount with *results
-    # label settings
-    xlabel=None,
-    ylabel=None,
-    # cope with file
-    plot_title=None,
-    figure_path="./",
-    figure_name=None,
-    figure_name_hist=None,
-    save_only=False,
-    prevent_plotting_drifts=False,
-):
+    *results: RegressorResults,
+    ground_truth: None | np.ndarray | list[float] = None,
+    start: int = 0,
+    end: int | None = None,
+    plot_target: bool = True,
+    plot_predictions: bool = True,
+    plot_residuals: bool = True,
+    add_target_markers: bool = True,
+    target_marker: str = "*",
+    predictions_type: Literal["line", "dots"] = "dots",
+    predictions_marker: str = ".",
+    absolute_residuals: bool = False,
+    plot_hist_residuals: bool = False,
+    kde_residuals: bool = False,
+    hist_bins: int | None = None,
+    color_target: Any = None,
+    color_predictions: Sequence[Any] | None = None,
+    xlabel: str | None = None,
+    ylabel: str | None = None,
+    plot_title: str | None = None,
+    figure_path: str = "./",
+    figure_name: str | None = None,
+    figure_name_hist: str | None = None,
+    save: bool = True,
+    save_only: bool = False,
+    prevent_plotting_drifts: bool = False,
+) -> None:
+    """Plot regression targets, predictions, and residuals.
+
+    For example, evaluate a regressor while storing targets and predictions,
+    then display the plot:
+
+    >>> import matplotlib
+    >>> matplotlib.use("Agg")
+    >>> from capymoa.datasets import FriedTiny
+    >>> from capymoa.regressor import FIMTDD, evaluate_regressor
+    >>> stream = FriedTiny()
+    >>> result = evaluate_regressor(
+    ...     stream,
+    ...     FIMTDD(stream.get_schema(), random_seed=1),
+    ...     max_instances=100,
+    ...     store_predictions=True,
+    ...     store_y=True,
+    ...     optimise=False,
+    ... )
+    >>> plot_regression_results(result, prevent_plotting_drifts=True)
+
+    :param results: Regression results to plot; at least one is required.
+    :param ground_truth: Target values as an array or list, or ``y_true`` from the first result.
+    :param start: First instance index to plot; negative values become 0.
+    :param end: Exclusive end index; defaults to and is clipped at the target length.
+    :param plot_target: Draw target values as a line.
+    :param plot_predictions: Draw predictions for results with ``y_pred``.
+    :param plot_residuals: Draw residual bars; disabled for more than two dot-mode results.
+    :param add_target_markers: Draw markers for target values.
+    :param target_marker: Any Matplotlib marker for targets.
+    :param predictions_type: Draw predictions as ``"line"`` or ``"dots"``.
+    :param predictions_marker: Any Matplotlib marker for prediction dots.
+    :param absolute_residuals: Plot absolute residual values.
+    :param plot_hist_residuals: Also plot a residual histogram.
+    :param kde_residuals: Add a kernel density estimate to each histogram.
+    :param hist_bins: Histogram bin count, or ``None`` for seaborn's default.
+    :param color_target: Target color; defaults to green.
+    :param color_predictions: Colors for results with stored predictions.
+    :param xlabel: X-axis label; defaults to ``"# Instance"``.
+    :param ylabel: Y-axis label; defaults to ``"target"``.
+    :param plot_title: Plot title; defaults to one based on enabled plots.
+    :param figure_path: Directory to save figures when a file name is specified.
+    :param figure_name: Optional file name for saving the main plot.
+    :param figure_name_hist: Optional file name for saving the residual histogram.
+    :param save: Save figures when ``True``; set to ``False`` to disable file output.
+    :param save_only: Save without displaying; omitted file names are generated automatically.
+    :param prevent_plotting_drifts: Do not mark drifts from the first result.
+    :raises ValueError: If no results are supplied, a result has no regression
+        metrics, ground truth is unavailable, or no plot type is enabled.
+    """
+    first_result = next(iter(results), None)
+    if first_result is None:
+        raise ValueError("At least one result is required.")
+
     # check if the results are prequential regression results
     for result in results:
         if "rmse" not in result["cumulative"]:
@@ -150,39 +201,46 @@ def plot_regression_results(
                 "Cannot process results that do not include regression results."
             )
 
-    # Check if the ground_truth is stored in the first result
-    if ground_truth is None and results and results[0].get("y_true") is not None:
-        ground_truth = results[0]["y_true"]
-
-    # Check if ground_truth is none
+    # Get the ground truth array
     if ground_truth is None:
-        raise ValueError("Ground truth y is None.")
+        if "y_true" not in first_result:
+            raise ValueError(
+                "`ground_truth` is `None` but `results` does not contain `y_true`."
+            )
+        ground_truth_ = np.array(first_result["y_true"])
+    elif isinstance(ground_truth, np.ndarray):
+        ground_truth_ = ground_truth
+    elif isinstance(ground_truth, list):
+        ground_truth_ = np.array(ground_truth)
+    else:
+        raise ValueError(
+            "`ground_truth` must be either `None`, `np.ndarray`, or `list[float]`."
+        )
 
     # Check for plotting interval
     start = max(start, 0)
-    end = min(end, len(ground_truth))
+    end = len(ground_truth_) if end is None else min(end, len(ground_truth_))
 
     # Get ground truth
-    targets = ground_truth[start:end]
+    targets = ground_truth_[start:end]
 
     predictions = []
+    prediction_results = []
     residuals = []
     if absolute_residuals:
         absolute_values = []
-    for i, result in enumerate(results):
-        if result.get("y_pred") is not None:
-            predictions.append(np.array(result["y_pred"][start:end]))
-            residuals.append(
-                np.array(np.array(result["y_pred"][start:end]) - np.array(targets))
-            )
-            if absolute_residuals:
-                absolute_values.append(
-                    np.abs(
-                        np.array(
-                            np.array(result["y_pred"][start:end]) - np.array(targets)
-                        )
-                    )
-                )
+    for result in results:
+        y_pred = result.get("y_pred")
+        if y_pred is None:
+            continue
+
+        prediction = np.array(y_pred[start:end])
+        predictions.append(prediction)
+        prediction_results.append(result)
+        residual = prediction - targets
+        residuals.append(residual)
+        if absolute_residuals:
+            absolute_values.append(np.abs(residual))
 
     # Create a figure
     plt.figure(figsize=((end - start) / 10, 6))
@@ -218,7 +276,7 @@ def plot_regression_results(
                 plt.plot(
                     instance_numbers,
                     prediction,
-                    label=results[i]["learner"] + " predictions",
+                    label=prediction_results[i]["learner"] + " predictions",
                     color=color_predictions[i]
                     if color_predictions is not None
                     else default_colors[i],
@@ -230,7 +288,7 @@ def plot_regression_results(
                 plt.scatter(
                     instance_numbers,
                     prediction,
-                    label=results[i]["learner"] + " predictions",
+                    label=prediction_results[i]["learner"] + " predictions",
                     color=color_predictions[i]
                     if color_predictions is not None
                     else default_colors[i],
@@ -263,7 +321,7 @@ def plot_regression_results(
             plt.bar(
                 instance_numbers,
                 residual if not absolute_residuals else absolute_values[i],
-                label=results[i]["learner"] + " residuals"
+                label=prediction_results[i]["learner"] + " residuals"
                 if not absolute_residuals
                 else " absolute residuals",
                 color=color_predictions[i]
@@ -273,7 +331,7 @@ def plot_regression_results(
             )
 
     if not prevent_plotting_drifts:
-        _plot_drifts(results[0], start, end)
+        _plot_drifts(first_result, start, end)
 
     output_name = "target"
 
@@ -302,17 +360,15 @@ def plot_regression_results(
     plt.title(plot_title if plot_title else prepared_title)
     plt.legend()
 
-    # Show the plot or save it to the specified path
+    # Save when requested, then display unless save_only was selected.
+    if save:
+        if figure_name is None and save_only:
+            current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            figure_name = f"sequential_regression_results_{current_time}.pdf"
+        if figure_name is not None:
+            plt.savefig(figure_path + figure_name)
     if not save_only:
         plt.show()
-    elif figure_path:
-        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        figure_name = (
-            figure_name
-            if figure_name is not None
-            else f"sequential_regression_results_{current_time}.pdf"
-        )
-        plt.savefig(figure_path + figure_name)
 
     # plot bar plot for residuals
     if plot_hist_residuals:
@@ -322,7 +378,7 @@ def plot_regression_results(
                 residual,
                 kde=kde_residuals,
                 bins="auto" if hist_bins is None else hist_bins,
-                label=results[i]["learner"],
+                label=prediction_results[i]["learner"],
                 color=color_predictions[i]
                 if color_predictions is not None
                 else default_colors[i],
@@ -333,14 +389,12 @@ def plot_regression_results(
         plt.title("Residuals Histogram Plot")
         plt.legend()
 
-        # Show the plot or save it to the specified path
+        # Save when requested, then display unless save_only was selected.
+        if save:
+            if figure_name_hist is None and save_only:
+                current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                figure_name_hist = f"histogram_for_residuals_{current_time}.pdf"
+            if figure_name_hist is not None:
+                plt.savefig(figure_path + figure_name_hist)
         if not save_only:
             plt.show()
-        elif figure_path:
-            current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            figure_name_hist = (
-                figure_name_hist
-                if figure_name_hist is not None
-                else f"histogram_for_residuals_{current_time}.pdf"
-            )
-            plt.savefig(figure_path + figure_name_hist)

@@ -1,9 +1,9 @@
 import numpy as np
 from typing_extensions import override
 
-from capymoa.base import MOAClassifier
+from capymoa.base import Classifier
 from capymoa.core import Instance, LabeledInstance, LabelIndex
-from capymoa.drift.base_detector import BaseDriftDetector, MOADriftDetector
+from capymoa.drift.base_detector import BaseDriftDetector
 from capymoa.drift.detectors import ADWIN
 
 ArrayOrList = np.ndarray | list[float]
@@ -58,10 +58,10 @@ class STUDD(BaseDriftDetector):
 
     def __init__(
         self,
-        student: MOAClassifier,
+        student: Classifier,
         min_n_instances: int = 500,
-        detector: MOADriftDetector | None = None,
-    ):
+        detector: BaseDriftDetector | None = None,
+    ) -> None:
         """
         :param student: Student model that mimics the teacher's predictions
         :param min_n_instances: Minimum number of instances before monitoring drift
@@ -95,9 +95,6 @@ class STUDD(BaseDriftDetector):
         :param teacher_prediction: The prediction made by the teacher model for this instance.
         :type teacher_prediction: Any
         """
-        # Ignore if no teacher prediction is provided yet (abstains).
-        if teacher_prediction is None:
-            return
 
         self.idx += 1
 

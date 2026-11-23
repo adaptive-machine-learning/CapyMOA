@@ -1,6 +1,7 @@
 import numpy as np
 
 from capymoa.base import AnomalyDetector
+from capymoa.stream import Schema
 
 
 # Random Histogram Tree Node
@@ -172,20 +173,6 @@ def score_instance(tree, instance, total_instances):
     return normalized_score
 
 
-def print_tree_info(node):
-    if node is None:
-        return
-
-    # Print information about the current node
-    print(
-        f"Node ID: {node.node_id}, Height: {node.height}, Data Shape: {None if node.data is None else node.data.shape}"
-    )
-
-    # Recursively print information for left and right children
-    print_tree_info(node.left)
-    print_tree_info(node.right)
-
-
 class RandomHistogramForest:
     def __init__(self, num_trees, max_height, window_size, number_of_features):
         self.num_trees = num_trees
@@ -253,12 +240,6 @@ class RandomHistogramForest:
             [score_instance(tree, instance, total_instances) for tree in self.forest]
         )
 
-    def print_forest_info(self):
-        for i, tree in enumerate(self.forest):
-            print(f"Tree {i + 1}:")
-            print_tree_info(tree)
-            print("-" * 50)
-
 
 class StreamRHF(AnomalyDetector):
     """StreamRHF anomaly detector
@@ -285,7 +266,7 @@ class StreamRHF(AnomalyDetector):
     >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
-    >>> learner = StreamRHF(schema=schema, num_trees=5, max_height=3)
+    >>> learner = StreamRHF(schema=schema, num_trees=5, max_height=3, random_seed=0)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -299,15 +280,20 @@ class StreamRHF(AnomalyDetector):
     """
 
     def __init__(
-        self, schema, max_height=5, num_trees=100, window_size=20, random_seed=0
-    ):
+        self,
+        schema: Schema,
+        max_height: int = 5,
+        num_trees: int = 100,
+        window_size: int = 20,
+        random_seed: int | None = None,
+    ) -> None:
         """
         Initialize the StreamRHF learner.
-        :param schema: Schema of the data stream.
+        :param schema: Describes the stream's structure and types.
         :param max_height: Maximum height of the trees.
         :param num_trees: Number of trees in the forest.
         :param window_size: Size of the sliding window.
-        :param random_seed: Random seed for reproducibility.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         super().__init__(schema, random_seed)
         self.schema = schema

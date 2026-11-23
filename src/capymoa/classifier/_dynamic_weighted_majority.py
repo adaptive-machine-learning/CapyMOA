@@ -1,7 +1,6 @@
 from moa.classifiers.meta import DynamicWeightedMajority as _MOA_DWM
 
-from capymoa._utils import build_cli_str_from_mapping_and_locals
-from capymoa.base import MOAClassifier
+from capymoa.base import Classifier, MOAClassifier
 from capymoa.stream import Schema
 
 
@@ -29,35 +28,33 @@ class DynamicWeightedMajority(MOAClassifier):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int = 1,
-        base_learner="bayes.NaiveBayes",
+        base_learner: str | Classifier = "bayes.NaiveBayes",
         period: int = 50,
         beta: float = 0.5,
         theta: float = 0.01,
-        max_experts: int = 10000,  # overwrite Integer.MAX_VALUE in Java with 10000
-    ):
+        max_experts: int = 10000,  # overwrite Integer.MAX_VALUE in Java with 10000,
+        random_seed: int | None = None,
+    ) -> None:
         """Construct Dynamic Weighted Majority.
 
-        :param schema: Describes the data stream.
-        :param random_seed: random seed for reproducibility.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: the base learner to be used, defaults to "NaiveBayes"
         :param period: period between expert removal, creation, and weight update.
         :param beta: factor to punish mistakes of experts.
         :param theta: minimum fraction of weight per model.
         :param max_experts: maximum number of allowed experts.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
-        mapping = {
-            "base_learner": "-l",
-            "period": "-p",
-            "beta": "-b",
-            "theta": "-t",
-            "max_experts": "-e",
+        options = {
+            "baseLearner": base_learner,
+            "period": period,
+            "beta": beta,
+            "theta": theta,
+            "maxExperts": max_experts,
         }
-
-        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super().__init__(
             schema=schema,
             random_seed=random_seed,
-            CLI=config_str,
             moa_learner=_MOA_DWM,
+            options=options,
         )

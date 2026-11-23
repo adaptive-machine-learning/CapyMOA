@@ -45,7 +45,7 @@ class SEED(MOADriftDetector):
         epsilon_prime: float = 0.01,
         alpha: float = 0.8,
         compress_term: int = 75,
-    ):
+    ) -> None:
         """Create a SEED drift detector.
 
         :param delta: Confidence parameter used in the ADWIN-style cut bound inside

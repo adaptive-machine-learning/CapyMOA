@@ -15,8 +15,8 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from capymoa.base import BatchClassifier
-from capymoa.ocl.evaluation.events import TrainTaskBegin
+from capymoa.base import BatchClassifier, TorchMixin
+from capymoa.ocl.evaluate.events import TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.stream import Schema
 
@@ -209,7 +209,16 @@ class _L2PModel(nn.Module):
         return self.head(features), cosine_distance
 
 
-class L2P(BatchClassifier, Handler):
+class _L2PModule(nn.Module):
+    """Torch state of L2P."""
+
+    def __init__(self, model: _L2PModel, task_mask: Tensor) -> None:
+        super().__init__()
+        self.model = model
+        self.task_mask = nn.Buffer(task_mask)
+
+
+class L2P(TorchMixin[_L2PModule], BatchClassifier, Handler):
     """Learning to Prompt.
 
     Learning to Prompt (L2P) [#f1]_ is a continual learning strategy that leverages a
@@ -257,12 +266,12 @@ class L2P(BatchClassifier, Handler):
         optimizer: Callable[[Any], torch.optim.Optimizer] = lambda params: (
             torch.optim.Adam(params, lr=0.01)
         ),
-        device: str = "cpu",
-        random_seed: int = 1,
-    ):
+        device: torch.device | str = "cpu",
+        random_seed: int | None = None,
+    ) -> None:
         """Construct L2P learner.
 
-        :param schema: Schema describing the datastream.
+        :param schema: Describes the stream's structure and types.
         :param task_mask: A boolean tensor of shape (num_tasks, num_classes) indicating
             which classes belong to each task.
         :param vit: Vision transformer backbone or the name of a pretrained model from
@@ -273,17 +282,15 @@ class L2P(BatchClassifier, Handler):
         :param pull_constraint_coeff: Coefficient for the pull constraint loss term.
         :param optimizer: Function that takes model parameters and returns an optimizer instance.
         :param device: Device to run the model on, e.g., "cpu" or "cuda".
-        :param random_seed: Random seed for reproducibility.
-        :param logger: Optional logger for tracking training metrics.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         super().__init__(schema, random_seed)
         if isinstance(vit, str):
             vit = _HuggingFaceAdapter(vit)
 
-        self.device = torch.device(device)
         self._num_tasks = task_mask.size(0)
         self._pull_constraint_coeff = pull_constraint_coeff
-        self._model = _L2PModel(
+        model = _L2PModel(
             vit=vit,
             prompt_pool=_PromptPool(
                 pool_size=prompts_per_task * self._num_tasks,
@@ -293,15 +300,16 @@ class L2P(BatchClassifier, Handler):
                 num_tasks=self._num_tasks,
             ),
             out_features=schema.get_num_classes(),
-        ).to(self.device)
+        )
+        self._module = _L2PModule(model, task_mask).to(device)
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         self._new_optimizer_fn = optimizer
         self._optimizer = self._new_optimizer()
-        self._mask = task_mask.to(self.device)
         self._train_task = 0
 
     def _new_optimizer(self) -> torch.optim.Optimizer:
         return self._new_optimizer_fn(
-            p for p in self._model.parameters() if p.requires_grad
+            p for p in self._module.model.parameters() if p.requires_grad
         )
 
     def on_train_task(self, task_id: int):
@@ -318,8 +326,8 @@ class L2P(BatchClassifier, Handler):
     def batch_train(self, x: torch.Tensor, y: torch.Tensor) -> None:
         x = x.view(x.size(0), *self.schema.shape)  # Reshape to the original shape
         self._optimizer.zero_grad()
-        y_hat, cosine_distance = self._model(x, self._train_task)
-        y_hat = self._mask[self._train_task] * y_hat
+        y_hat, cosine_distance = self._module.model(x, self._train_task)
+        y_hat = self._module.task_mask[self._train_task] * y_hat
         cosine_distance = cosine_distance * self._pull_constraint_coeff
         ce_loss = nn.functional.cross_entropy(y_hat, y)
 
@@ -339,5 +347,5 @@ class L2P(BatchClassifier, Handler):
 
     def batch_predict_proba(self, x: torch.Tensor) -> torch.Tensor:
         x = x.view(x.size(0), *self.schema.shape)  # Reshape to the original shape
-        y_hat, _ = self._model(x)
+        y_hat, _ = self._module.model(x)
         return F.softmax(y_hat, dim=1)

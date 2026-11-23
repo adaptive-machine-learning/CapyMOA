@@ -33,7 +33,7 @@ class SOKNLBT(MOARegressor):
         >>> from capymoa.regressor import evaluate_regressor
     >>> stream = Fried()
     >>> schema = stream.get_schema()
-    >>> learner = SOKNLBT(schema)
+    >>> learner = SOKNLBT(schema, random_seed=1)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
     >>> results["cumulative"]["rmse"]
     4.950050301515773
@@ -57,9 +57,9 @@ class SOKNLBT(MOARegressor):
         learning_ratio_const: bool = False,
         random_seed: int | None = None,
     ) -> None:
-        """
-        Construct SelfOptimisingBaseTree.
+        """Construct SelfOptimisingBaseTree.
 
+        :param schema: Describes the stream's structure and types.
         :param subspace_size_size: Number of features per subset for each node split. Negative values = #features - k
         :param split_criterion: Split criterion to use.
         :param grace_period: Number of instances a leaf should observe between split attempts.
@@ -73,6 +73,7 @@ class SOKNLBT(MOARegressor):
         :param learning_ratio: Learning ratio to used for training the Perceptrons in the leaves.
         :param learning_ratio_decay_factor: Learning rate decay factor (not used when learning rate is constant).
         :param learning_ratio_const: Keep learning rate constant instead of decaying.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         cli = []
 

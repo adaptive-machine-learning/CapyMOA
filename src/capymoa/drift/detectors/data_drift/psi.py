@@ -58,7 +58,7 @@ class PSI(BaseDataDriftDetector):
         threshold: float = 0.2,
         correction: Literal["bonferroni", "none"] = "bonferroni",
         auto_fit_samples: int | None = None,
-    ):
+    ) -> None:
         """Create a PSI data drift detector.
 
         :param window_size: Number of observations in the sliding window.

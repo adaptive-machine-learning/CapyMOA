@@ -103,7 +103,7 @@ print(
 # |---|---|---|
 # | classification | `capymoa.classifier.evaluate_classifier` | `capymoa.classifier.evaluate.ClassifierResults` |
 # | regression | `capymoa.regressor.evaluate_regressor` | `capymoa.regressor.evaluate.RegressorResults` |
-# | prediction intervals | `capymoa.uncertainty.evaluate_prediction_interval` | `capymoa.uncertainty.evaluate.PredictionIntervalResults` |
+# | prediction intervals | `capymoa.uncertainty.evaluate_uncertainty` | `capymoa.uncertainty.evaluate.UncertaintyResults` |
 # | semi-supervised | `capymoa.ssl.evaluate_ssl` | `capymoa.ssl.evaluate.SSLResults` |
 # | anomaly detection | `capymoa.anomaly.evaluate_anomaly` | `capymoa.anomaly.evaluate.AnomalyResults` |
 #

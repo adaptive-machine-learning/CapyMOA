@@ -70,18 +70,20 @@ _ = evaluate_ocl(
 # implements `attach_with` from the `Handler` class.
 
 # %%
+import torch
 from torch import Tensor
 
 from capymoa.base import BatchClassifier
 from capymoa.classifier import Finetune
 from capymoa.core.torch.ann import Perceptron
-from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
+from capymoa.ocl.evaluate.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 
 
 class PerceptronTI(BatchClassifier, Handler):
     def __init__(self, schema, n_tasks: int) -> None:
         super().__init__(schema)
+        self.device = torch.device("cpu")
         self._classifiers = [Finetune(schema, Perceptron) for _ in range(n_tasks)]
         self._train_task = 0
         self._test_task = 0

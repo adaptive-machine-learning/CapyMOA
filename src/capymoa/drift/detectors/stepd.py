@@ -40,7 +40,7 @@ class STEPD(MOADriftDetector):
         window_size: int = 30,
         alpha_drift: float = 0.003,
         alpha_warning: float = 0.05,
-    ):
+    ) -> None:
         """Create a STEPD drift detector.
 
         :param window_size: Size of the recent window used by STEPD to compare recent

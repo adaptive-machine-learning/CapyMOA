@@ -52,7 +52,7 @@ class CramerVonMises(BaseDataDriftDetector):
         correction: Literal["bonferroni", "none"] = "bonferroni",
         auto_fit_samples: int | None = None,
         method: Literal["auto", "asymptotic", "exact"] = "auto",
-    ):
+    ) -> None:
         """Create a Cramér-von Mises data drift detector.
 
         :param window_size: Number of observations in the sliding window.

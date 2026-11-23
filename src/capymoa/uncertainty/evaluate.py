@@ -1,7 +1,7 @@
 """Evaluators and result types for prediction intervals.
 
-:func:`~capymoa.uncertainty.evaluate_prediction_interval` returns a
-:class:`PredictionIntervalResults`. It uses the evaluators below, which wrap MOA's
+:func:`~capymoa.uncertainty.evaluate_uncertainty` returns a
+:class:`UncertaintyResults`. It uses the evaluators below, which wrap MOA's
 evaluators. You can also use them in your own test-then-train loop.
 """
 
@@ -22,6 +22,7 @@ from typing_extensions import TypedDict
 from capymoa._utils import _translate_metric_name
 from capymoa.evaluation.results import RunInfo, Windows
 from capymoa.regressor.evaluate import RegressionEvaluator
+from capymoa.stream._stream import Schema
 
 
 class PredictionIntervalWindows(Windows):
@@ -58,10 +59,10 @@ class PredictionIntervalCumulative(TypedDict):
     nmpiw: float
 
 
-class PredictionIntervalResults(RunInfo):
+class UncertaintyResults(RunInfo):
     """Results of evaluating a prediction interval learner.
 
-    See :func:`~capymoa.uncertainty.evaluate_prediction_interval`.
+    See :func:`~capymoa.uncertainty.evaluate_uncertainty`.
     """
 
     #: The metrics over the whole stream (see
@@ -74,11 +75,15 @@ class PredictionIntervalResults(RunInfo):
     windowed: NotRequired[PredictionIntervalWindows]
 
 
+#: Deprecated alias of :class:`UncertaintyResults`. Use the new name.
+PredictionIntervalResults = UncertaintyResults
+
+
 class PredictionIntervalEvaluator(RegressionEvaluator):
     """Wraps MOA's prediction interval evaluator.
 
     A prediction is ``[lower, point, upper]``. See
-    :class:`PredictionIntervalResults` for a known MOA bug in ``mae``,
+    :class:`UncertaintyResults` for a known MOA bug in ``mae``,
     ``rmse``, ``rmae`` and ``rrmse``.
     """
 
@@ -89,7 +94,7 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
         moa_evaluator=None,
     ):
         """
-        :param schema: The schema of the stream.
+        :param schema: Describes the stream's structure and types.
         :param window_size: Keep the metrics every ``window_size`` instances in
             :meth:`metrics_per_window`. ``None`` to keep none.
         :param moa_evaluator: MOA interval evaluator. Defaults to a
@@ -191,7 +196,10 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
 
 
 class PredictionIntervalWindowedEvaluator(PredictionIntervalEvaluator):
-    def __init__(self, schema=None, window_size=1000):
+    """Evaluator for prediction intervals with a windowed evaluator."""
+
+    def __init__(self, schema: Schema, window_size: int = 1000):
+        """Create a windowed evaluator with the given schema and window size."""
         self.moa_evaluator = WindowPredictionIntervalEvaluator()
         self.moa_evaluator.widthOption.setValue(window_size)
 

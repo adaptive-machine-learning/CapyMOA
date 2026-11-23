@@ -23,7 +23,7 @@ class SplitCriterion:
 class VarianceReductionSplitCriterion(SplitCriterion):
     """Goodness of split criterion based on variance reduction."""
 
-    def __init__(self):
+    def __init__(self):  # noqa: D107
         self._java_object = moa_split.VarianceReductionSplitCriterion()
 
 
@@ -46,7 +46,7 @@ class InfoGainSplitCriterion(SplitCriterion):
 class GiniSplitCriterion(SplitCriterion):
     """Goodness of split using Gini impurity."""
 
-    def __init__(self):
+    def __init__(self):  # noqa: D107
         self._java_object = moa_split.GiniSplitCriterion()
 
 

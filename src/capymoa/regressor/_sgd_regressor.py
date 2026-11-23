@@ -5,6 +5,7 @@ from sklearn.linear_model import (
 )
 
 from capymoa.base import SKRegressor
+from capymoa.base._seed import resolve_seed
 from capymoa.stream._stream import Schema
 
 
@@ -49,10 +50,10 @@ class SGDRegressor(SKRegressor):
         learning_rate: str = "invscaling",
         eta0: float = 0.01,
         random_seed: int | None = None,
-    ):
+    ) -> None:
         """Construct stochastic gradient descent Regressor.
 
-        :param schema: Describes the datastream's structure.
+        :param schema: Describes the stream's structure and types.
         :param loss: The loss function to be used.
         :param penalty: The penalty (aka regularization term) to be used.
         :param alpha: Constant that multiplies the regularization term.
@@ -72,9 +73,10 @@ class SGDRegressor(SKRegressor):
         :param eta0: The initial learning rate for the 'constant', 'invscaling' or
             'adaptive' schedules. The default value is 0.0 as ``eta0`` is not used by
             the default schedule 'optimal'.
-        :param random_seed: Seed for reproducibility.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
+        random_seed = resolve_seed(random_seed)
         super().__init__(
             _SKSGDRegressor(
                 loss=loss,

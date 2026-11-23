@@ -1,6 +1,7 @@
 from moa.classifiers.lazy import kNN as _moa_kNN
 
 from capymoa.base import MOARegressor
+from capymoa.stream import Schema
 
 
 class KNNRegressor(MOARegressor):
@@ -24,46 +25,32 @@ class KNNRegressor(MOARegressor):
     >>> learner = KNNRegressor(schema)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
     >>> results["cumulative"]["rmse"]
-    2.9811398077838542
+    3.0332283066066754
     """
 
     def __init__(
         self,
-        schema=None,
-        CLI=None,
-        random_seed=1,
-        k=3,
-        median=False,
-        window_size=1000,
-    ):
-        """
-        Constructing KNN Regressor.
+        schema: Schema,
+        k: int = 3,
+        median: bool = False,
+        window_size: int = 1000,
+        random_seed: int | None = None,
+    ) -> None:
+        """Construct a KNNRegressor.
 
+        :param schema: Describes the stream's structure and types.
         :param k: the number of the neighbours.
         :param median: choose to use mean or median as the aggregation for the final prediction.
         :param window_size: the size of the sliding window to store the instances.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
-        # Important, should create the MOA object before invoking the super class __init__
-        self.moa_learner = _moa_kNN()
         super().__init__(
+            moa_learner=_moa_kNN(),
             schema=schema,
-            CLI=CLI,
             random_seed=random_seed,
-            moa_learner=self.moa_learner,
+            options={"k": k, "median": median, "limit": window_size},
         )
-
-        # Initialize instance attributes with default values, CLI was not set.
-        if self.CLI is None:
-            self.k = k
-            self.median = median
-            self.window_size = window_size
-            self.moa_learner.getOptions().setViaCLIString(
-                f"-k {self.k} {'-m' if self.median else ''} -w \
-             {self.window_size}"
-            )
-            self.moa_learner.prepareForUse()
-            self.moa_learner.resetLearning()
 
     def __str__(self):
         # Overrides the default class name from MOA

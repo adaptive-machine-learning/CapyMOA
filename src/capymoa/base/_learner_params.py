@@ -17,6 +17,8 @@ from typing import (
     cast,
 )
 
+from capymoa.base._seed import resolve_seed
+
 P = ParamSpec("P")
 TClass = TypeVar("TClass", bound=type)
 
@@ -71,7 +73,9 @@ class LearnerRegistry(Generic[TClass]):
     def list_names(self) -> list[str]:
         return list(self._registered)
 
-    def build(self, spec: LearnerSpec, schema: Any, random_seed: int = 1) -> Any:
+    def build(
+        self, spec: LearnerSpec, schema: Any, random_seed: int | None = None
+    ) -> Any:
         """Construct a registered learner from a serialized specification."""
         cls = self.require(spec["learner"])
         return cls.from_params(schema, spec.get("params", {}), random_seed)
@@ -106,17 +110,22 @@ def _capture_learner_params(
     return wrapper
 
 
-def _get_construction_kwargs(
-    cls: type, schema: Any, random_seed: int, params: dict[str, Any]
-) -> dict[str, Any]:
+def _accepts(cls: type, name: str) -> bool:
+    """Return True if ``cls.__init__`` takes a keyword argument ``name``."""
     parameters = inspect.signature(cls.__init__).parameters
     has_var_kwargs = any(
         p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters.values()
     )
+    return has_var_kwargs or name in parameters
+
+
+def _get_construction_kwargs(
+    cls: type, schema: Any, random_seed: int | None, params: dict[str, Any]
+) -> dict[str, Any]:
     kwargs = dict(params)
-    if has_var_kwargs or "schema" in parameters:
+    if _accepts(cls, "schema"):
         kwargs["schema"] = schema
-    if has_var_kwargs or "random_seed" in parameters:
+    if _accepts(cls, "random_seed"):
         kwargs["random_seed"] = random_seed
     return kwargs
 
@@ -135,7 +144,7 @@ def _serialize_param(value: Any) -> Any:
     return value
 
 
-def _deserialize_param(value: Any, schema: Any, random_seed: int) -> Any:
+def _deserialize_param(value: Any, schema: Any, random_seed: int | None) -> Any:
     """Recursively resolve nested specs in ``value`` back into live objects."""
     if isinstance(value, dict):
         if "learner" in value and "params" in value:
@@ -152,7 +161,9 @@ def _deserialize_param(value: Any, schema: Any, random_seed: int) -> Any:
     return value
 
 
-def learner_from_params(spec: LearnerSpec, schema: Any, random_seed: int = 1) -> Any:
+def learner_from_params(
+    spec: LearnerSpec, schema: Any, random_seed: int | None = None
+) -> Any:
     """Construct a learner from a serialized fully qualified learner spec.
 
     See :class:`~capymoa.base.LearnerParamsMixin` for the parameter capture
@@ -189,9 +200,12 @@ class LearnerParamsMixin:
         cls,
         schema: Any = None,
         params: dict[str, Any] | None = None,
-        random_seed: int = 1,
+        random_seed: int | None = None,
     ) -> Any:
         """Construct an instance from parameters produced by ``get_params``."""
+        if _accepts(cls, "random_seed"):
+            # Draw the seed before nested learners do, so it does not depend on them.
+            random_seed = resolve_seed(random_seed)
         resolved = {
             key: _deserialize_param(value, schema, random_seed)
             for key, value in (params or {}).items()

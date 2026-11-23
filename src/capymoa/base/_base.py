@@ -1,11 +1,16 @@
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from typing import Any, overload
 
+import jpype
 from jpype import _jpype
 from moa.core import Utils
 
 from capymoa.base._learner_params import LearnerParamsMixin
 from capymoa.base._regressor import MOARegressor, Regressor
+from capymoa.base._seed import _SeededMixin
 from capymoa.core import Instance, LabelIndex
+from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
 
 ##############################################################
@@ -15,7 +20,7 @@ from capymoa.stream._stream import Schema
 
 ### Prediction Interval Learner ###
 class PredictionIntervalLearner(Regressor):
-    def __init__(self, schema=None, random_seed=1):
+    def __init__(self, schema=None, random_seed: int | None = None):
         super().__init__(schema=schema, random_seed=random_seed)
 
     @abstractmethod
@@ -39,17 +44,11 @@ class MOAPredictionIntervalLearner(MOARegressor, PredictionIntervalLearner):
         return [float(v) for v in prediction_PI]
 
 
-class AnomalyDetector(LearnerParamsMixin, ABC):
-    """
-    Abstract base class for anomaly detector.
+class AnomalyDetector(_SeededMixin, LearnerParamsMixin, ABC):
+    """Abstract base class for anomaly detectors."""
 
-    Attributes:
-    - schema: The schema representing the instances. Defaults to None.
-    - random_seed: The random seed for reproducibility. Defaults to 1.
-    """
-
-    def __init__(self, schema: Schema, random_seed=1):
-        self.random_seed = random_seed
+    def __init__(self, schema: Schema, random_seed: int | None = None):
+        self._init_seed(random_seed)
         self.schema = schema
         if self.schema is None:
             raise ValueError("Schema must be initialised")
@@ -62,9 +61,8 @@ class AnomalyDetector(LearnerParamsMixin, ABC):
         pass
 
     @abstractmethod
-    def predict(self, instance: Instance) -> LabelIndex | None:
-        # Returns the predicted label for the instance.
-        pass
+    def predict(self, instance: Instance) -> LabelIndex:
+        """Return the predicted label for the instance."""
 
     @abstractmethod
     def score_instance(self, instance: Instance) -> float:
@@ -78,27 +76,58 @@ class AnomalyDetector(LearnerParamsMixin, ABC):
 
 
 class MOAAnomalyDetector(AnomalyDetector):
-    def __init__(self, schema=None, CLI=None, random_seed=1, moa_learner=None):
+    @overload
+    def __init__(
+        self,
+        schema=None,
+        CLI: str | None = None,
+        random_seed=None,
+        moa_learner=None,
+    ): ...
+
+    @overload
+    def __init__(
+        self,
+        schema=None,
+        CLI: None = None,
+        random_seed=None,
+        moa_learner=None,
+        *,
+        options: Mapping[str, Any],
+    ): ...
+
+    def __init__(
+        self,
+        schema=None,
+        CLI=None,
+        random_seed=None,
+        moa_learner=None,
+        options: Mapping[str, Any] | None = None,
+    ):
+        """
+        :param options: MOA option names mapped to values. Use instead of CLI for values
+            with no CLI string, such as Java objects.
+        """
         super().__init__(schema=schema, random_seed=random_seed)
         self.CLI = CLI
         self.moa_learner = moa_learner
 
-        if random_seed is not None:
-            self.moa_learner.setRandomSeed(random_seed)
+        self.moa_learner.setRandomSeed(self.random_seed)
 
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())
 
-        if self.CLI is not None:
-            self.moa_learner.getOptions().setViaCLIString(CLI)
+        set_moa_options(self.moa_learner, self.CLI, options)
 
         self.moa_learner.prepareForUse()
         self.moa_learner.resetLearning()
         self.moa_learner.setModelContext(self.schema.get_moa_header())
 
     def __str__(self):
-        full_name = str(self.moa_learner.getClass().getCanonicalName())
-        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        if isinstance(self.moa_learner, jpype.JObject):
+            full_name = str(self.moa_learner.getClass().getCanonicalName())
+            return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        return str(self.moa_learner)
 
     def cli_help(self):
         return self.moa_learner.getOptions().getHelpString()
@@ -150,9 +179,9 @@ class ClusteringResult:
         return f"Centers: {self._centers}, Weights: {self._weights}, Radii: {self._radii}, IDs: {self._ids}"
 
 
-class Clusterer(LearnerParamsMixin, ABC):
-    def __init__(self, schema: Schema, random_seed=1):
-        self.random_seed = random_seed
+class Clusterer(_SeededMixin, LearnerParamsMixin, ABC):
+    def __init__(self, schema: Schema, random_seed: int | None = None):
+        self._init_seed(random_seed)
         self.schema = schema
         if self.schema is None:
             raise ValueError("Schema must be initialised")
@@ -227,7 +256,35 @@ class MOAClusterer(Clusterer):
     ``random_seed`` is accepted.
     """
 
-    def __init__(self, moa_learner, schema=None, CLI=None):
+    @overload
+    def __init__(
+        self,
+        moa_learner,
+        schema=None,
+        CLI: str | None = None,
+    ): ...
+
+    @overload
+    def __init__(
+        self,
+        moa_learner,
+        schema=None,
+        CLI: None = None,
+        *,
+        options: Mapping[str, Any],
+    ): ...
+
+    def __init__(
+        self,
+        moa_learner,
+        schema=None,
+        CLI=None,
+        options: Mapping[str, Any] | None = None,
+    ):
+        """
+        :param options: MOA option names mapped to values. Use instead of CLI for values
+            with no CLI string, such as Java objects.
+        """
         super().__init__(schema=schema)
         self.CLI = CLI
         # If moa_learner is a class identifier instead of an object
@@ -241,10 +298,7 @@ class MOAClusterer(Clusterer):
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())
 
-        # If the CLI is None, we assume the object has already been configured
-        # or that default values should be used.
-        if self.CLI is not None:
-            self.moa_learner.getOptions().setViaCLIString(CLI)
+        set_moa_options(self.moa_learner, self.CLI, options)
 
         self.moa_learner.prepareForUse()
         self.moa_learner.resetLearningImpl()
@@ -252,8 +306,10 @@ class MOAClusterer(Clusterer):
 
     def __str__(self):
         # Removes the package information from the name of the learner.
-        full_name = str(self.moa_learner.getClass().getCanonicalName())
-        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        if isinstance(self.moa_learner, jpype.JObject):
+            full_name = str(self.moa_learner.getClass().getCanonicalName())
+            return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        return str(self.moa_learner)
 
     def cli_help(self):
         return str(self.moa_learner.getOptions().getHelpString())

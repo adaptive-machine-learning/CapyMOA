@@ -15,6 +15,9 @@ class TargetMean(MOARegressor):
         :func:`~capymoa.regressor.FadingTargetMean`
     """
 
-    def __init__(self, schema: Schema | None = None):
-        """Construct Target Mean Regressor."""
+    def __init__(self, schema: Schema) -> None:
+        """Construct a TargetMean regressor.
+
+        :param schema: Describes the stream's structure and types.
+        """
         super().__init__(moa_learner=_FadingTargetMean(), schema=schema)

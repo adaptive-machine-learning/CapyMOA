@@ -3,8 +3,8 @@ from copy import deepcopy
 import torch
 from torch import Tensor, nn
 
-from capymoa.base import BatchClassifier
-from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
+from capymoa.base import BatchClassifier, TorchMixin
+from capymoa.ocl.evaluate.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._optim import reset_optimizer_state
 from capymoa.ocl.util.functional import hinton_distillation_loss
@@ -13,7 +13,19 @@ from capymoa.stream._stream import Schema
 NEG_INF = float("-inf")
 
 
-class LWF(BatchClassifier, nn.Module, Handler):
+class _LWFModule(nn.Module):
+    """Torch state of LWF."""
+
+    def __init__(self, model: nn.Module, task_mask: Tensor | None) -> None:
+        super().__init__()
+        self.model = model
+        #: Frozen copy of ``model`` from the end of the previous task.
+        self.teacher = deepcopy(model).eval().requires_grad_(False)
+        self.criterion = nn.CrossEntropyLoss()
+        self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
+
+
+class LWF(TorchMixin[_LWFModule], BatchClassifier, Handler):
     """Learning Without Forgetting (LwF).
 
     LwF [#f1]_ is a regularisation-based continual learning strategy that distils
@@ -31,14 +43,14 @@ class LWF(BatchClassifier, nn.Module, Handler):
         optimiser: torch.optim.Optimizer,
         alpha: float = 1.0,
         temperature: float = 2.0,
-        device: torch.device | None = None,
+        device: torch.device | str = "cpu",
         mask_test: bool = False,
         mask_train: bool = False,
         task_mask: Tensor | None = None,
     ) -> None:
         """Construct an LWF learner.
 
-        :param schema: Stream schema used by the classifier interface.
+        :param schema: Describes the stream's structure and types.
         :param model: Torch model that outputs class logits.
         :param optimiser: Optimiser used to update ``model`` parameters.
         :param alpha: Weight of the distillation loss term.
@@ -53,9 +65,7 @@ class LWF(BatchClassifier, nn.Module, Handler):
             or task-specific masking is requested without ``task_mask``.
         """
         super().__init__(schema, 0)
-        nn.Module.__init__(self)
-        if device is None:
-            device = torch.device("cpu")
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         if alpha < 0:
             raise ValueError("alpha must be non-negative.")
         if temperature <= 0:
@@ -65,35 +75,26 @@ class LWF(BatchClassifier, nn.Module, Handler):
                 "Task schedule must be provided for task incremental or labels trick scenarios."
             )
 
-        self.device = device
-
         self._alpha = alpha
         self._temperature = temperature
         self._mask_train = mask_train
         self._mask_test = mask_test
 
         self._optimiser = optimiser
-        self._model = model
-        self._criterion = torch.nn.CrossEntropyLoss()
 
-        self._teacher: torch.nn.Module | None = None
         self._train_task = 0
         self._test_task = 0
-        if task_mask is None:
-            self._task_mask = None
-        else:
-            self._task_mask = nn.Buffer(task_mask)
 
-        # Move all model parameters and buffers to the specified device
-        self.to(device)
+        # All torch state lives in one private module
+        self._module = _LWFModule(model, task_mask).to(device)
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self._model.train()
+        self._module.model.train()
         self._optimiser.zero_grad()
 
-        raw_logits = self._model(x)
+        raw_logits = self._module.model(x)
         student_logits = self._apply_train_mask(raw_logits)
-        task_loss = self._criterion(student_logits, y)
+        task_loss = self._module.criterion(student_logits, y)
         total_loss = task_loss + self._alpha * self._distillation_loss(x, raw_logits)
 
         total_loss.backward()
@@ -101,8 +102,8 @@ class LWF(BatchClassifier, nn.Module, Handler):
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        self._model.eval()
-        y_hat = self._apply_test_mask(self._model(x))
+        self._module.model.eval()
+        y_hat = self._apply_test_mask(self._module.model(x))
         return torch.softmax(y_hat, dim=1)
 
     def attach_with(self, source: Dispatcher) -> "LWF":
@@ -113,9 +114,7 @@ class LWF(BatchClassifier, nn.Module, Handler):
     def _on_train_task_begin(self, event: TrainTaskBegin) -> None:
         reset_optimizer_state(self._optimiser)
         if event.train_task > 0:
-            self._teacher = (
-                deepcopy(self._model).to(self.device).eval().requires_grad_(False)
-            )
+            self._module.teacher.load_state_dict(self._module.model.state_dict())
         self._train_task = event.train_task
 
     def _on_test_task_begin(self, event: TestTaskBegin) -> None:
@@ -123,27 +122,26 @@ class LWF(BatchClassifier, nn.Module, Handler):
 
     def _apply_train_mask(self, y_hat: Tensor) -> Tensor:
         """Apply the train-task mask to logits, if enabled."""
-        if self._task_mask is not None and self._mask_train:
-            y_hat = y_hat.masked_fill(self._task_mask[self._train_task] == 0, NEG_INF)
+        if self._module.task_mask is not None and self._mask_train:
+            y_hat = y_hat.masked_fill(
+                self._module.task_mask[self._train_task] == 0, NEG_INF
+            )
         return y_hat
 
     def _apply_test_mask(self, y_hat: Tensor) -> Tensor:
         """Apply the test-task mask to logits, if enabled."""
-        if self._task_mask is not None and self._mask_test:
-            y_hat = y_hat.masked_fill(self._task_mask[self._test_task] == 0, NEG_INF)
+        if self._module.task_mask is not None and self._mask_test:
+            y_hat = y_hat.masked_fill(
+                self._module.task_mask[self._test_task] == 0, NEG_INF
+            )
         return y_hat
 
-    @torch.no_grad()
-    def _teacher_forward(self, x: Tensor) -> Tensor:
-        if self._teacher is None:
-            raise RuntimeError("Teacher model is not available before task 1.")
-        return self._teacher(x)
-
     def _distillation_loss(self, x: Tensor, student_logits: Tensor) -> Tensor:
-        if self._teacher is None:
+        if self._train_task == 0:
             return torch.tensor(0.0, device=self.device)
 
-        teacher_logits = self._teacher_forward(x)
+        with torch.no_grad():
+            teacher_logits = self._module.teacher(x)
 
         return hinton_distillation_loss(
             teacher_logits=teacher_logits,

@@ -3,6 +3,7 @@ from moa.classifiers.oneclass import HSTrees as _MOA_HSTrees
 from capymoa.base import (
     MOAAnomalyDetector,
 )
+from capymoa.stream import Schema
 
 
 class HalfSpaceTrees(MOAAnomalyDetector):
@@ -28,7 +29,7 @@ class HalfSpaceTrees(MOAAnomalyDetector):
     >>> from capymoa.anomaly.evaluate import AnomalyDetectionEvaluator
     >>> stream = TinyBlobs()
     >>> schema = stream.get_schema()
-    >>> learner = HalfSpaceTrees(schema)
+    >>> learner = HalfSpaceTrees(schema, random_seed=1)
     >>> evaluator = AnomalyDetectionEvaluator(schema)
     >>> while stream.has_more_instances():
     ...     instance = stream.next_instance()
@@ -43,34 +44,33 @@ class HalfSpaceTrees(MOAAnomalyDetector):
 
     def __init__(
         self,
-        schema=None,
-        CLI=None,
-        random_seed=1,
-        window_size=250,
-        number_of_trees=25,
-        max_depth=15,
-        anomaly_threshold=0.5,
-        size_limit=0.1,
-    ):
+        schema: Schema,
+        window_size: int = 250,
+        number_of_trees: int = 25,
+        max_depth: int = 15,
+        anomaly_threshold: float = 0.5,
+        size_limit: float = 0.1,
+        random_seed: int | None = None,
+    ) -> None:
         """Construct a Half-Space Trees anomaly detector
 
-        :param schema: The schema of the stream. If not provided, it will be inferred from the data.
-        :param CLI: Command Line Interface (CLI) options for configuring the HS-Trees algorithm.
-        :param random_seed: Random seed for reproducibility.
+        :param schema: Describes the stream's structure and types.
         :param window_size: The size of the window for each tree.
         :param number_of_trees: The number of trees in the ensemble.
         :param max_depth: The maximum depth of each tree.
+        :param anomaly_threshold: Threshold (as a fraction of the maximum mass value)
+            below which an instance is declared an anomaly.
+        :param size_limit: The minimum mass required in a node (as a fraction of the
+            window size) to calculate the anomaly score.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
-        if CLI is None:
-            self.window_size = window_size
-            self.number_of_trees = number_of_trees
-            self.max_depth = max_depth
-            self.anomaly_threshold = anomaly_threshold
-            self.size_limit = size_limit
-            CLI = (
-                f"-p {self.window_size} -t {self.number_of_trees} -h {self.max_depth} \
-            -a {self.anomaly_threshold} -s {self.size_limit}"
-            )
+        self.window_size = window_size
+        self.number_of_trees = number_of_trees
+        self.max_depth = max_depth
+        self.anomaly_threshold = anomaly_threshold
+        self.size_limit = size_limit
+        CLI = f"-p {self.window_size} -t {self.number_of_trees} -h {self.max_depth} \
+        -a {self.anomaly_threshold} -s {self.size_limit}"
 
         super().__init__(
             schema=schema, CLI=CLI, random_seed=random_seed, moa_learner=_MOA_HSTrees()

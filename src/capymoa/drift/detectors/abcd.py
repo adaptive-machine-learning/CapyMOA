@@ -7,12 +7,12 @@ import numpy as np
 from capymoa.core import Instance
 from capymoa.drift.base_detector import BaseDriftDetector
 
-from .abcd_components.feature_extraction import (
+from ._abcd_components.feature_extraction import (
     EncoderDecoder,
     KernelPCAModel,
     PCAModel,
 )
-from .abcd_components.windowing import AdaptiveWindow, p_bernstein
+from ._abcd_components.windowing import AdaptiveWindow, p_bernstein
 
 
 class ABCD(BaseDriftDetector):
@@ -78,7 +78,7 @@ class ABCD(BaseDriftDetector):
         n_min: int = 100,
         maximum_absolute_value: float = 1.0,
         bonferroni: bool = False,
-    ):
+    ) -> None:
         """
         :param delta_drift: The desired confidence level at which a drift is detected
         :param delta_warn: The desired confidence level at which a warning is detected
@@ -141,7 +141,7 @@ class ABCD(BaseDriftDetector):
                 raise OptionalDependencyError(
                     "PyTorch", "ABCD's autoencoder model (model_id='ae')"
                 )
-            from .abcd_components._autoencoder import AutoEncoder
+            from ._abcd_components._autoencoder import AutoEncoder
 
             self.model_class = AutoEncoder
         else:

@@ -7,19 +7,34 @@ from capymoa.datasets._datasets import CovtypeTiny, ElectricityTiny
 from capymoa.ssl import evaluate_ssl
 from capymoa.stream import Stream
 
+SEED = 1
+"""Seed for the learners and the label sampling, so results are exact."""
+
 
 def _make_osnn(**kwargs):
     pytest.markskip("torch")
     from capymoa.ssl import OSNN
 
-    return OSNN(**kwargs)
+    return OSNN(seed=SEED, **kwargs)
 
 
 def _make_sleade(**kwargs):
     pytest.markskip("torch")
     from capymoa.ssl import SLEADE
 
-    return SLEADE(**kwargs)
+    return SLEADE(random_seed=SEED, **kwargs)
+
+
+def _make_sleade_with_python_learners(schema, **kwargs):
+    from capymoa.classifier import SGDClassifier
+    from capymoa.drift.detectors import ABCD
+
+    return _make_sleade(
+        schema=schema,
+        student_learner=SGDClassifier(schema),
+        drift_detection_method=ABCD(),
+        **kwargs,
+    )
 
 
 def assert_ssl_evaluation(
@@ -35,10 +50,11 @@ def assert_ssl_evaluation(
         label_probability=label_probability,
         window_size=10,
         max_instances=max_instances,
+        random_seed=SEED,
     )
 
     assert results["cumulative"]["accuracy"] == pytest.approx(expectation), (
-        f"Expected accuracy of {expectation} but got {results['cumulative'].accuracy()}"
+        f"Expected accuracy of {expectation} but got {results['cumulative']['accuracy']}"
         + f" for learner {learner} on stream {stream}"
     )
 
@@ -70,7 +86,14 @@ def assert_ssl_evaluation(
         pytest.param(
             partial(_make_sleade, ensemble_size=3),
             CovtypeTiny,
-            43.0,
+            41.0,
+            None,
+            marks=pytest.mark.torch,
+        ),
+        pytest.param(
+            partial(_make_sleade_with_python_learners, ensemble_size=3),
+            ElectricityTiny,
+            50.8,
             None,
             marks=pytest.mark.torch,
         ),
@@ -80,6 +103,7 @@ def assert_ssl_evaluation(
         "OSNN_CovtypeTiny",
         "SLEADE_ElectricityTiny",
         "SLEADE_CovtypeTiny",
+        "SLEADE-SGDClassifier-ABCD_ElectricityTiny",
     ],
 )
 def test_ssl_classifiers(

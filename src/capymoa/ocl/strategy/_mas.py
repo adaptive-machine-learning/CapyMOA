@@ -4,8 +4,8 @@ import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
-from capymoa.base import BatchClassifier
-from capymoa.ocl.evaluation.events import TestTaskBegin, TrainTaskBegin
+from capymoa.base import BatchClassifier, TorchMixin
+from capymoa.ocl.evaluate.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._buffer_list import BufferList
 from capymoa.ocl.util._optim import reset_optimizer_state
@@ -87,7 +87,27 @@ def update_importance_(
         imp.mul_(alpha).add_(new_imp, alpha=1 - alpha)
 
 
-class MAS(BatchClassifier, nn.Module, Handler):
+class _MASModule(nn.Module):
+    """Torch state of MAS."""
+
+    def __init__(
+        self,
+        model: nn.Module,
+        task_mask: Tensor | None,
+        buffer: nn.Module,
+        anchor_params: BufferList,
+        importance: BufferList,
+    ) -> None:
+        super().__init__()
+        self.model = model
+        self.criterion = nn.CrossEntropyLoss()
+        self.buffer = buffer
+        self.anchor_params = anchor_params
+        self.importance = importance
+        self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
+
+
+class MAS(TorchMixin[_MASModule], BatchClassifier, Handler):
     """Memory Aware Synapses learner.
 
     Memory Aware Synapses (MAS) is a regularisation-based continual learning strategy
@@ -122,14 +142,14 @@ class MAS(BatchClassifier, nn.Module, Handler):
         alpha: float = 0.5,
         buffer_capacity: int = 256,
         importance_batch_size: int = 32,
-        device: torch.device | None = None,
+        device: torch.device | str = "cpu",
         mask_test: bool = False,
         mask_train: bool = False,
         task_mask: Tensor | None = None,
     ) -> None:
         """Construct a MAS learner.
 
-        :param schema: Stream schema used by the classifier interface.
+        :param schema: Describes the stream's structure and types.
         :param model: Torch model that outputs class logits.
         :param optimiser: Optimiser used to update ``model`` parameters.
         :param lambda_: Weight of the MAS regularisation term.
@@ -149,9 +169,7 @@ class MAS(BatchClassifier, nn.Module, Handler):
             or task-specific masking is requested without ``task_mask``.
         """
         super().__init__(schema, 0)
-        nn.Module.__init__(self)
-        if device is None:
-            device = torch.device("cpu")
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         if (mask_train or mask_test) and task_mask is None:
             raise ValueError(
                 "Task schedule must be provided for task incremental or labels trick scenarios."
@@ -160,8 +178,6 @@ class MAS(BatchClassifier, nn.Module, Handler):
             raise ValueError("lambda_ must be non-negative.")
         if not (0.0 <= alpha <= 1.0):
             raise ValueError("alpha must be in [0, 1].")
-
-        self.device = device
 
         # Hyperparameters
         self._lambda = lambda_
@@ -172,48 +188,44 @@ class MAS(BatchClassifier, nn.Module, Handler):
 
         # Modules
         self._optimiser = optimiser
-        self._model = model
-        self._criterion = torch.nn.CrossEntropyLoss()
-        self._buffer = SlidingWindow(
+        buffer = SlidingWindow(
             buffer_capacity,
             {
-                "x": ((schema.get_num_attributes(),), torch.float32),
+                "x": ((schema.get_num_attributes(),), self.x_dtype),
                 "y": ((), torch.long),
             },
         )
 
         # Buffers used by MAS regularisation
-        self._anchor_params = BufferList(
+        anchor_params = BufferList(
             [param.clone().detach() for param in trainable_params(model)]
         )
-        self._importance = BufferList(
+        importance = BufferList(
             [torch.zeros_like(param) for param in trainable_params(model)]
         )
 
         # Task tracking
         self._train_task = 0
         self._test_task = 0
-        if task_mask is None:
-            self._task_mask = None
-        else:
-            self._task_mask = nn.Buffer(task_mask)
 
-        # Move all model parameters and buffers to the specified device
-        self.to(device)
+        # All torch state lives in one private module
+        self._module = _MASModule(
+            model, task_mask, buffer, anchor_params, importance
+        ).to(device)
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self._buffer.update(x=x, y=y)
-        self._model.train()
+        self._module.buffer.update(x=x, y=y)
+        self._module.model.train()
         self._optimiser.zero_grad()
         y_hat = self._train_forward(x)
-        loss = self._criterion(y_hat, y)
+        loss = self._module.criterion(y_hat, y)
         total_loss = loss + self._lambda * self._regularisation_loss()
         total_loss.backward()
         self._optimiser.step()
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        self._model.eval()
+        self._module.model.eval()
         y_hat = self._test_forward(x)
         return torch.softmax(y_hat, dim=1)
 
@@ -236,37 +248,43 @@ class MAS(BatchClassifier, nn.Module, Handler):
 
     def _update_importance(self) -> None:
         """Estimate and accumulate MAS importance from the replay buffer."""
-        dataset = self._buffer.dataset_view()
+        dataset = self._module.buffer.dataset_view()
         dataloader = DataLoader(
             dataset, batch_size=self._importance_batch_size, shuffle=False
         )
         task_importance = compute_importance(
-            self._model,
+            self._module.model,
             self._importance_forward,
             dataloader,  # type: ignore[arg-type]
             self.device,
         )
-        update_importance_(self._importance, task_importance, self._alpha)
+        update_importance_(self._module.importance, task_importance, self._alpha)
 
     def _update_anchor_params(self) -> None:
         """Update anchored parameters to the current model weights."""
         for param, anchor_param in zip(
-            trainable_params(self._model), self._anchor_params, strict=True
+            trainable_params(self._module.model),
+            self._module.anchor_params,
+            strict=True,
         ):
             anchor_param.copy_(param.detach())
 
     def _test_forward(self, x: Tensor) -> Tensor:
         """Compute logits for inference, optionally applying a test-task mask."""
-        y_hat = self._model(x)
-        if self._task_mask is not None and self._mask_test:
-            y_hat = y_hat.masked_fill(self._task_mask[self._test_task] == 0, NEG_INF)
+        y_hat = self._module.model(x)
+        if self._module.task_mask is not None and self._mask_test:
+            y_hat = y_hat.masked_fill(
+                self._module.task_mask[self._test_task] == 0, NEG_INF
+            )
         return y_hat
 
     def _train_forward(self, x: Tensor) -> Tensor:
         """Compute logits for training, optionally applying a train-task mask."""
-        y_hat = self._model(x)
-        if self._task_mask is not None and self._mask_train:
-            y_hat = y_hat.masked_fill(self._task_mask[self._train_task] == 0, NEG_INF)
+        y_hat = self._module.model(x)
+        if self._module.task_mask is not None and self._mask_train:
+            y_hat = y_hat.masked_fill(
+                self._module.task_mask[self._train_task] == 0, NEG_INF
+            )
         return y_hat
 
     def _importance_forward(self, x: Tensor) -> Tensor:
@@ -276,9 +294,9 @@ class MAS(BatchClassifier, nn.Module, Handler):
         importance estimate involves squaring the output, which turns infinities
         into NaNs.
         """
-        y_hat = self._model(x)
-        if self._task_mask is not None and self._mask_train:
-            y_hat = y_hat[:, self._task_mask[self._train_task]]
+        y_hat = self._module.model(x)
+        if self._module.task_mask is not None and self._mask_train:
+            y_hat = y_hat[:, self._module.task_mask[self._train_task]]
         return y_hat
 
     def _regularisation_loss(self) -> Tensor:
@@ -287,9 +305,9 @@ class MAS(BatchClassifier, nn.Module, Handler):
             return torch.tensor(0.0, device=self.device)
 
         return weighted_l2_reg(
-            trainable_params(self._model),
-            self._anchor_params,
-            self._importance,
+            trainable_params(self._module.model),
+            self._module.anchor_params,
+            self._module.importance,
             device=self.device,
         )
 

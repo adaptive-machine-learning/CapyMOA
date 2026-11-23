@@ -4,11 +4,20 @@ import torch
 from torch import Tensor, device, nn, optim
 from torch.optim.optimizer import Optimizer
 
-from capymoa.base import BatchClassifier
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.stream import Schema
 
 
-class Finetune(BatchClassifier):
+class _FinetuneModule(nn.Module):
+    """Torch state of Finetune."""
+
+    def __init__(self, model: nn.Module, criterion: nn.Module) -> None:
+        super().__init__()
+        self.model = model
+        self.criterion = criterion
+
+
+class Finetune(TorchMixin[_FinetuneModule], BatchClassifier):
     """Finetune a PyTorch neural network using stochastic gradient descent.
 
     >>> from capymoa.datasets import ElectricityTiny
@@ -24,6 +33,7 @@ class Finetune(BatchClassifier):
     ...     model=Perceptron,
     ...     optimizer=Adam,
     ...     optimizer_params={"lr": 0.01},
+    ...     random_seed=0,
     ... )
     >>> results = evaluate_classifier(stream, learner, batch_size=32)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
@@ -37,10 +47,13 @@ class Finetune(BatchClassifier):
     ...     schema=stream.get_schema(),
     ...     model=model,
     ...     optimizer=optimizer,
+    ...     random_seed=0,
     ... )
     >>> results = evaluate_classifier(stream, learner, batch_size=32)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     60.4
+    >>> learner.module.model is model
+    True
 
     """
 
@@ -53,11 +66,11 @@ class Finetune(BatchClassifier):
         optimizer_params: dict[str, Any] | None = None,
         criterion: nn.Module | None = None,
         device: device | str = "cpu",
-        random_seed: int = 0,
+        random_seed: int | None = None,
     ) -> None:
         """Construct a learner to finetune a neural network.
 
-        :param schema: Describes streaming data types and shapes.
+        :param schema: Describes the stream's structure and types.
         :param model: A classifier model that takes a ``(bs, input_dim)`` matrix
             and returns a ``(bs, num_classes)`` matrix. Alternatively, a model
             class (e.g. :class:`~capymoa.core.torch.ann.Perceptron`),
@@ -80,40 +93,30 @@ class Finetune(BatchClassifier):
         if criterion is None:
             criterion = nn.CrossEntropyLoss()
         # seed for reproducibility
-        torch.manual_seed(random_seed)
-        #: The model to be trained.
-        self.model: nn.Module = (
-            model
-            if isinstance(model, nn.Module)
-            else model(schema, **(model_params or {}))
-        )
-        self.model.to(device)
-        #: The optimizer to be used for training.
-        self.optimizer: Optimizer = (
+        torch.manual_seed(self.random_seed)
+        if not isinstance(model, nn.Module):
+            model = model(schema, **(model_params or {}))
+        self._module = _FinetuneModule(model, criterion).to(device)
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
+        self._optimizer: Optimizer = (
             optimizer
             if isinstance(optimizer, Optimizer)
-            else optimizer(self.model.parameters(), **(optimizer_params or {}))
+            else optimizer(model.parameters(), **(optimizer_params or {}))
         )
-        #: The loss function to be used for training.
-        self.criterion: nn.Module = criterion
-        #: The device to be used for training.
-        self.device: torch.device = torch.device(device)
-        #: The data type to convert the input data to.
-        self.dtype: torch.dtype = next(self.model.parameters()).dtype
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self.model.train()
-        self.optimizer.zero_grad()
+        self._module.model.train()
+        self._optimizer.zero_grad()
 
         # Forward pass
-        y_hat = self.model(x)
+        y_hat = self._module.model(x)
 
         # Compute loss
-        loss: Tensor = self.criterion(y_hat, y)
+        loss: Tensor = self._module.criterion(y_hat, y)
 
         # Backward pass and optimization
         loss.backward()
-        self.optimizer.step()
+        self._optimizer.step()
         assert not loss.isnan(), "Loss is NaN"
 
     @torch.no_grad()
@@ -124,10 +127,10 @@ class Finetune(BatchClassifier):
         :param y: Target labels of shape (batch_size,).
         :return: Predicted probabilities of shape (batch_size, num_classes).
         """
-        self.model.eval()
-        return self.model(x).softmax(dim=1)
+        self._module.model.eval()
+        return self._module.model(x).softmax(dim=1)
 
     def __str__(self) -> str:
-        model_name = str(self.model.__class__.__name__)
-        optimizer_name = str(self.optimizer.__class__.__name__)
+        model_name = str(self._module.model.__class__.__name__)
+        optimizer_name = str(self._optimizer.__class__.__name__)
         return f"Finetune(model={model_name}, optimizer={optimizer_name})"

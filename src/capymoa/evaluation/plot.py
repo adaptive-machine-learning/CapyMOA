@@ -1,5 +1,7 @@
 """Plots that work on the results of any domain."""
 
+from collections.abc import Mapping
+from typing import Any
 from warnings import warn
 
 import matplotlib.pyplot as plt
@@ -9,7 +11,7 @@ from capymoa.evaluation.results import RunInfo
 
 
 def _plot_drifts(
-    result: RunInfo,
+    result: Mapping[str, Any],
     start: float = 0,
     end: float = float("inf"),
     concepts_y: float | None = None,
@@ -34,7 +36,7 @@ def _plot_drifts(
         return
     colours: dict[str, int] = {}
     for concept in result.get("concepts") or []:
-        label = None
+        label = ""
         if concept["id"] not in colours:
             colours[concept["id"]] = len(colours)
             label = concept["id"]
@@ -114,9 +116,11 @@ def plot_windowed_results(
     if ymin is None or ymax is None:
         all_values = np.concatenate([r["windowed"][metric] for r in plotted])
         if ymin is None:
-            ymin = np.nanmin(all_values)
+            ymin = float(np.nanmin(all_values))
         if ymax is None:
-            ymax = np.nanmax(all_values)
+            ymax = float(np.nanmax(all_values))
+
+    assert ymin is not None and ymax is not None
 
     # Add padding to ymin and ymax to prevent clipping
     padding = 0.05 * (ymax - ymin)
