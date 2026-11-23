@@ -8,8 +8,7 @@ import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from capymoa.base import BatchClassifier
-from capymoa.core import Instance, LabelProbabilities
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.ocl.util._replay import ReservoirSampler
 from capymoa.stream import Schema
 
@@ -26,7 +25,16 @@ def _eval_mode(model: nn.Module) -> Iterator[None]:
             module.training = training
 
 
-class MIR(BatchClassifier):
+class _MIRModule(nn.Module):
+    """Torch state of MIR."""
+
+    def __init__(self, model: nn.Module, buffer: ReservoirSampler) -> None:
+        super().__init__()
+        self.model = model
+        self.buffer = buffer
+
+
+class MIR(TorchMixin[_MIRModule], BatchClassifier):
     """Maximally Interfered Retrieval (MIR).
 
     MIR [#mir]_ replays stored examples whose cross entropy increases most after
@@ -95,21 +103,21 @@ class MIR(BatchClassifier):
                 raise ValueError(f"{name} must be a positive integer")
         if candidate_size < replay_batch_size:
             raise ValueError("candidate_size must be at least replay_batch_size")
-        self.device = torch.device(device)
-        self._model = model.to(self.device)
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         self._optimiser = optimiser
         self._shape = schema.shape
         self._replay_batch_size = replay_batch_size
         self._candidate_size = candidate_size
         self._rng = torch.Generator().manual_seed(seed)
-        self._buffer = ReservoirSampler(
+        buffer = ReservoirSampler(
             buffer_capacity,
             {
                 "x": ((schema.get_num_attributes(),), self.x_dtype),
                 "y": ((), self.y_dtype),
             },
             self._rng,
-        ).to(self.device)
+        )
+        self._module = _MIRModule(model, buffer).to(device)
 
     def _interference_scores(
         self, x: Tensor, y: Tensor, candidate_x: Tensor, candidate_y: Tensor
@@ -125,15 +133,15 @@ class MIR(BatchClassifier):
 
         def loss() -> Tensor:
             return F.cross_entropy(
-                self._model(candidate_x), candidate_y, reduction="none"
+                self._module.model(candidate_x), candidate_y, reduction="none"
             )
 
         try:
-            with _eval_mode(self._model):
+            with _eval_mode(self._module.model):
                 with torch.no_grad():
                     before = loss()
                 self._optimiser.zero_grad()
-                F.cross_entropy(self._model(x), y).backward()
+                F.cross_entropy(self._module.model(x), y).backward()
                 self._optimiser.step()
                 with torch.no_grad():
                     after = loss()
@@ -147,44 +155,31 @@ class MIR(BatchClassifier):
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         """Retrieve historical examples, learn, then update the reservoir."""
-        x = x.to(self.device, self.x_dtype).reshape(
-            -1, self.schema.get_num_attributes()
-        )
-        y = y.to(self.device, self.y_dtype)
+        x = x.reshape(-1, self.schema.get_num_attributes())
         current_x = x.reshape(-1, *self._shape)
         train_x, train_y = current_x, y
-        if self._buffer.count:
-            n = min(self._candidate_size, self._buffer.count)
-            candidates = self._buffer.sample(n)
+        if self._module.buffer.count:
+            n = min(self._candidate_size, self._module.buffer.count)
+            candidates = self._module.buffer.sample(n)
             candidate_x = candidates["x"].reshape(-1, *self._shape)
             candidate_y = candidates["y"]
             scores = self._interference_scores(current_x, y, candidate_x, candidate_y)
             selected = scores.topk(min(self._replay_batch_size, len(scores))).indices
             train_x = torch.cat((current_x, candidate_x[selected]))
             train_y = torch.cat((y, candidate_y[selected]))
-        self._model.train()
+        self._module.model.train()
         self._optimiser.zero_grad()
-        loss = F.cross_entropy(self._model(train_x), train_y)
+        loss = F.cross_entropy(self._module.model(train_x), train_y)
         loss.backward()
         self._optimiser.step()
-        self._buffer.update(x=x, y=y)
+        self._module.buffer.update(x=x, y=y)
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
         """Return class probabilities for schema-shaped or flat examples."""
-        with _eval_mode(self._model):
-            x = x.to(self.device, self.x_dtype).reshape(-1, *self._shape)
-            return self._model(x).softmax(dim=1)
-
-    def predict_proba(self, instance: Instance) -> LabelProbabilities:
-        """Return single-instance probabilities on CPU."""
-        x = torch.as_tensor(instance.x).reshape(1, -1)
-        return (
-            self.batch_predict_proba(x)
-            .to(device="cpu", dtype=torch.float64)
-            .numpy()
-            .reshape(-1)
-        )
+        with _eval_mode(self._module.model):
+            x = x.reshape(-1, *self._shape)
+            return self._module.model(x).softmax(dim=1)
 
     def __str__(self) -> str:
-        return f"MIR(buffer_capacity={self._buffer.capacity}, candidate_size={self._candidate_size})"
+        return f"MIR(buffer_capacity={self._module.buffer.capacity}, candidate_size={self._candidate_size})"

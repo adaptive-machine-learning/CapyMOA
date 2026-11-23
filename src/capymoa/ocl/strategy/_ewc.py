@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
-from capymoa.base import BatchClassifier
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.ocl.evaluate.events import TestTaskBegin, TrainTaskBegin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._buffer_list import BufferList
@@ -106,7 +106,27 @@ def fd_compute(
     return fisher_diagonals
 
 
-class EWC(BatchClassifier, nn.Module, Handler):
+class _EWCModule(nn.Module):
+    """Torch state of EWC."""
+
+    def __init__(
+        self,
+        model: nn.Module,
+        task_mask: Tensor | None,
+        buffer: nn.Module,
+        anchor_params: BufferList,
+        fisher_diags: BufferList,
+    ) -> None:
+        super().__init__()
+        self.model = model
+        self.criterion = nn.CrossEntropyLoss()
+        self.buffer = buffer
+        self.anchor_params = anchor_params
+        self.fisher_diags = fisher_diags
+        self.task_mask = None if task_mask is None else nn.Buffer(task_mask)
+
+
+class EWC(TorchMixin[_EWCModule], BatchClassifier, Handler):
     """Elastic Weight Consolidation learner.
 
     Elastic Weight Consolidation (EWC) is a regularisation-based continual learning
@@ -141,7 +161,7 @@ class EWC(BatchClassifier, nn.Module, Handler):
         lambda_: float,
         fim_buffer: int = 256,
         fim_batch_size: int = 32,
-        device: torch.device | None = None,
+        device: torch.device | str = "cpu",
         mask_test: bool = False,
         mask_train: bool = False,
         gamma: float = 1.0,
@@ -166,14 +186,11 @@ class EWC(BatchClassifier, nn.Module, Handler):
         :raises ValueError: If task-specific masking is requested without ``task_mask``.
         """
         super().__init__(schema, 0)
-        nn.Module.__init__(self)
-        if device is None:
-            device = torch.device("cpu")
+        self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         if (mask_train or mask_test) and task_mask is None:
             raise ValueError(
                 "Task schedule must be provided for task incremental or labels trick scenarios."
             )
-        self.device = device
 
         # Hyperparameters
         self._lambda = lambda_
@@ -184,48 +201,44 @@ class EWC(BatchClassifier, nn.Module, Handler):
 
         # Modules
         self._optimiser = optimiser
-        self._model = model
-        self._criterion = torch.nn.CrossEntropyLoss()
-        self._buffer = SlidingWindow(
+        buffer = SlidingWindow(
             fim_buffer,
             {
-                "x": ((schema.get_num_attributes(),), torch.float32),
+                "x": ((schema.get_num_attributes(),), self.x_dtype),
                 "y": ((), torch.long),
             },
         )
 
         # Buffers for anchoring the model
-        self._anchor_params = BufferList(
+        anchor_params = BufferList(
             [param.clone().detach() for param in model.parameters()]
         )
-        self._fisher_diags = BufferList(
+        fisher_diags = BufferList(
             [torch.zeros_like(param) for param in model.parameters()]
         )
 
         # Task tracking
         self._train_task = 0
         self._test_task = 0
-        if task_mask is None:
-            self._task_mask = None
-        else:
-            self._task_mask = nn.Buffer(task_mask)
 
-        # Move all model parameters and buffers to the specified device
-        self.to(device)
+        # All torch state lives in one private module
+        self._module = _EWCModule(
+            model, task_mask, buffer, anchor_params, fisher_diags
+        ).to(device)
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self._buffer.update(x=x, y=y)
-        self._model.train()
+        self._module.buffer.update(x=x, y=y)
+        self._module.model.train()
         self._optimiser.zero_grad()
         y_hat = self._train_forward(x)
-        loss = self._criterion(y_hat, y)
+        loss = self._module.criterion(y_hat, y)
         total_loss = loss + self._lambda * self._regularisation_loss()
         total_loss.backward()
         self._optimiser.step()
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        self._model.eval()
+        self._module.model.eval()
         y_hat = self._test_forward(x)
         return torch.softmax(y_hat, dim=1)
 
@@ -245,38 +258,38 @@ class EWC(BatchClassifier, nn.Module, Handler):
 
     def _update_fisher_diags(self) -> None:
         """Estimate and accumulate Fisher diagonals from the replay buffer."""
-        dataset = self._buffer.dataset_view()
+        dataset = self._module.buffer.dataset_view()
         dataloader = DataLoader(dataset, batch_size=self._fd_batch_size, shuffle=False)
         task_fisher_diags = fd_compute(
-            self._model,
+            self._module.model,
             self._train_forward,
             dataloader,  # type: ignore
             self.device,
-            self._criterion,
+            self._module.criterion,
         )
         # Update the fisher diagonals buffer with the computed values
-        for i in range(len(self._fisher_diags)):
-            self._fisher_diags[i].mul_(self._gamma).add_(task_fisher_diags[i])
+        for i in range(len(self._module.fisher_diags)):
+            self._module.fisher_diags[i].mul_(self._gamma).add_(task_fisher_diags[i])
 
     def _update_anchor_params(self) -> None:
         """Update anchored parameters to the current model weights."""
         for param, anchor_param in zip(
-            self._model.parameters(), self._anchor_params, strict=True
+            self._module.model.parameters(), self._module.anchor_params, strict=True
         ):
             anchor_param.copy_(param.detach())
 
     def _test_forward(self, x: Tensor) -> Tensor:
         """Compute logits for inference, optionally applying a test-task mask."""
-        y_hat = self._model(x)
-        if self._task_mask is not None and self._mask_test:
-            y_hat = self._task_mask[self._test_task] * y_hat
+        y_hat = self._module.model(x)
+        if self._module.task_mask is not None and self._mask_test:
+            y_hat = self._module.task_mask[self._test_task] * y_hat
         return y_hat
 
     def _train_forward(self, x: Tensor) -> Tensor:
         """Compute logits for training, optionally applying a train-task mask."""
-        y_hat = self._model(x)
-        if self._task_mask is not None and self._mask_train:
-            y_hat = self._task_mask[self._train_task] * y_hat
+        y_hat = self._module.model(x)
+        if self._module.task_mask is not None and self._mask_train:
+            y_hat = self._module.task_mask[self._train_task] * y_hat
         return y_hat
 
     def _regularisation_loss(self) -> torch.Tensor:
@@ -284,8 +297,8 @@ class EWC(BatchClassifier, nn.Module, Handler):
         if self._train_task < 1:
             return torch.tensor(0.0, device=self.device)
         return weighted_l2_reg(
-            self._model.parameters(),
-            self._anchor_params,
-            self._fisher_diags,
+            self._module.model.parameters(),
+            self._module.anchor_params,
+            self._module.fisher_diags,
             device=self.device,
         )
