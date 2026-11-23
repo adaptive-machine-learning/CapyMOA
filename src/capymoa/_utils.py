@@ -22,6 +22,8 @@ _metrics_name_mapping = {
     "recall": "Recall (percent)",
     "recall_{N}": "Recall for class {N} (percent)",
     "roc_auc": "ROC AUC (cumulative)",
+    "abstentions": "abstentions",
+    "abstentions_window": "abstentions (window)",
     "precision_macro": "Precision macro (percent)",
     "recall_macro": "Recall macro (percent)",
     "f1_score_macro": "F1 Score macro (percent)",

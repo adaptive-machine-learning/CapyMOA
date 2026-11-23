@@ -45,6 +45,7 @@ def evaluate_regressor(
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
     warmup: int = 0,
+    nan_value: float | None = 0.0,
 ) -> RegressorResults: ...
 @overload
 def evaluate_regressor(
@@ -59,6 +60,7 @@ def evaluate_regressor(
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
     warmup: int = 0,
+    nan_value: float | None = 0.0,
 ) -> dict[str, RegressorResults]: ...
 def evaluate_regressor(
     stream: Stream,
@@ -72,6 +74,7 @@ def evaluate_regressor(
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
     warmup: int = 0,
+    nan_value: float | None = 0.0,
 ) -> RegressorResults | dict[str, RegressorResults]:
     """Test-then-train a regressor, or many on one pass over a stream.
 
@@ -120,6 +123,9 @@ def evaluate_regressor(
     :param batch_size: Instances per mini-batch, for batch learners.
     :param warmup: Number of instances, from the start, to train on without testing.
         They count towards ``max_instances``.
+    :param nan_value: A regressor returns ``NaN`` when it can not make a good
+        prediction. That is an abstention, and it is scored as this value
+        instead. ``None`` scores the ``NaN``, which makes the metrics ``NaN``.
     :return: The results, or a dict of results by name for a mapping.
     """
     many = isinstance(learner, Mapping)
@@ -140,13 +146,19 @@ def evaluate_regressor(
     ):
         run = _Run(
             learner,
-            RegressionEvaluator(schema=schema),
-            RegressionWindowedEvaluator(schema=schema, window_size=window_size),
+            RegressionEvaluator(schema=schema, nan_value=nan_value),
+            RegressionWindowedEvaluator(
+                schema=schema, window_size=window_size, nan_value=nan_value
+            ),
             store_y=store_y,
             store_predictions=store_predictions,
         )
         out = _prequential_loop_fast(
-            stream, run, max_instances=max_instances, warmup=warmup
+            stream,
+            run,
+            max_instances=max_instances,
+            warmup=warmup,
+            nan_value=nan_value,
         )
         return _regressor_results(
             str(learner), stream, out, run.cumulative, run.windowed
@@ -158,11 +170,11 @@ def evaluate_regressor(
         windowed = None
         if window_size is not None:
             windowed = RegressionWindowedEvaluator(
-                schema=schema, window_size=window_size
+                schema=schema, window_size=window_size, nan_value=nan_value
             )
         runs[name] = _Run(
             each,
-            RegressionEvaluator(schema=schema),
+            RegressionEvaluator(schema=schema, nan_value=nan_value),
             windowed,
             store_y=store_y,
             store_predictions=store_predictions,

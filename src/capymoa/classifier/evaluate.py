@@ -29,6 +29,10 @@ from capymoa.stream import Schema
 class ClassifierWindows(Windows):
     """The windowed metrics of a classifier, one entry per window."""
 
+    #: Abstentions in each window: predictions where the confidence was equal to
+    #: or below chance, such as a classifier that can not predict yet.
+    abstentions: np.ndarray
+
     accuracy: np.ndarray
     r"""Percent of correct predictions in each window.
 
@@ -137,6 +141,10 @@ class PerClassWindows(TypedDict):
 class ClassifierCumulative(TypedDict):
     """The metrics over the whole stream of a classifier."""
 
+    #: Abstentions over the whole stream: predictions where the confidence was
+    #: equal to or below chance, such as a classifier that can not predict yet.
+    abstentions: int
+
     accuracy: float
     r"""Percent of correct predictions.
 
@@ -238,6 +246,10 @@ class ClassificationEvaluator:
     """
     Wrapper for the Classification Performance Evaluator from MOA. By default, it uses the
     ``BasicClassificationPerformanceEvaluator``
+
+    MOA counts abstentions, the predictions where the classifier's confidence was
+    equal to or below chance. See ``abstentions`` in :meth:`metrics`. Tell it with
+    ``update(..., abstained=True)``.
     """
 
     def __init__(
@@ -296,13 +308,16 @@ class ClassificationEvaluator:
     def get_instances_seen(self):
         return self.instances_seen
 
-    def update(self, y_target_index: int, y_pred_index: int):
+    def update(self, y_target_index: int, y_pred_index: int, abstained: bool = False):
         """Update the evaluator with the ground-truth and the prediction.
 
         :param y_target_index: The ground-truth class index. This is NOT
             the actual class value, but the index of the class value in the
             schema.
         :param y_pred_index: The predicted class index.
+        :param abstained: The classifier's confidence was equal to or below
+            chance. MOA counts it in ``abstentions``, and scores it as class 0, the
+            same as the Java loop.
         :raises TypeError: If the values are not integers.
         :raises ValueError: If the prediction is not a valid index in the schema.
         """
@@ -328,7 +343,9 @@ class ClassificationEvaluator:
         #    (may or may not be normalised, but for our purposes it doesn't matter)
         prediction_array = self.pred_template[:]
 
-        prediction_array[int(y_pred_index)] += 1
+        # No votes are equal votes, which MOA counts as an abstention.
+        if not abstained:
+            prediction_array[int(y_pred_index)] += 1
         self.moa_basic_evaluator.addResult(example, prediction_array)
 
         self.instances_seen += 1
@@ -425,6 +442,9 @@ class ClassificationWindowedEvaluator(ClassificationEvaluator):
     IMPORTANT: The results for the last window are not always available through ```metrics()```, if the window_size does
     not perfectly divide the stream, the metrics corresponding to the last remaining instances in the last window can
     be obtained by invoking ```metrics()```
+
+    ``abstentions`` counts the whole stream, and ``abstentions_window`` counts the
+    current window.
     """
 
     def __init__(self, schema: Schema, window_size: None | int = 1000):

@@ -5,4 +5,4 @@ moa_path: "src/capymoa/jar/moa.jar"
 # DROPBOX: When using a dropbox link, ensure that the dl=1 query parameter is 
 # present in the link. This ensures  the file is downloaded directly instead
 # of going to the dropbox page
-moa_url: "https://www.dropbox.com/scl/fi/9e7esntyqlyawadnqcj9r/261120_moa.jar?rlkey=93xy7ot3uucin7ggyphumlci6&st=c4qxu81e&dl=1"
+moa_url: "https://www.dropbox.com/scl/fi/z6z1giulkiv29i5qut6x8/261123_moajar.jar?rlkey=otusnf1nf9ahchy21dj4a3usx&st=lwghqjs4&dl=1"
