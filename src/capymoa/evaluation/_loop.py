@@ -18,7 +18,7 @@ from moa.streams import InstanceStream
 from tqdm import tqdm
 
 from capymoa._utils import batched
-from capymoa.base import BatchClassifier, Classifier, MOAPredictionIntervalLearner
+from capymoa.base import Classifier, MOAPredictionIntervalLearner
 from capymoa.core import LabeledInstance
 from capymoa.evaluation._abstain import batch_proba_abstains, proba_abstains
 from capymoa.evaluation.results import RunInfo
@@ -150,6 +150,8 @@ class _Run:
         if _is_batch(learner):
             # Collect a batch of instances and predict them all at once
             import torch  # optional extra; a Batch learner guarantees it
+
+            from capymoa.base import BatchClassifier
 
             np_x = np.stack([instance.x for instance in batch])
             torch_x = torch.from_numpy(np_x).to(

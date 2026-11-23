@@ -67,7 +67,7 @@ from capymoa.stream._stream import Schema
 
 
 def _make_autoencoder(**kwargs):
-    pytest.markskip("torch")
+    pytest.importorskip("torch")
     from capymoa.anomaly import Autoencoder
 
     return Autoencoder(**kwargs)
