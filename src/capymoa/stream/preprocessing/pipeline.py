@@ -548,8 +548,8 @@ class RegressorPipeline(BasePipeline, Regressor):
         return pred
 
 
-class RandomSearchClassifierPE(ClassifierPipelineElement, Classifier):
-    def __init__(
+class RandomSearchClassifierPE(ClassifierPipelineElement, Classifier):  # noqa: D101
+    def __init__(  # noqa: D107
         self,
         classifier_class: Classifier,
         hyperparameter_ranges: dict,

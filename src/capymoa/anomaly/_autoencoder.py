@@ -46,9 +46,8 @@ class Autoencoder(AnomalyDetector):
         threshold: float = 0.6,
         random_seed: int | None = None,
     ) -> None:
-        """Construct an Autoencoder anomaly detector
+        """Construct an Autoencoder anomaly detector.
 
-        Parameters
         :param schema: Describes the stream's structure and types.
         :param hidden_layer: Number of neurons in the hidden layer. The number should less than the number of input
         features.

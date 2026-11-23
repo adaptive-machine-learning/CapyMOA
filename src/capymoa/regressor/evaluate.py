@@ -76,7 +76,7 @@ class RegressionEvaluator:
     By default, it uses the MOA BasicRegressionPerformanceEvaluator as moa_evaluator.
     """
 
-    def __init__(self, schema=None, window_size=None, moa_evaluator=None):
+    def __init__(self, schema=None, window_size=None, moa_evaluator=None):  # noqa: D107
         self.instances_seen = 0
         self.result_windows = []
         self.window_size = window_size
@@ -204,7 +204,7 @@ class RegressionWindowedEvaluator(RegressionEvaluator):
     be obtained by invoking ```metrics()```
     """
 
-    def __init__(self, schema=None, window_size=1000):
+    def __init__(self, schema=None, window_size=1000):  # noqa: D107
         self.moa_evaluator = WindowRegressionPerformanceEvaluator()
         self.moa_evaluator.widthOption.setValue(window_size)
 

@@ -1,8 +1,8 @@
 import numpy as np
 
 
-class Aggregate:
-    def __init__(self, n, mean, m2):
+class Aggregate:  # noqa: D101
+    def __init__(self, n, mean, m2):  # noqa: D107
         self.n = n
         self._mean = mean
         self.m2 = m2
@@ -22,8 +22,8 @@ class Aggregate:
             return np.sqrt(self.variance())
 
 
-class PairwiseAggregate:
-    def __init__(self, agg1: Aggregate, agg2: Aggregate):
+class PairwiseAggregate:  # noqa: D101
+    def __init__(self, agg1: Aggregate, agg2: Aggregate):  # noqa: D107
         self.agg1 = agg1
         self.agg2 = agg2
 
@@ -40,8 +40,8 @@ class PairwiseAggregate:
         return self.agg1.std(), self.agg2.std()
 
 
-class PairwiseVariance:
-    def __init__(self, max_size: int):
+class PairwiseVariance:  # noqa: D101
+    def __init__(self, max_size: int):  # noqa: D107
         self.aggregates = []
         self.max_size = max_size
 

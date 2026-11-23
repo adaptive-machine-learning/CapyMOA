@@ -194,8 +194,8 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
         return self.metrics()[index]
 
 
-class PredictionIntervalWindowedEvaluator(PredictionIntervalEvaluator):
-    def __init__(self, schema=None, window_size=1000):
+class PredictionIntervalWindowedEvaluator(PredictionIntervalEvaluator):  # noqa: D101
+    def __init__(self, schema=None, window_size=1000):  # noqa: D107
         self.moa_evaluator = WindowPredictionIntervalEvaluator()
         self.moa_evaluator.widthOption.setValue(window_size)
 

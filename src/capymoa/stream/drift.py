@@ -876,7 +876,7 @@ class GradualDrift(Drift):
     ValueError: GradualDrift needs exactly one of ``position`` and ``width``, ``start`` and ``end``, or ``num_instances``, to locate the drift. Got position=100, start=95.
     """
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         position=None,
         width=None,
@@ -993,7 +993,7 @@ class AbruptDrift(Drift):
     so an omitted position cannot quietly become a drift at instance zero.
     """
 
-    def __init__(self, position: int | None = None, random_seed: int = 1):
+    def __init__(self, position: int | None = None, random_seed: int = 1):  # noqa: D107
         self.__init_args_kwargs__ = copy.copy(
             locals()
         )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
@@ -1017,7 +1017,7 @@ class IndexedCycle:
     An iterator that cycles through an iterable, returning tuples of (index, item).
     """
 
-    def __init__(self, iterable):
+    def __init__(self, iterable):  # noqa: D107
         self._data = list(iterable)  # Create a copy
         self._index = -1
         self._cycle = cycle(self._data)
@@ -1035,7 +1035,7 @@ class IndexedCycle:
         return self._index, item
 
 
-def get_class_and_init_attributes_with_values(obj):
+def get_class_and_init_attributes_with_values(obj):  # noqa: D103
     cls = type(obj)
     # Get function signature of init
     function_signature = inspect.signature(cls.__init__)
@@ -1050,7 +1050,7 @@ def get_class_and_init_attributes_with_values(obj):
     return cls, args
 
 
-def get_recurrent_concept_drift_stream_list(
+def get_recurrent_concept_drift_stream_list(  # noqa: D103
     concept_list: list,
     max_recurrences_per_concept: int = 3,
     transition_type_template: Drift | None = None,
@@ -1154,8 +1154,8 @@ def get_recurrent_concept_drift_stream_list(
     return concept_info, drift_stream
 
 
-class RecurrentConceptDriftStream(DriftStream):
-    def __init__(
+class RecurrentConceptDriftStream(DriftStream):  # noqa: D101
+    def __init__(  # noqa: D107
         self,
         concept_list: list,
         max_recurrences_per_concept: int = 3,

@@ -237,7 +237,7 @@ class ClassificationEvaluator:
     BasicClassificationPerformanceEvaluator
     """
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         schema: Schema = None,
         window_size=None,
@@ -452,7 +452,7 @@ class ClassificationWindowedEvaluator(ClassificationEvaluator):
     be obtained by invoking ```metrics()```
     """
 
-    def __init__(self, schema=None, window_size=1000):
+    def __init__(self, schema=None, window_size=1000):  # noqa: D107
         self.moa_evaluator = WindowClassificationPerformanceEvaluator()
         self.moa_evaluator.widthOption.setValue(window_size)
 
