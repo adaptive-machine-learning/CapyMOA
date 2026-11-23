@@ -29,7 +29,7 @@ from capymoa.regressor import (
     TargetMean,
     evaluate_regressor,
 )
-from capymoa.regressor.evaluate import RegressionEvaluator, RegressionWindowedEvaluator
+from capymoa.regressor.evaluate import RegressionEvaluator
 from capymoa.stream import Stream
 
 SEED = 1
