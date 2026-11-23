@@ -173,7 +173,7 @@ def _new_scr(schema: Schema, **kwargs) -> SCR:
     )
 
 
-def _new_pcr(schema: Schema) -> PCR:
+def _new_pcr(schema: Schema, **kwargs) -> PCR:
     encoder = nn.Sequential(
         nn.Flatten(), nn.Linear(schema.get_num_attributes(), 64), nn.ReLU()
     )
@@ -183,6 +183,7 @@ def _new_pcr(schema: Schema) -> PCR:
         feature_dim=64,
         augment=nn.Dropout(p=0.2),
         replay_batch_size=32,
+        **kwargs,
     )
 
 
@@ -537,45 +538,47 @@ def test_pcr_replay_order_and_updates(monkeypatch):
     """First fill memory, then train both encoder and proxies on history only."""
     learner = _tiny_pcr(substeps=2, augment=lambda x: x.add_(0.25))
     x, y = torch.eye(2), torch.tensor([0, 1])
-    before_encoder = learner._model.weight.detach().clone()
-    before_proxies = learner._proxies.weight.detach().clone()
+    before_encoder = learner.module.model.weight.detach().clone()
+    before_proxies = learner.module.proxies.weight.detach().clone()
     learner.batch_train(x, y)
     assert learner.last_loss == 0.0
-    torch.testing.assert_close(learner._model.weight, before_encoder)
-    torch.testing.assert_close(learner._proxies.weight, before_proxies)
+    torch.testing.assert_close(learner.module.model.weight, before_encoder)
+    torch.testing.assert_close(learner.module.proxies.weight, before_proxies)
     counts = []
-    original_sample = learner._buffer.sample
+    original_sample = learner.module.buffer.sample
 
     def sample(n):
-        counts.append(learner._buffer.count)
+        counts.append(learner.module.buffer.count)
         return original_sample(n)
 
-    monkeypatch.setattr(learner._buffer, "sample", sample)
+    monkeypatch.setattr(learner.module.buffer, "sample", sample)
     learner.batch_train(x + 2, torch.tensor([1, 2]))
     assert counts == [2, 2]
-    assert learner._buffer.count == 4
+    assert learner.module.buffer.count == 4
     assert learner.last_loss > 0
-    assert not torch.allclose(learner._model.weight, before_encoder)
-    assert not torch.allclose(learner._proxies.weight, before_proxies)
+    assert not torch.allclose(learner.module.model.weight, before_encoder)
+    assert not torch.allclose(learner.module.proxies.weight, before_proxies)
     # In-place augmentation must not overwrite raw input views or stored data.
     torch.testing.assert_close(x, torch.eye(2))
-    torch.testing.assert_close(learner._buffer.array()["x"], torch.cat((x, x + 2)))
+    torch.testing.assert_close(
+        learner.module.buffer.array()["x"], torch.cat((x, x + 2))
+    )
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
 def test_pcr_inference_and_instance_api(dtype):
     learner = _tiny_pcr(model=nn.Linear(2, 2, bias=False).to(dtype))
     with torch.no_grad():
-        learner._model.weight.copy_(torch.eye(2, dtype=dtype))
-        learner._proxies.weight.copy_(
+        learner.module.model.weight.copy_(torch.eye(2, dtype=dtype))
+        learner.module.proxies.weight.copy_(
             torch.tensor([[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]], dtype=dtype)
         )
     x = torch.tensor([[3.0, 0.1], [-3.0, 0.1]], dtype=dtype)
-    learner._model.train()
+    learner.module.model.train()
     probabilities = learner.batch_predict_proba(x)
-    assert learner._model.training
+    assert learner.module.model.training
     expected = (
-        nn.functional.normalize(x, dim=1) @ learner._proxies.weight.T / 0.09
+        nn.functional.normalize(x, dim=1) @ learner.module.proxies.weight.T / 0.09
     ).softmax(1)
     torch.testing.assert_close(probabilities, expected)
     assert probabilities.argmax(1).tolist() == [0, 2]
@@ -584,7 +587,7 @@ def test_pcr_inference_and_instance_api(dtype):
         learner.predict_proba(instance), probabilities[0].numpy(), rtol=1e-5
     )
     learner.train(LabeledInstance.from_array(learner.schema, x[0].numpy(), 0))
-    assert learner._buffer.count == 1
+    assert learner.module.buffer.count == 1
 
 
 def test_pcr_optimizer_and_seed():
@@ -594,12 +597,14 @@ def test_pcr_optimizer_and_seed():
     learner = _tiny_pcr(model=model, optimiser=optimiser)
     torch.testing.assert_close(torch.random.get_rng_state(), state)
     owned = {id(p) for g in optimiser.param_groups for p in g["params"]}
-    assert all(id(p) in owned for p in learner._proxies.parameters())
+    assert all(id(p) in owned for p in learner.module.proxies.parameters())
     factory_learner = _tiny_pcr(
         optimiser=lambda params: torch.optim.Adam(params, lr=0.003)
     )
     assert isinstance(factory_learner._optimiser, torch.optim.Adam)
-    torch.testing.assert_close(learner._proxies.weight, factory_learner._proxies.weight)
+    torch.testing.assert_close(
+        learner.module.proxies.weight, factory_learner.module.proxies.weight
+    )
 
 
 @pytest.mark.parametrize(

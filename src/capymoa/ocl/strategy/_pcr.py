@@ -8,8 +8,7 @@ from torch import Tensor, nn
 from torch.nn import functional as F
 from torch.optim import Optimizer
 
-from capymoa.base import BatchClassifier
-from capymoa.core import Instance, LabelProbabilities
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.ocl.util._replay import ReservoirSampler
 from capymoa.stream import Schema
 
@@ -30,7 +29,24 @@ class _ProxyContrastiveLoss(nn.Module):
         return -(log_probabilities * positives).sum(1).div(positives.sum(1)).mean()
 
 
-class PCR(BatchClassifier):
+class _PCRModule(nn.Module):
+    """Torch state of PCR."""
+
+    def __init__(
+        self,
+        model: nn.Module,
+        proxies: nn.Linear,
+        buffer: ReservoirSampler,
+        augment: Callable[[Tensor], Tensor],
+    ) -> None:
+        super().__init__()
+        self.model = model
+        self.proxies = proxies
+        self.buffer = buffer
+        self.augment = augment
+
+
+class PCR(TorchMixin[_PCRModule], BatchClassifier):
     """Proxy-based Contrastive Replay (PCR).
 
     PCR [#pcr]_ trains an encoder and one learned proxy per schema class. Each
@@ -123,26 +139,27 @@ class PCR(BatchClassifier):
         if feature_extractor is not None and not callable(feature_extractor):
             raise TypeError("feature_extractor must be callable")
         self._loss = _ProxyContrastiveLoss(temperature)
-        self.device = torch.device(device)
-        self._model = model.to(self.device)
         self.x_dtype = next(model.parameters(), torch.empty(0)).dtype
         self._shape = tuple(schema.shape)
         self._num_features = schema.get_num_attributes()
         self._num_classes = schema.get_num_classes()
         self._feature_dim = feature_dim
         self._feature_extractor = feature_extractor
-        self._augment = (
-            augment.to(self.device) if isinstance(augment, nn.Module) else augment
-        )
         # Seed the new head without advancing the caller's random generators.
         with torch.random.fork_rng(devices=[]):
             torch.set_rng_state(torch.Generator().manual_seed(seed).get_state())
             proxies = nn.Linear(feature_dim, self._num_classes, bias=False)
-        self._proxies = proxies.to(device=self.device, dtype=self.x_dtype)
+        buffer = ReservoirSampler(
+            buffer_capacity,
+            {"x": ((self._num_features,), self.x_dtype), "y": ((), self.y_dtype)},
+            torch.Generator().manual_seed(seed),
+        )
+        self._module = _PCRModule(model, proxies.to(self.x_dtype), buffer, augment).to(
+            device
+        )
+        proxies = self._module.proxies
         parameters = [
-            p
-            for p in (*model.parameters(), *self._proxies.parameters())
-            if p.requires_grad
+            p for p in (*model.parameters(), *proxies.parameters()) if p.requires_grad
         ]
         if optimiser is None:
             optimiser = torch.optim.SGD(parameters, lr=0.1)
@@ -158,15 +175,10 @@ class PCR(BatchClassifier):
         if not isinstance(optimiser, Optimizer):
             raise TypeError("optimiser factory must return an optimizer")
         owned = {id(p) for group in optimiser.param_groups for p in group["params"]}
-        allowed = {id(p) for p in (*model.parameters(), *self._proxies.parameters())}
+        allowed = {id(p) for p in (*model.parameters(), *proxies.parameters())}
         if not {id(p) for p in parameters} <= owned or not owned <= allowed:
             raise ValueError("Optimizer must cover the encoder and proxies only")
         self._optimiser = optimiser
-        self._buffer = ReservoirSampler(
-            buffer_capacity,
-            {"x": ((self._num_features,), self.x_dtype), "y": ((), self.y_dtype)},
-            torch.Generator().manual_seed(seed),
-        ).to(self.device)
         self._replay_batch_size = replay_batch_size
         self._substeps = substeps
         self.last_loss: float | None = None
@@ -177,15 +189,15 @@ class PCR(BatchClassifier):
         flat = x.reshape(x.shape[0], -1)
         if flat.shape[1] != self._num_features:
             raise ValueError("feature count does not match the schema")
-        return flat.to(device=self.device, dtype=self.x_dtype).reshape(-1, *self._shape)
+        return flat.reshape(-1, *self._shape)
 
     def _encode(self, x: Tensor) -> Tensor:
         extractor = self._feature_extractor
         if extractor is None:
-            extractor = getattr(self._model, "forward_features", None)
+            extractor = getattr(self._module.model, "forward_features", None)
         if extractor is None:
-            extractor = getattr(self._model, "features", None)
-        features = extractor(x) if extractor is not None else self._model(x)
+            extractor = getattr(self._module.model, "features", None)
+        features = extractor(x) if extractor is not None else self._module.model(x)
         features = features.reshape(x.shape[0], -1)
         if features.shape[1] != self._feature_dim:
             raise ValueError("encoder output width does not match feature_dim")
@@ -194,13 +206,12 @@ class PCR(BatchClassifier):
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         """Learn from historical replay, then store the incoming examples."""
         x = self._prepare_x(x)
-        y = y.to(device=self.device, dtype=self.y_dtype)
         if y.shape != (x.shape[0],) or ((y < 0) | (y >= self._num_classes)).any():
             raise ValueError("y must contain one valid class index per example")
         self.last_loss = 0.0
-        if self._buffer.count:
-            self._model.train()
-            self._proxies.train()
+        if self._module.buffer.count:
+            self._module.model.train()
+            self._module.proxies.train()
             n = (
                 x.shape[0]
                 if self._replay_batch_size is None
@@ -208,38 +219,36 @@ class PCR(BatchClassifier):
             )
             losses = []
             for _ in range(self._substeps):
-                replay = self._buffer.sample(n)
+                replay = self._module.buffer.sample(n)
                 rx = replay["x"].reshape(-1, *self._shape)
-                ax, arx = self._augment(x.clone()), self._augment(rx.clone())
+                ax, arx = (
+                    self._module.augment(x.clone()),
+                    self._module.augment(rx.clone()),
+                )
                 if ax.shape != x.shape or arx.shape != rx.shape:
                     raise ValueError("augment must preserve the batch shape")
                 features = self._encode(torch.cat((rx, arx, x, ax)))
                 labels = torch.cat((replay["y"], replay["y"], y, y))
-                loss = self._loss(features, labels, self._proxies.weight)
+                loss = self._loss(features, labels, self._module.proxies.weight)
                 self._optimiser.zero_grad()
                 loss.backward()
                 self._optimiser.step()
                 losses.append(loss.detach())
             self.last_loss = torch.stack(losses).mean().item()
-        self._buffer.update(x=x.reshape(x.shape[0], -1), y=y)
+        self._module.buffer.update(x=x.reshape(x.shape[0], -1), y=y)
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
         """Return softmax scores over cosine similarities to all class proxies."""
-        modes = {module: module.training for module in self._model.modules()}
-        self._model.eval()
+        modes = {module: module.training for module in self._module.model.modules()}
+        self._module.model.eval()
         try:
             features = F.normalize(self._encode(self._prepare_x(x)), dim=1)
-            proxies = F.normalize(self._proxies.weight, dim=1)
+            proxies = F.normalize(self._module.proxies.weight, dim=1)
             return (features @ proxies.T / self._loss.temperature).softmax(dim=1)
         finally:
             for module, training in modes.items():
                 module.training = training
 
-    def predict_proba(self, instance: Instance) -> LabelProbabilities:
-        """Return single-instance probabilities on CPU, including for GPU models."""
-        x = torch.as_tensor(instance.x).reshape(1, -1)
-        return self.batch_predict_proba(x).cpu().to(torch.float64).numpy().reshape(-1)
-
     def __str__(self) -> str:
-        return f"PCR(temperature={self._loss.temperature}, buffer_capacity={self._buffer.capacity})"
+        return f"PCR(temperature={self._loss.temperature}, buffer_capacity={self._module.buffer.capacity})"
