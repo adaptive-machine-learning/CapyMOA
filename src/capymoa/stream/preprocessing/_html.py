@@ -159,8 +159,7 @@ def _describe(
             else "Regressor"
         )
         learner = element.learner
-        # RandomSearchClassifierPE subclasses ClassifierPipelineElement but holds
-        # its candidate models itself, so it has no single learner to show.
+        # A classifier element can have no learner.
         name = str(element) if learner is None else str(learner)
         return "cm-learner", kind, name, _params(learner), _shape(element)
     if isinstance(element, DriftDetectorPipelineElement):

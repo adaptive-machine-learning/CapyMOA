@@ -4,8 +4,6 @@ from abc import abstractmethod
 from collections.abc import Callable
 from typing import Any, Protocol
 
-import numpy as np
-
 from capymoa.base import Classifier, Regressor
 from capymoa.base._seed import resolve_seed
 from capymoa.core import (
@@ -546,97 +544,3 @@ class RegressorPipeline(BasePipeline, Regressor):
         """
         instance, pred = self.pass_forward_predict(instance)
         return pred
-
-
-class RandomSearchClassifierPE(ClassifierPipelineElement, Classifier):  # noqa: D101
-    def __init__(  # noqa: D107
-        self,
-        classifier_class: Classifier,
-        hyperparameter_ranges: dict,
-        n_combinations: int,
-        rng: np.random.Generator,
-    ):
-        # initialize the pipeline element but don't specify a learner
-        super().__init__(learner=None)
-
-        # assign the variables from the initializer
-        self.classifier_class = classifier_class
-        self.hyperparameter_ranges = hyperparameter_ranges
-        self.n_combinations = n_combinations
-        self.rng = rng
-
-        # sample n_combinations of hyperparameters
-        self.hyperparameters = []
-        for _ in range(n_combinations):
-            hp_combination = {
-                hp_name: rng.choice(values)
-                for hp_name, values in hyperparameter_ranges.items()
-            }
-            self.hyperparameters.append(hp_combination)
-
-        # instantiate models
-        self.models = [
-            self.classifier_class(**hp_kwargs) for hp_kwargs in self.hyperparameters
-        ]
-        self.model_accuracy = [0.0 for _ in range(len(self.models))]
-        self.seen_instances = 0
-
-    def __str__(self):
-        return f"RandomSearch({self.classifier_class.__name__!s})"
-
-    def pass_forward(self, instance: LabeledInstance) -> Instance:
-        """Update model scores, train each model, and return the instance.
-
-        :param instance: Labeled instance used to evaluate and train the models.
-        :returns: The input instance.
-        """
-        # loop through all models, update their accuracy, and train them
-        for model_idx, model in enumerate(self.models):
-            y_hat = model.predict(instance)
-
-            correct = int(y_hat == instance.y_index)
-            old_acc = self.model_accuracy[model_idx]
-            new_acc = (old_acc * self.seen_instances + correct) / (
-                self.seen_instances + 1
-            )
-            self.model_accuracy[model_idx] = new_acc
-
-            model.train(instance)
-        self.seen_instances += 1
-        return instance
-
-    def pass_forward_predict(
-        self, instance: Instance, prediction=None
-    ) -> tuple[Instance, Any]:
-        """Predict with the model that currently has the highest score.
-
-        :param instance: Instance to classify.
-        :param prediction: Previous pipeline prediction, if any; ignored.
-        :returns: The input instance and the selected model's prediction.
-        """
-        # find the best model, let it do the prediction
-        best_model_idx = np.argmax(self.model_accuracy)
-        best_model = self.models[best_model_idx]
-        return instance, best_model.predict(instance)
-
-    def train(self, instance: LabeledInstance):
-        """Train all candidate classifiers on a labeled instance.
-
-        :param instance: Labeled instance to train on.
-        :returns: This classifier.
-        """
-        self.pass_forward(instance)
-        return self
-
-    def predict(self, instance: Instance) -> LabelIndex | None:
-        """Predict the class label using the highest-scoring classifier.
-
-        :param instance: Instance to classify.
-        :returns: Predicted label, or ``None`` if the pipeline has no learner.
-        """
-        _inst, pred = self.pass_forward_predict(instance)
-        return pred
-
-    def predict_proba(self, instance: Instance) -> LabelProbabilities:
-        # TODO: Discuss how handle this
-        raise NotImplementedError

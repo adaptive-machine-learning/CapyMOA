@@ -11,7 +11,9 @@ from capymoa.core import Instance
 from .._stream import MOAStream, Schema
 
 
-class Transformer(ABC):  # noqa: D101
+class Transformer(ABC):
+    """Transformers pre-process instances in data streams and may change their schema."""
+
     @abstractmethod
     def transform_instance(self, instance) -> Instance:
         raise NotImplementedError
@@ -75,18 +77,21 @@ _ATTRIBUTE_PRESERVING_FILTERS = frozenset(
 )
 
 
-class MOATransformer(Transformer):  # noqa: D101
+class MOATransformer(Transformer):
+    """Wrapper that adapts MOA stream filters to CapyMOA transformers."""
+
     #: ``True`` if the filter keeps the attribute set, so the output schema is
     #: known before any data. Set from the filter's class. Set it to ``True`` on
     #: an instance to declare it for a filter that is not in the known list.
     preserves_attributes: bool
 
-    def __init__(  # noqa: D107
+    def __init__(
         self,
-        schema=None,
+        schema: None | Schema = None,
         moa_filter: moa.streams.filters.StreamFilter | None = None,
-        CLI=None,
+        CLI: None | str = None,
     ):
+        """Create a transformer wrapping a MOA stream filter."""
         self.schema = schema
         self.CLI = CLI
         self.moa_filter = moa_filter

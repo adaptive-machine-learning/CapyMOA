@@ -16,6 +16,9 @@ from moa.evaluation import (
     BasicClassificationPerformanceEvaluator,
     WindowClassificationPerformanceEvaluator,
 )
+from moa.evaluation import (
+    ClassificationPerformanceEvaluator as JClassificationPerformanceEvaluator,
+)
 from typing_extensions import TypedDict
 
 from capymoa._utils import _translate_metric_name
@@ -234,22 +237,29 @@ class ClassifierResults(RunInfo):
 class ClassificationEvaluator:
     """
     Wrapper for the Classification Performance Evaluator from MOA. By default, it uses the
-    BasicClassificationPerformanceEvaluator
+    ``BasicClassificationPerformanceEvaluator``
     """
 
-    def __init__(  # noqa: D107
+    def __init__(
         self,
-        schema: Schema = None,
-        window_size=None,
-        moa_evaluator=None,
+        schema: Schema,
+        window_size: None | int = None,
+        moa_evaluator: None | JClassificationPerformanceEvaluator = None,
     ):
+        """Configure the cumulative and (optionally) windowed classification evaluator.
+
+        :param schema: Defines the stream structure.
+        :param window_size: If set collects windowed metrics with the given window size.
+        :param moa_evaluator: An alternative MOA evaluator.
+        """
         self.instances_seen = 0
         self.result_windows = []
         self.window_size = window_size
 
-        self.moa_basic_evaluator = moa_evaluator
-        if self.moa_basic_evaluator is None:
+        if moa_evaluator is None:
             self.moa_basic_evaluator = BasicClassificationPerformanceEvaluator()
+        else:
+            self.moa_basic_evaluator = moa_evaluator
 
         self.moa_basic_evaluator.recallPerClassOption.set()
         self.moa_basic_evaluator.precisionPerClassOption.set()
@@ -262,28 +272,20 @@ class ClassificationEvaluator:
         self.pred_template = [0, 0]
 
         self.schema = schema
-        self._header = None
-        if self.schema is not None:
-            if self.schema.get_label_indexes() is not None:
-                for value in self.schema.get_label_indexes():
-                    _attributeValues.append(value)
-                _classAttribute = Attribute("Class", _attributeValues)
-                attSub = ArrayList()
-                attSub.append(_classAttribute)
-                self._header = Instances("", attSub, 1)
-                self._header.setClassIndex(0)
-            else:
-                raise ValueError(
-                    "Schema was not initialised properly, please define a proper Schema."
-                )
-        else:
-            raise ValueError("Schema is None, please define a proper Schema.")
+
+        for value in self.schema.get_label_indexes():
+            _attributeValues.append(value)
+        _classAttribute = Attribute("Class", _attributeValues)
+        attSub = ArrayList()
+        attSub.append(_classAttribute)
+        header = Instances("", attSub, 1)
+        header.setClassIndex(0)
 
         self.pred_template = [0] * len(self.schema.get_label_indexes())
 
         # Create the denseInstance just once and keep reusing it by changing the classValue (more efficient).
         self._instance = DenseInstance(1)
-        self._instance.setDataset(self._header)
+        self._instance.setDataset(header)
 
     def __repr__(self):
         return str(self)
@@ -425,7 +427,12 @@ class ClassificationWindowedEvaluator(ClassificationEvaluator):
     be obtained by invoking ```metrics()```
     """
 
-    def __init__(self, schema=None, window_size=1000):  # noqa: D107
+    def __init__(self, schema: Schema, window_size: None | int = 1000):
+        """Create a windowed classification evaluator.
+
+        :param schema: Defines the stream structure, including the class attribute.
+        :param window_size: If set collects windowed metrics with the given window size.
+        """
         self.moa_evaluator = WindowClassificationPerformanceEvaluator()
         self.moa_evaluator.widthOption.setValue(window_size)
 

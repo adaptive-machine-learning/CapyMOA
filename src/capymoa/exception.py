@@ -1,3 +1,6 @@
+from typing import Literal
+
+
 class StreamTypeError(Exception):
     """Raised when a stream type is incompatible.
 
@@ -17,13 +20,19 @@ class OptionalDependencyError(ImportError):
     Traceback (most recent call last):
         ...
     capymoa.exception.OptionalDependencyError: PyTorch is required for capymoa.ocl.
-    Install it with: pip install capymoa[torch]
+    Install it with: `pip install capymoa[torch]`...
     """
 
-    def __init__(self, dependency: str = "PyTorch", feature: str = "this feature"):  # noqa: D107
+    def __init__(self, dependency: Literal["PyTorch"], feature: str):
+        """Create a helpful error message for missing optional dependencies.
+
+        :param dependency: The name of the missing dependency.
+        :param feature: The feature that requires the missing dependency.
+        """
         self._dependency = dependency
         self._feature = feature
-        super().__init__(
-            f"{dependency} is required for {feature}.\n"
-            f"Install it with: pip install capymoa[torch]"
-        )
+        msg = f"{dependency} is required for {feature}.\n"
+        if dependency == "PyTorch":
+            msg += "Install it with: `pip install capymoa[torch]`\n"
+            msg += "or: `pip install capymoa[torch-cpu]`\n"
+        super().__init__(msg)
