@@ -84,8 +84,8 @@ class Finetune(TorchMixin[_FinetuneModule], BatchClassifier):
             ``optimizer`` is already an optimizer instance.
         :param criterion: Loss function to use for training. Defaults to
             :class:`torch.nn.CrossEntropyLoss`.
-        :param device: Hardware for training. Move it later with
-            ``learner.module.to(...)``. Your model is at ``learner.module.model``.
+        :param device: Hardware for training. Your model is at
+            ``learner.module.model``.
         :param random_seed: Seeds torch :py:func:`torch.manual_seed`.
         """
         super().__init__(schema, random_seed)
