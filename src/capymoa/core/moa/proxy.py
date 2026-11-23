@@ -75,6 +75,7 @@ class ProxyNotImplementedError(NotImplementedError):
     """Exception raised for methods that are not implemented in the proxy class."""
 
     def __init__(self, parent: Any, fn_name: str):
+        """Create the exception with the parent and function name."""
         super().__init__(
             f"{parent._learner_spec['learner']}: {fn_name} method is not implemented in the proxy class."
         )
@@ -112,6 +113,7 @@ class _ProxyOptionHandler:
     :func:`_inherit_overrides`."""
 
     def __init__(self, learner_spec: LearnerSpec):
+        """Create the proxy with the given learner specification."""
         self._learner_spec = learner_spec
 
     def __str__(self) -> str:
@@ -145,6 +147,7 @@ class _ProxyLearner(_ProxyOptionHandler):
     """
 
     def __init__(self, learner_spec: LearnerSpec):
+        """Create the proxy learner with the given learner specification."""
         super().__init__(learner_spec)
         self._py_learner: Any = None
         # MOA learners also default to a seed of 1.
@@ -259,8 +262,11 @@ class ProxyJavaClassifier(_ProxyLearner):
         py_instance = self._to_py(instance_or_example)
         y_hat = self._py_classifier.predict_proba(py_instance)
 
-        if y_hat is None:
-            # Zero votes, like an untrained MOA learner.
+        if np.ptp(y_hat) == 0:
+            # A Python learner that can not predict yet gives a uniform
+            # prediction. MOA reads zero votes as "no prediction". Some
+            # meta-learners, such as SRP, fail on non-zero votes from a member
+            # that has not trained.
             y_hat = np.zeros(self._schema.get_num_classes())
 
         return cast(Any, jpype.JArray(jpype.JDouble))(y_hat)
@@ -332,7 +338,7 @@ class ProxyJavaRegressor(ProxyJavaClassifier):
     ) -> MutableSequence[float]:
         py_instance = self._to_py(instance_or_example)
         y_hat = self._py_regressor.predict(py_instance)
-        votes = [0.0] if y_hat is None else [float(y_hat)]
+        votes = [float(y_hat)]
         return cast(Any, jpype.JArray(jpype.JDouble))(votes)
 
 
@@ -433,6 +439,7 @@ class ProxyJavaDriftDetector(_ProxyOptionHandler):
     """
 
     def __init__(self, learner_spec: LearnerSpec):
+        """Create a proxy Java drift detector around a Python learner and its config."""
         super().__init__(learner_spec)
         self._py_detector: BaseDriftDetector = self._build()
 

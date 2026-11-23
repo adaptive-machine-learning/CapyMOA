@@ -1,7 +1,7 @@
 import torch
 from torch import Tensor, nn
 
-from capymoa.base import BatchClassifier
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.base._seed import resolve_seed
 from capymoa.stream import Schema
 
@@ -36,7 +36,43 @@ def _batch_cumulative_covariance(
     return new_count, new_mean, covariance
 
 
-class SLDA(BatchClassifier):
+def _clear_cache_after_load(module: "_SLDAModule", _incompatible_keys: object) -> None:
+    module.clear_cache()
+
+
+class _SLDAModule(nn.Module):
+    """Torch state of SLDA."""
+
+    class_counts: Tensor
+    class_means: Tensor
+    mean: Tensor
+    covariance: Tensor
+    ridge: Tensor
+    weights: Tensor | None
+    bias: Tensor | None
+
+    def __init__(
+        self, pre_processor: nn.Module, n_classes: int, n_feats: int, ridge: float
+    ) -> None:
+        super().__init__()
+        self.pre_processor = pre_processor
+        self.register_buffer("class_counts", torch.zeros((n_classes,)))
+        self.register_buffer("class_means", torch.zeros((n_classes, n_feats)))
+        self.register_buffer("mean", torch.zeros(n_feats))
+        self.register_buffer("covariance", torch.eye(n_feats))
+        self.register_buffer("ridge", torch.eye(n_feats) * ridge)
+        # Cached weights and bias. They move with the module but are not saved.
+        self.register_buffer("weights", None, persistent=False)
+        self.register_buffer("bias", None, persistent=False)
+        self.register_load_state_dict_post_hook(_clear_cache_after_load)
+
+    def clear_cache(self) -> None:
+        """Drop the cached weights and bias after the state changes."""
+        self.weights = None
+        self.bias = None
+
+
+class SLDA(TorchMixin[_SLDAModule], BatchClassifier):
     r"""Streaming Linear Discriminant Analysis.
 
     Streaming Linear Discriminant Analysis (SLDA) [#f0]_ is a prototype classifier.
@@ -120,7 +156,7 @@ class SLDA(BatchClassifier):
         pre_processor: nn.Module | None = None,
         num_features: int | None = None,
         ridge: float = 1e-3,
-        device: torch.device | str | None = None,
+        device: torch.device | str = "cpu",
         random_seed: int | None = None,
     ) -> None:
         """Initialize a SLDA classifier.
@@ -138,48 +174,38 @@ class SLDA(BatchClassifier):
         super().__init__(schema, random_seed)
         if pre_processor is None:
             pre_processor = nn.Identity()
-        if device is None:
-            device = torch.device("cpu")
-        self._pre_processor = pre_processor.to(device)
         self._n_classes = schema.get_num_classes()
         self._n_feats = num_features or schema.get_num_attributes()
-        self.device = torch.device(device)
-
-        # Class means and counts
-        self._class_counts = torch.zeros((self._n_classes,), device=device)
-        self._class_means = torch.zeros((self._n_classes, self._n_feats), device=device)
-
-        # Joint cumulative mean and covariance
-        self._count = 0
-        self._mean = torch.zeros(self._n_feats, device=device)
-        self._covariance = torch.eye(self._n_feats, device=device)
-        self._ridge = torch.eye(self._n_feats, device=device) * ridge
-
-        # Cached weights and bias, cleared after each update
-        self._weights: Tensor | None = None
-        self._bias: Tensor | None = None
+        self._module = _SLDAModule(
+            pre_processor, self._n_classes, self._n_feats, ridge
+        ).to(device)
 
     @torch.no_grad()
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        x = self._pre_processor(x)
+        x = self._module.pre_processor(x)
+        count = int(self._module.class_counts.sum())
 
         # Update class means and counts
         for i in range(self.schema.get_num_classes()):
-            self._class_counts[i], self._class_means[i] = _batch_cumulative_mean(
-                x[y == i], int(self._class_counts[i]), self._class_means[i]
+            self._module.class_counts[i], self._module.class_means[i] = (
+                _batch_cumulative_mean(
+                    x[y == i],
+                    int(self._module.class_counts[i]),
+                    self._module.class_means[i],
+                )
             )
 
         # Update joint cumulative mean and covariance
-        self._count, self._mean, self._covariance = _batch_cumulative_covariance(
-            x, self._count, self._mean, self._covariance
+        _, self._module.mean, self._module.covariance = _batch_cumulative_covariance(
+            x, count, self._module.mean, self._module.covariance
         )
-        self._weights = None
-        self._bias = None
+        self._module.clear_cache()
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
         # Return uniform probabilities if no training has been done
-        if self._count == 0:
+        count = self._module.class_counts.sum()
+        if count == 0:
             return torch.full(
                 (x.size(0), self._n_classes),
                 1.0 / self._n_classes,
@@ -187,13 +213,14 @@ class SLDA(BatchClassifier):
                 device=self.device,
             )
 
-        x = self._pre_processor(x)
-        if self._weights is None or self._bias is None:
-            covariance = self._covariance + self._ridge
-            self._weights = torch.linalg.solve(covariance, self._class_means.T).T
-            bias = -0.5 * (self._class_means * self._weights).sum(1)
-            self._bias = bias + torch.log(self._class_counts / self._count)
-        scores = x @ self._weights.T + self._bias
+        x = self._module.pre_processor(x)
+        m = self._module
+        if m.weights is None or m.bias is None:
+            covariance = m.covariance + m.ridge
+            m.weights = torch.linalg.solve(covariance, m.class_means.T).T
+            bias = -0.5 * (m.class_means * m.weights).sum(1)
+            m.bias = bias + torch.log(m.class_counts / count)
+        scores = x @ m.weights.T + m.bias
         return torch.softmax(scores, dim=1)
 
 
@@ -239,7 +266,7 @@ class RanPAC(SLDA):
         schema: Schema,
         projection_dim: int = 5000,
         ridge: float = 1e-3,
-        device: torch.device | str | None = None,
+        device: torch.device | str = "cpu",
         random_seed: int | None = None,
     ) -> None:
         """Initialize a RanPAC classifier.

@@ -28,6 +28,8 @@ from typing import Any, Literal
 import numpy as np
 
 from capymoa.drift.base_detector import BaseDriftDetector
+from capymoa.drift.events import DriftEvent
+from capymoa.events import Event
 
 
 def _bin_probabilities(
@@ -134,6 +136,9 @@ class BaseDataDriftDetector(BaseDriftDetector):
         detectors on real-world data streams. International Journal of Data
         Science and Analytics, 19(1), 1-31.
     """
+
+    emits: tuple[type[Event], ...] = (DriftEvent,)
+    """Data drift detectors never warn, so they emit only drifts."""
 
     REQUIRES_FIT: bool = True
     """Data drift detectors need a reference distribution. Call

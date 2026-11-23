@@ -12,7 +12,7 @@ from itertools import islice
 from typing import Any
 
 import numpy as np
-from moa.evaluation import EfficientEvaluationLoops
+from moa.evaluation import EfficientEvaluationLoops, HookableEvaluationLoop
 from moa.streams import InstanceStream
 from tqdm import tqdm
 
@@ -141,6 +141,26 @@ class _Run:
                 learner.train(instance)
         return yb_true, yb_pred
 
+    def warm(self, batch: Sequence[Any]) -> None:
+        """Train on a batch. Nothing is tested or measured."""
+        learner = self.learner
+        if _is_batch(learner):
+            import torch  # optional extra; a Batch learner guarantees it
+
+            np_x = np.stack([instance.x for instance in batch])
+            torch_x = torch.from_numpy(np_x).to(
+                device=learner.device, dtype=learner.x_dtype
+            )
+            y = [
+                i.y_index if isinstance(i, LabeledInstance) else i.y_value
+                for i in batch
+            ]
+            torch_y = torch.tensor(y, dtype=learner.y_dtype, device=learner.device)
+            learner.batch_train(torch_x, torch_y)
+        else:
+            for instance in batch:
+                learner.train(instance)
+
     def step(self, batch: Sequence[Any]) -> None:
         """Test-then-train on a batch, then update the evaluators."""
         y_true, y_pred = self.test_then_train(batch)
@@ -205,6 +225,7 @@ def _prequential_loop(
     progress_bar: bool | tqdm = False,
     progress_prefix: str = "Eval",
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> dict[str, _LoopOutput]:
     """Test-then-train every learner on the stream, going over it once.
 
@@ -212,19 +233,31 @@ def _prequential_loop(
     its own evaluators.
 
     :param runs: The learners to run, by name.
+    :param warmup: Number of instances, from the start, to train on without
+        testing. They count towards ``max_instances``.
     """
+    if warmup < 0:
+        raise ValueError("warmup must be zero or positive.")
     if batch_size != 1 and not all(_is_batch(run.learner) for run in runs.values()):
         raise ValueError(
             "The learner is not a batch learner, but batch_size is set to a value greater than 1."
         )
     instances = 0
+    seen = 0
     start_wallclock, start_cpu = time.time(), time.process_time()
     bar = _progress_bar(progress_bar, progress_prefix, runs, stream, max_instances)
     for batch in batched(islice(stream, max_instances), batch_size):
-        for run in runs.values():
-            run.step(batch)
+        n_warm = min(max(warmup - seen, 0), len(batch))
+        seen += len(batch)
+        if n_warm:
+            for run in runs.values():
+                run.warm(batch[:n_warm])
+            batch = batch[n_warm:]
+        if batch:
+            for run in runs.values():
+                run.step(batch)
         instances += len(batch)
-        bar.update(len(batch))
+        bar.update(n_warm + len(batch))
     bar.close()
     wallclock = time.time() - start_wallclock
     cpu_time = time.process_time() - start_cpu
@@ -240,6 +273,7 @@ def _prequential_loop_fast(
     *,
     max_instances: int | None,
     ssl: tuple[int, int, float, int] | None = None,
+    warmup: int = 0,
 ) -> _LoopOutput:
     """The test-then-train loop of one learner, run by MOA in Java.
 
@@ -249,7 +283,13 @@ def _prequential_loop_fast(
 
     :param ssl: ``(initial_window_size, delay_length, label_probability,
         random_seed)`` for semi-supervised evaluation, else ``None``.
+    :param warmup: Number of instances, from the start, to train on without
+        testing. They count towards ``max_instances``. Not for ``ssl``.
     """
+    if warmup < 0:
+        raise ValueError("warmup must be zero or positive.")
+    if warmup and ssl is not None:
+        raise ValueError("warmup is not supported for semi-supervised evaluation.")
     if type(run).test_then_train is not _Run.test_then_train:
         raise TypeError("The Java loop cannot run a custom test_then_train.")
     learner, cumulative, windowed = run.learner, run.cumulative, run.windowed
@@ -257,7 +297,14 @@ def _prequential_loop_fast(
     start_wallclock, start_cpu = time.time(), time.process_time()
     limit = -1 if max_instances is None else max_instances
     if ssl is None:
-        moa_results = EfficientEvaluationLoops.PrequentialEvaluation(
+        # Only these take a warmup. ``PrequentialEvaluation`` picks one of them
+        # by the type of the target, as done here.
+        evaluate = (
+            EfficientEvaluationLoops.prequentialEvaluationClassification
+            if stream.get_schema().is_classification()
+            else EfficientEvaluationLoops.prequentialEvaluationRegression
+        )
+        moa_results = evaluate(
             stream.moa_stream,
             learner.moa_learner,
             cumulative.moa_basic_evaluator,
@@ -266,6 +313,8 @@ def _prequential_loop_fast(
             window_size,
             run.store_y,
             run.store_predictions,
+            warmup,
+            HookableEvaluationLoop(),
         )
     else:
         initial_window_size, delay_length, label_probability, random_seed = ssl

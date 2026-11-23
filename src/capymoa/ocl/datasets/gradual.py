@@ -55,6 +55,12 @@ class SigmoidFn(TransitionFn):
     """
 
     def __init__(self, width: float, seed: int | None = None) -> None:
+        """Create a sigmoid shaped gradual data shift function.
+
+        :param width: The width of the transition, must be between 0.0 and 1.0.
+        :param seed: Random seed for reproducibility, defaults to None.
+        """
+
         super().__init__()
         if not (0.0 <= width <= 1.0):
             raise ValueError("width must be between 0.0 and 1.0")

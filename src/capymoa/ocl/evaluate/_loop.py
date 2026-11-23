@@ -8,17 +8,13 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 from capymoa.base import BatchClassifier, Classifier
-from capymoa.core import Instance, LabeledInstance, LabelIndex
+from capymoa.core import Instance, LabeledInstance
 from capymoa.ocl.events import Dispatcher, Event, Handler
 
 from . import events
 
 
-def _abstain_prediction_uniform(rng: np.random.Generator, n_classes: int) -> LabelIndex:
-    return int(rng.integers(0, n_classes))
-
-
-def _batch_test(rng: np.random.Generator, learner: Classifier, x: Tensor) -> np.ndarray:
+def _batch_test(learner: Classifier, x: Tensor) -> np.ndarray:
     """Test a batch of instances using the learner."""
     batch_size = x.shape[0]
     x = x.view(batch_size, -1)
@@ -29,12 +25,7 @@ def _batch_test(rng: np.random.Generator, learner: Classifier, x: Tensor) -> np.
         yb_pred = np.zeros(batch_size, dtype=int)
         for i in range(batch_size):
             instance = Instance.from_array(learner.schema, x[i].numpy())
-            y_pred = learner.predict(instance)
-            if y_pred is None:
-                y_pred = _abstain_prediction_uniform(
-                    rng, learner.schema.get_num_classes()
-                )
-            yb_pred[i] = y_pred
+            yb_pred[i] = learner.predict(instance)
         return yb_pred
 
 

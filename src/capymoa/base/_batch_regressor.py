@@ -34,6 +34,8 @@ class BatchRegressor(Regressor, Batch, ABC):
     >>>
     >>> batch_size = 500
     >>> class MyBatchRegressor(BatchRegressor):
+    ...     device = torch.device("cpu")
+    ...
     ...     def batch_train(self, x, y):
     ...         print(f"batch_train x: {x.shape} {x.dtype}")
     ...         print(f"batch_train y: {y.shape} {y.dtype}")

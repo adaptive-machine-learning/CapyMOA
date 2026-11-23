@@ -100,6 +100,7 @@ def evaluate_classifier(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> ClassifierResults: ...
 @overload
 def evaluate_classifier(
@@ -113,6 +114,7 @@ def evaluate_classifier(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> dict[str, ClassifierResults]: ...
 def evaluate_classifier(
     stream: Stream,
@@ -125,6 +127,7 @@ def evaluate_classifier(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> ClassifierResults | dict[str, ClassifierResults]:
     """Test-then-train a classifier, or many on one pass over a stream.
 
@@ -171,6 +174,8 @@ def evaluate_classifier(
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
     :param batch_size: Instances per mini-batch, for batch learners.
+    :param warmup: Number of instances, from the start, to train on without testing.
+        They count towards ``max_instances``.
     :return: The results, or a dict of results by name for a mapping.
     """
     many = isinstance(learner, Mapping)
@@ -196,7 +201,9 @@ def evaluate_classifier(
             store_y=store_y,
             store_predictions=store_predictions,
         )
-        out = _prequential_loop_fast(stream, run, max_instances=max_instances)
+        out = _prequential_loop_fast(
+            stream, run, max_instances=max_instances, warmup=warmup
+        )
         return _classifier_results(
             str(learner), stream, out, run.cumulative, run.windowed
         )
@@ -222,6 +229,7 @@ def evaluate_classifier(
         max_instances=max_instances,
         progress_bar=progress_bar,
         batch_size=batch_size,
+        warmup=warmup,
     )
     results = {
         n: _classifier_results(n, stream, out, runs[n].cumulative, runs[n].windowed)

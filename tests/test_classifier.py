@@ -66,6 +66,9 @@ class Case:
     length_test_determinism: int = 50
     """Number of stream instances to replay in the determinism test."""
 
+    warmup: int = 0
+    """Number of instances to train on before testing. Passed to the evaluator."""
+
     needs_torch: bool = False
     """If set this learner requires PyTorch. Deselected by `-m "not torch"`."""
 
@@ -152,7 +155,11 @@ class TestClassifier:
         stream = ElectricityTiny()
         learner = case.new_learner(stream.schema)
         results = evaluate_classifier(
-            stream, learner, window_size=WINDOW_SIZE, batch_size=case.batch_size
+            stream,
+            learner,
+            window_size=WINDOW_SIZE,
+            batch_size=case.batch_size,
+            warmup=case.warmup,
         )
         params = learner.get_params()
 
@@ -205,7 +212,11 @@ class TestClassifier:
             pytest.skip("Learner does not support the fast prequential loop.")
 
         fast_results = evaluate_classifier(
-            stream, fast_learner, window_size=WINDOW_SIZE, batch_size=case.batch_size
+            stream,
+            fast_learner,
+            window_size=WINDOW_SIZE,
+            batch_size=case.batch_size,
+            warmup=case.warmup,
         )
         fast_accuracy = fast_results["cumulative"]["accuracy"]
         fast_win_accuracy = fast_results["windowed"]["accuracy"][-1]
@@ -217,6 +228,7 @@ class TestClassifier:
             window_size=WINDOW_SIZE,
             optimise=False,
             batch_size=case.batch_size,
+            warmup=case.warmup,
         )
         slow_accuracy = slow_results["cumulative"]["accuracy"]
         slow_win_accuracy = slow_results["windowed"]["accuracy"][-1]
@@ -236,24 +248,20 @@ class TestClassifier:
 
         n_classes = 10
         length = 50
-        did_predict = False
 
         stream = RandomTreeGenerator(num_classes=n_classes)
         learner = case.new_learner(stream.get_schema())
 
-        # Learner must abstain before it is trained, unless it's declared to
-        # legitimately predict beforehand (e.g. a randomly-initialised NN).
+        # Learner must predict before it is trained.
         first_instance = next(stream)
-        if case.predicts_before_training:
-            assert (
-                learner.predict(first_instance) is not None
-                and learner.predict_proba(first_instance) is not None
-            ), "Expected prediction before training."
-        else:
-            assert (
-                learner.predict(first_instance) is None
-                and learner.predict_proba(first_instance) is None
-            ), "Expected abstention before training."
+        first_proba = learner.predict_proba(first_instance)
+        assert learner.predict(first_instance) in range(n_classes)
+        assert first_proba.shape == (n_classes,)
+        assert first_proba.sum() == pytest.approx(1.0)
+        if not case.predicts_before_training:
+            assert first_proba == pytest.approx(np.full(n_classes, 1 / n_classes)), (
+                "Expected a uniform prediction before training."
+            )
 
         # Prequential loop (predict, then train)
         for instance in islice(stream, length):
@@ -262,36 +270,28 @@ class TestClassifier:
             y_proba = learner.predict_proba(instance)
             learner.train(instance)
 
-            if y_proba is not None and y_pred is not None:
-                did_predict = True
-
-                assert isinstance(y_proba, np.ndarray), (
-                    f"Wrong type, expected `np.ndarray` but got `{type(y_proba)}`"
-                )
-                assert y_proba.dtype == np.float64, (
-                    f"Wrong dtype, expected `np.float64` but got `{y_proba.dtype}`"
-                )
-                # `predict_proba` must always be shaped by the schema, some methods
-                # incorrectly use observed classes.
-                # (https://github.com/adaptive-machine-learning/backlog/issues/96).
-                assert y_proba.shape == (n_classes,), (
-                    f"Wrong shape, expected ({n_classes},) but got `{y_proba.shape}`"
-                )
-                assert y_proba.sum() == pytest.approx(1.0), (
-                    f"Probabilities must sum to 1, expected 1 but got `{y_proba.sum()}`"
-                )
-                # `predict` must return a built-in `int`, not `numpy.int64`.
-                assert isinstance(y_pred, int), (
-                    f"Wrong type, expected int got `{type(y_pred)}`"
-                )
-                assert 0 <= y_pred < n_classes, (
-                    f"Wrong class, expected 0 <= y_pred < {n_classes} but got {y_pred}."
-                )
-
-            else:
-                assert y_pred is None and y_proba is None
-
-        assert did_predict, f"Over {length} steps nothing was predicted."
+            assert isinstance(y_proba, np.ndarray), (
+                f"Wrong type, expected `np.ndarray` but got `{type(y_proba)}`"
+            )
+            assert y_proba.dtype == np.float64, (
+                f"Wrong dtype, expected `np.float64` but got `{y_proba.dtype}`"
+            )
+            # `predict_proba` must always be shaped by the schema, some methods
+            # incorrectly use observed classes.
+            # (https://github.com/adaptive-machine-learning/backlog/issues/96).
+            assert y_proba.shape == (n_classes,), (
+                f"Wrong shape, expected ({n_classes},) but got `{y_proba.shape}`"
+            )
+            assert y_proba.sum() == pytest.approx(1.0), (
+                f"Probabilities must sum to 1, expected 1 but got `{y_proba.sum()}`"
+            )
+            # `predict` must return a built-in `int`, not `numpy.int64`.
+            assert isinstance(y_pred, int), (
+                f"Wrong type, expected int got `{type(y_pred)}`"
+            )
+            assert 0 <= y_pred < n_classes, (
+                f"Wrong class, expected 0 <= y_pred < {n_classes} but got {y_pred}."
+            )
 
     def test_save_then_load(self, case: Case, tmp_path: Path):
         """Check that a learner saved and then loaded behaves the same as the original."""

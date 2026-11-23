@@ -303,6 +303,7 @@ class OSNN(ClassifierSSL):
         # reason, draw a missing seed from the OS, not from numpy's global generator.
         if seed is None:
             seed = random.SystemRandom().randrange(2**31)
+        self._init_seed(seed)
         random.seed(seed)
         torch.manual_seed(seed)
 
@@ -343,16 +344,12 @@ class OSNN(ClassifierSSL):
 
     def predict_proba(self, instance):
         if self.i == -1:
-            return None
+            # OSNN is binary
+            return np.array([[0.5, 0.5]])
         X = torch.tensor(instance.x, dtype=torch.float32).reshape(1, -1)
         proba = self.Network.forward(X)
         proba = torch.cat((1 - proba, proba), dim=1).detach().numpy()
         return proba
-
-    def predict(self, instance):
-        if self.i == -1:
-            return None
-        return np.argmax(self.predict_proba(instance))
 
     def __str__(self):
         return f"OSNN(num_center={self.Network.num_centers}, window_size={self.window_size}, beta={self.Network.beta}, gamma={self.Network.gamma})"

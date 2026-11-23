@@ -3,33 +3,76 @@
 The results need ``store_y=True`` and ``store_predictions=True``.
 """
 
+from collections.abc import Sequence
 from datetime import datetime
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
 from capymoa.evaluation.plot import _plot_drifts
+from capymoa.uncertainty.evaluate import UncertaintyResults
 
 
 def plot_prediction_interval(
-    *results,
-    ground_truth=None,
-    start=0,
-    end=1e10,
-    plot_truth=True,
-    plot_bounds=True,
-    plot_predictions=True,
-    colors=None,
-    xlabel=None,
-    ylabel=None,
-    plot_title=None,
-    figure_path="./",
-    figure_name=None,
-    save_only=False,
-    dynamic_switch=True,
-    prevent_plotting_drifts=False,
-):
+    *results: UncertaintyResults,
+    ground_truth: Sequence[float] | np.ndarray | None = None,
+    start: int = 0,
+    end: int | None = None,
+    plot_truth: bool = True,
+    plot_bounds: bool = True,
+    plot_predictions: bool = True,
+    colors: Sequence[Any] | None = None,
+    xlabel: str | None = None,
+    ylabel: str | None = None,
+    plot_title: str | None = None,
+    figure_path: str = "./",
+    figure_name: str | None = None,
+    save_only: bool = False,
+    save: bool = True,
+    dynamic_switch: bool = True,
+    prevent_plotting_drifts: bool = False,
+) -> None:
+    """Plot one prediction interval result or compare two results.
+
+    Results must include stored ground truth and interval predictions unless
+    ``ground_truth`` is provided. Each prediction is represented by its lower
+    bound, point prediction, and upper bound.
+
+    >>> import matplotlib
+    >>> matplotlib.use("Agg")
+    >>> from capymoa.datasets import FriedTiny
+    >>> from capymoa.uncertainty import MVE, evaluate_uncertainty
+    >>> stream = FriedTiny()
+    >>> result = evaluate_uncertainty(
+    ...     stream,
+    ...     MVE(stream.get_schema()),
+    ...     max_instances=100,
+    ...     store_predictions=True,
+    ...     store_y=True,
+    ... )
+    >>> plot_prediction_interval(result, prevent_plotting_drifts=True)
+
+    :param results: One or two prediction interval results to plot.
+    :param ground_truth: Optional target values; otherwise use stored ``y_true``.
+    :param start: First instance index to plot.
+    :param end: Exclusive final instance index.
+    :param plot_truth: Show ground-truth values and whether they are covered.
+    :param plot_bounds: Show interval bounds and shaded interval regions.
+    :param plot_predictions: Show the point predictions.
+    :param colors: Optional color for each result.
+    :param xlabel: X-axis label; defaults to ``"# Instance"``.
+    :param ylabel: Y-axis label; defaults to ``"target"``.
+    :param plot_title: Optional plot title.
+    :param figure_path: Directory used when saving the plot.
+    :param figure_name: Optional name for the saved plot.
+    :param save_only: Save without displaying; generate a file name if omitted.
+    :param save: Save the plot when ``True``; set to ``False`` to disable file output.
+    :param dynamic_switch: Dynamically layer overlapping intervals when comparing two results.
+    :param prevent_plotting_drifts: Do not mark drifts from the first result.
+    :raises ValueError: If a result lacks interval metrics, more than two results are supplied, or ground truth is unavailable.
+    """
     # check if the results are all prequential
     for result in results:
         if "coverage" not in result["cumulative"]:
@@ -43,19 +86,24 @@ def plot_prediction_interval(
     default_colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
     if len(results) == 1:
-        if results[0].get("y_true") is not None:
-            targets = results[0]["y_true"]
+        stored_targets = results[0].get("y_true")
+        if stored_targets is not None:
+            targets = stored_targets
         elif ground_truth is not None:
             targets = ground_truth
         else:
             raise ValueError("No ground truth Found.")
 
+        intervals = results[0].get("y_pred")
+        if intervals is None:
+            raise ValueError("No stored interval predictions found.")
+
         start = max(start, 0)
-        end = min(end, len(targets))
+        end = len(targets) if end is None else min(end, len(targets))
 
         instance_numbers = list(range(start, end))
         targets = targets[start:end]
-        intervals = results[0]["y_pred"][start:end]
+        intervals = intervals[start:end]
         upper = []
         lower = []
         predictions = []
@@ -139,35 +187,39 @@ def plot_prediction_interval(
         plt.ylabel(ylabel if ylabel else output_name)
         plt.title(plot_title if plot_title else "Prediction Interval")
         plt.legend()
-        # Show the plot or save it to the specified path
+        # Save when requested, then display unless save_only was selected.
+        if save:
+            if figure_name is None and save_only:
+                current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                figure_name = f"prediction_interval_over_time_{current_time}.pdf"
+            if figure_name is not None:
+                plt.savefig(figure_path + figure_name)
         if not save_only:
             plt.show()
-        elif figure_path:
-            current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            figure_name = (
-                figure_name
-                if figure_name
-                else f"prediction_interval_over_time_{current_time}.pdf"
-            )
-            plt.savefig(figure_path + figure_name)
 
     # Plots two regions from prediction interval learners for comparison
     elif len(results) == 2:
-        if results[0].get("y_true") is not None:
-            targets = results[0]["y_true"]
+        stored_targets = results[0].get("y_true")
+        if stored_targets is not None:
+            targets = stored_targets
         elif ground_truth is not None:
             targets = ground_truth
         else:
             raise ValueError("No ground truth Found.")
 
+        first_intervals = results[0].get("y_pred")
+        second_intervals = results[1].get("y_pred")
+        if first_intervals is None or second_intervals is None:
+            raise ValueError("Both results must include stored interval predictions.")
+
         start = max(start, 0)
-        end = min(end, len(targets))
+        end = len(targets) if end is None else min(end, len(targets))
 
         instance_numbers = list(range(start, end))
         targets = targets[start:end]
 
-        intervals_first = results[0]["y_pred"][start:end]
-        intervals_second = results[1]["y_pred"][start:end]
+        intervals_first = first_intervals[start:end]
+        intervals_second = second_intervals[start:end]
 
         upper_first = []
         lower_first = []
@@ -404,14 +456,14 @@ def plot_prediction_interval(
         plt.ylabel(ylabel if ylabel else output_name)
         plt.title(plot_title if plot_title else "Prediction Interval Comparison")
         plt.legend()
-        # Show the plot or save it to the specified path
+        # Save when requested, then display unless save_only was selected.
+        if save:
+            if figure_name is None and save_only:
+                current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                figure_name = (
+                    f"prediction_interval_over_time_comparison_{current_time}.pdf"
+                )
+            if figure_name is not None:
+                plt.savefig(figure_path + figure_name)
         if not save_only:
             plt.show()
-        elif figure_path:
-            current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            figure_name = (
-                figure_name
-                if figure_name
-                else f"prediction_interval_over_time_comparison_{current_time}.pdf"
-            )
-            plt.savefig(figure_path + figure_name)

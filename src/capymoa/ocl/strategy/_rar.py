@@ -1,14 +1,23 @@
 from collections.abc import Callable
 
 import torch
-from torch import Tensor
+from torch import Tensor, nn
 
-from capymoa.base import BatchClassifier
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._replay import ReservoirSampler
 
 
-class RAR(BatchClassifier, Handler):
+class _RARModule(nn.Module):
+    """Torch state of RAR."""
+
+    def __init__(self, learner: nn.Module, coreset: ReservoirSampler) -> None:
+        super().__init__()
+        self.learner = learner
+        self.coreset = coreset
+
+
+class RAR(TorchMixin[_RARModule], BatchClassifier, Handler):
     """Repeated Augmented Rehearsal.
 
     Repeated Augmented Rehearsal (RAR) [#f0]_ is a replay continual learning
@@ -78,49 +87,62 @@ class RAR(BatchClassifier, Handler):
     ) -> None:
         """Initialize Repeated Augmented Rehearsal.
 
-        :param learner: Underlying learner to be trained with RAR.
+        :param learner: Underlying learner to be trained with RAR. It must use
+            :class:`~capymoa.base.TorchMixin`. Your model is at
+            ``wrapper.module.learner.model``.
         :param augment: Data augmentation function to apply to the samples. Should take
             a Tensor of shape ``(batch_size, *schema.shape)`` and return a Tensor of the
             same shape. Take a look at the PyTorch torchvision transforms for some
             building blocks for your pipeline (https://docs.pytorch.org/vision/main/transforms.html).
         :param coreset_size: Size of the coreset buffer.
         :param repeats: Number of times to repeat training on each batch, defaults to 1.
+        :raises TypeError: If ``learner`` does not use ``TorchMixin``.
         """
 
+        if not isinstance(learner, TorchMixin):
+            raise TypeError("learner must use TorchMixin")
         super().__init__(learner.schema)
         num_features = learner.schema.get_num_attributes()
         self.learner = learner
         self.augment = augment
         self.repeats = repeats
-        self.coreset = ReservoirSampler(
+        coreset = ReservoirSampler(
             coreset_size,
-            {"x": ((num_features,), torch.float32), "y": ((), torch.long)},
+            {"x": ((num_features,), learner.x_dtype), "y": ((), torch.long)},
             rng=torch.Generator().manual_seed(learner.random_seed),
         )
+        self._module = _RARModule(learner.module, coreset).to(learner.device)
         self.shape = learner.schema.shape
+
+    @property
+    def x_dtype(self) -> torch.dtype:
+        """Feature dtype of the wrapped learner."""
+        return self.learner.x_dtype
+
+    @property
+    def y_dtype(self) -> torch.dtype:
+        """Label dtype of the wrapped learner."""
+        return self.learner.y_dtype
 
     def train_step(self, x_fresh: Tensor, y_fresh: Tensor) -> None:
         # Sample from reservoir and augment the data
         n = x_fresh.shape[0]
-        replay = self.coreset.sample(n)
-        x = torch.cat((x_fresh, replay["x"]), dim=0).to(self.device, self.x_dtype)
-        y = torch.cat((y_fresh, replay["y"]), dim=0).to(self.device, self.y_dtype)
+        replay = self._module.coreset.sample(n)
+        x = torch.cat((x_fresh, replay["x"]), dim=0)
+        y = torch.cat((y_fresh, replay["y"]), dim=0)
         x = x.view(-1, *self.shape)
         x: Tensor = self.augment(x)
 
         # Train the learner
-        x = x.to(self.learner.device, self.learner.x_dtype)
-        y = y.to(self.learner.device, self.learner.y_dtype)
         self.learner.batch_train(x, y)
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
-        self.coreset.update(x=x, y=y)
+        self._module.coreset.update(x=x, y=y)
         for i in range(self.repeats):
             self.train_step(x, y)
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        x = x.to(self.learner.device, self.learner.x_dtype)
         return self.learner.batch_predict_proba(x)
 
     def attach_with(self, source: Dispatcher) -> "RAR":

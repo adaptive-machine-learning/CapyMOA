@@ -273,11 +273,8 @@ class StreamingIsolationTree:
         an existing instance in the tree with the new instance. If the new instance
         is added, the tree is updated accordingly.
 
-        Parameters:
-        instance (LabeledInstance): The new instance to be trained on.
-
-        Returns:
-        StreamingIsolationTree: The updated tree after training.
+        :param instance: The new instance to be trained on.
+        :return: The updated tree after training.
         """
 
         if self.n < self.k:
@@ -486,7 +483,7 @@ class StreamingIsolationForest(AnomalyDetector):
 
         return score
 
-    def predict(self, instance: LabeledInstance) -> LabelIndex | None:
+    def predict(self, instance: LabeledInstance) -> LabelIndex:
         raise NotImplementedError(
             "StreamingIsolationForest does not implement predict. Use score_instance instead."
         )

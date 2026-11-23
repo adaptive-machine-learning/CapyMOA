@@ -10,7 +10,7 @@ class Batch(ABC):
     """Data type for the input features."""
     y_dtype: torch.dtype
     """Data type for the target value/labels."""
-    device: torch.device = torch.device("cpu")
+    device: torch.device
     """Device on which the batch will be processed."""
 
     @abstractmethod

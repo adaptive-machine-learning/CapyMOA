@@ -112,9 +112,14 @@ class AnomalyDetectionEvaluator:
 
     def __init__(
         self,
-        schema: Schema = None,
-        window_size=None,
+        schema: Schema,
+        window_size: None | int = None,
     ):
+        """Configure cumulative and (optional) windowed anomaly detection metrics.
+
+        :param schema: Defines the structure of the stream.
+        :param window_size: If set collects windowed metrics with the given window size.
+        """
         self.instances_seen = 0
         self.result_windows = []
         self.window_size = window_size
@@ -127,26 +132,23 @@ class AnomalyDetectionEvaluator:
         self.pred_template = [0, 0]
 
         self.schema = schema
-        self._header = None
-        if self.schema is not None:
-            if self.schema.get_label_indexes() is not None:
-                for value in self.schema.get_label_indexes():
-                    _attributeValues.append(value)
-                _classAttribute = Attribute("Class", _attributeValues)
-                attSub = ArrayList()
-                attSub.append(_classAttribute)
-                self._header = Instances("", attSub, 1)
-                self._header.setClassIndex(0)
-            else:
-                raise ValueError(
-                    "Schema was not initialised properly, please define a proper Schema."
-                )
+        header = None
+        if self.schema.get_label_indexes() is not None:
+            for value in self.schema.get_label_indexes():
+                _attributeValues.append(value)
+            _classAttribute = Attribute("Class", _attributeValues)
+            attSub = ArrayList()
+            attSub.append(_classAttribute)
+            header = Instances("", attSub, 1)
+            header.setClassIndex(0)
         else:
-            raise ValueError("Schema is None, please define a proper Schema.")
+            raise ValueError(
+                "Schema was not initialised properly, please define a proper Schema."
+            )
 
         # Create the denseInstance just once and keep reusing it by changing the classValue (more efficient).
         self._instance = DenseInstance(1)
-        self._instance.setDataset(self._header)
+        self._instance.setDataset(header)
 
     def __str__(self):
         return str(self.metrics_dict())
@@ -217,9 +219,15 @@ class AnomalyDetectionWindowedEvaluator:
 
     def __init__(
         self,
-        schema: Schema = None,
-        window_size=None,
+        schema: Schema,
+        window_size: None | int = None,
     ):
+        """Create a windowed anomaly detection evaluator.
+
+        :param schema: Defines the stream structure.
+        :param window_size: If set collects windowed metrics with the given window size.
+        """
+
         self.instances_seen = 0
         self.result_windows = []
         self.window_size = window_size
@@ -231,26 +239,18 @@ class AnomalyDetectionWindowedEvaluator:
         self.pred_template = [0, 0]
 
         self.schema = schema
-        self._header = None
-        if self.schema is not None:
-            if self.schema.get_label_indexes() is not None:
-                for value in self.schema.get_label_indexes():
-                    _attributeValues.append(value)
-                _classAttribute = Attribute("Class", _attributeValues)
-                attSub = ArrayList()
-                attSub.append(_classAttribute)
-                self._header = Instances("", attSub, 1)
-                self._header.setClassIndex(0)
-            else:
-                raise ValueError(
-                    "Schema was not initialised properly, please define a proper Schema."
-                )
-        else:
-            raise ValueError("Schema is None, please define a proper Schema.")
+
+        for value in self.schema.get_label_indexes():
+            _attributeValues.append(value)
+        _classAttribute = Attribute("Class", _attributeValues)
+        attSub = ArrayList()
+        attSub.append(_classAttribute)
+        header = Instances("", attSub, 1)
+        header.setClassIndex(0)
 
         # Create the denseInstance just once and keep reusing it by changing the classValue (more efficient).
         self._instance = DenseInstance(1)
-        self._instance.setDataset(self._header)
+        self._instance.setDataset(header)
 
     def __str__(self):
         return str(self.metrics_dict())

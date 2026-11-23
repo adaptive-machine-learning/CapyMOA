@@ -1,12 +1,21 @@
 import torch
-from torch import Tensor
+from torch import Tensor, nn
 
-from capymoa.base import BatchClassifier
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._replay import ReservoirSampler
 
 
-class ExperienceReplay(BatchClassifier, Handler):
+class _ERModule(nn.Module):
+    """Torch state of ExperienceReplay."""
+
+    def __init__(self, learner: nn.Module, buffer: ReservoirSampler) -> None:
+        super().__init__()
+        self.learner = learner
+        self.buffer = buffer
+
+
+class ExperienceReplay(TorchMixin[_ERModule], BatchClassifier, Handler):
     """Experience Replay.
 
     Experience Replay (ER) [#f0]_ is a replay continual learning strategy.
@@ -46,39 +55,52 @@ class ExperienceReplay(BatchClassifier, Handler):
     ) -> None:
         """Initialize the Experience Replay strategy.
 
-        :param learner: The learner to be wrapped for experience replay.
+        :param learner: The learner to be wrapped for experience replay. It must
+            use :class:`~capymoa.base.TorchMixin`. Your model is at
+            ``wrapper.module.learner.model``.
         :param buffer_size: The size of the replay buffer, defaults to 200.
         :param repeat: The number of times to repeat the training data in each batch,
             defaults to 1.
+        :raises TypeError: If ``learner`` does not use ``TorchMixin``.
         """
+        if not isinstance(learner, TorchMixin):
+            raise TypeError("learner must use TorchMixin")
         super().__init__(learner.schema, learner.random_seed)
         #: The wrapped learner to be trained with experience replay.
         self.learner = learner
-        self._buffer = ReservoirSampler(
+        buffer = ReservoirSampler(
             capacity=buffer_size,
             shape={
-                "x": ((self.schema.get_num_attributes(),), torch.float32),
+                "x": ((self.schema.get_num_attributes(),), learner.x_dtype),
                 "y": ((), torch.long),
             },
             rng=torch.Generator().manual_seed(learner.random_seed),
         )
+        self._module = _ERModule(learner.module, buffer).to(learner.device)
         self.repeat = repeat
+
+    @property
+    def x_dtype(self) -> torch.dtype:
+        """Feature dtype of the wrapped learner."""
+        return self.learner.x_dtype
+
+    @property
+    def y_dtype(self) -> torch.dtype:
+        """Label dtype of the wrapped learner."""
+        return self.learner.y_dtype
 
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         # update the buffer with the new data
-        self._buffer.update(x=x, y=y)
+        self._module.buffer.update(x=x, y=y)
 
         for _ in range(self.repeat):
             # sample from the buffer and construct training batch
-            replay = self._buffer.sample(x.shape[0])
+            replay = self._module.buffer.sample(x.shape[0])
             train_x = torch.cat((x, replay["x"]), dim=0)
             train_y = torch.cat((y, replay["y"]), dim=0)
-            train_x = train_x.to(self.learner.device, dtype=self.learner.x_dtype)
-            train_y = train_y.to(self.learner.device, dtype=self.learner.y_dtype)
             self.learner.batch_train(train_x, train_y)
 
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        x = x.to(self.learner.device, dtype=self.learner.x_dtype)
         return self.learner.batch_predict_proba(x)
 
     def attach_with(self, source: Dispatcher) -> "ExperienceReplay":
@@ -87,4 +109,4 @@ class ExperienceReplay(BatchClassifier, Handler):
         return self
 
     def __str__(self) -> str:
-        return f"ExperienceReplay(buffer_size={self._buffer.capacity})"
+        return f"ExperienceReplay(buffer_size={self._module.buffer.capacity})"

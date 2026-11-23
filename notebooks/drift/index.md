@@ -9,6 +9,7 @@ drift_detection
 drift_streams
 optimizing_detectors
 data_drift_detection
+custom_detector
 ```
 
 ```{admonition} See also

@@ -22,6 +22,7 @@ from typing_extensions import TypedDict
 from capymoa._utils import _translate_metric_name
 from capymoa.evaluation.results import RunInfo, Windows
 from capymoa.regressor.evaluate import RegressionEvaluator
+from capymoa.stream._stream import Schema
 
 
 class PredictionIntervalWindows(Windows):
@@ -195,7 +196,10 @@ class PredictionIntervalEvaluator(RegressionEvaluator):
 
 
 class PredictionIntervalWindowedEvaluator(PredictionIntervalEvaluator):
-    def __init__(self, schema=None, window_size=1000):
+    """Evaluator for prediction intervals with a windowed evaluator."""
+
+    def __init__(self, schema: Schema, window_size: int = 1000):
+        """Create a windowed evaluator with the given schema and window size."""
         self.moa_evaluator = WindowPredictionIntervalEvaluator()
         self.moa_evaluator.widthOption.setValue(window_size)
 

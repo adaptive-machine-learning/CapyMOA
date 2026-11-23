@@ -34,6 +34,8 @@ class BatchClassifier(Classifier, Batch, ABC):
     >>>
     >>> batch_size = 500
     >>> class MyBatchClassifier(BatchClassifier):
+    ...     device = torch.device("cpu")
+    ...
     ...     def batch_train(self, x, y):
     ...         print(f"batch_train x: {x.shape} {x.dtype}")
     ...         print(f"batch_train y: {y.shape} {y.dtype}")
@@ -131,8 +133,9 @@ class BatchClassifier(Classifier, Batch, ABC):
         ).view(1)
         return self.batch_train(x, y)
 
-    def predict_proba(self, instance: Instance) -> LabelProbabilities | None:
+    def predict_proba(self, instance: Instance) -> LabelProbabilities:
         """Calls :func:`batch_predict_proba` with a batch of size 1."""
         x = torch.from_numpy(instance.x.reshape(1, -1))
         x = x.to(self.device, self.x_dtype)
-        return self.batch_predict_proba(x).flatten().numpy().astype(np.float64)
+        proba = self.batch_predict_proba(x).flatten()
+        return proba.detach().cpu().numpy().astype(np.float64)
