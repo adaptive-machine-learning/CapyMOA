@@ -44,6 +44,7 @@ def evaluate_regressor(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> RegressorResults: ...
 @overload
 def evaluate_regressor(
@@ -57,6 +58,7 @@ def evaluate_regressor(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> dict[str, RegressorResults]: ...
 def evaluate_regressor(
     stream: Stream,
@@ -69,6 +71,7 @@ def evaluate_regressor(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
+    warmup: int = 0,
 ) -> RegressorResults | dict[str, RegressorResults]:
     """Test-then-train a regressor, or many on one pass over a stream.
 
@@ -78,7 +81,7 @@ def evaluate_regressor(
     >>> from capymoa.datasets import FriedTiny
     >>> stream = FriedTiny()
     >>> results = evaluate_regressor(
-    ...     stream, FIMTDD(stream.get_schema()), max_instances=1000
+    ...     stream, FIMTDD(stream.get_schema(), random_seed=1), max_instances=1000
     ... )
     >>> print(f"{results['cumulative']['rmse']:.2f}")
     7.36
@@ -92,7 +95,7 @@ def evaluate_regressor(
 
     >>> from capymoa.regressor import TargetMean
     >>> learners = {
-    ...     "fimtdd": FIMTDD(stream.get_schema()),
+    ...     "fimtdd": FIMTDD(stream.get_schema(), random_seed=1),
     ...     "mean": TargetMean(stream.get_schema()),
     ... }
     >>> results = evaluate_regressor(stream, learners, max_instances=1000)
@@ -115,6 +118,8 @@ def evaluate_regressor(
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
     :param batch_size: Instances per mini-batch, for batch learners.
+    :param warmup: Number of instances, from the start, to train on without testing.
+        They count towards ``max_instances``.
     :return: The results, or a dict of results by name for a mapping.
     """
     many = isinstance(learner, Mapping)
@@ -140,7 +145,9 @@ def evaluate_regressor(
             store_y=store_y,
             store_predictions=store_predictions,
         )
-        out = _prequential_loop_fast(stream, run, max_instances=max_instances)
+        out = _prequential_loop_fast(
+            stream, run, max_instances=max_instances, warmup=warmup
+        )
         return _regressor_results(
             str(learner), stream, out, run.cumulative, run.windowed
         )
@@ -166,6 +173,7 @@ def evaluate_regressor(
         max_instances=max_instances,
         progress_bar=progress_bar,
         batch_size=batch_size,
+        warmup=warmup,
     )
     results = {
         n: _regressor_results(n, stream, out, runs[n].cumulative, runs[n].windowed)

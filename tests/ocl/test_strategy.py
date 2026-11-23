@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from functools import partial
@@ -12,18 +13,24 @@ from torch import nn
 
 from capymoa.base import Classifier
 from capymoa.classifier import Finetune, HoeffdingTree
+from capymoa.core.torch import FeatureModel, ProjectionModel
 from capymoa.core.torch.ann import Perceptron
 from capymoa.ocl import evaluate_ocl
 from capymoa.ocl.datasets import TinySplitMNIST
+from capymoa.ocl.evaluate.events import TestTaskBegin
+from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.strategy import (
+    ASER,
     DER,
     DERPP,
     EEC,
     EWC,
     LWF,
     MAS,
+    MIR,
     NCM,
     RAR,
+    SCR,
     SI,
     SLDA,
     ExperienceReplay,
@@ -31,11 +38,16 @@ from capymoa.ocl.strategy import (
     RanPAC,
     RWalk,
 )
+from capymoa.ocl.strategy.l2p import L2P, L2PViT
 from capymoa.stream import Schema
 
 # PyTorch is notorious for non-deterministic behavior between versions and platforms.
 # Here we set a fixed absolute tolerance of +-1.5 for percentage-based metrics.
 approx = partial(pytest.approx, abs=1.5)
+
+
+SEED = 0
+"""Seed for every learner that takes one, so results are exact."""
 
 
 @dataclass(frozen=True)
@@ -48,12 +60,17 @@ class Result:
 @dataclass(frozen=True)
 class Case:
     name: str
-    constructor: Callable[[Schema], Classifier]
-    expected: Result
+    constructor: Callable[..., Classifier]
+    # `None` skips the accuracy check, the shared torch checks still run.
+    expected: Result | None
     batch_size: int = 32
     epochs: int = 1
     continual_evaluations: int = 1
     task_mask: bool = False
+    # Learner uses `TorchMixin`, so the shared module checks apply.
+    torch: bool = True
+    # Reload ``module`` state into a fresh learner and check the accuracy.
+    test_state_load: bool = True
 
 
 def pre_processor() -> nn.Module:
@@ -73,7 +90,11 @@ def new_constructor(
 ) -> Callable[[Schema], Classifier]:
     """Create a new learner instance with the given hyperparameters."""
 
-    def constructor(schema: Schema, **extra_kwargs) -> Classifier:
+    def constructor(
+        schema: Schema, random_seed: int | None = None, **extra_kwargs
+    ) -> Classifier:
+        if "random_seed" in inspect.signature(learner).parameters:
+            extra_kwargs["random_seed"] = random_seed
         model = Perceptron(schema)
         optimiser = optimiser_type(model.parameters(), lr=lr)
         return learner(
@@ -87,18 +108,85 @@ def new_constructor(
     return constructor
 
 
-def _new_rar(schema):
+def _new_rar(schema, random_seed=None, **kwargs):
     # RAR test case constructor
     return RAR(
-        Finetune(schema, Perceptron(schema)),
+        Finetune(schema, Perceptron(schema), random_seed=random_seed, **kwargs),
         augment=nn.Dropout(p=0.2),
         repeats=2,
     )
 
 
-def _new_der(schema: Schema) -> DER:
+def _new_der(schema: Schema, **kwargs) -> DER:
     model = Perceptron(schema)
-    return DER(schema, model, torch.optim.Adam(model.parameters(), lr=0.001))
+    return DER(schema, model, torch.optim.Adam(model.parameters(), lr=0.001), **kwargs)
+
+
+def _new_aser(schema: Schema, **kwargs) -> ASER:
+    class Model(FeatureModel):
+        def __init__(self):
+            super().__init__()
+            self.encoder = nn.Sequential(
+                nn.Flatten(), nn.Linear(schema.get_num_attributes(), 50), nn.ReLU()
+            )
+            self.head = nn.Linear(50, schema.get_num_classes())
+
+        def features(self, x):
+            return self.encoder(x)
+
+        def forward(self, x):
+            return self.head(self.features(x))
+
+    model = Model()
+    return ASER(schema, model, torch.optim.SGD(model.parameters(), lr=0.1), **kwargs)
+
+
+def _new_scr(schema: Schema, **kwargs) -> SCR:
+    class Model(ProjectionModel):
+        def __init__(self):
+            super().__init__()
+            self.encoder = nn.Sequential(
+                nn.Flatten(), nn.Linear(schema.get_num_attributes(), 64), nn.ReLU()
+            )
+            self.head = nn.Sequential(nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 32))
+
+        def features(self, x):
+            return self.encoder(x)
+
+        def project(self, features):
+            return self.head(features)
+
+        def forward(self, x):
+            return self.project(self.features(x))
+
+    model = Model()
+    return SCR(
+        schema,
+        model,
+        torch.optim.SGD(model.parameters(), lr=0.1),
+        augment=nn.Dropout(p=0.2),
+        buffer_capacity=200,
+        replay_batch_size=32,
+        **kwargs,
+    )
+
+
+class _DummyViT(L2PViT, nn.Module):
+    def get_embedding_size(self) -> int:
+        return 8
+
+    def get_patch_embed(self, pixel_values):
+        return torch.zeros((pixel_values.size(0), 4, 8), device=pixel_values.device)
+
+    def forward_encoder(self, prompts, patch_embed):
+        return torch.zeros((patch_embed.size(0), 4, 8), device=patch_embed.device)
+
+    def forward_query(self, patch_embed):
+        return torch.zeros((patch_embed.size(0), 8), device=patch_embed.device)
+
+
+def _new_l2p(schema: Schema, **kwargs) -> L2P:
+    return L2P(schema, TinySplitMNIST().task_mask, vit=_DummyViT(), **kwargs)
 
 
 def _new_eec(schema: Schema) -> EEC:
@@ -124,14 +212,32 @@ set.
 """
 TEST_CASES: list[Case] = [
     Case("EEC", _new_eec, Result(22.5, 20.4, 0.0)),
+    Case("ASER", _new_aser, Result(21.0, 18.8, 23.9)),
+    Case("MIR", new_constructor(MIR, lr=0.01), Result(13.5, 14.0, 7.1)),
     # These improved when `MOAClassifier.predict_proba` stopped discarding
     # predictions whose unnormalised vote total was below 1e-2. HoeffdingTree
     # uses Naive Bayes at its leaves, whose likelihood products fall below that
     # threshold, so most of its predictions were being thrown away and scored
     # as misses.
-    Case("HoeffdingTree", HoeffdingTree, Result(69.50, 45.50, 56.3), batch_size=1),
-    Case("HoeffdingTree", HoeffdingTree, Result(69.50, 45.70, 51.0), batch_size=32),
-    Case("RAR", _new_rar, Result(47.50, 29.20, 8.10)),
+    Case(
+        "HoeffdingTree",
+        HoeffdingTree,
+        Result(69.50, 45.50, 56.3),
+        batch_size=1,
+        torch=False,
+    ),
+    Case(
+        "HoeffdingTree",
+        HoeffdingTree,
+        Result(69.50, 45.70, 51.0),
+        batch_size=32,
+        torch=False,
+    ),
+    Case(
+        "RAR",
+        _new_rar,
+        Result(47.50, 29.20, 8.10),
+    ),
     Case(
         "Finetune",
         partial(Finetune, model=Perceptron),
@@ -139,28 +245,51 @@ TEST_CASES: list[Case] = [
         epochs=2,
         continual_evaluations=2,
     ),
-    Case("SLDA", SLDA, Result(80.5, 51.4, 63.0)),
+    Case(
+        "SLDA",
+        SLDA,
+        Result(80.5, 51.4, 63.0),
+    ),
     Case(
         "SLDA_with_preprocessor",
-        lambda s: SLDA(s, pre_processor(), 512),
+        lambda s, **kw: SLDA(s, pre_processor(), 512, **kw),
         Result(87.5, 54.5, 67.7),
     ),
-    Case("RanPAC", lambda s: RanPAC(s, projection_dim=512), Result(80.0, 48.0, 62.4)),
-    Case("NCM", NCM, Result(71.5, 46.2, 67.5)),
+    Case(
+        "RanPAC",
+        lambda s, random_seed=None, **kw: RanPAC(
+            s, projection_dim=512, random_seed=random_seed, **kw
+        ),
+        Result(78.0, 46.7, 60.8),
+    ),
+    Case(
+        "NCM",
+        NCM,
+        Result(71.5, 46.2, 67.5),
+    ),
     Case(
         "NCM_with_preprocessor",
-        lambda s: NCM(s, pre_processor(), 512),
+        lambda s, **kw: NCM(s, pre_processor(), 512, **kw),
         Result(69.5, 45.0, 66.8),
     ),
     Case(
         "ExperienceReplay",
-        lambda schema: ExperienceReplay(Finetune(schema, Perceptron)),
+        lambda schema, random_seed=None, **kw: ExperienceReplay(
+            Finetune(schema, Perceptron, random_seed=random_seed, **kw)
+        ),
         Result(28.5, 20.1, 3.0),
     ),
     Case(
         "DER",
         _new_der,
         Result(29.5, 20.5, 2.9),
+    ),
+    Case(
+        "SCR",
+        _new_scr,
+        Result(65.0, 44.8, 63.6),
+        # Replay buffer count is outside ``module``.
+        test_state_load=False,
     ),
     Case(
         "DERPP",
@@ -173,11 +302,17 @@ TEST_CASES: list[Case] = [
     ),
     Case(
         "GDumb",
-        lambda schema: GDumb(schema, Perceptron(schema), 2, 32, 200),
-        # Changed from (40.5, 26.6, 0.0) when the offline fit's DataLoader
-        # shuffle became seed-controlled instead of drawing from the global
-        # torch RNG; the new values are fully deterministic.
-        Result(37.5, 27.0, 0.0),
+        lambda schema, **kw: GDumb(schema, Perceptron(schema), 2, 32, 200, **kw),
+        # Changed from (37.5, 27.0, 0.0) when GDumb began to reset to its
+        # initial weights before each fit, as the method intends.
+        Result(24.0, 21.6, 0.2),
+        # Coreset count is outside ``module``.
+        test_state_load=False,
+    ),
+    Case(
+        "L2P",
+        _new_l2p,
+        None,  # Accuracy needs the real ViT, see test_l2p.py.
     ),
     Case(
         "EWC",
@@ -264,8 +399,18 @@ TEST_CASES: list[Case] = [
 ]
 
 
-@pytest.mark.parametrize("case", TEST_CASES, ids=[test.name for test in TEST_CASES])
+def _params(cases: list[Case]):
+    return [pytest.param(c, id=c.name) for c in cases]
+
+
+ACCURACY_CASES = _params([c for c in TEST_CASES if c.expected is not None])
+# Every case that uses `TorchMixin` gets the shared module checks below.
+TORCH_CASES = _params([c for c in TEST_CASES if c.torch])
+
+
+@pytest.mark.parametrize("case", ACCURACY_CASES)
 def test_ocl_classifier(case: Case):
+    assert case.expected is not None
     scenario = TinySplitMNIST()
 
     # Set random seeds for reproducibility
@@ -274,6 +419,8 @@ def test_ocl_classifier(case: Case):
     torch.use_deterministic_algorithms(True)
 
     kwargs = {}
+    if "random_seed" in inspect.signature(case.constructor).parameters:
+        kwargs["random_seed"] = SEED
     if case.task_mask:
         kwargs["task_mask"] = scenario.task_mask
     learner = case.constructor(scenario.schema, **kwargs)  # type: ignore
@@ -289,6 +436,14 @@ def test_ocl_classifier(case: Case):
         r["ttt"]["cumulative"]["accuracy"],
     )
     assert asdict(actual) == approx(asdict(case.expected)), f"Case {case.name} failed."
+
+    if case.torch and case.test_state_load:
+        # A fresh learner that loads the module state has the same accuracy.
+        reloaded = case.constructor(scenario.schema, **kwargs)  # type: ignore
+        reloaded.module.load_state_dict(learner.module.state_dict())
+        assert _test_accuracy(reloaded, scenario, case.batch_size) == (
+            _test_accuracy(learner, scenario, case.batch_size)
+        )
 
     def assert_ndarray(value: np.ndarray, shape: tuple, dtype: type = np.float32):
         assert isinstance(value, np.ndarray), (
@@ -324,3 +479,42 @@ def test_ocl_classifier(case: Case):
     ]
     assert len(r["anytime"]["task"]) == total_eval
     assert "task" in r["ttt"]["windowed"]
+
+
+def _build(case: Case, **kwargs) -> Classifier:
+    scenario = TinySplitMNIST()
+    if case.task_mask:
+        kwargs["task_mask"] = scenario.task_mask
+    torch.manual_seed(0)
+    return case.constructor(scenario.schema, **kwargs)
+
+
+def _test_accuracy(learner, scenario: TinySplitMNIST, batch_size: int) -> float:
+    """Accuracy on every test task, with the events task masks need.
+
+    Not under ``no_grad``, because GDumb trains when a test task begins.
+    """
+    dispatcher = Dispatcher()
+    if isinstance(learner, Handler):
+        learner.attach_with(dispatcher)
+    correct, total = 0, 0
+    for task, loader in enumerate(scenario.test_loaders(batch_size)):
+        dispatcher.notify(TestTaskBegin(0, task, 0, 0))
+        for x, y in loader:
+            x = x.view(x.shape[0], -1).to(learner.device, learner.x_dtype)
+            correct += int((learner.batch_predict(x).cpu() == y).sum())
+            total += len(y)
+    return correct / total
+
+
+def _tensors(module: nn.Module) -> list[torch.Tensor]:
+    return [*module.parameters(), *module.buffers()]
+
+
+@pytest.mark.parametrize("case", TORCH_CASES)
+def test_meta_device_construction(case: Case):
+    learner = _build(case, device="meta")
+    assert learner.device == torch.device("meta")
+    tensors = _tensors(learner.module)
+    assert tensors
+    assert all(t.device.type == "meta" for t in tensors)

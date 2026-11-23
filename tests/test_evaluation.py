@@ -181,8 +181,8 @@ def test_no_windowed_results(optimise):
 def test_evaluate_anomaly():
     """Fast and Python loops give the same AUC."""
     stream = Electricity()
-    model1 = HalfSpaceTrees(schema=stream.get_schema())
-    model2 = HalfSpaceTrees(schema=stream.get_schema())
+    model1 = HalfSpaceTrees(schema=stream.get_schema(), random_seed=1)
+    model2 = HalfSpaceTrees(schema=stream.get_schema(), random_seed=1)
 
     results_1st_run = evaluate_anomaly(
         stream=stream, learner=model1, window_size=1000, optimise=True
@@ -361,16 +361,16 @@ def test_optimise_flag_does_not_change_results(make_stream):
 @pytest.mark.parametrize(
     ["votes", "expected"],
     [
-        ([], None),  # no prediction available
-        ([0.0, 0.0], None),  # nothing but zeros
-        ([float("nan"), 1.0], None),
-        ([float("inf"), 1.0], None),
+        ([], [0.5, 0.5]),  # no prediction available, so uniform
+        ([0.0, 0.0], [0.5, 0.5]),  # nothing but zeros
+        ([float("nan"), 1.0], [0.5, 0.5]),
+        ([float("inf"), 1.0], [0.5, 0.5]),
         ([1e-30, 3e-30], [0.25, 0.75]),  # tiny but perfectly valid
         ([2.0, 6.0], [0.25, 0.75]),
     ],
 )
-def test_predict_proba_only_rejects_absent_predictions(votes, expected):
-    """Small vote totals are valid; only absent or degenerate ones are not."""
+def test_predict_proba_is_uniform_for_absent_predictions(votes, expected):
+    """Small vote totals are valid; absent or degenerate ones give a uniform prediction."""
 
     class _FakeMOALearner:
         def getVotesForInstance(self, _):
@@ -388,10 +388,7 @@ def test_predict_proba_only_rejects_absent_predictions(votes, expected):
     classifier.schema = _FakeSchema()
 
     result = MOAClassifier.predict_proba(classifier, _FakeInstance())
-    if expected is None:
-        assert result is None
-    else:
-        assert result == pytest.approx(expected)
+    assert result == pytest.approx(expected)
 
 
 def test_fast_loop_refuses_custom_test_then_train():

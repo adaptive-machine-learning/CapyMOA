@@ -1,3 +1,5 @@
+import inspect
+
 """Test harness for classifiers in the CapyMOA framework.
 
 Add new methods to `tests/resources/classifier.yml`. Review `Case` for the required
@@ -64,6 +66,9 @@ class Case:
     length_test_determinism: int = 50
     """Number of stream instances to replay in the determinism test."""
 
+    warmup: int = 0
+    """Number of instances to train on before testing. Passed to the evaluator."""
+
     needs_torch: bool = False
     """If set this learner requires PyTorch. Deselected by `-m "not torch"`."""
 
@@ -83,7 +88,9 @@ class Case:
     builds can compound and flip a single prediction. Leave unset (exact
     comparison) for everything else."""
 
-    def new_learner(self, schema: Schema, random_seed: int = RANDOM_SEED) -> Classifier:
+    def new_learner(
+        self, schema: Schema, random_seed: int | None = RANDOM_SEED
+    ) -> Classifier:
         params = _names_to_torch_objects(self.learner, self.params)
         spec = LearnerSpec(learner=self.learner, params=params)
         return learner_from_params(spec, schema, random_seed=random_seed)
@@ -118,6 +125,18 @@ def _load_cases() -> list[Case]:
 CASES = _load_cases()
 
 
+def _is_subset(expected: Any, actual: Any) -> bool:
+    """Return True if ``expected`` matches ``actual``, recursing into dicts.
+
+    Lets cases give only some params of a nested learner.
+    """
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        return all(
+            k in actual and _is_subset(v, actual[k]) for k, v in expected.items()
+        )
+    return expected == actual
+
+
 def _probas_close(a: np.ndarray | None, b: np.ndarray | None) -> bool:
     """Return True if both are None or both are numerically close."""
     if a is None or b is None:
@@ -136,7 +155,11 @@ class TestClassifier:
         stream = ElectricityTiny()
         learner = case.new_learner(stream.schema)
         results = evaluate_classifier(
-            stream, learner, window_size=WINDOW_SIZE, batch_size=case.batch_size
+            stream,
+            learner,
+            window_size=WINDOW_SIZE,
+            batch_size=case.batch_size,
+            warmup=case.warmup,
         )
         params = learner.get_params()
 
@@ -144,7 +167,7 @@ class TestClassifier:
         missing = {
             k: (v, params.get(k, "<missing>"))
             for k, v in expected.items()
-            if k not in params or params[k] != v
+            if k not in params or not _is_subset(v, params[k])
         }
         assert not missing, (
             "Provided parameters must be a subset of the resolved parameters. "
@@ -189,7 +212,11 @@ class TestClassifier:
             pytest.skip("Learner does not support the fast prequential loop.")
 
         fast_results = evaluate_classifier(
-            stream, fast_learner, window_size=WINDOW_SIZE, batch_size=case.batch_size
+            stream,
+            fast_learner,
+            window_size=WINDOW_SIZE,
+            batch_size=case.batch_size,
+            warmup=case.warmup,
         )
         fast_accuracy = fast_results["cumulative"]["accuracy"]
         fast_win_accuracy = fast_results["windowed"]["accuracy"][-1]
@@ -201,6 +228,7 @@ class TestClassifier:
             window_size=WINDOW_SIZE,
             optimise=False,
             batch_size=case.batch_size,
+            warmup=case.warmup,
         )
         slow_accuracy = slow_results["cumulative"]["accuracy"]
         slow_win_accuracy = slow_results["windowed"]["accuracy"][-1]
@@ -220,24 +248,20 @@ class TestClassifier:
 
         n_classes = 10
         length = 50
-        did_predict = False
 
         stream = RandomTreeGenerator(num_classes=n_classes)
         learner = case.new_learner(stream.get_schema())
 
-        # Learner must abstain before it is trained, unless it's declared to
-        # legitimately predict beforehand (e.g. a randomly-initialised NN).
+        # Learner must predict before it is trained.
         first_instance = next(stream)
-        if case.predicts_before_training:
-            assert (
-                learner.predict(first_instance) is not None
-                and learner.predict_proba(first_instance) is not None
-            ), "Expected prediction before training."
-        else:
-            assert (
-                learner.predict(first_instance) is None
-                and learner.predict_proba(first_instance) is None
-            ), "Expected abstention before training."
+        first_proba = learner.predict_proba(first_instance)
+        assert learner.predict(first_instance) in range(n_classes)
+        assert first_proba.shape == (n_classes,)
+        assert first_proba.sum() == pytest.approx(1.0)
+        if not case.predicts_before_training:
+            assert first_proba == pytest.approx(np.full(n_classes, 1 / n_classes)), (
+                "Expected a uniform prediction before training."
+            )
 
         # Prequential loop (predict, then train)
         for instance in islice(stream, length):
@@ -246,36 +270,28 @@ class TestClassifier:
             y_proba = learner.predict_proba(instance)
             learner.train(instance)
 
-            if y_proba is not None and y_pred is not None:
-                did_predict = True
-
-                assert isinstance(y_proba, np.ndarray), (
-                    f"Wrong type, expected `np.ndarray` but got `{type(y_proba)}`"
-                )
-                assert y_proba.dtype == np.float64, (
-                    f"Wrong dtype, expected `np.float64` but got `{y_proba.dtype}`"
-                )
-                # `predict_proba` must always be shaped by the schema, some methods
-                # incorrectly use observed classes.
-                # (https://github.com/adaptive-machine-learning/backlog/issues/96).
-                assert y_proba.shape == (n_classes,), (
-                    f"Wrong shape, expected ({n_classes},) but got `{y_proba.shape}`"
-                )
-                assert y_proba.sum() == pytest.approx(1.0), (
-                    f"Probabilities must sum to 1, expected 1 but got `{y_proba.sum()}`"
-                )
-                # `predict` must return a built-in `int`, not `numpy.int64`.
-                assert isinstance(y_pred, int), (
-                    f"Wrong type, expected int got `{type(y_pred)}`"
-                )
-                assert 0 <= y_pred < n_classes, (
-                    f"Wrong class, expected 0 <= y_pred < {n_classes} but got {y_pred}."
-                )
-
-            else:
-                assert y_pred is None and y_proba is None
-
-        assert did_predict, f"Over {length} steps nothing was predicted."
+            assert isinstance(y_proba, np.ndarray), (
+                f"Wrong type, expected `np.ndarray` but got `{type(y_proba)}`"
+            )
+            assert y_proba.dtype == np.float64, (
+                f"Wrong dtype, expected `np.float64` but got `{y_proba.dtype}`"
+            )
+            # `predict_proba` must always be shaped by the schema, some methods
+            # incorrectly use observed classes.
+            # (https://github.com/adaptive-machine-learning/backlog/issues/96).
+            assert y_proba.shape == (n_classes,), (
+                f"Wrong shape, expected ({n_classes},) but got `{y_proba.shape}`"
+            )
+            assert y_proba.sum() == pytest.approx(1.0), (
+                f"Probabilities must sum to 1, expected 1 but got `{y_proba.sum()}`"
+            )
+            # `predict` must return a built-in `int`, not `numpy.int64`.
+            assert isinstance(y_pred, int), (
+                f"Wrong type, expected int got `{type(y_pred)}`"
+            )
+            assert 0 <= y_pred < n_classes, (
+                f"Wrong class, expected 0 <= y_pred < {n_classes} but got {y_pred}."
+            )
 
     def test_save_then_load(self, case: Case, tmp_path: Path):
         """Check that a learner saved and then loaded behaves the same as the original."""
@@ -321,6 +337,13 @@ class TestClassifier:
             learner.train(instance)
             loaded.train(instance)
 
+    def test_no_seed(self, case: Case):
+        """Check that a learner with no seed draws a random seed from numpy"""
+        stream = RandomTreeGenerator(num_classes=5)
+        np.random.seed(0)
+        learner = case.new_learner(stream.get_schema(), random_seed=None)
+        assert learner.random_seed == 209652396
+
     def test_determinism(self, case: Case):
         """Check that learner is deterministic."""
         length = case.length_test_determinism
@@ -334,6 +357,11 @@ class TestClassifier:
         l1_a = case.new_learner(stream.get_schema(), random_seed=1)
         l1_b = case.new_learner(stream.get_schema(), random_seed=1)
         l2 = case.new_learner(stream.get_schema(), random_seed=2)
+
+        # Learners with no randomness take no seed, so they cannot report one.
+        if "random_seed" in inspect.signature(type(l1_a)).parameters:
+            assert l1_a.random_seed == l1_b.random_seed == 1
+            assert l2.random_seed == 2
 
         for i, instance in enumerate(islice(stream, length)):
             # Get predictions

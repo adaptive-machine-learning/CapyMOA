@@ -1,9 +1,6 @@
 from moa.classifiers.meta.imbalanced import CSMOTE as _MOA_CSMOTE
 
-from capymoa._utils import build_cli_str_from_mapping_and_locals
-from capymoa.base import (
-    MOAClassifier,
-)
+from capymoa.base import Classifier, MOAClassifier
 from capymoa.stream import Schema
 
 
@@ -23,7 +20,7 @@ class CSMOTE(MOAClassifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = CSMOTE(stream.get_schema())
+    >>> classifier = CSMOTE(stream.get_schema(), random_seed=0)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     83.1
@@ -37,40 +34,34 @@ class CSMOTE(MOAClassifier):
     def __init__(
         self,
         schema: Schema = None,
-        random_seed: int = 0,
-        base_learner="trees.HoeffdingTree",
+        base_learner: str | Classifier = "trees.HoeffdingTree",
         neighbors: int = 10,
         threshold: float = 0.5,
         min_size_allowed: int = 100,
         disable_drift_detection: bool = False,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Construct C-SMOTE.
 
-        :param schema: The schema of the stream.
-        :param random_seed: The random seed passed to the MOA learner.
-        :param base_learner: The base learner to be trained. Default AdaptiveRandomForestClassifier.
+        :param schema: Describes the stream's structure and types.
+        :param base_learner: The base learner to be trained. Default trees.HoeffdingTree.
         :param neighbors: Number of neighbors for SMOTE.
         :param threshold: Minority class samples threshold.
         :param min_size_allowed: Minimum number of samples in the minority class for applying SMOTE.
         :param disable_drift_detection: If set, disables ADWIN drift detector
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
-        mapping = {
-            "base_learner": "-l",
-            "neighbors": "-k",
-            "threshold": "-t",
-            "min_size_allowed": "-m",
-            "disable_drift_detection": "-d",
+        options = {
+            "baseLearner": base_learner,
+            "neighbors": neighbors,
+            "threshold": threshold,
+            "minSizeAllowed": min_size_allowed,
+            "disableDriftDetection": disable_drift_detection,
         }
-
-        assert isinstance(base_learner, str), (
-            "Only MOA CLI strings are supported for CSMOTE base_learner, at the moment."
-        )
-
-        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super().__init__(
             moa_learner=_MOA_CSMOTE,
             schema=schema,
-            CLI=config_str,
             random_seed=random_seed,
+            options=options,
         )

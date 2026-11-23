@@ -82,7 +82,7 @@ def _prediction_trace(
     torch.manual_seed(fit_ambient_seed)
     learner.gdumb_fit()
     with torch.no_grad():
-        proba = learner.model(test_x).softmax(dim=1)
+        proba = learner.module.model(test_x).softmax(dim=1)
     return (proba * 100).round().to(torch.int16)
 
 

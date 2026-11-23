@@ -16,6 +16,7 @@ from ._instance import (  # isort: skip
     TargetValue,
     _AnyInstance,
 )
+from ._proba import uniform_proba  # isort: skip
 from . import io, moa, torch
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     "io",
     "moa",
     "torch",
+    "uniform_proba",
 ]

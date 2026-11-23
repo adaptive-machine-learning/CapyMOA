@@ -4,8 +4,10 @@ from moa.classifiers.meta import OzaBag as _MOA_OzaBag
 from moa.classifiers.meta.minibatch import OzaBagMB as _MOA_OzaBagMB
 
 from capymoa.base import (
+    Classifier,
     MOAClassifier,
 )
+from capymoa.stream import Schema
 
 
 class OnlineBagging(MOAClassifier):
@@ -23,7 +25,7 @@ class OnlineBagging(MOAClassifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = OnlineBagging(stream.get_schema())
+    >>> classifier = OnlineBagging(stream.get_schema(), random_seed=1)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     85.3
@@ -35,17 +37,16 @@ class OnlineBagging(MOAClassifier):
 
     def __init__(
         self,
-        schema=None,
-        random_seed=1,
-        base_learner=None,
-        ensemble_size=100,
-        minibatch_size=None,
-        number_of_jobs=None,
-    ):
+        schema: Schema,
+        base_learner: str | Classifier | None = None,
+        ensemble_size: int = 100,
+        minibatch_size: int | None = None,
+        number_of_jobs: int | None = None,
+        random_seed: int | None = None,
+    ) -> None:
         """Construct an Online bagging classifier using online bootstrap sampling.
 
-        :param schema: The schema of the stream. If not provided, it will be inferred from the data.
-        :param random_seed: Seed for the random number generator.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to use. It can be a CLI string, a CapyMOA
             classifier, or a MOA Java object. If not provided, a default Hoeffding Tree is used.
         :param ensemble_size: The number of trees in the ensemble.
@@ -56,6 +57,7 @@ class OnlineBagging(MOAClassifier):
             However, setting it to a high value may consume more system resources and memory.
             This implementation focuses more on performance, therefore the predictive performance is modified.
             It's recommended to experiment with different values to find the optimal setting based on
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         self.base_learner = (
             "trees.HoeffdingTree" if base_learner is None else base_learner

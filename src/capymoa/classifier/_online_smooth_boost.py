@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from moa.classifiers.meta import OnlineSmoothBoost as _MOA_OnlineSmoothBoost
 
-from capymoa._utils import build_cli_str_from_mapping_and_locals
-from capymoa.base import (
-    MOAClassifier,
-)
+from capymoa.base import Classifier, MOAClassifier
 from capymoa.stream import Schema
 
 
@@ -32,35 +29,29 @@ class OnlineSmoothBoost(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
-        random_seed: int = 0,
-        base_learner="trees.HoeffdingTree",
+        schema: Schema,
+        base_learner: str | Classifier = "trees.HoeffdingTree",
         boosting_iterations: int = 100,
-        gamma=0.1,
-    ):
+        gamma: float = 0.1,
+        random_seed: int | None = None,
+    ) -> None:
         """OnlineSmoothBoost Classifier
 
-        :param schema: The schema of the stream.
-        :param random_seed: The random seed passed to the MOA learner.
+        :param schema: Describes the stream's structure and types.
         :param base_learner: The base learner to be trained. Default trees.HoeffdingTree.
         :param boosting_iterations: The number of boosting iterations (ensemble size).
         :param gamma: The value of the gamma parameter.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
-        mapping = {
-            "base_learner": "-l",
-            "boosting_iterations": "-s",
-            "gamma": "-g",
+        options = {
+            "baseLearner": base_learner,
+            "ensembleSize": boosting_iterations,
+            "gamma": gamma,
         }
-
-        assert isinstance(base_learner, str), (
-            "Only MOA CLI strings are supported for OnlineSmoothBoost base_learner, at the moment."
-        )
-
-        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super().__init__(
             moa_learner=_MOA_OnlineSmoothBoost,
             schema=schema,
-            CLI=config_str,
             random_seed=random_seed,
+            options=options,
         )

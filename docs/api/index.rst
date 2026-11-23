@@ -45,6 +45,8 @@ Core and utility modules.
     capymoa.evaluation
     capymoa.stream
     capymoa.env
+    capymoa.events
+    capymoa.core.torch
     capymoa.core.torch.ann
 
 

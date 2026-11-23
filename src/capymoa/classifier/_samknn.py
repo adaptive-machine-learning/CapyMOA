@@ -29,23 +29,23 @@ class SAMkNN(MOAClassifier):
     def __init__(
         self,
         schema: Schema,
-        random_seed: int = 1,
         k: int = 5,
         limit: int = 5000,
         min_stm_size: int = 50,
         relative_ltm_size: float = 0.4,
         recalculate_stm_error: bool = False,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Self Adjusted Memory k Nearest Neighbor (SAMkNN) Classifier
 
-        :param schema: The schema of the stream.
-        :param random_seed: The random seed passed to the MOA learner.
+        :param schema: Describes the stream's structure and types.
         :param k: The number of nearest neighbors.
         :param limit: The maximum number of instances to store.
         :param min_stm_size: The minimum number of instances in the STM.
         :param relative_ltm_size: The allowed LTM size relative to the total limit.
         :param recalculate_stm_error: Recalculates the error rate of the STM for size adaption (Costly operation).
             Otherwise, an approximation is used.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         mapping = {

@@ -52,6 +52,7 @@ __all__ = [
     "Regressor",
     "SKClassifier",
     "SKRegressor",
+    "TorchMixin",
     "learner_from_params",
 ]
 
@@ -61,6 +62,7 @@ _LAZY = {
     "Batch": "._batch",
     "BatchClassifier": "._batch_classifier",
     "BatchRegressor": "._batch_regressor",
+    "TorchMixin": "._torch_mixin",
 }
 
 __getattr__, __dir__ = lazy_torch_attrs(

@@ -273,11 +273,8 @@ class StreamingIsolationTree:
         an existing instance in the tree with the new instance. If the new instance
         is added, the tree is updated accordingly.
 
-        Parameters:
-        instance (LabeledInstance): The new instance to be trained on.
-
-        Returns:
-        StreamingIsolationTree: The updated tree after training.
+        :param instance: The new instance to be trained on.
+        :return: The updated tree after training.
         """
 
         if self.n < self.k:
@@ -434,17 +431,17 @@ class StreamingIsolationForest(AnomalyDetector):
     def __init__(
         self,
         schema: Schema,
-        window_size=256,
-        n_trees=100,
-        height=None,
+        window_size: int = 256,
+        n_trees: int = 100,
+        height: int | None = None,
         seed: int | None = None,
-    ):
+    ) -> None:
         """Construct a Streaming Isolation Forest anomaly detector.
-        :param schema: The schema of the stream. If not provided, it will be inferred from the data.
+        :param schema: Describes the stream's structure and types.
         :param window_size: The size of the window for each tree.
         :param n_trees: The number of trees in the ensemble.
         :param height: The maximum height of each tree. If None, it will be set to log2(window_size).
-        :param seed: Random seed for reproducibility.
+        :param seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
 
         super().__init__(schema=schema, random_seed=seed)
@@ -486,7 +483,7 @@ class StreamingIsolationForest(AnomalyDetector):
 
         return score
 
-    def predict(self, instance: LabeledInstance) -> LabelIndex | None:
+    def predict(self, instance: LabeledInstance) -> LabelIndex:
         raise NotImplementedError(
             "StreamingIsolationForest does not implement predict. Use score_instance instead."
         )

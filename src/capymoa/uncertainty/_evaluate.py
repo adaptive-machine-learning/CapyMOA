@@ -1,5 +1,6 @@
+import warnings
 from collections.abc import Mapping
-from typing import overload
+from typing import Any, overload
 
 from tqdm import tqdm
 
@@ -13,9 +14,9 @@ from capymoa.evaluation._loop import (
 from capymoa.stream import Stream
 from capymoa.uncertainty.evaluate import (
     PredictionIntervalEvaluator,
-    PredictionIntervalResults,
     PredictionIntervalWindowedEvaluator,
     PredictionIntervalWindows,
+    UncertaintyResults,
 )
 
 
@@ -25,7 +26,7 @@ def _results(
     out: _LoopOutput,
     cumulative: PredictionIntervalEvaluator,
     windowed: PredictionIntervalWindowedEvaluator | None,
-) -> PredictionIntervalResults:
+) -> UncertaintyResults:
     body = _results_body(
         name,
         stream,
@@ -36,11 +37,11 @@ def _results(
         # MOA's windowed interval evaluator has no relative errors.
         whole_stream_only=("rmae", "rrmse"),
     )
-    return PredictionIntervalResults(**body)  # type: ignore[typeddict-item]
+    return UncertaintyResults(**body)  # type: ignore[typeddict-item]
 
 
 @overload
-def evaluate_prediction_interval(
+def evaluate_uncertainty(
     stream: Stream,
     learner: PredictionIntervalLearner,
     max_instances: int | None = None,
@@ -51,9 +52,10 @@ def evaluate_prediction_interval(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
-) -> PredictionIntervalResults: ...
+    warmup: int = 0,
+) -> UncertaintyResults: ...
 @overload
-def evaluate_prediction_interval(
+def evaluate_uncertainty(
     stream: Stream,
     learner: Mapping[str, PredictionIntervalLearner],
     max_instances: int | None = None,
@@ -64,8 +66,9 @@ def evaluate_prediction_interval(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
-) -> dict[str, PredictionIntervalResults]: ...
-def evaluate_prediction_interval(
+    warmup: int = 0,
+) -> dict[str, UncertaintyResults]: ...
+def evaluate_uncertainty(
     stream: Stream,
     learner: PredictionIntervalLearner | Mapping[str, PredictionIntervalLearner],
     max_instances: int | None = None,
@@ -76,15 +79,16 @@ def evaluate_prediction_interval(
     restart_stream: bool = True,
     progress_bar: bool | tqdm = False,
     batch_size: int = 1,
-) -> PredictionIntervalResults | dict[str, PredictionIntervalResults]:
+    warmup: int = 0,
+) -> UncertaintyResults | dict[str, UncertaintyResults]:
     """Test-then-train a prediction interval learner, or many on one pass over a stream.
 
     Each instance is first used to test the learner, then to train it.
 
-    >>> from capymoa.uncertainty import MVE, evaluate_prediction_interval
+    >>> from capymoa.uncertainty import MVE, evaluate_uncertainty
     >>> from capymoa.datasets import FriedTiny
     >>> stream = FriedTiny()
-    >>> results = evaluate_prediction_interval(
+    >>> results = evaluate_uncertainty(
     ...     stream, MVE(stream.get_schema()), max_instances=1000
     ... )
     >>> print(f"{results['cumulative']['coverage']:.1f}")
@@ -114,6 +118,8 @@ def evaluate_prediction_interval(
         stream.
     :param progress_bar: Enable, disable, or give a progress bar.
     :param batch_size: Instances per mini-batch, for batch learners.
+    :param warmup: Number of instances, from the start, to train on without testing.
+        They count towards ``max_instances``.
     :return: The results, or a dict of results by name for a mapping.
     """
     many = isinstance(learner, Mapping)
@@ -144,9 +150,26 @@ def evaluate_prediction_interval(
         max_instances=max_instances,
         progress_bar=progress_bar,
         batch_size=batch_size,
+        warmup=warmup,
     )
     results = {
         n: _results(n, stream, out, runs[n].cumulative, runs[n].windowed)
         for n, out in outs.items()
     }
     return results if many else next(iter(results.values()))
+
+
+def evaluate_prediction_interval(*args: Any, **kwargs: Any) -> Any:
+    """Deprecated. Use :func:`~capymoa.uncertainty.evaluate_uncertainty`.
+
+    Calls :func:`~capymoa.uncertainty.evaluate_uncertainty` with the same
+    arguments.
+
+    :deprecated: Use ``evaluate_uncertainty``.
+    """
+    warnings.warn(
+        "evaluate_prediction_interval is deprecated, use evaluate_uncertainty instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return evaluate_uncertainty(*args, **kwargs)

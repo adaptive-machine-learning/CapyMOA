@@ -266,6 +266,9 @@ extend-exclude = [
 ]
 
 [tool.ruff.lint]
+# Docstring rules: public classes, functions and `__init__` need a docstring
+# (D101, D103, D107) and every parameter needs a `:param` entry (D417).
+extend-select = ["D101", "D103", "D107", "D417"]
 ignore = [
     # Require a `tz` argument on `datetime.now()`. Every current call site
     # uses `datetime.now()` to stamp human-readable filenames/log lines with
@@ -274,6 +277,10 @@ ignore = [
     # just complicate call sites without fixing a real bug.
     "DTZ005",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Docstring rules apply to the library only.
+"!src/**" = ["D"]
 
 [tool.coverage.report]
 exclude_also = [

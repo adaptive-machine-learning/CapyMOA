@@ -6,7 +6,9 @@ import math
 import random as _random
 import re
 from collections import OrderedDict
+from collections.abc import Callable
 from itertools import cycle, pairwise
+from typing import Literal
 
 from moa.streams import ConceptDriftStream as MOA_ConceptDriftStream
 
@@ -17,7 +19,7 @@ from ._stream import MOAStream, Stream
 #: Named transition ramps. Each maps progress through the drift window,
 #: ``0.0`` at the start and ``1.0`` at the end, to the probability that an
 #: instance is drawn from the new concept.
-TRANSITION_FUNCTIONS = {
+TRANSITION_FUNCTIONS: dict[str, Callable[[float], float]] = {
     # Scaled so the transition completes inside the window: 0.01 at the start
     # and 0.99 at the end, rather than MOA's fixed steepness which is only at
     # 0.88 by the time the window closes.
@@ -28,7 +30,9 @@ TRANSITION_FUNCTIONS = {
 }
 
 
-def _resolve_transition_function(transition_function):
+def _resolve_transition_function(
+    transition_function: Literal["sigmoid", "linear"] | Callable[[float], float],
+) -> Callable[[float], float]:
     """Turn a name or a callable into the ramp used across a drift window."""
     if callable(transition_function):
         return transition_function
@@ -74,6 +78,8 @@ class _Transition:
         self.ramp = _resolve_transition_function(
             getattr(drift, "transition_function", "sigmoid")
         )
+        self._replay_n = 0
+        self._replay_rng = _random.Random()
         self.restart()
 
     def restart(self):
@@ -102,7 +108,7 @@ class _Transition:
             return 1.0
         # A user-supplied ramp is clipped rather than trusted, so a function
         # that strays outside [0, 1] cannot corrupt the mixture.
-        return min(1.0, max(0.0, self.ramp(progress)))
+        return min(1.0, max(0.0, float(self.ramp(progress))))
 
     def next_instance(self):
         self._n += 1
@@ -185,7 +191,9 @@ class DriftStream(Stream):
     MOA-backed, so it is offered explicitly instead of being the implementation.
     """
 
-    def __init__(self, schema=None, CLI=None, moa_stream=None, stream=None):
+    def __init__(
+        self, schema=None, CLI=None, moa_stream=None, stream: list | None = None
+    ):
         """Initialize the stream.
 
         :param schema: The schema of the stream. Taken from the first concept
@@ -205,6 +213,8 @@ class DriftStream(Stream):
         self._moa_backed = None
 
         if CLI is None:
+            if self.stream is None:
+                raise ValueError("DriftStream requires a stream definition or MOA CLI.")
             self._validate_stream_definition(self.stream)
 
             components = list(self.stream)
@@ -270,6 +280,7 @@ class DriftStream(Stream):
 
     def _declared_length(self):
         """Total instances a range definition asks for."""
+        assert self.stream is not None
         return sum(c.num_instances for c in self.stream[0::2]) + sum(
             d.width for d in self.drifts if isinstance(d, GradualDrift)
         )
@@ -295,6 +306,7 @@ class DriftStream(Stream):
         only evidence available.
         """
         if getattr(self, "range_form", False):
+            assert self.stream is not None
             declared = sum(c.num_instances for c in self.stream[0::2])
             declared += sum(d.width for d in self.drifts if isinstance(d, GradualDrift))
             return declared, False
@@ -386,7 +398,7 @@ class DriftStream(Stream):
         windows = [
             (d.start, d.end)
             for d in self.drifts
-            if isinstance(d, GradualDrift) and d.start is not None
+            if isinstance(d, GradualDrift) and d.start is not None and d.end is not None
         ]
 
         for position in range(1, horizon + 1):
@@ -425,11 +437,10 @@ class DriftStream(Stream):
         if horizon is None:
             horizon, estimated = self._default_horizon()
         counts, mixed = self._replay(horizon)
-        declared = (
-            [component.num_instances for component in self.stream[0::2]]
-            if getattr(self, "range_form", False)
-            else None
-        )
+        declared = None
+        if getattr(self, "range_form", False):
+            assert self.stream is not None
+            declared = [component.num_instances for component in self.stream[0::2]]
 
         form = "range form" if declared else "position form"
         how = (
@@ -523,6 +534,7 @@ class DriftStream(Stream):
 
             if isinstance(component, GradualDrift):
                 width = component.num_instances
+                assert width is not None
                 drifts.append(
                     GradualDrift(
                         position=cursor + width // 2,
@@ -533,9 +545,7 @@ class DriftStream(Stream):
                 )
                 cursor += width
             else:
-                drifts.append(
-                    AbruptDrift(position=cursor, random_seed=component.random_seed)
-                )
+                drifts.append(AbruptDrift(position=cursor))
         return concepts, drifts
 
     @staticmethod
@@ -592,12 +602,16 @@ class DriftStream(Stream):
 
     def next_instance(self):
         self._produced += 1
-        return self._source.next_instance()
+        source = self._source
+        assert source is not None
+        return source.next_instance()
 
     def has_more_instances(self):
         if self._length is not None and self._produced >= self._length:
             return False
-        return self._source.has_more_instances()
+        source = self._source
+        assert source is not None
+        return source.has_more_instances()
 
     def get_schema(self):
         return self._schema
@@ -607,6 +621,7 @@ class DriftStream(Stream):
         if self._root is not None:
             self._root.restart()
         else:
+            assert self._moa_backed is not None
             self._moa_backed.restart()
 
     def get_moa_stream(self):
@@ -878,15 +893,27 @@ class GradualDrift(Drift):
 
     def __init__(
         self,
-        position=None,
-        width=None,
-        start=None,
-        end=None,
+        position: None | int = None,
+        width: None | int = None,
+        start: None | int = None,
+        end: None | int = None,
         *,
-        num_instances=None,
-        transition_function="sigmoid",
-        random_seed=1,
+        num_instances: None | int = None,
+        transition_function: Literal["sigmoid", "linear"]
+        | Callable[[float], float] = "sigmoid",
+        random_seed: int = 1,
     ):
+        """Initialize a gradual drift using exactly one location form.
+
+        :param position: Center of the drift window; pair with ``width``.
+        :param width: Drift window size; pair with ``position``.
+        :param start: Start of the drift window; pair with ``end``.
+        :param end: End of the drift window; pair with ``start``.
+        :param num_instances: Unplaced window size, resolved by ``DriftStream``.
+        :param transition_function: Named ramp used across the drift window.
+        :param random_seed: Seed used for transition sampling.
+        :raises ValueError: If location arguments do not specify exactly one complete form.
+        """
         self.__init_args_kwargs__ = copy.copy(
             locals()
         )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
@@ -930,10 +957,13 @@ class GradualDrift(Drift):
         # Resolve now so an unknown name fails at construction rather than on
         # the first instance.
         _resolve_transition_function(transition_function)
-        self.transition_function = transition_function
+        self.transition_function: (
+            Literal["sigmoid", "linear"] | Callable[[float], float]
+        ) = transition_function
 
         self.num_instances = num_instances
         if complete == ["num_instances"]:
+            assert num_instances is not None
             # Unplaced: DriftStream resolves it against the surrounding
             # concepts, because the position is not knowable here.
             self.width = num_instances
@@ -947,15 +977,17 @@ class GradualDrift(Drift):
             return
 
         if complete == ["position and width"]:
+            assert position is not None and width is not None
             self.width = width
             self.position = position
             self.start = int(position - width / 2)
             self.end = int(position + width / 2)
         else:
+            assert start is not None and end is not None
             self.start = start
             self.end = end
             self.width = end - start
-            self.position = int((start + end) / 2)
+            self.position = (start + end) // 2
 
         self.random_seed = random_seed
 
@@ -993,15 +1025,15 @@ class AbruptDrift(Drift):
     so an omitted position cannot quietly become a drift at instance zero.
     """
 
-    def __init__(self, position: int | None = None, random_seed: int = 1):
+    def __init__(self, position: int | None = None):
+        """Create an abrupt drift at a given position."""
         self.__init_args_kwargs__ = copy.copy(
             locals()
         )  # save init args for recreation. not a deep copy to avoid unnecessary use of memory
 
         self.position = position
-        self.random_seed = random_seed
-
-        super().__init__(position=position, random_seed=random_seed)
+        # Random seed is unused. But we need it to keep the API consistent internally.
+        super().__init__(position=position, random_seed=1)
 
     def __str__(self):
         attributes = [
@@ -1012,15 +1044,13 @@ class AbruptDrift(Drift):
         return f"AbruptDrift({', '.join(non_default_attributes)})"
 
 
-class IndexedCycle:
+class _IndexedCycle:
     """
     An iterator that cycles through an iterable, returning tuples of (index, item).
-
-    Provides methods for replacing items at specific indices and resetting the cycle.
     """
 
     def __init__(self, iterable):
-        self._data = list(iterable)  # Create a copy for modification
+        self._data = list(iterable)  # Create a copy
         self._index = -1
         self._cycle = cycle(self._data)
 
@@ -1036,26 +1066,8 @@ class IndexedCycle:
 
         return self._index, item
 
-    def replace_and_move_to(self, index, new_item):
-        """
-        Replaces the item at the specified index in the original data and moves it to the new position.
 
-        Raises:
-            ValueError: If the index is out of range.
-        """
-
-        if not 0 <= index < len(self._data):
-            raise ValueError("Index out of range")
-
-        self._data[index] = new_item
-        self._cycle = cycle(self._data)  # Reset the cycle with modified data
-
-        # move to new index
-        while self._index != index:
-            _, _ = self.__next__()
-
-
-def get_class_and_init_attributes_with_values(obj):
+def _get_class_and_init_attributes_with_values(obj):
     cls = type(obj)
     # Get function signature of init
     function_signature = inspect.signature(cls.__init__)
@@ -1070,12 +1082,12 @@ def get_class_and_init_attributes_with_values(obj):
     return cls, args
 
 
-def get_recurrent_concept_drift_stream_list(
+def _get_recurrent_concept_drift_stream_list(
     concept_list: list,
     max_recurrences_per_concept: int = 3,
     transition_type_template: Drift | None = None,
     concept_name_list: list | None = None,
-) -> list:
+) -> tuple[list[dict[str, str | int]], list[Stream | Drift]]:
     if transition_type_template is None:
         transition_type_template = AbruptDrift(position=5000)
     # checks
@@ -1085,7 +1097,7 @@ def get_recurrent_concept_drift_stream_list(
         )
 
     # variable initializations
-    concept_cycle = IndexedCycle([k for k in concept_list])
+    concept_cycle = _IndexedCycle([k for k in concept_list])
     drift_stream = []
     concept_info = []
     recurrent_concept_info = {
@@ -1094,7 +1106,7 @@ def get_recurrent_concept_drift_stream_list(
     }
 
     # get drift args and class
-    drift_cls, original_drift_args = get_class_and_init_attributes_with_values(
+    drift_cls, original_drift_args = _get_class_and_init_attributes_with_values(
         transition_type_template
     )
     if isinstance(transition_type_template, GradualDrift):
@@ -1126,7 +1138,7 @@ def get_recurrent_concept_drift_stream_list(
             < max_recurrences_per_concept
         ):
             stream_cls, original_stream_args = (
-                get_class_and_init_attributes_with_values(next_concept)
+                _get_class_and_init_attributes_with_values(next_concept)
             )
             stream_args = copy.deepcopy(
                 original_stream_args
@@ -1175,16 +1187,29 @@ def get_recurrent_concept_drift_stream_list(
 
 
 class RecurrentConceptDriftStream(DriftStream):
+    """A drift stream that cycles through named or unnamed concepts.
+
+    The concepts are recreated with updated instance seeds for each recurrence.
+    Concept spans are stored in ``concept_info`` for use in result plots.
+    """
+
     def __init__(
         self,
-        concept_list: list,
+        concept_list: list[Stream],
         max_recurrences_per_concept: int = 3,
         transition_type_template: Drift | None = None,
-        concept_name_list: list | None = None,
-    ):
+        concept_name_list: list[str] | None = None,
+    ) -> None:
+        """Create a recurrent stream from concept templates.
+
+        :param concept_list: Streams to cycle through as concepts.
+        :param max_recurrences_per_concept: Maximum number of times to use each concept.
+        :param transition_type_template: Drift template used between concepts.
+        :param concept_name_list: Optional display names, one per concept.
+        """
         if transition_type_template is None:
             transition_type_template = AbruptDrift(position=5000)
-        self.concept_info, stream_list = get_recurrent_concept_drift_stream_list(
+        self.concept_info, stream_list = _get_recurrent_concept_drift_stream_list(
             concept_list=concept_list,
             max_recurrences_per_concept=max_recurrences_per_concept,
             transition_type_template=transition_type_template,

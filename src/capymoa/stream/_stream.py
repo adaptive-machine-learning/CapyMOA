@@ -1,4 +1,3 @@
-import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Sequence
 from pathlib import Path
@@ -7,7 +6,6 @@ from typing import Generic, Literal, Self
 import numpy as np
 from com.yahoo.labs.samoa.instances import (
     Attribute,
-    DenseInstance,
     Instances,
     InstancesHeader,
 )
@@ -20,31 +18,6 @@ from capymoa.core import (
     _AnyInstance,
 )
 from capymoa.exception import StreamTypeError
-
-
-# Private functions
-def _target_is_categorical(targets, target_type):
-    if target_type is None:
-        if isinstance(targets[0], (str, bool)):
-            return True
-        if isinstance(targets[0], (np.integer, int)):
-            num_unique = len(np.unique(targets))
-            if num_unique >= 20:
-                warnings.warn(
-                    f"target variable includes {num_unique} (≥ 20) unique values, inferred as numeric, "
-                    f"set target_type = 'categorical' if you intend categorical targets"
-                )
-                return False
-            else:
-                warnings.warn(
-                    f"target variable includes {num_unique} (< 20) unique values, inferred as categorical, "
-                    f"set target_type = 'numeric' if you intend numeric targets"
-                )
-                return True
-    elif target_type != "numeric" and target_type != "categorical":
-        raise ValueError("target_type must be either numeric or categorical")
-    else:
-        return target_type == "categorical"
 
 
 class Schema:
@@ -262,17 +235,6 @@ class Schema:
         and width of an image.
         """
         return self._shape
-
-    @shape.setter
-    def shape(self, value: Sequence[int]):
-        """Set the shape of the input ``x`` instances."""
-        n_attr = self.get_num_attributes()
-        # ensure the product of the shape matches the number of attributes
-        if np.prod(value) != n_attr:
-            raise ValueError(
-                f"Shape {value} is incompatible with number of attributes {n_attr}"
-            )
-        self._shape = value
 
     @staticmethod
     def from_custom(
@@ -632,41 +594,6 @@ class NumpyStream(Stream[_AnyInstance]):
         return self._len
 
 
-def _numpy_to_arff(
-    X,
-    y,
-    dataset_name: str = "No_Name",
-    feature_names: str | None = None,
-    target_name: str | None = None,
-    target_type: str | None = None,
-):
-    """Converts a numpy X and y into a ARFF format. The code first check if the user has specified the type of the
-    target values, if not, the code infers whether it is a categorical or numeric target by _target_is_categorical
-    method, i.e., if the unique values in the targets are more than 20, interpret as numeric, and vice versa.
-    """
-    number_of_instances = X.shape[0]
-    class_labels = (
-        None
-        if not _target_is_categorical(y, target_type) or target_type == "numeric"
-        else [str(value) for value in np.unique(y)]
-    )
-    feature_names = (
-        [f"attrib_{i}" for i in range(X.shape[1])]
-        if feature_names is None
-        else feature_names
-    )
-    moa_stream, moa_header = _init_moa_stream_and_create_moa_header(
-        number_of_instances=number_of_instances,
-        feature_names=feature_names,
-        values_for_class_label=class_labels,
-        dataset_name=dataset_name,
-        target_attribute_name=target_name,
-        target_type=target_type,
-    )
-    _add_instances_to_moa_stream(moa_stream, moa_header, X, y)
-    return moa_stream, moa_header, class_labels
-
-
 def _create_nominal_attribute(name: str, values: Sequence[str]):
     value_list = FastVector()
     for value in values:
@@ -691,97 +618,3 @@ def _new_instances_header(
     moa_stream = Instances(relation, attributes_, 0)
     moa_stream.setClassIndex(attributes.index(target))
     return InstancesHeader(moa_stream)
-
-
-def _init_moa_stream_and_create_moa_header(
-    number_of_instances: int = 100,
-    feature_names: list | None = None,
-    values_for_nominal_features=None,
-    values_for_class_label: list | None = None,
-    dataset_name="No_Name",
-    target_attribute_name=None,
-    target_type: str | None = None,
-):
-    """Initialize a moa stream with number_of_instances capacity and create a
-    MOA header containing all the necessary attribute information.
-
-     Note: The instances are not added to the moa_stream.
-
-    Sample code to get relevant information from two Numpy arrays: X[rows][features] and y[rows]
-
-        feature_names = [f"attrib_{i}" for i in range(X.shape[1])]
-        number_of_instances = X.shape[0]
-        values_for_class_label = [str(value) for value in np.unique(y)]
-
-    :param number_of_instances: number of instances in the stream
-    :param feature_names: a list containing names of features. if none sets a default name
-    :param values_for_nominal_features: possible values of each nominal feature.
-    e.g {i: [1,2,3], k: [Aa, BB]}. Key is integer. Values are turned into strings
-    :param values_for_class_label: possible values for class label. Values are turned into strings
-    :param dataset_name: name of the dataset. Defaults to "No_Name"
-    :param target_attribute_name: name for the target/class attribute
-    :param target_type: specifies the type of target as 'categorical' or 'numeric', None to detect automatically
-
-    :return moa_stream: initialized moa stream with capacity number_of_instances.
-    :return moa_header: initialized moa header which contain all necessary attribute information for all features and
-        the class label
-    """
-    if values_for_nominal_features is None:
-        values_for_nominal_features = {}
-    attributes = FastVector()
-    # Attribute("name") will create a numeric attribute;
-    # Attribute("name", array_of_values) will create a nominal attribute
-    if feature_names is None:
-        raise ValueError("feature_names are None")
-
-    if target_type == "numeric" or values_for_class_label is None:
-        if target_attribute_name is None:
-            target_attribute = Attribute("target")
-        else:
-            target_attribute = Attribute(target_attribute_name)
-    elif target_type == "categorical" or target_type is None:
-        target_attribute = _create_nominal_attribute(
-            ("class" if target_attribute_name is None else target_attribute_name),
-            values_for_class_label,
-        )
-    else:
-        raise ValueError("target_type must be either `numeric` or `categorical`")
-
-    # we don't want to add the class attribute as a feature
-    if target_attribute.name() in feature_names:
-        feature_names.remove(target_attribute.name())
-
-    for name in feature_names:
-        if name in values_for_nominal_features:
-            attribute = _create_nominal_attribute(
-                name,
-                values_for_nominal_features.get(name),
-            )
-        else:
-            attribute = Attribute(name)
-        attributes.addElement(attribute)
-
-    attributes.addElement(target_attribute)
-
-    moa_stream = Instances(dataset_name, attributes, number_of_instances)
-    # set last index for class index
-    moa_stream.setClassIndex(len(attributes) - 1)
-    # create stream header
-    moa_header = InstancesHeader(moa_stream)
-    return moa_stream, moa_header
-
-
-def _add_instances_to_moa_stream(moa_stream, moa_header, X, y):
-    for instance_index in range(X.shape[0]):
-        instance = DenseInstance(moa_header.numAttributes())
-
-        for attribute_index in range(X.shape[1]):
-            instance.setValue(
-                attribute_index, X[instance_index, attribute_index]
-            )  # set value for each attribute
-
-        instance.setDataset(moa_header)
-        instance.setWeight(1.0)  # a default weight of 1.0
-        instance.setClassValue(y[instance_index])  # set class value
-
-        moa_stream.add(instance)

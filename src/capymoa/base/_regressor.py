@@ -2,17 +2,19 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any, overload
 
+import jpype
 from sklearn.base import RegressorMixin as _SKRegressorMixin
 
 from capymoa.base._learner_params import LearnerParamsMixin
+from capymoa.base._seed import _SeededMixin
 from capymoa.core import Instance, RegressionInstance, TargetValue
 from capymoa.core.moa._options import set_moa_options
 from capymoa.stream._stream import Schema
 
 
-class Regressor(LearnerParamsMixin, ABC):
-    def __init__(self, schema=None, random_seed=1):
-        self.random_seed = random_seed
+class Regressor(_SeededMixin, LearnerParamsMixin, ABC):
+    def __init__(self, schema=None, random_seed: int | None = None):
+        self._init_seed(random_seed)
         self.schema = schema
 
     def __str__(self) -> str:
@@ -24,7 +26,14 @@ class Regressor(LearnerParamsMixin, ABC):
 
     @abstractmethod
     def predict(self, instance: RegressionInstance) -> TargetValue:
-        pass
+        """Predict the target value of an instance.
+
+        Must work at any time, even before training. If the regressor can not
+        predict yet, return a default value such as ``0.0``.
+
+        :param instance: The instance to predict the target value for.
+        :return: The predicted target value.
+        """
 
 
 class MOARegressor(Regressor):
@@ -33,7 +42,7 @@ class MOARegressor(Regressor):
         self,
         schema=None,
         CLI: str | None = None,
-        random_seed=1,
+        random_seed: int | None = None,
         moa_learner=None,
     ): ...
 
@@ -42,7 +51,7 @@ class MOARegressor(Regressor):
         self,
         schema=None,
         CLI: None = None,
-        random_seed=1,
+        random_seed: int | None = None,
         moa_learner=None,
         *,
         options: Mapping[str, Any],
@@ -52,7 +61,7 @@ class MOARegressor(Regressor):
         self,
         schema=None,
         CLI=None,
-        random_seed=1,
+        random_seed: int | None = None,
         moa_learner=None,
         options: Mapping[str, Any] | None = None,
     ):
@@ -64,8 +73,7 @@ class MOARegressor(Regressor):
         self.CLI = CLI
         self.moa_learner = moa_learner
 
-        if random_seed is not None:
-            self.moa_learner.setRandomSeed(random_seed)
+        self.moa_learner.setRandomSeed(self.random_seed)
 
         if self.schema is not None:
             self.moa_learner.setModelContext(self.schema.get_moa_header())
@@ -77,8 +85,10 @@ class MOARegressor(Regressor):
         self.moa_learner.setModelContext(self.schema.get_moa_header())
 
     def __str__(self):
-        full_name = str(self.moa_learner.getClass().getCanonicalName())
-        return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        if isinstance(self.moa_learner, jpype.JObject):
+            full_name = str(self.moa_learner.getClass().getCanonicalName())
+            return full_name.rsplit(".", 1)[1] if "." in full_name else full_name
+        return str(self.moa_learner)
 
     # def describe(self):
     #     return str(self.moa_learner)
@@ -119,12 +129,9 @@ class SKRegressor(Regressor):
     >>> for _ in range(10):
     ...     instance = stream.next_instance()
     ...     prediction = learner.predict(instance)
-    ...     if prediction is not None:
-    ...         print(f"y_value: {instance.y_value}, y_prediction: {prediction:.2f}")
-    ...     else:
-    ...         print(f"y_value: {instance.y_value}, y_prediction: None")
+    ...     print(f"y_value: {instance.y_value}, y_prediction: {prediction:.2f}")
     ...     learner.train(instance)
-    y_value: 17.949, y_prediction: None
+    y_value: 17.949, y_prediction: 0.00
     y_value: 13.815, y_prediction: 0.60
     y_value: 20.766, y_prediction: 1.30
     y_value: 18.301, y_prediction: 1.86
@@ -146,14 +153,17 @@ class SKRegressor(Regressor):
     """The underlying scikit-learn object."""
 
     def __init__(
-        self, sklearner: _SKRegressorMixin, schema: Schema = None, random_seed: int = 1
+        self,
+        sklearner: _SKRegressorMixin,
+        schema: Schema = None,
+        random_seed: int | None = None,
     ):
         """Construct a scikit-learn regressor wrapper.
 
         :param sklearner: A scikit-learn classifier object to wrap that must
             implements ``partial_fit`` and ``predict``.
-        :param schema: Describes the structure of the datastream.
-        :param random_seed: Random seed for reproducibility.
+        :param schema: Describes the stream's structure and types.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         :raises ValueError: If the scikit-learn algorithm does not implement
             ``partial_fit`` or ``predict``.
         """
@@ -181,5 +191,5 @@ class SKRegressor(Regressor):
     def predict(self, instance: Instance) -> float:
         if not self._trained_at_least_once:
             # scikit-learn does not allows invoking predict in a model that was not fit before
-            return None
+            return 0.0
         return self.sklearner.predict([instance.x])[0]

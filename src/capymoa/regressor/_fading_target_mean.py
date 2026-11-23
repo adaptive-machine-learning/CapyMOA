@@ -18,11 +18,11 @@ class FadingTargetMean(MOARegressor):
         :func:`~capymoa.regressor.TargetMean`
     """
 
-    def __init__(self, schema: Schema | None = None, factor: float = 0.99):
+    def __init__(self, schema: Schema, factor: float = 0.99) -> None:
         """Construct Fading Target Mean Regressor.
 
-        :param schema: Description of the stream's data types.
-        :param fading_factor: The fading factor. Must be in (0, 1]. Defaults to 0.99.
+        :param schema: Describes the stream's structure and types.
+        :param factor: The fading factor. Older targets are multiplied by it at each update. Must be in [0, 1].
         """
         cli = [f"-f {factor}"]
         super().__init__(

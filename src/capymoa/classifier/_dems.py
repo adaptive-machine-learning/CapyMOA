@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from moa.classifiers.meta import DynamicEnsembleMemberSelection as _MOA_DEMS
 
-from capymoa._utils import build_cli_str_from_mapping_and_locals
 from capymoa.base import MOAClassifier
+from capymoa.drift.base_detector import BaseDriftDetector
 from capymoa.stream import Schema
 
 
@@ -18,7 +20,7 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
     >>> from capymoa.classifier import evaluate_classifier
     >>>
     >>> stream = ElectricityTiny()
-    >>> classifier = DynamicEnsembleMemberSelection(stream.get_schema())
+    >>> classifier = DynamicEnsembleMemberSelection(stream.get_schema(), random_seed=0)
     >>> results = evaluate_classifier(stream, classifier, max_instances=1000)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     90.6
@@ -31,26 +33,29 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
-        random_seed: int = 0,
+        schema: Schema,
         ensemble_class: str = "StreamingRandomPatches",  # StreamingRandomPatches / SRP or AdaptiveRandomForest / ARF
         base_learner: str = "trees.HoeffdingTree -g 50 -c 0.01",
         tree_learner: str = "ARFHoeffdingTree -e 2000000 -g 50 -c 0.01",
         ensemble_size: int = 100,
-        max_features=0.6,
+        max_features: float | Literal["sqrt"] | None = 0.6,
         training_method: str = "RandomPatches",
         lambda_param: float = 6.0,
         number_of_jobs: int = 1,
-        drift_detection_method: str = "ADWINChangeDetector -a 1.0E-5",
-        warning_detection_method: str = "ADWINChangeDetector -a 1.0E-4",
+        drift_detection_method: str
+        | BaseDriftDetector = "ADWINChangeDetector -a 1.0E-5",
+        warning_detection_method: str
+        | BaseDriftDetector = "ADWINChangeDetector -a 1.0E-4",
         disable_weighted_vote: bool = False,
         disable_drift_detection: bool = False,
         disable_background_learner: bool = False,
         k_value: int = 5,
         disable_self_optimising: bool = False,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Dynamic Ensemble Member Selection (DEMS) Classifier.
 
+        :param schema: Describes the stream's structure and types.
         :param ensemble_class: which ensemble to use ("StreamingRandomPatches" or "AdaptiveRandomForest").
         :param base_learner: base classifier (used by SRP).
         :param tree_learner: ARF tree learner (only used by ARF, cannot be changed).
@@ -63,13 +68,14 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
         :param training_method: "RandomSubspaces", "Resampling", or "RandomPatches" (SRP).
         :param lambda_param: Poisson lambda for bagging.
         :param number_of_jobs: number of parallel jobs for ARF (-1 = as many as possible).
-        :param drift_detection_method: MOA CLI string for drift detector.
-        :param warning_detection_method: MOA CLI string for warning detector.
+        :param drift_detection_method: Drift detector.
+        :param warning_detection_method: Warning detector.
         :param disable_weighted_vote: if True, disables accuracy-weighted voting.
         :param disable_drift_detection: if True, turns off drift detectors (and bkg learners).
         :param disable_background_learner: if True, turns off background learners.
         :param k_value: fixed K for DEMS when self-optimising is disabled.
         :param disable_self_optimising: if True, use the fixed k_value instead of self-optimising.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         ensemble_class_map = {
             "StreamingRandomPatches": "StreamingRandomPatches",
@@ -126,33 +132,27 @@ class DynamicEnsembleMemberSelection(MOAClassifier):
             raise ValueError("k_value must be >= 1")
         k_value = min(k_value, ensemble_size)
 
-        # Mapping from local variable names to MOA CLI flags
-        mapping = {
-            "ensemble_class_str": "-e",
-            "base_learner": "-l",
-            "ensemble_size": "-s",
-            "feature_mode": "-o",
-            "max_features_per_ensemble_item": "-m",
-            "training_method_str": "-t",
-            "lambda_param": "-a",
-            "number_of_jobs": "-j",
-            "drift_detection_method": "-x",
-            "warning_detection_method": "-p",
-            "disable_weighted_vote": "-w",
-            "disable_drift_detection": "-u",
-            "disable_background_learner": "-q",
-            "k_value": "-k",
-            "disable_self_optimising": "-f",
-            "tree_learner": "-1",
+        options = {
+            "ensembleClassOption": ensemble_class_str,
+            "baseLearner": base_learner,
+            "ensembleSize": ensemble_size,
+            "subspaceMode": feature_mode,
+            "subspaceSize": max_features_per_ensemble_item,
+            "trainingMethod": training_method_str,
+            "lambda": lambda_param,
+            "numberOfJobs": number_of_jobs,
+            "driftDetectionMethod": drift_detection_method,
+            "warningDetectionMethod": warning_detection_method,
+            "disableWeightedVote": disable_weighted_vote,
+            "disableDriftDetection": disable_drift_detection,
+            "disableBackgroundLearner": disable_background_learner,
+            "kValues": k_value,
+            "disableSelfOptimizing": disable_self_optimising,
+            "treeLearner": tree_learner,
         }
-
-        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
-
-        moa_learner = _MOA_DEMS()
-
         super().__init__(
-            moa_learner=moa_learner,
+            moa_learner=_MOA_DEMS(),
             schema=schema,
-            CLI=config_str,
             random_seed=random_seed,
+            options=options,
         )

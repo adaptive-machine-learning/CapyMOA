@@ -9,6 +9,7 @@ getting_started
 evaluation
 new_learner
 parallel_ensembles
+java_ensemble_python_learner
 ```
 
 ```{admonition} See also

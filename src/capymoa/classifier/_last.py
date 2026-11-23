@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import moa.classifiers.trees as moa_trees
 
-from capymoa._utils import _leaf_prediction, build_cli_str_from_mapping_and_locals
+from capymoa._utils import _leaf_prediction
 from capymoa.base import MOAClassifier
 from capymoa.core.moa.splitcriteria import (
     SplitCriterion,
     _split_criterion_to_cli_str,
 )
-from capymoa.drift.base_detector import MOADriftDetector
+from capymoa.drift.base_detector import BaseDriftDetector
 from capymoa.drift.detectors import ADWIN
 from capymoa.stream import Schema
 
@@ -47,12 +47,11 @@ class LAST(MOAClassifier):
 
     def __init__(
         self,
-        schema: Schema | None = None,
-        random_seed: int = 0,
+        schema: Schema,
         split_criterion: str | SplitCriterion = "InfoGainSplitCriterion",
-        change_detector: MOADriftDetector | None = None,
-        monitor_distribution=False,
-        leaf_prediction: int = "NaiveBayesAdaptive",
+        change_detector: BaseDriftDetector | None = None,
+        monitor_distribution: bool = False,
+        leaf_prediction: str = "NaiveBayesAdaptive",
         nb_threshold: int = 0,
         numeric_attribute_observer: str = "GaussianNumericAttributeClassObserver",
         binary_split: bool = False,
@@ -61,11 +60,11 @@ class LAST(MOAClassifier):
         stop_mem_management: bool = True,
         remove_poor_attrs: bool = False,
         disable_prepruning: bool = True,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Construct Local Adaptive Streaming Tree.
 
-        :param schema: Stream schema.
-        :param random_seed: Seed for reproducibility.
+        :param schema: Describes the stream's structure and types.
         :param split_criterion: Split criterion to use.
         :param change_detector: The change detector created at leaf nodes
             that determines splitting time upon increase in error or impurity of class
@@ -85,30 +84,28 @@ class LAST(MOAClassifier):
         :param remove_poor_attrs: If True, disable poor attributes to reduce memory
             usage.
         :param disable_prepruning: If True, disable merit-based tree pre-pruning.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         """
         if change_detector is None:
             change_detector = ADWIN()
 
-        mapping = {
-            "max_byte_size": "-m",
-            "numeric_attribute_observer": "-n",
-            "memory_estimate_period": "-e",
-            "split_criterion": "-s",
-            "change_detector": "-x",
-            "monitor_distribution": "-D",
-            "binary_split": "-b",
-            "stop_mem_management": "-z",
-            "remove_poor_attrs": "-r",
-            "disable_prepruning": "-p",
-            "leaf_prediction": "-l",
-            "nb_threshold": "-q",
+        options = {
+            "maxByteSize": max_byte_size,
+            "numericEstimator": numeric_attribute_observer,
+            "memoryEstimatePeriod": memory_estimate_period,
+            "splitCriterion": _split_criterion_to_cli_str(split_criterion),
+            "changeDetectionMethodOption": change_detector,
+            "distributionOption": monitor_distribution,
+            "binarySplits": binary_split,
+            "stopMemManagement": stop_mem_management,
+            "removePoorAtts": remove_poor_attrs,
+            "noPrePrune": disable_prepruning,
+            "leafprediction": _leaf_prediction(leaf_prediction),
+            "nbThreshold": nb_threshold,
         }
-        split_criterion = _split_criterion_to_cli_str(split_criterion)
-        leaf_prediction = _leaf_prediction(leaf_prediction)
-        config_str = build_cli_str_from_mapping_and_locals(mapping, locals())
         super().__init__(
             moa_learner=moa_trees.LAST,
             schema=schema,
-            CLI=config_str,
             random_seed=random_seed,
+            options=options,
         )

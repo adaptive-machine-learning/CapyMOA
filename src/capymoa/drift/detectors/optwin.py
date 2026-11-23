@@ -90,7 +90,7 @@ class OPTWIN(BaseDriftDetector):
         w_length_max: int = 1_000,
         w_length_min: int = 30,
         minimum_noise: float = 1e-6,
-    ):
+    ) -> None:
         """Initialize the OPTWIN drift detector.
 
         :param rigor: Rigorousness of drift identification

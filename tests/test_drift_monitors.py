@@ -158,7 +158,9 @@ def _run_classifier_pipeline(monitor):
     detector = ADWIN()
     pipeline = (
         ClassifierPipeline()
-        .add_classifier(OnlineBagging(schema=stream.get_schema(), ensemble_size=3))
+        .add_classifier(
+            OnlineBagging(schema=stream.get_schema(), ensemble_size=3, random_seed=1)
+        )
         .add_drift_detector(detector, monitor)
     )
     while stream.has_more_instances():

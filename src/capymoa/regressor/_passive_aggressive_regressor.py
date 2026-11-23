@@ -5,6 +5,7 @@ from sklearn.linear_model import (
 )
 
 from capymoa.base import SKRegressor
+from capymoa.base._seed import resolve_seed
 from capymoa.stream._stream import Schema
 
 # Maps the passive aggressive loss onto the equivalent scikit-learn learning
@@ -54,11 +55,11 @@ class PassiveAggressiveRegressor(SKRegressor):
             "epsilon_insensitive", "squared_epsilon_insensitive"
         ] = "epsilon_insensitive",
         average: bool = False,
-        random_seed=1,
-    ):
+        random_seed: int | None = None,
+    ) -> None:
         """Construct a passive aggressive regressor.
 
-        :param schema: Stream schema
+        :param schema: Describes the stream's structure and types.
         :param max_step_size: Maximum step size (regularization).
         :param fit_intercept: Whether the intercept should be estimated or not.
             If False, the data is assumed to be already centered.
@@ -73,7 +74,7 @@ class PassiveAggressiveRegressor(SKRegressor):
             than 1, averaging will begin once the total number of samples
             seen reaches average. So ``average=10`` will begin averaging after
             seeing 10 samples.
-        :param random_seed: Seed for the random number generator.
+        :param random_seed: Seed for all random choices. ``None`` is a fresh random seed each run.
         :raises ValueError: If ``loss`` is not one of the supported losses.
         """
 
@@ -83,6 +84,7 @@ class PassiveAggressiveRegressor(SKRegressor):
                 f"{sorted(_LOSS_TO_LEARNING_RATE)}."
             )
 
+        random_seed = resolve_seed(random_seed)
         super().__init__(
             _SKSGDRegressor(
                 loss="epsilon_insensitive",
