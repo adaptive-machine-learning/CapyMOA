@@ -26,10 +26,6 @@ from capymoa.stream import Schema
 class ClassifierWindows(Windows):
     """The windowed metrics of a classifier, one entry per window."""
 
-    #: Abstentions in each window: predictions where the confidence was equal to
-    #: or below chance, such as a classifier that can not predict yet.
-    abstentions: np.ndarray
-
     accuracy: np.ndarray
     r"""Percent of correct predictions in each window.
 
@@ -138,10 +134,6 @@ class PerClassWindows(TypedDict):
 class ClassifierCumulative(TypedDict):
     """The metrics over the whole stream of a classifier."""
 
-    #: Abstentions over the whole stream: predictions where the confidence was
-    #: equal to or below chance, such as a classifier that can not predict yet.
-    abstentions: int
-
     accuracy: float
     r"""Percent of correct predictions.
 
@@ -243,14 +235,7 @@ class ClassificationEvaluator:
     """
     Wrapper for the Classification Performance Evaluator from MOA. By default, it uses the
     BasicClassificationPerformanceEvaluator
-
-    It counts abstentions, the predictions where the classifier's confidence was
-    equal to or below chance. Tell it with ``update(..., abstained=True)``. The
-    count is ``abstentions`` and also a column of :meth:`metrics`.
     """
-
-    #: Whether ``abstentions`` is the count of the current window only.
-    _per_window = False
 
     def __init__(
         self,
@@ -259,8 +244,6 @@ class ClassificationEvaluator:
         moa_evaluator=None,
     ):
         self.instances_seen = 0
-        self.abstentions = 0
-        self._window_abstentions = 0
         self.result_windows = []
         self.window_size = window_size
 
@@ -311,15 +294,13 @@ class ClassificationEvaluator:
     def get_instances_seen(self):
         return self.instances_seen
 
-    def update(self, y_target_index: int, y_pred_index: int, abstained: bool = False):
+    def update(self, y_target_index: int, y_pred_index: int):
         """Update the evaluator with the ground-truth and the prediction.
 
         :param y_target_index: The ground-truth class index. This is NOT
             the actual class value, but the index of the class value in the
             schema.
         :param y_pred_index: The predicted class index.
-        :param abstained: The classifier's confidence was equal to or below
-            chance. Counted in ``abstentions``.
         :raises TypeError: If the values are not integers.
         :raises ValueError: If the prediction is not a valid index in the schema.
         """
@@ -349,15 +330,11 @@ class ClassificationEvaluator:
         self.moa_basic_evaluator.addResult(example, prediction_array)
 
         self.instances_seen += 1
-        if abstained:
-            self.abstentions += 1
-            self._window_abstentions += 1
 
         # If the window_size is set, then check if it should record the intermediary results.
         if self.window_size is not None and self.instances_seen % self.window_size == 0:
             performance_values = self.metrics()
             self.result_windows.append(performance_values)
-            self._window_abstentions = 0
 
     def metrics_header(self):
         performance_measurements = self.moa_basic_evaluator.getPerformanceMeasurements()
@@ -365,16 +342,12 @@ class ClassificationEvaluator:
             _translate_metric_name("".join(measurement.getName()), to="capymoa")
             for measurement in performance_measurements
         ]
-        return [*performance_names, "abstentions"]
+        return performance_names
 
     def metrics(self):
-        count = self._window_abstentions if self._per_window else self.abstentions
         return [
-            *(
-                measurement.getValue()
-                for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
-            ),
-            count,
+            measurement.getValue()
+            for measurement in self.moa_basic_evaluator.getPerformanceMeasurements()
         ]
 
     def metrics_dict(self):
@@ -450,12 +423,7 @@ class ClassificationWindowedEvaluator(ClassificationEvaluator):
     IMPORTANT: The results for the last window are not always available through ```metrics()```, if the window_size does
     not perfectly divide the stream, the metrics corresponding to the last remaining instances in the last window can
     be obtained by invoking ```metrics()```
-
-    ``abstentions`` counts the whole stream, and the ``abstentions`` column of
-    each window counts that window.
     """
-
-    _per_window = True
 
     def __init__(self, schema=None, window_size=1000):
         self.moa_evaluator = WindowClassificationPerformanceEvaluator()

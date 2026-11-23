@@ -29,11 +29,10 @@ class Regressor(_SeededMixin, LearnerParamsMixin, ABC):
         """Predict the target value of an instance.
 
         Must work at any time, even before training. If the regressor can not
-        make a good prediction, return ``NaN``. Evaluators count it as an
-        abstention.
+        predict yet, return a default value such as ``0.0``.
 
         :param instance: The instance to predict the target value for.
-        :return: The predicted target value, or ``NaN``.
+        :return: The predicted target value.
         """
 
 
@@ -102,9 +101,9 @@ class MOARegressor(Regressor):
 
     def predict(self, instance):
         prediction_array = self.moa_learner.getVotesForInstance(instance.java_instance)
-        # The learner gave no prediction, such as before it has trained.
+        # The learner didn't provide a prediction, returns 0.0 (probably the learner has not been initialised.)
         if len(prediction_array) == 0:
-            return float("nan")
+            return 0.0
         return float(prediction_array[0])
 
 
@@ -132,7 +131,7 @@ class SKRegressor(Regressor):
     ...     prediction = learner.predict(instance)
     ...     print(f"y_value: {instance.y_value}, y_prediction: {prediction:.2f}")
     ...     learner.train(instance)
-    y_value: 17.949, y_prediction: nan
+    y_value: 17.949, y_prediction: 0.00
     y_value: 13.815, y_prediction: 0.60
     y_value: 20.766, y_prediction: 1.30
     y_value: 18.301, y_prediction: 1.86
@@ -192,5 +191,5 @@ class SKRegressor(Regressor):
     def predict(self, instance: Instance) -> float:
         if not self._trained_at_least_once:
             # scikit-learn does not allows invoking predict in a model that was not fit before
-            return float("nan")
+            return 0.0
         return self.sklearner.predict([instance.x])[0]

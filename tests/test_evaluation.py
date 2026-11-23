@@ -18,7 +18,7 @@ from capymoa.classifier.evaluate import (
     ClassificationEvaluator,
     ClassificationWindowedEvaluator,
 )
-from capymoa.datasets import Electricity, ElectricityTiny, FriedTiny
+from capymoa.datasets import Electricity, ElectricityTiny
 from capymoa.evaluation import prequential_evaluation
 from capymoa.evaluation._loop import (
     _prequential_loop_fast,
@@ -26,8 +26,7 @@ from capymoa.evaluation._loop import (
     _use_java_loop,
 )
 from capymoa.exception import StreamTypeError
-from capymoa.regressor import FIMTDD, KNNRegressor, evaluate_regressor
-from capymoa.regressor import NoChange as NoChangeRegressor
+from capymoa.regressor import KNNRegressor
 from capymoa.ssl import evaluate_ssl
 from capymoa.stream.generator import (
     SEA,
@@ -411,61 +410,3 @@ def test_fast_loop_refuses_custom_test_then_train():
     )
     with pytest.raises(TypeError, match="custom test_then_train"):
         _prequential_loop_fast(stream, run, max_instances=10)
-
-
-def test_classifier_abstentions_fast_equals_slow():
-    """The Java and Python loops count the same abstentions."""
-    found = []
-    for optimise in (True, False):
-        stream = ElectricityTiny()
-        results = evaluate_classifier(
-            stream,
-            HoeffdingTree(stream.get_schema(), random_seed=1),
-            window_size=100,
-            optimise=optimise,
-        )
-        found.append(
-            (results["cumulative"]["abstentions"], results["windowed"]["abstentions"])
-        )
-    assert found[0][0] > 0, "An untrained tree leaf can not predict."
-    assert found[0][0] == found[1][0]
-    assert found[0][0] == found[0][1].sum()
-    assert list(found[0][1]) == list(found[1][1])
-
-
-def test_regressor_abstentions_fast_equals_slow():
-    found = []
-    for optimise in (True, False):
-        stream = FriedTiny()
-        results = evaluate_regressor(
-            stream,
-            FIMTDD(stream.get_schema(), random_seed=1),
-            window_size=100,
-            optimise=optimise,
-        )
-        found.append(results["cumulative"]["abstentions"])
-    assert found[0] == found[1]
-
-
-def test_regressor_nan_is_an_abstention():
-    """A NaN prediction is counted and scored as ``nan_value``."""
-
-    def run(**kwargs):
-        stream = FriedTiny()
-        return evaluate_regressor(
-            stream,
-            NoChangeRegressor(stream.get_schema()),  # NaN before the first target
-            window_size=100,
-            optimise=False,
-            **kwargs,
-        )
-
-    default = run()
-    assert default["cumulative"]["abstentions"] == 1
-    assert list(default["windowed"]["abstentions"][:2]) == [1, 0]
-    assert np.isfinite(default["cumulative"]["rmse"])
-    assert run(nan_value=0.0)["cumulative"]["rmse"] == default["cumulative"]["rmse"]
-    assert run(nan_value=100.0)["cumulative"]["rmse"] > default["cumulative"]["rmse"]
-    keep = run(nan_value=None)
-    assert keep["cumulative"]["abstentions"] == 1
-    assert np.isnan(keep["cumulative"]["rmse"])
