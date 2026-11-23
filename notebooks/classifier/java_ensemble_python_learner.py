@@ -64,7 +64,7 @@ class NearestCentroid(Classifier):
 
     def predict_proba(self, instance):
         if not self.seen.any():
-            return None
+            return np.full(len(self.seen), 1 / len(self.seen))
         distance = np.linalg.norm(self.centroids - instance.x, axis=1)
         score = np.where(self.seen, np.exp(-distance), 0.0)
         return score / score.sum()
