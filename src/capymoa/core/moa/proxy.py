@@ -74,7 +74,8 @@ __all__ = [
 class ProxyNotImplementedError(NotImplementedError):
     """Exception raised for methods that are not implemented in the proxy class."""
 
-    def __init__(self, parent: Any, fn_name: str):  # noqa: D107
+    def __init__(self, parent: Any, fn_name: str):
+        """Create the exception with the parent and function name."""
         super().__init__(
             f"{parent._learner_spec['learner']}: {fn_name} method is not implemented in the proxy class."
         )
@@ -112,6 +113,7 @@ class _ProxyOptionHandler:
     :func:`_inherit_overrides`."""
 
     def __init__(self, learner_spec: LearnerSpec):
+        """Create the proxy with the given learner specification."""
         self._learner_spec = learner_spec
 
     def __str__(self) -> str:
@@ -145,6 +147,7 @@ class _ProxyLearner(_ProxyOptionHandler):
     """
 
     def __init__(self, learner_spec: LearnerSpec):
+        """Create the proxy learner with the given learner specification."""
         super().__init__(learner_spec)
         self._py_learner: Any = None
         # MOA learners also default to a seed of 1.
@@ -435,7 +438,8 @@ class ProxyJavaDriftDetector(_ProxyOptionHandler):
     https://github.com/Waikato/moa/blob/master/moa/src/main/java/moa/classifiers/core/driftdetection/ChangeDetector.java
     """
 
-    def __init__(self, learner_spec: LearnerSpec):  # noqa: D107
+    def __init__(self, learner_spec: LearnerSpec):
+        """Create a proxy Java drift detector around a Python learner and its config."""
         super().__init__(learner_spec)
         self._py_detector: BaseDriftDetector = self._build()
 

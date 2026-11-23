@@ -16,10 +16,14 @@ from moa.evaluation import (
     BasicRegressionPerformanceEvaluator,
     WindowRegressionPerformanceEvaluator,
 )
+from moa.evaluation import (
+    RegressionPerformanceEvaluator as JRegressionPerformanceEvaluator,
+)
 from typing_extensions import TypedDict
 
 from capymoa._utils import _translate_metric_name
 from capymoa.evaluation.results import RunInfo, Windows
+from capymoa.stream._stream import Schema
 
 
 class RegressorWindows(Windows):
@@ -76,14 +80,26 @@ class RegressionEvaluator:
     By default, it uses the MOA BasicRegressionPerformanceEvaluator as moa_evaluator.
     """
 
-    def __init__(self, schema=None, window_size=None, moa_evaluator=None):  # noqa: D107
+    def __init__(
+        self,
+        schema: Schema,
+        window_size: int | None = None,
+        moa_evaluator: JRegressionPerformanceEvaluator | None = None,
+    ):
+        """Configure the cumulative and (optionally) windowed regression evaluator.
+
+        :param schema: The schema describing the regression task.
+        :param window_size: If set collects windowed metrics with the given window size.
+        :param moa_evaluator: An alternative MOA evaluator.
+        """
         self.instances_seen = 0
         self.result_windows = []
         self.window_size = window_size
 
-        self.moa_basic_evaluator = moa_evaluator
-        if self.moa_basic_evaluator is None:
+        if moa_evaluator is None:
             self.moa_basic_evaluator = BasicRegressionPerformanceEvaluator()
+        else:
+            self.moa_basic_evaluator = moa_evaluator
 
         _attributeValues = ArrayList()
 
@@ -198,7 +214,12 @@ class RegressionWindowedEvaluator(RegressionEvaluator):
     be obtained by invoking ```metrics()```
     """
 
-    def __init__(self, schema=None, window_size=1000):  # noqa: D107
+    def __init__(self, schema: Schema, window_size: int = 1000):
+        """Initialize the windowed regression evaluator.
+
+        :param schema: Defines the stream structure.
+        :param window_size: The size of the evaluation window.
+        """
         self.moa_evaluator = WindowRegressionPerformanceEvaluator()
         self.moa_evaluator.widthOption.setValue(window_size)
 
