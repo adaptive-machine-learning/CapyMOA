@@ -10,8 +10,8 @@ class Batch(ABC):
     """Data type for the input features."""
     y_dtype: torch.dtype
     """Data type for the target value/labels."""
-    device: torch.device = torch.device("cpu")
-    """Device on which the batch will be processed."""
+    device: torch.device
+    """Device on which the batch will be processed. Subclasses must set it."""
 
     @abstractmethod
     def batch_train(self, x: torch.Tensor, y: torch.Tensor) -> None:
