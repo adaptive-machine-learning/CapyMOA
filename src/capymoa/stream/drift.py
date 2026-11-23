@@ -546,7 +546,7 @@ class DriftStream(Stream):
                 cursor += width
             else:
                 drifts.append(
-                    AbruptDrift(position=cursor, random_seed=component.random_seed)
+                    AbruptDrift(position=cursor)
                 )
         return concepts, drifts
 
