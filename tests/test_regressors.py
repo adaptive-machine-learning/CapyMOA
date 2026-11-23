@@ -76,7 +76,7 @@ CASES = [
     Case(ARFFIMTDD, 4.95, 4.57),
     Case(ORTO, 9.23, 7.51),
     Case(SOKNLBT, 4.95, 4.57),
-    Case(SOKNL, 3.35, 2.69),
+    Case(SOKNL, 3.43, 2.91),
     Case(PassiveAggressiveRegressor, 3.70, 3.68),
     Case(SGDRegressor, 4.63, 3.61),
     Case(ShrubsRegressor, 5.21, 4.76),
@@ -163,6 +163,28 @@ def test_online_bagging_regressor_base_learner():
             str(sub.getClass().getSimpleName()) == "FIMTDD" for sub in sub_learners
         )
         assert sub_learners[0].gracePeriodOption.getValue() == 50
+
+
+@pytest.mark.parametrize(
+    ("source", "grace_period", "split_confidence"),
+    [("default", 50, 0.01), ("wrapper", 75, 0.03), ("cli", 80, 0.04)],
+)
+def test_soknl_tree_options(source, grace_period, split_confidence):
+    """MOA receives the default or configured SOKNL base tree options."""
+    tree_learner = None
+    if source == "wrapper":
+        tree_learner = SOKNLBT(
+            FRIED_SCHEMA, grace_period=grace_period, split_confidence=split_confidence
+        )
+    elif source == "cli":
+        tree_learner = (
+            f"(SelfOptimisingBaseTree -g {grace_period} -c {split_confidence})"
+        )
+
+    learner = SOKNL(FRIED_SCHEMA, tree_learner=tree_learner)
+    tree = learner.moa_learner.treeLearnerOption.materializeObject(None, None)
+    assert tree.gracePeriodOption.getValue() == grace_period
+    assert tree.splitConfidenceOption.getValue() == pytest.approx(split_confidence)
 
 
 def _score(classifier: Regressor, stream: Stream, limit=100) -> float:

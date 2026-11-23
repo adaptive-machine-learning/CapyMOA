@@ -3,9 +3,10 @@
 from typing import Literal
 
 from moa.classifiers.meta import SelfOptimisingKNearestLeaves as _MOA_SOKNL
+from moa.classifiers.trees import SelfOptimisingBaseTree as _MOA_SOKNLBT
 
 from capymoa.base import MOARegressor
-from capymoa.core.moa._cli import cli_str_regressor
+from capymoa.core.moa._cli import cli_str
 from capymoa.stream import Schema
 
 from ._soknl_base_tree import SOKNLBT
@@ -36,14 +37,13 @@ class SOKNL(MOARegressor):
     Example usage:
 
     >>> from capymoa.datasets import Fried
-        >>> from capymoa.regressor import SOKNL
-        >>> from capymoa.regressor import evaluate_regressor
+    >>> from capymoa.regressor import SOKNL, evaluate_regressor
     >>> stream = Fried()
     >>> schema = stream.get_schema()
     >>> learner = SOKNL(schema, random_seed=1)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
     >>> results["cumulative"]["rmse"]
-    3.3527490117282226
+    3.4334357446039427
     """
 
     def __init__(
@@ -64,8 +64,9 @@ class SOKNL(MOARegressor):
         """Construct a SOKNL regressor.
 
         :param schema: Describes the stream's structure and types.
-        :param tree_learner: The tree learner to use. If not provided, a
-            :class:`~capymoa.regressor.SOKNLBT` is used.
+        :param tree_learner: Base tree or MOA CLI string. Defaults to a
+            :class:`~capymoa.regressor.SOKNLBT` with grace period 50 and split
+            confidence 0.01.
         :param ensemble_size: The number of trees in the ensemble.
         :param max_features: The subspace size for each ensemble member.
             If a float between 0.0 and 1.0, it is the fraction of features (0.6 is 60%).
@@ -91,11 +92,13 @@ class SOKNL(MOARegressor):
         self.moa_learner = _MOA_SOKNL()
 
         if tree_learner is None:
-            self.tree_learner = SOKNLBT(schema, grace_period=50, split_confidence=0.01)
-        elif isinstance(tree_learner, str):
-            self.tree_learner = tree_learner
-        else:
-            self.tree_learner = cli_str_regressor(tree_learner)
+            tree_learner = SOKNLBT(schema, grace_period=50, split_confidence=0.01)
+        # MOA resolves -l class names relative to SelfOptimisingBaseTree.
+        self.tree_learner = (
+            tree_learner
+            if isinstance(tree_learner, str)
+            else cli_str(tree_learner.moa_learner, _MOA_SOKNLBT)
+        )
 
         self.ensemble_size = ensemble_size
 
