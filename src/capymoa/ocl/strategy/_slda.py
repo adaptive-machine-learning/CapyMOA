@@ -36,6 +36,10 @@ def _batch_cumulative_covariance(
     return new_count, new_mean, covariance
 
 
+def _clear_cache_after_load(module: "_SLDAModule", _incompatible_keys: object) -> None:
+    module.clear_cache()
+
+
 class _SLDAModule(nn.Module):
     """Torch state of SLDA."""
 
@@ -44,6 +48,8 @@ class _SLDAModule(nn.Module):
     mean: Tensor
     covariance: Tensor
     ridge: Tensor
+    weights: Tensor | None
+    bias: Tensor | None
 
     def __init__(
         self, pre_processor: nn.Module, n_classes: int, n_feats: int, ridge: float
@@ -55,6 +61,15 @@ class _SLDAModule(nn.Module):
         self.register_buffer("mean", torch.zeros(n_feats))
         self.register_buffer("covariance", torch.eye(n_feats))
         self.register_buffer("ridge", torch.eye(n_feats) * ridge)
+        # Cached weights and bias. They move with the module but are not saved.
+        self.register_buffer("weights", None, persistent=False)
+        self.register_buffer("bias", None, persistent=False)
+        self.register_load_state_dict_post_hook(_clear_cache_after_load)
+
+    def clear_cache(self) -> None:
+        """Drop the cached weights and bias after the state changes."""
+        self.weights = None
+        self.bias = None
 
 
 class SLDA(TorchMixin[_SLDAModule], BatchClassifier):
@@ -164,15 +179,11 @@ class SLDA(TorchMixin[_SLDAModule], BatchClassifier):
         self._module = _SLDAModule(
             pre_processor, self._n_classes, self._n_feats, ridge
         ).to(device)
-        self._count = 0
-
-        # Cached weights and bias, cleared after each update
-        self._weights: Tensor | None = None
-        self._bias: Tensor | None = None
 
     @torch.no_grad()
     def batch_train(self, x: Tensor, y: Tensor) -> None:
         x = self._module.pre_processor(x)
+        count = int(self._module.class_counts.sum())
 
         # Update class means and counts
         for i in range(self.schema.get_num_classes()):
@@ -185,18 +196,16 @@ class SLDA(TorchMixin[_SLDAModule], BatchClassifier):
             )
 
         # Update joint cumulative mean and covariance
-        self._count, self._module.mean, self._module.covariance = (
-            _batch_cumulative_covariance(
-                x, self._count, self._module.mean, self._module.covariance
-            )
+        _, self._module.mean, self._module.covariance = _batch_cumulative_covariance(
+            x, count, self._module.mean, self._module.covariance
         )
-        self._weights = None
-        self._bias = None
+        self._module.clear_cache()
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
         # Return uniform probabilities if no training has been done
-        if self._count == 0:
+        count = self._module.class_counts.sum()
+        if count == 0:
             return torch.full(
                 (x.size(0), self._n_classes),
                 1.0 / self._n_classes,
@@ -205,12 +214,13 @@ class SLDA(TorchMixin[_SLDAModule], BatchClassifier):
             )
 
         x = self._module.pre_processor(x)
-        if self._weights is None or self._bias is None:
-            covariance = self._module.covariance + self._module.ridge
-            self._weights = torch.linalg.solve(covariance, self._module.class_means.T).T
-            bias = -0.5 * (self._module.class_means * self._weights).sum(1)
-            self._bias = bias + torch.log(self._module.class_counts / self._count)
-        scores = x @ self._weights.T + self._bias
+        m = self._module
+        if m.weights is None or m.bias is None:
+            covariance = m.covariance + m.ridge
+            m.weights = torch.linalg.solve(covariance, m.class_means.T).T
+            bias = -0.5 * (m.class_means * m.weights).sum(1)
+            m.bias = bias + torch.log(m.class_counts / count)
+        scores = x @ m.weights.T + m.bias
         return torch.softmax(scores, dim=1)
 
 
