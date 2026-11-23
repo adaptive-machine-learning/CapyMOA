@@ -545,9 +545,7 @@ class DriftStream(Stream):
                 )
                 cursor += width
             else:
-                drifts.append(
-                    AbruptDrift(position=cursor)
-                )
+                drifts.append(AbruptDrift(position=cursor))
         return concepts, drifts
 
     @staticmethod
