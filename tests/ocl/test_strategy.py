@@ -68,9 +68,8 @@ class Case:
     task_mask: bool = False
     # Learner uses `TorchMixin`, so the shared module checks apply.
     torch: bool = True
-    # State outside ``module`` changes accuracy after a reload. The test checks
-    # that the gap is still there.
-    restore_gap: str | None = None
+    # Reload ``module`` state into a fresh learner and check the accuracy.
+    test_state_load: bool = True
 
 
 def pre_processor() -> nn.Module:
@@ -272,7 +271,8 @@ TEST_CASES: list[Case] = [
         "SCR",
         _new_scr,
         Result(65.0, 44.8, 63.6),
-        restore_gap="replay buffer count is a plain int",
+        # Replay buffer count is outside ``module``.
+        test_state_load=False,
     ),
     Case(
         "DERPP",
@@ -289,7 +289,8 @@ TEST_CASES: list[Case] = [
         # Changed from (37.5, 27.0, 0.0) when GDumb began to reset to its
         # initial weights before each fit, as the method intends.
         Result(24.0, 21.6, 0.2),
-        restore_gap="coreset count is a plain int",
+        # Coreset count is outside ``module``.
+        test_state_load=False,
     ),
     Case(
         "L2P",
@@ -419,17 +420,13 @@ def test_ocl_classifier(case: Case):
     )
     assert asdict(actual) == approx(asdict(case.expected)), f"Case {case.name} failed."
 
-    if case.torch:
+    if case.torch and case.test_state_load:
         # A fresh learner that loads the module state has the same accuracy.
         reloaded = case.constructor(scenario.schema, **kwargs)  # type: ignore
         reloaded.module.load_state_dict(learner.module.state_dict())
-        expected = _test_accuracy(learner, scenario, case.batch_size)
-        if case.restore_gap:
-            # GDumb fits on an empty coreset, which raises ``ValueError``.
-            with pytest.raises((AssertionError, ValueError)):
-                assert _test_accuracy(reloaded, scenario, case.batch_size) == expected
-        else:
-            assert _test_accuracy(reloaded, scenario, case.batch_size) == expected
+        assert _test_accuracy(reloaded, scenario, case.batch_size) == (
+            _test_accuracy(learner, scenario, case.batch_size)
+        )
 
     def assert_ndarray(value: np.ndarray, shape: tuple, dtype: type = np.float32):
         assert isinstance(value, np.ndarray), (
