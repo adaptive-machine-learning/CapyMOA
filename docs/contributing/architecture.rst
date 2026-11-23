@@ -76,12 +76,16 @@ Seeds & Determinism
 -------------------
 
 All CapyMOA classes that use random number generators, including those that delegate random number generators to dependencies, shall be seeded using a ``random_seed: int | None = None`` parameter in the constructor.
-
 Except for datasets, the default ``random_seed`` shall be ``None``, indicating that it is randomly generated at runtime from NumPy's global random number generator.
-
 As a consequence, learners without an explicitly set seed will produce non-deterministic results.
-
 CapyMOA classes may provide a ``random_seed`` attribute to indicate the seed used for reproducibility.
-
 Results with the same seed will be identical on the same platform and with the same dependency environment.
 
+Anytime Learners
+----------------
+
+Learners must make predictions at any time, even before they have seen any or much data.
+(Prior to CapyMOA v0.16.0, learners were could return `None`).
+Generally, when a learner cannot make a meaningful prediction, it may predict a uniform-probability distribution.
+Or zero for numeric predictions.
+If this is an issue you may exclude the first few samples from evaluation using the `warmup` parameter to let the learner see a few initial samples before evaluation begins.

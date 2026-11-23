@@ -42,14 +42,14 @@ from capymoa.core import (
 
 __all__ = ["absolute_error", "feature_value", "prediction_is_correct"]
 
-#: Consecutive ``None`` predictions tolerated before warning. A learner returns
-#: ``None`` until it can predict, which is a handful of instances; a monitor
-#: placed where no prediction reaches it gets ``None`` forever.
+#: Consecutive ``None`` predictions tolerated before warning. Learners never
+#: return ``None``. A monitor placed where no prediction reaches it gets
+#: ``None`` forever.
 _DEFAULT_WARN_AFTER = 100
 
 _MISPLACED_HINT = (
-    "received {count} consecutive predictions of None. A learner returns None "
-    "only until it can predict, so this usually means the drift detector sits "
+    "received {count} consecutive predictions of None. Learners never return "
+    "None, so this usually means the drift detector sits "
     "before the learner in the pipeline and no prediction reaches it. Move the "
     "detector after the learner, or monitor an input feature with "
     "capymoa.drift.monitors.feature_value instead."

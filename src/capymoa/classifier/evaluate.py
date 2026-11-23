@@ -241,14 +241,11 @@ class ClassificationEvaluator:
         self,
         schema: Schema = None,
         window_size=None,
-        allow_abstaining=True,
         moa_evaluator=None,
     ):
         self.instances_seen = 0
         self.result_windows = []
         self.window_size = window_size
-
-        self.allow_abstaining = allow_abstaining
 
         self.moa_basic_evaluator = moa_evaluator
         if self.moa_basic_evaluator is None:
@@ -297,34 +294,27 @@ class ClassificationEvaluator:
     def get_instances_seen(self):
         return self.instances_seen
 
-    def update(self, y_target_index: int, y_pred_index: int | None):
+    def update(self, y_target_index: int, y_pred_index: int):
         """Update the evaluator with the ground-truth and the prediction.
 
         :param y_target_index: The ground-truth class index. This is NOT
             the actual class value, but the index of the class value in the
             schema.
-        :param y_pred_index: The predicted class index. If the classifier
-            abstains from making a prediction, this value can be None.
-        :raises TypeError: If the values are not valid indexes in the schema.
+        :param y_pred_index: The predicted class index.
+        :raises TypeError: If the values are not integers.
+        :raises ValueError: If the prediction is not a valid index in the schema.
         """
         if not isinstance(y_target_index, (np.integer, int)):
             raise TypeError(
                 f"y_target_index must be an integer, not {type(y_target_index)}"
             )
-        if not (y_pred_index is None or isinstance(y_pred_index, (np.integer, int))):
+        if not isinstance(y_pred_index, (np.integer, int)):
             raise TypeError(
                 f"y_pred_index must be an integer, not {type(y_pred_index)}"
             )
 
-        # If the prediction is invalid, it could mean the classifier is abstaining from making a prediction;
-        # thus, it is allowed to continue (unless parameterized differently).
-        if y_pred_index is not None and not self.schema.is_y_index_in_range(
-            y_pred_index
-        ):
-            if self.allow_abstaining:
-                y_pred_index = None
-            else:
-                raise ValueError(f"Invalid prediction y_pred_index = {y_pred_index}")
+        if not self.schema.is_y_index_in_range(y_pred_index):
+            raise ValueError(f"Invalid prediction y_pred_index = {y_pred_index}")
 
         # Notice, in MOA the class value is an index, not the actual value
         # (e.g. not "one" but 0 assuming labels=["one", "two"])
@@ -335,23 +325,6 @@ class ClassificationEvaluator:
         # MOA evaluator accepts the result of getVotesForInstance which is similar to a predict_proba
         #    (may or may not be normalised, but for our purposes it doesn't matter)
         prediction_array = self.pred_template[:]
-
-        # if y_pred is None, it indicates the learner did not produce a prediction for this instance,
-        # count as an error
-        if y_pred_index is None:
-            # TODO: Modify this once the option to abstain from predictions is implemented. Currently, by default it
-            #  sets the prediction to the first class (index zero), which is consistent with MOA.
-            y_pred_index = 0
-            # Set y_pred_index to any valid prediction that is not y (force an incorrect prediction)
-            # This does not affect recall or any other metrics, because the selected value is always
-            # incorrect.
-
-            # Create an intermediary array with indices excluding the y
-            # indexesWithoutY = [
-            #     i for i in range(len(self.schema.get_label_indexes())) if i != y_target_index
-            # ]
-            # random_y_pred = random.choice(indexesWithoutY)
-            # y_pred_index = self.schema.get_label_indexes()[random_y_pred]
 
         prediction_array[int(y_pred_index)] += 1
         self.moa_basic_evaluator.addResult(example, prediction_array)

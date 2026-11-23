@@ -2,7 +2,6 @@
 
 from collections.abc import Sequence
 
-import numpy as np
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -76,7 +75,6 @@ def evaluate_ocl(
             train_streams, test_streams, epochs, continual_evaluations
         ).attach_with(dispatcher)
 
-    rng = np.random.default_rng(learner.random_seed)
     dispatcher.notify(events.TrainBegin())
 
     global_step = 0
@@ -91,7 +89,7 @@ def evaluate_ocl(
             )
 
             for batch_id, (x_test, y_test) in enumerate(test_stream):
-                y_hat = torch.from_numpy(_batch_test(rng, learner, x_test))
+                y_hat = torch.from_numpy(_batch_test(learner, x_test))
                 dispatcher.notify(
                     events.EvalBatchPredict(
                         train_task=train_task_id,
@@ -118,7 +116,7 @@ def evaluate_ocl(
 
         for _ in range(epochs):
             for batch_id, (x_train, y_train) in enumerate(train_stream):
-                y_hat = torch.from_numpy(_batch_test(rng, learner, x_train))
+                y_hat = torch.from_numpy(_batch_test(learner, x_train))
                 dispatcher.notify(
                     events.TrainBatchPredict(
                         train_task=train_task_id,

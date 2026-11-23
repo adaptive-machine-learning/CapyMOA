@@ -224,7 +224,7 @@ class RSHash(AnomalyDetector):
         if len(self.window) > self.s:
             self._remove(self._normalize(self.window.pop(0).x))
 
-    def predict(self, instance: Instance) -> LabelIndex | None:
+    def predict(self, instance: Instance) -> LabelIndex:
         raise NotImplementedError(
             "RSHash does not implement predict. Use score_instance instead."
         )

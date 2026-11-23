@@ -95,9 +95,6 @@ class STUDD(BaseDriftDetector):
         :param teacher_prediction: The prediction made by the teacher model for this instance.
         :type teacher_prediction: Any
         """
-        # Ignore if no teacher prediction is provided yet (abstains).
-        if teacher_prediction is None:
-            return
 
         self.idx += 1
 
