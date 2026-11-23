@@ -52,6 +52,8 @@ class Finetune(TorchMixin[_FinetuneModule], BatchClassifier):
     >>> results = evaluate_classifier(stream, learner, batch_size=32)
     >>> print(f"{results['cumulative']['accuracy']:.1f}")
     60.4
+    >>> learner.module.model is model
+    True
 
     """
 
@@ -84,8 +86,7 @@ class Finetune(TorchMixin[_FinetuneModule], BatchClassifier):
             ``optimizer`` is already an optimizer instance.
         :param criterion: Loss function to use for training. Defaults to
             :class:`torch.nn.CrossEntropyLoss`.
-        :param device: Hardware for training. Your model is at
-            ``learner.module.model``.
+        :param device: Hardware for training.
         :param random_seed: Seeds torch :py:func:`torch.manual_seed`.
         """
         super().__init__(schema, random_seed)
