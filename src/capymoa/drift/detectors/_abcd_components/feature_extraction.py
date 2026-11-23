@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.decomposition import PCA, KernelPCA
 
 
-class EncoderDecoder(Protocol):  # noqa: D101
+class EncoderDecoder(Protocol):
     def update(self, window, epochs: int):
         """
         Update the model
@@ -22,7 +22,7 @@ class EncoderDecoder(Protocol):  # noqa: D101
         """
 
 
-class DummyEncoderDecoder(EncoderDecoder):  # noqa: D101
+class DummyEncoderDecoder(EncoderDecoder):
     def update(self, window, epochs: int):
         pass
 
@@ -30,8 +30,8 @@ class DummyEncoderDecoder(EncoderDecoder):  # noqa: D101
         return 0.0, x, x
 
 
-class PCAModel(EncoderDecoder):  # noqa: D101
-    def __init__(self, input_size: int, eta: float):  # noqa: D107
+class PCAModel(EncoderDecoder):
+    def __init__(self, input_size: int, eta: float):
         self.input_size = input_size
         self.eta = eta
         self.components = int(input_size * eta)
@@ -52,8 +52,8 @@ class PCAModel(EncoderDecoder):  # noqa: D101
         return mse, dec.flatten(), x.flatten()
 
 
-class KernelPCAModel(EncoderDecoder):  # noqa: D101
-    def __init__(self, input_size: int, eta: float, kernel="rbf"):  # noqa: D107
+class KernelPCAModel(EncoderDecoder):
+    def __init__(self, input_size: int, eta: float, kernel="rbf"):
         self.input_size = input_size
         self.eta = eta
         self.kernel = kernel

@@ -3,7 +3,7 @@ import numpy as np
 from .std import PairwiseVariance
 
 
-def p_bernstein(eps, n1, n2, sigma1, sigma2, abs_max: float = 0.1):  # noqa: D103
+def p_bernstein(eps, n1, n2, sigma1, sigma2, abs_max: float = 0.1):
     k = n2 / (n1 + n2)
 
     def exponent(eps, n, sigma, k, M):
@@ -20,7 +20,7 @@ def p_bernstein(eps, n1, n2, sigma1, sigma2, abs_max: float = 0.1):  # noqa: D10
     return res
 
 
-class AdaptiveWindow:  # noqa: D101
+class AdaptiveWindow:
     def __init__(
         self,
         delta_drift: float,

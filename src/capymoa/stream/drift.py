@@ -1035,7 +1035,7 @@ class IndexedCycle:
         return self._index, item
 
 
-def get_class_and_init_attributes_with_values(obj):  # noqa: D103
+def _get_class_and_init_attributes_with_values(obj):
     cls = type(obj)
     # Get function signature of init
     function_signature = inspect.signature(cls.__init__)
@@ -1050,7 +1050,7 @@ def get_class_and_init_attributes_with_values(obj):  # noqa: D103
     return cls, args
 
 
-def get_recurrent_concept_drift_stream_list(  # noqa: D103
+def _get_recurrent_concept_drift_stream_list(
     concept_list: list,
     max_recurrences_per_concept: int = 3,
     transition_type_template: Drift | None = None,
@@ -1074,7 +1074,7 @@ def get_recurrent_concept_drift_stream_list(  # noqa: D103
     }
 
     # get drift args and class
-    drift_cls, original_drift_args = get_class_and_init_attributes_with_values(
+    drift_cls, original_drift_args = _get_class_and_init_attributes_with_values(
         transition_type_template
     )
     if isinstance(transition_type_template, GradualDrift):
@@ -1106,7 +1106,7 @@ def get_recurrent_concept_drift_stream_list(  # noqa: D103
             < max_recurrences_per_concept
         ):
             stream_cls, original_stream_args = (
-                get_class_and_init_attributes_with_values(next_concept)
+                _get_class_and_init_attributes_with_values(next_concept)
             )
             stream_args = copy.deepcopy(
                 original_stream_args
@@ -1164,7 +1164,7 @@ class RecurrentConceptDriftStream(DriftStream):  # noqa: D101
     ):
         if transition_type_template is None:
             transition_type_template = AbruptDrift(position=5000)
-        self.concept_info, stream_list = get_recurrent_concept_drift_stream_list(
+        self.concept_info, stream_list = _get_recurrent_concept_drift_stream_list(
             concept_list=concept_list,
             max_recurrences_per_concept=max_recurrences_per_concept,
             transition_type_template=transition_type_template,
