@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from capymoa.core import Instance
 from capymoa.ocl import evaluate_ocl
-from capymoa.ocl.evaluation.events import TestBegin, TrainTaskBegin, TrainTaskEnd
+from capymoa.ocl.evaluate.events import TestBegin, TrainTaskBegin, TrainTaskEnd
 from capymoa.ocl.events import Dispatcher
 from capymoa.ocl.strategy import EEC
 from capymoa.ocl.strategy._eec import _Autoencoder, _Concept, _merge, _quotas
@@ -117,7 +117,7 @@ class IdentityAutoencoder(nn.Module):
 
 def test_pseudo_images_reject_wrong_labels_without_fallback(schema):
     strategy = EEC(schema, SignClassifier(), content_weight=0, filter_attempts=2)
-    strategy._autoencoders[0] = IdentityAutoencoder()
+    strategy.module.autoencoders["0"] = IdentityAutoencoder()
     mean = torch.ones(1, 8, 8)
     concept = _Concept(mean, 1, 0, 3, torch.zeros_like(mean))
     images = strategy._pseudo_images(concept)
@@ -130,7 +130,7 @@ def test_pseudo_images_reject_wrong_labels_without_fallback(schema):
 
 def test_replay_multiplicity_and_fixed_reconstruction_depth(schema):
     strategy = EEC(schema, SignClassifier(), content_weight=0)
-    strategy._autoencoders[0] = IdentityAutoencoder()
+    strategy.module.autoencoders["0"] = IdentityAutoencoder()
     strategy._original_accuracy[0] = 1.0
     positive = torch.ones(1, 8, 8)
     negative = -positive
@@ -143,7 +143,7 @@ def test_replay_multiplicity_and_fixed_reconstruction_depth(schema):
     assert len(replay[0][0]) == 2 and replay[0][2] == pytest.approx(exp(-0.5))
     assert len(replay[1][0]) == 3 and replay[1][2] == 1.0
     # Unrelated later decoders must not turn reconstruction depth into task age.
-    strategy._autoencoders[99] = IdentityAutoencoder()
+    strategy.module.autoencoders["99"] = IdentityAutoencoder()
     assert strategy._replay()[0][2] == replay[0][2]
     strategy._original_accuracy[0] = 0.0
     assert strategy._replay()[0][2] == 1.0
@@ -182,11 +182,12 @@ def test_classifier_uses_sum_of_source_means(schema):
 
 def test_content_loss_updates_autoencoder_but_freezes_classifier(schema):
     strategy = learner(schema, content_weight=1.0)
-    strategy.model.train()
-    strategy.model[0].eval()  # Preserve mixed submodule modes too.
-    flags = [p.requires_grad for p in strategy.model.parameters()]
+    strategy.module.model.train()
+    strategy.module.model[0].eval()  # Preserve mixed submodule modes too.
+    flags = [p.requires_grad for p in strategy.module.model.parameters()]
     before = {
-        name: value.clone() for name, value in strategy.model.state_dict().items()
+        name: value.clone()
+        for name, value in strategy.module.model.state_dict().items()
     }
     fresh = TinyAutoencoder()
     initial = {name: value.clone() for name, value in fresh.state_dict().items()}
@@ -198,10 +199,10 @@ def test_content_loss_updates_autoencoder_but_freezes_classifier(schema):
     )
     assert all(
         torch.equal(before[name], value)
-        for name, value in strategy.model.state_dict().items()
+        for name, value in strategy.module.model.state_dict().items()
     )
-    assert flags == [p.requires_grad for p in strategy.model.parameters()]
-    assert strategy.model.training and not strategy.model[0].training
+    assert flags == [p.requires_grad for p in strategy.module.model.parameters()]
+    assert strategy.module.model.training and not strategy.module.model[0].training
     assert not any(p.requires_grad for p in result.parameters())
 
 
@@ -214,25 +215,26 @@ def test_task_events_fit_before_evaluation_and_release_final_cache(schema):
     dispatcher.notify(TrainTaskBegin(0, 0))
     x = torch.ones(4, 64)
     y = torch.zeros(4, dtype=torch.long)
-    original = copy.deepcopy(strategy.model.state_dict())
+    original = copy.deepcopy(strategy.module.model.state_dict())
     strategy.batch_train(x, y)
     x.zero_()  # Cache owns its data.
     assert torch.cat(strategy._task_x).sum() == 256
     assert all(
-        torch.equal(original[k], v) for k, v in strategy.model.state_dict().items()
+        torch.equal(original[k], v)
+        for k, v in strategy.module.model.state_dict().items()
     )
     dispatcher.notify(TestBegin())
     assert strategy._fitted
-    fitted = copy.deepcopy(strategy.model.state_dict())
+    fitted = copy.deepcopy(strategy.module.model.state_dict())
     dispatcher.notify(TestBegin())
     assert all(
-        torch.equal(fitted[k], v) for k, v in strategy.model.state_dict().items()
+        torch.equal(fitted[k], v) for k, v in strategy.module.model.state_dict().items()
     )
     with pytest.raises(RuntimeError, match="continual_evaluations=1"):
         strategy.batch_train(x, y)
     dispatcher.notify(TrainTaskEnd(0, 4))
     assert not strategy._task_x and not strategy._task_y
-    assert strategy.memory_units == 4 and set(strategy._autoencoders) == {0}
+    assert strategy.memory_units == 4 and set(strategy.module.autoencoders) == {"0"}
     dispatcher.notify(TrainTaskEnd(0, 4))
     assert strategy.memory_units == 4
     with pytest.raises(ValueError, match="new task ID"):
@@ -264,12 +266,12 @@ def test_memory_accounts_for_models_and_task_cache(schema):
 
 def test_prediction_preserves_modes_and_supports_instances(schema):
     strategy = learner(schema)
-    strategy.model.train()
-    strategy.model[0].eval()
+    strategy.module.model.train()
+    strategy.module.model[0].eval()
     x = torch.ones(2, 64)
     probabilities = strategy.batch_predict_proba(x)
     torch.testing.assert_close(probabilities.sum(1), torch.ones(2))
-    assert strategy.model.training and not strategy.model[0].training
+    assert strategy.module.model.training and not strategy.module.model[0].training
     instance = Instance.from_array(schema, np.ones(64))
     assert strategy.predict_proba(instance).shape == (2,)
 
@@ -313,7 +315,7 @@ def test_evaluator_integration_for_two_tasks(schema):
     results = evaluate_ocl(strategy, loaders, loaders)
     assert results["accuracy_matrix"].shape == (2, 2)
     assert strategy._active_task is None and not strategy._task_x
-    assert strategy.memory_units == 8 and len(strategy._autoencoders) == 2
+    assert strategy.memory_units == 8 and len(strategy.module.autoencoders) == 2
 
 
 class Scale(nn.Module):
@@ -358,7 +360,7 @@ def test_compressed_memory_is_replayed_through_its_own_decoder(schema):
     assert result["accuracy_final"] == 1.0
     assert strategy.memory_units == 8
     assert sum(c.count for c in strategy._concepts) == 12
-    assert len(strategy._autoencoders) == 3
+    assert len(strategy.module.autoencoders) == 3
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")

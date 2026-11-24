@@ -10,9 +10,8 @@ import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from capymoa.base import BatchClassifier
-from capymoa.core import Instance
-from capymoa.ocl.evaluation.events import TestBegin, TrainTaskBegin, TrainTaskEnd
+from capymoa.base import BatchClassifier, TorchMixin
+from capymoa.ocl.evaluate.events import TestBegin, TrainTaskBegin, TrainTaskEnd
 from capymoa.ocl.events import Dispatcher, Handler
 from capymoa.ocl.util._optim import reset_optimizer_state
 from capymoa.stream import Schema
@@ -118,7 +117,17 @@ def _quotas(groups: list[list[_Concept]], budget: int) -> list[int]:
     return quotas
 
 
-class EEC(BatchClassifier, Handler):
+class _EECModule(nn.Module):
+    """Torch state of EEC."""
+
+    def __init__(self, model: nn.Module) -> None:
+        super().__init__()
+        self.model = model
+        #: One autoencoder per task, keyed by ``str(task)``.
+        self.autoencoders = nn.ModuleDict()
+
+
+class EEC(TorchMixin[_EECModule], BatchClassifier, Handler):
     """Encoding Episodes as Concepts for task-wise class-incremental learning.
 
     EEC stores encoded images and replays their reconstructions. When latent memory
@@ -260,10 +269,9 @@ class EEC(BatchClassifier, Handler):
                 feature_extractor = getattr(model, "features", None)
         if content_weight and not callable(feature_extractor):
             raise ValueError("Provide a classifier feature_extractor for content loss.")
-        self.device = torch.device(device)
-        self.model = model.to(self.device)
+        self._module = _EECModule(model).to(device)
         self.optimiser = optimiser or torch.optim.SGD(
-            self.model.parameters(), lr=0.1, momentum=0.9, weight_decay=0.0005
+            model.parameters(), lr=0.1, momentum=0.9, weight_decay=0.0005
         )
         self._starting_lrs = [group["lr"] for group in self.optimiser.param_groups]
         self.capacity = capacity
@@ -279,7 +287,6 @@ class EEC(BatchClassifier, Handler):
         self._filter_attempts = filter_attempts
         self._reshape_input = reshape_input
         self._generator = torch.Generator().manual_seed(seed)
-        self._autoencoders: dict[int, nn.Module] = {}
         self._concepts: list[_Concept] = []
         self._original_accuracy: dict[int, float] = {}
         self._active_task: int | None = None
@@ -296,7 +303,7 @@ class EEC(BatchClassifier, Handler):
     def _begin_task(self, event: TrainTaskBegin) -> None:
         if self._active_task is not None:
             raise RuntimeError("Finish the active task with TrainTaskEnd first.")
-        if event.train_task in self._autoencoders:
+        if str(event.train_task) in self._module.autoencoders:
             raise ValueError("EEC needs a new task ID for each increment.")
         self._active_task = event.train_task
         self._fitted = False
@@ -338,12 +345,8 @@ class EEC(BatchClassifier, Handler):
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        with _evaluation(self.model):
-            return self.model(self._model_input(x)).softmax(dim=1)
-
-    def predict_proba(self, instance: Instance) -> np.ndarray:
-        x = torch.from_numpy(instance.x.copy()).reshape(1, -1)
-        return self.batch_predict_proba(x)[0].cpu().numpy().astype(np.float64)
+        with _evaluation(self._module.model):
+            return self._module.model(self._model_input(x)).softmax(dim=1)
 
     @torch.no_grad()
     def _accuracy(self, x: Tensor, y: Tensor) -> float:
@@ -357,7 +360,7 @@ class EEC(BatchClassifier, Handler):
 
     @torch.no_grad()
     def _decode(self, task: int, latents: Tensor) -> Tensor:
-        autoencoder = self._autoencoders[task]
+        autoencoder = self._module.autoencoders[str(task)]
         with _evaluation(autoencoder):
             images = autoencoder.decoder(latents.to(self.device))
         if (
@@ -459,7 +462,7 @@ class EEC(BatchClassifier, Handler):
             self.optimiser.param_groups, self._starting_lrs, strict=True
         ):
             group["lr"] = lr
-        first = not self._autoencoders
+        first = not self._module.autoencoders
         scheduler = torch.optim.lr_scheduler.MultiStepLR(
             self.optimiser,
             milestones=[60, 120, 160] if first else [37],
@@ -468,7 +471,7 @@ class EEC(BatchClassifier, Handler):
         # Stratify mini-batches by task and source, so each contributes its own
         # mean CE (Equation 6) rather than being diluted by a pooled replay mean.
         for _ in range(self.epochs if first else self.subsequent_epochs):
-            self.model.train()
+            self._module.model.train()
             orders = [
                 torch.randperm(len(x), generator=self._generator) for x, _, _ in sets
             ]
@@ -483,7 +486,7 @@ class EEC(BatchClassifier, Handler):
                         orders[i] = torch.randperm(len(x), generator=self._generator)
                     start = (step % batches) * self.batch_size
                     indices = orders[i][start : start + self.batch_size]
-                    logits = self.model(self._model_input(x[indices]))
+                    logits = self._module.model(self._model_input(x[indices]))
                     loss = F.cross_entropy(logits, y[indices].to(self.device))
                     (weight * loss).backward()
                 self.optimiser.step()
@@ -510,7 +513,9 @@ class EEC(BatchClassifier, Handler):
             raise ValueError(
                 "autoencoder_factory must return a module with encoder and decoder."
             )
-        if any(autoencoder is previous for previous in self._autoencoders.values()):
+        if any(
+            autoencoder is previous for previous in self._module.autoencoders.values()
+        ):
             raise ValueError(
                 "autoencoder_factory must return a fresh module for each task."
             )
@@ -525,7 +530,7 @@ class EEC(BatchClassifier, Handler):
         )
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [50], gamma=0.1)
         extractor = self._feature_extractor
-        fixed = [self.model]
+        fixed = [self._module.model]
         if isinstance(extractor, nn.Module):
             fixed.append(extractor)
         flags = {p: p.requires_grad for model in fixed for p in model.parameters()}
@@ -623,7 +628,7 @@ class EEC(BatchClassifier, Handler):
             # Integrate transactionally: a failed budget check keeps old memory.
             concepts = self._integrate(episodes)
             self._concepts = concepts
-            self._autoencoders[self._active_task] = autoencoder
+            self._module.autoencoders[str(self._active_task)] = autoencoder
         self._task_x.clear()
         self._task_y.clear()
         self._active_task = None
@@ -645,11 +650,12 @@ class EEC(BatchClassifier, Handler):
         )
         autoencoders = sum(
             size(x)
-            for ae in self._autoencoders.values()
+            for ae in self._module.autoencoders.values()
             for x in (*ae.parameters(), *ae.buffers())
         )
         classifier = sum(
-            size(x) for x in (*self.model.parameters(), *self.model.buffers())
+            size(x)
+            for x in (*self._module.model.parameters(), *self._module.model.buffers())
         )
         cache = sum(size(x) for x in (*self._task_x, *self._task_y))
         return {
