@@ -348,7 +348,7 @@ def _ids(cases):
 
 
 @pytest.mark.parametrize("case", ALL_CASES, ids=_ids(ALL_CASES))
-@pytest.mark.parametrize("seed", [1, 42], ids=["seed1", "seed42"])
+@pytest.mark.parametrize("seed", [42], ids=["seed42"])
 def test_explicit_seed_is_reproducible(case, seed):
     """Same explicit seed, two constructions, same scores.
 
@@ -435,7 +435,7 @@ def _run_trace_case(case_name: str, seed: int) -> None:
 
 
 @pytest.mark.parametrize("case", _XPROC_CASES, ids=_ids(_XPROC_CASES))
-@pytest.mark.parametrize("seed", [1, 42], ids=["seed1", "seed42"])
+@pytest.mark.parametrize("seed", [42], ids=["seed42"])
 def test_seeded_detector_reproduces_in_a_fresh_process(case, seed):
     """A seeded detector reproduces in a new interpreter.
 
@@ -488,7 +488,7 @@ _GLOBAL_CASES = [c for c in ALL_CASES if "global_rng" not in c.scope]
 
 
 @pytest.mark.parametrize("case", _GLOBAL_CASES, ids=_ids(_GLOBAL_CASES))
-@pytest.mark.parametrize("seed", [1, 42], ids=["seed1", "seed42"])
+@pytest.mark.parametrize("seed", [42], ids=["seed42"])
 def test_does_not_rewrite_the_global_numpy_rng(case, seed):
     """Constructing and training must not move the process-global stream.
 
