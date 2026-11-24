@@ -6,6 +6,7 @@
   win_accuracy: 92.0
 
 - id: "AdaptiveRandomForestClassifier"
+  max_instances: 300
   learner: "capymoa.classifier.AdaptiveRandomForestClassifier"
   params: {}
 
@@ -13,6 +14,7 @@
   win_accuracy: 91.0
 
 - id: HoeffdingTree
+  max_instances: 300
   learner: capymoa.classifier.HoeffdingTree
   params: {}
 
@@ -79,6 +81,7 @@
 
 # Train on the first 500 instances without testing them.
 - id: HoeffdingTree-warmup
+  max_instances: 1000
   learner: capymoa.classifier.HoeffdingTree
   params: {}
   warmup: 500
@@ -97,6 +100,7 @@
   always_deterministic: true
 
 - id: KNN
+  max_instances: 300
   learner: capymoa.classifier.KNN
   params: {}
 
@@ -164,6 +168,7 @@
   always_deterministic: true
 
 - id: StreamingRandomPatches
+  max_instances: 300
   learner: capymoa.classifier.StreamingRandomPatches
   params: {}
 
@@ -199,10 +204,6 @@
     untrained instance, predict() returns a class, predict_proba() returns
     None, and a third call also returns None. The MOA
     getVotesForInstance() call may change internal state."
-  skip_test_optimise: "SAMkNN's fast (optimise=True) and slow
-    (optimise=False) loops give different accuracy: 82.65% and 82.5% on
-    ElectricityTiny. This may have the same cause as the state change
-    described in skip_test_predict."
 
 - id: DynamicWeightedMajority
   learner: capymoa.classifier.DynamicWeightedMajority
@@ -287,6 +288,7 @@
 
 # Python base learners and drift detectors. MOA runs them through proxies.
 - id: OnlineBagging-SGDClassifier
+  max_instances: 300
   learner: capymoa.classifier.OnlineBagging
   params:
     base_learner: &sgd
@@ -296,7 +298,6 @@
   accuracy: 83.80
   win_accuracy: 78.0
   skip_test_save_then_load: &no_save "Java cannot serialize Python learners."
-  skip_test_optimise: &no_opt "Loop parity is covered by the Java-only variant of this learner."
 
 - id: LeveragingBagging-SGDClassifier
   learner: capymoa.classifier.LeveragingBagging
@@ -304,7 +305,6 @@
   accuracy: 85.75
   win_accuracy: 80.0
   skip_test_save_then_load: *no_save
-  skip_test_optimise: *no_opt
 
 - id: OnlineAdwinBagging-SGDClassifier
   learner: capymoa.classifier.OnlineAdwinBagging
@@ -312,7 +312,6 @@
   accuracy: 83.80
   win_accuracy: 78.0
   skip_test_save_then_load: *no_save
-  skip_test_optimise: *no_opt
 
 - id: OzaBoost-SGDClassifier
   learner: capymoa.classifier.OzaBoost
@@ -320,7 +319,6 @@
   accuracy: 85.50
   win_accuracy: 80.0
   skip_test_save_then_load: *no_save
-  skip_test_optimise: *no_opt
 
 - id: OnlineSmoothBoost-SGDClassifier
   learner: capymoa.classifier.OnlineSmoothBoost
@@ -329,7 +327,6 @@
   win_accuracy: 83.0
   skip_test_save_then_load: *no_save
   always_deterministic: true
-  skip_test_optimise: *no_opt
 
 - id: DynamicWeightedMajority-SGDClassifier
   learner: capymoa.classifier.DynamicWeightedMajority
@@ -339,7 +336,6 @@
   skip_test_save_then_load: *no_save
   always_deterministic: true
   predicts_before_training: "DynamicWeightedMajority has a default prediction of 0."
-  skip_test_optimise: *no_opt
 
 - id: CSMOTE-SGDClassifier
   learner: capymoa.classifier.CSMOTE
@@ -348,7 +344,6 @@
   win_accuracy: 64.0
   skip_test_save_then_load: *no_save
   always_deterministic: true
-  skip_test_optimise: *no_opt
 
 - id: StreamingRandomPatches-SGDClassifier-ABCD
   learner: capymoa.classifier.StreamingRandomPatches
@@ -363,7 +358,6 @@
   accuracy: 82.70
   win_accuracy: 77.0
   skip_test_save_then_load: *no_save
-  skip_test_optimise: *no_opt
 
 - id: AdaptiveRandomForestClassifier-ABCD
   learner: capymoa.classifier.AdaptiveRandomForestClassifier
@@ -374,7 +368,6 @@
   accuracy: 87.75
   win_accuracy: 86.0
   skip_test_save_then_load: *no_save
-  skip_test_optimise: *no_opt
 
 - id: DynamicEnsembleMemberSelection-ABCD
   learner: capymoa.classifier.DynamicEnsembleMemberSelection
@@ -385,7 +378,6 @@
   accuracy: 91.25
   win_accuracy: 88.0
   skip_test_save_then_load: *no_save
-  skip_test_optimise: *no_opt
 
 - id: LAST-ABCD
   learner: capymoa.classifier.LAST
@@ -394,5 +386,3 @@
   win_accuracy: 91.0
   skip_test_save_then_load: *no_save
   always_deterministic: true
-  skip_test_optimise: *no_opt
-
