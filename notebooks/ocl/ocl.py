@@ -24,6 +24,13 @@
 #
 # **last updated on 24/11/2026**
 
+# %% tags=["remove-cell"]
+# This cell is hidden on capymoa.org. See docs/contributing/docs.rst
+from capymoa._nbmock import is_nb_fast, mock_datasets
+
+if is_nb_fast():
+    mock_datasets()
+
 # %% [markdown]
 # ## Dataset
 #
