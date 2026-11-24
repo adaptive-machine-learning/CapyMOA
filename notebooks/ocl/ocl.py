@@ -161,37 +161,47 @@ strategies = {
 # %% [markdown]
 # ## Evaluation
 #
-# We train each learner on the stream with a batch size of 10 and test on every task after each task.
+# We train each learner on the stream with a batch size of 10 and test on every task after each task. We repeat this with three seeds to see the spread. The plots below show the first seed.
 
 # %%
 import pandas as pd
 
-results = {
-    name: evaluate_ocl(
-        make(10),
-        scenario.train_loaders(10),
-        scenario.test_loaders(10),
-        continual_evaluations=4,
-    )
+seeds = (10,) if is_nb_fast() else (10, 11, 12)
+runs = {
+    name: [
+        evaluate_ocl(
+            make(seed),
+            scenario.train_loaders(10),
+            scenario.test_loaders(10),
+            continual_evaluations=4,
+        )
+        for seed in seeds
+    ]
     for name, make in strategies.items()
 }
+results = {name: r[0] for name, r in runs.items()}
 
+
+def collect(key: str) -> pd.DataFrame:
+    """Metric `key` for each strategy (row) and seed (column)."""
+    return pd.DataFrame({name: [r[key] for r in rs] for name, rs in runs.items()}).T
+
+
+final = collect("accuracy_final")
 summary = pd.DataFrame(
     {
-        name: {
-            "Final accuracy": r["accuracy_final"],
-            "Anytime accuracy (seen)": r["anytime_accuracy_seen_avg"],
-        }
-        for name, r in results.items()
+        "Final accuracy": final.mean(axis=1),
+        "Std.": final.std(axis=1),
+        "Anytime accuracy (seen)": collect("anytime_accuracy_seen_avg").mean(axis=1),
     }
-).T
+)
 summary.round(3)
 
 # %% [markdown]
-# The table shows the final accuracy on all tasks and the average anytime accuracy on seen tasks (explained below). Finetune forgets older tasks. The replay strategies and RanPAC do much better. Each strategy was tuned on other seeds, and the test set, so its score here can be slightly high.
+# The table shows the mean final accuracy on all tasks, its standard deviation over seeds, and the mean anytime accuracy on seen tasks (explained below). Finetune forgets older tasks. The replay strategies and RanPAC do much better. Each strategy was tuned on other seeds, and the test set, so its score here can be slightly high.
 
 # %%
-ax = summary["Final accuracy"].plot.bar(rot=0)
+ax = summary["Final accuracy"].plot.bar(yerr=summary["Std."], rot=0, capsize=4)
 ax.set_ylabel("Final accuracy")
 ax.set_title("TinySplitMNIST");
 
