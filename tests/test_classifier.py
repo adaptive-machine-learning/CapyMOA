@@ -61,15 +61,7 @@ class Case:
     """If set skip the `test_save_then_load` test with the given reason."""
 
     max_instances: int | None = None
-    """Run `test_optimise` on this many instances. If unset, skip that test.
-
-    Fast and slow loop parity is a property of the loop, so only a few
-    high-risk learners opt in: a tree, warmup, instance-based KNN, Java
-    ensembles and a Python learner inside a Java ensemble. Pure Python learners
-    have no fast loop. SAMkNN is left out: its fast and slow loops give different
-    accuracy (82.65% and 82.5% on ElectricityTiny), possibly for the same
-    reason as its `skip_test_predict`.
-    """
+    """Run `test_optimise` on this many instances. If unset, skip that test."""
 
     length_test_determinism: int = 50
     """Number of stream instances to replay in the determinism test."""

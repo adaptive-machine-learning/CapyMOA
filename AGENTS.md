@@ -12,16 +12,6 @@
 * MUST run formatter `uv run invoke fmt` before committing code.
 * MUST ask the user before pushing to GitHub.
 
-## Tests
-
-* Before adding a test, name the behavior, a credible mistake it catches, and an expected result that does not depend on the code under test.
-* Prefer small, fast tests whose failure points at the broken behavior. Use integration tests only for interactions that small tests cannot show.
-* Do not copy implementation logic into assertions or mocks.
-* Test contracts, not internal structure.
-* Do not keep development scaffolding as tests.
-* Never delete or weaken a failing test just to make the suite pass.
-* CI runs in about 10 minutes. Do not add slow tests or parametrize over redundant cases (seeds, learner variants).
-
 ## Commit messages
 
 * SHOULD use conventional commit messages. You MAY introduce breaking changes, but MUST
