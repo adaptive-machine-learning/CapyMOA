@@ -64,7 +64,11 @@ class PCR(TorchMixin[_PCRModule], BatchClassifier):
 
     Other implementations [#pcr-original]_ [#pcr-mkd]_.
 
+    >>> import torch
+    >>> from torch import nn
+    >>> from capymoa.core.torch import FeatureModel
     >>> from capymoa.ocl.strategy import PCR
+    >>> from capymoa.stream import Schema
     >>> schema = Schema.from_custom(
     ...     ["x0", "x1", "class"], "class", {"class": ["a", "b"]}
     ... )
