@@ -29,6 +29,7 @@ from capymoa.ocl.strategy import (
     MAS,
     MIR,
     NCM,
+    PCR,
     RAR,
     SCR,
     SI,
@@ -171,6 +172,33 @@ def _new_scr(schema: Schema, **kwargs) -> SCR:
     )
 
 
+def _new_pcr(schema: Schema, **kwargs) -> PCR:
+    kwargs.setdefault("seed", SEED)
+    kwargs.setdefault("optimiser_kwargs", {"lr": 0.1})
+
+    class Encoder(FeatureModel):
+        def __init__(self):
+            super().__init__()
+            self.encoder = nn.Sequential(
+                nn.Flatten(), nn.Linear(schema.get_num_attributes(), 64), nn.ReLU()
+            )
+
+        def features(self, x):
+            return self.encoder(x)
+
+        def forward(self, x):
+            return self.features(x)
+
+    return PCR(
+        schema,
+        Encoder(),
+        feature_dim=64,
+        augment=nn.Dropout(p=0.2),
+        replay_batch_size=32,
+        **kwargs,
+    )
+
+
 class _DummyViT(L2PViT, nn.Module):
     def get_embedding_size(self) -> int:
         return 8
@@ -196,6 +224,7 @@ Use the `partial` function to create a new function with hyperparameters already
 set.
 """
 TEST_CASES: list[Case] = [
+    Case("PCR", _new_pcr, Result(69.5, 46.5, 46.6)),
     Case("LPR", new_constructor(LPR, lr=0.1, update_every=10), Result(25.5, 21.6, 9.4)),
     Case("ASER", _new_aser, Result(21.0, 18.8, 23.9)),
     Case("MIR", new_constructor(MIR, lr=0.01), Result(13.5, 14.0, 7.1)),

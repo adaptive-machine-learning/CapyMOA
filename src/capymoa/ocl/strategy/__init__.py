@@ -12,6 +12,7 @@ from ._lwf import LWF
 from ._mas import MAS
 from ._mir import MIR
 from ._ncm import NCM
+from ._pcr import PCR
 from ._rar import RAR
 from ._rwalk import RWalk
 from ._scr import SCR
@@ -28,6 +29,7 @@ __all__ = [
     "MAS",
     "MIR",
     "NCM",
+    "PCR",
     "RAR",
     "SCR",
     "SI",
