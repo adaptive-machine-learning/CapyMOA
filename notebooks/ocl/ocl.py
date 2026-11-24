@@ -206,13 +206,23 @@ ax.set_ylabel("Final accuracy")
 ax.set_title("TinySplitMNIST");
 
 # %% [markdown]
+# ## Accuracy over tasks
+#
+# This plot shows the accuracy on the tasks seen so far, after training on each task. The line is the mean over seeds and the band is one standard deviation.
+
+# %%
+from matplotlib import pyplot as plt
+
+from capymoa.ocl.plot import plot_accuracy_comparison
+
+plot_accuracy_comparison(runs);
+
+# %% [markdown]
 # ## Per-task accuracy
 #
 # Each plot shows the accuracy on each task after training on each task. A learner that forgets has low values in the lower left.
 
 # %%
-from matplotlib import pyplot as plt
-
 from capymoa.ocl.plot import plot_accuracy_matrix
 
 fig, axes = plt.subplots(
