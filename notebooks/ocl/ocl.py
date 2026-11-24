@@ -208,7 +208,7 @@ ax.set_title("TinySplitMNIST");
 # %% [markdown]
 # ## Accuracy over tasks
 #
-# This plot shows the accuracy on the tasks seen so far, after training on each task. The line is the mean over seeds and the band is one standard deviation.
+# This plot shows the accuracy on the tasks seen so far, measured four times per task. Markers are the accuracy at the end of each task. The line is the mean over seeds and the band is one standard deviation.
 
 # %%
 from matplotlib import pyplot as plt

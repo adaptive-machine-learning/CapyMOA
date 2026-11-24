@@ -150,17 +150,18 @@ def plot_accuracy_comparison(
     metric: Literal["accuracy_seen", "accuracy_all"] = "accuracy_seen",
     ax: Axes | None = None,
 ) -> Axes:
-    """Compare learners by their accuracy after each task.
+    """Compare learners by their accuracy while training on the tasks.
 
-    Draws one line per learner. If a learner has results from several runs
+    Draws one line per learner of the anytime accuracy, measured periodically
+    during each task. Markers show the accuracy at the end of each task. If a learner has results from several runs
     (for example seeds), the line is the mean and the shaded band is one
     standard deviation.
 
     :param results: Results by learner name. Each value is one result or a
         sequence of results from repeated runs. All must have the same number
         of tasks.
-    :param metric: The accuracy after each task. ``"accuracy_seen"`` is on the
-        tasks seen so far, ``"accuracy_all"`` is on all tasks.
+    :param metric: ``"accuracy_seen"`` is the accuracy on the tasks seen so far,
+        ``"accuracy_all"`` is the accuracy on all tasks.
     :param ax: The axes to plot on, defaults to new axes.
     :return: The axes.
     """
@@ -168,21 +169,30 @@ def plot_accuracy_comparison(
     n_tasks = None
     for i, (name, value) in enumerate(results.items()):
         runs = [value] if isinstance(value, Mapping) else list(value)
-        accuracy = np.array([r["per_task"][metric] for r in runs])  # (runs, tasks)
+        # Anytime accuracy during training, shape (runs, tasks * evaluations).
+        accuracy = np.array([r["anytime"][metric] for r in runs])
         if n_tasks is None:
-            n_tasks = accuracy.shape[1]
-        elif accuracy.shape[1] != n_tasks:
+            n_tasks = runs[0]["n_tasks"]
+        elif runs[0]["n_tasks"] != n_tasks:
             raise ValueError("All results must have the same number of tasks")
-        x = np.arange(1, n_tasks + 1)
+        evals = runs[0]["n_continual_evaluations"]
+        x = _anytime_x(runs[0])
         mean = accuracy.mean(axis=0)
-        (line,) = ax.plot(x, mean, marker=_MARKERS[i % len(_MARKERS)], label=name)
+        # Markers are the accuracy at the end of each task.
+        (line,) = ax.plot(
+            x,
+            mean,
+            marker=_MARKERS[i % len(_MARKERS)],
+            markevery=slice(evals - 1, None, evals),
+            label=name,
+        )
         if len(runs) > 1:
             std = accuracy.std(axis=0)
             ax.fill_between(
                 x, mean - std, mean + std, color=line.get_color(), alpha=0.3
             )
     if n_tasks is not None:
-        ax.set_xticks(range(1, n_tasks + 1))
+        ax.set_xticks(range(n_tasks + 1))
     ax.set_xlabel("Number of Tasks")
     ax.set_ylabel("Accuracy")
     ax.legend()

@@ -57,10 +57,16 @@ def test_plot_accuracy_comparison():
             scenario.schema, Perceptron(scenario.schema), random_seed=seed
         )
         runs.append(
-            evaluate_ocl(learner, scenario.train_loaders(32), scenario.test_loaders(32))
+            evaluate_ocl(
+                learner,
+                scenario.train_loaders(32),
+                scenario.test_loaders(32),
+                continual_evaluations=3,
+            )
         )
     ax = plot_accuracy_comparison({"a": runs, "b": runs[0]})
     assert len(ax.lines) == 2
     assert len(ax.collections) == 1  # only "a" has a band
-    expected = np.mean([r["per_task"]["accuracy_seen"] for r in runs], axis=0)
+    expected = np.mean([r["anytime"]["accuracy_seen"] for r in runs], axis=0)
     assert np.allclose(ax.lines[0].get_ydata(), expected)
+    assert len(ax.lines[0].get_xdata()) == len(expected)
