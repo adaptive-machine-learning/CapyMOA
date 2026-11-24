@@ -101,17 +101,26 @@ plt.show()
 
 # %% [markdown]
 # ## Experience Replay
+#
+# CapyMOA learners that use PyTorch should add {class}`~capymoa.base.TorchMixin`. Put the torch state (here, the model) in an `nn.Module` and assign it to `self._module`. The mixin then provides `learner.module` and `learner.device`, so the learner does not need to inherit from `nn.Module` itself.
 
 # %%
-import numpy as np
 from torch import nn
 from torch.nn.functional import cross_entropy
 
-from capymoa.base import BatchClassifier
+from capymoa.base import BatchClassifier, TorchMixin
 from capymoa.stream import Schema
 
 
-class ExperienceReplay(BatchClassifier):
+class ERModule(nn.Module):
+    """Torch state of the learner."""
+
+    def __init__(self, model: nn.Module):
+        super().__init__()
+        self.model = model
+
+
+class ExperienceReplay(TorchMixin[ERModule], BatchClassifier):
     def __init__(
         self,
         schema: Schema,
@@ -122,9 +131,8 @@ class ExperienceReplay(BatchClassifier):
     ):
         super().__init__(schema=schema)
         self.reservoir = ReservoirSampler(reservoir_size, schema.get_num_attributes())
+        self._module = ERModule(model).to(device)
         self.optimiser = torch.optim.Adam(model.parameters(), lr=learning_rate)
-        self.device = torch.device(device)
-        self.model = model.to(self.device)
 
     def batch_train(self, x: Tensor, y: Tensor):
         batch_size = x.shape[0]
@@ -135,15 +143,17 @@ class ExperienceReplay(BatchClassifier):
         train_x = torch.cat((x, replay_x), dim=0).to(self.device)
         train_y = torch.cat((y, replay_y), dim=0).to(self.device)
 
+        self.module.train()
         self.optimiser.zero_grad()
-        y_hat = self.model(train_x)
+        y_hat = self.module.model(train_x)
         loss = cross_entropy(y_hat, train_y)
         loss.backward()
         self.optimiser.step()
 
     @torch.no_grad()
     def batch_predict_proba(self, x: Tensor) -> Tensor:
-        y_hat: Tensor = self.model.forward(x)
+        self.module.eval()
+        y_hat: Tensor = self.module.model(x)
         return y_hat.softmax(dim=1)
 
     def __str__(self) -> str:
