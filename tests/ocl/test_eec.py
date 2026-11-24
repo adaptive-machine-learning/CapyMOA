@@ -35,7 +35,7 @@ def schema():
         target="class",
         categories={"class": ["zero", "one"]},
     )
-    schema.shape = (1, 8, 8)
+    schema._shape = (1, 8, 8)
     return schema
 
 
