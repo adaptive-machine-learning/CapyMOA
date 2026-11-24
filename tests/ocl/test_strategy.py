@@ -23,6 +23,7 @@ from capymoa.ocl.strategy import (
     ASER,
     DER,
     DERPP,
+    EEC,
     EWC,
     LWF,
     MAS,
@@ -188,6 +189,22 @@ def _new_l2p(schema: Schema, **kwargs) -> L2P:
     return L2P(schema, TinySplitMNIST().task_mask, vit=_DummyViT(), **kwargs)
 
 
+def _new_eec(schema: Schema, **kwargs) -> EEC:
+    features = nn.Sequential(nn.Conv2d(1, 4, 3, padding=1), nn.ReLU())
+    model = nn.Sequential(features, nn.Flatten(), nn.Linear(4 * 16 * 16, 10))
+    return EEC(
+        schema,
+        model,
+        torch.optim.SGD(model.parameters(), lr=0.01),
+        feature_extractor=features,
+        reshape_input=True,
+        epochs=5,
+        subsequent_epochs=5,
+        autoencoder_epochs=2,
+        **kwargs,
+    )
+
+
 """
 Add new test cases here.
 
@@ -195,6 +212,13 @@ Use the `partial` function to create a new function with hyperparameters already
 set.
 """
 TEST_CASES: list[Case] = [
+    Case(
+        "EEC",
+        _new_eec,
+        Result(22.5, 20.4, 0.0),
+        # Autoencoders are added per task and concepts are outside ``module``.
+        test_state_load=False,
+    ),
     Case("ASER", _new_aser, Result(21.0, 18.8, 23.9)),
     Case("MIR", new_constructor(MIR, lr=0.01), Result(13.5, 14.0, 7.1)),
     # These improved when `MOAClassifier.predict_proba` stopped discarding
