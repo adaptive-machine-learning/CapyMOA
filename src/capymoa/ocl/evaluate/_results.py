@@ -130,6 +130,9 @@ class OCLResults(TypedDict):
     anytime_accuracy_matrix: np.ndarray
     #: A confusion matrix of shape ``(task, true_class, predicted_class)``.
     class_cm: np.ndarray
+    #: Classes in order of first appearance in the training stream. Shape
+    #: ``(n_classes,)``. Classes never trained on are last, by index.
+    class_order: np.ndarray
     #: Instance index of the boundaries of the tasks while training. Shape
     #: ``(n_tasks + 1,)``.
     boundaries: np.ndarray

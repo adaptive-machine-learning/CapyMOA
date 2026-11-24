@@ -92,3 +92,42 @@ def plot_accuracy(results: OCLResults, ax: Axes | None = None) -> Axes:
     ax.set_title("Accuracy Over Tasks")
     ax.set_ylim(-0.1, 1.05)
     return ax
+
+
+def plot_confusion_matrix(
+    results: OCLResults,
+    task: int = -1,
+    ax: Axes | None = None,
+    show_ticks: bool = True,
+) -> Axes:
+    """Plot the confusion matrix with classes in the order they appear in the stream.
+
+    Classes are sorted by their first appearance in the training stream. Inside
+    a task, they are sorted by index. A learner that forgets has errors in the
+    columns of old classes, and one that is biased to recent classes has
+    errors in the last columns.
+
+    :param results: The results of :func:`~capymoa.ocl.evaluate_ocl`.
+    :param task: Show the confusion matrix on all classes after training on
+        this task, defaults to the last task.
+    :param ax: The axes to plot on, defaults to new axes.
+    :param show_ticks: Show a tick for every class, labelled by position in the
+        stream from 1. Otherwise show no ticks, defaults to True.
+    :return: The axes.
+    """
+    ax = ax if ax is not None else plt.subplots(figsize=(5, 5))[1]
+    order = results["class_order"]
+    cm = results["class_cm"][task][np.ix_(order, order)]
+    n_classes = len(order)
+    ax.imshow(cm, interpolation="nearest")
+    if show_ticks:
+        ticks = np.arange(n_classes)
+        ax.set_xticks(ticks, ticks + 1)
+        ax.set_yticks(ticks, ticks + 1)
+    else:
+        ax.set_xticks([])
+        ax.set_yticks([])
+    ax.set_xlabel("Predicted class")
+    ax.set_ylabel("True class")
+    ax.set_title("Confusion Matrix (Classes by Stream Order)")
+    return ax

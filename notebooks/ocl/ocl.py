@@ -213,6 +213,21 @@ for ax, (name, r) in zip(axes, results.items()):
     ax.set_title(name)
 
 # %% [markdown]
+# ## Confusion matrix
+#
+# Classes are in the order they appear in the stream. Errors in the last columns mean the learner is biased to recent tasks.
+
+# %%
+from capymoa.ocl.plot import plot_confusion_matrix
+
+fig, axes = plt.subplots(
+    1, len(strategies), figsize=(5.5 * len(strategies), 4.5), layout="constrained"
+)
+for ax, (name, r) in zip(axes, results.items()):
+    plot_confusion_matrix(r, ax=ax)
+    ax.set_title(name)
+
+# %% [markdown]
 # ## Accuracy during training
 #
 # These are useful measures of accuracy for a continual learner.

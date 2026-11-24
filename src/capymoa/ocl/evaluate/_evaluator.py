@@ -31,6 +31,7 @@ class _OCLEvaluator(Handler):
         self.class_count = class_count
         self.seen_tasks = 0
         self.step_count = eval_step_count
+        self.class_order: list[int] = []
         self.cm = torch.zeros(
             task_count,
             eval_step_count,
@@ -53,7 +54,13 @@ class _OCLEvaluator(Handler):
 
     def attach_with(self, source: Dispatcher) -> "Handler":
         source.subscribe(events.EvalBatchPredict, self._on_eval_batch)
+        source.subscribe(events.TrainBatchPredict, self._on_train_batch)
         return self
+
+    def _on_train_batch(self, event: events.TrainBatchPredict) -> None:
+        for y_true in event.y.unique(sorted=False).tolist():
+            if y_true not in self.class_order:
+                self.class_order.append(int(y_true))
 
     def _on_eval_batch(self, event: events.EvalBatchPredict) -> None:
         for y_true, y_pred in zip(event.y, event.y_hat, strict=True):
@@ -113,6 +120,10 @@ class _OCLEvaluator(Handler):
             task=tasks, accuracy_all=accuracy_all, accuracy_seen=accuracy_seen
         )
 
+        # Classes never seen in training go last, by index.
+        unseen = [c for c in range(self.class_count) if c not in self.class_order]
+        class_order = np.array(self.class_order + unseen, dtype=int)
+
         return OCLResults(
             learner=ttt["learner"],
             stream=ttt["stream"],
@@ -131,6 +142,7 @@ class _OCLEvaluator(Handler):
             accuracy_matrix=accuracy_matrix.numpy(),
             anytime_accuracy_matrix=anytime_acc.flatten(end_dim=1).numpy(),
             class_cm=self.cm[:, -1].sum(1).numpy(),
+            class_order=class_order,
             boundaries=boundaries,
             per_task=per_task,
             anytime=anytime,
