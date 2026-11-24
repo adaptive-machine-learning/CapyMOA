@@ -215,7 +215,7 @@ for ax, (name, r) in zip(axes, results.items()):
 # %% [markdown]
 # ## Confusion matrix
 #
-# Classes are in the order they appear in the stream. Errors in the last columns mean the learner is biased to recent tasks.
+# Classes are in the order they appear in the stream. Each row shows how often a true class gets each prediction, from 0% to 100%. Errors in the last columns mean the learner is biased to recent tasks.
 
 # %%
 from capymoa.ocl.plot import plot_confusion_matrix
@@ -226,6 +226,7 @@ fig, axes = plt.subplots(
 for ax, (name, r) in zip(axes, results.items()):
     plot_confusion_matrix(r, ax=ax)
     ax.set_title(name)
+fig.colorbar(ax.images[0], ax=axes, label="Fraction of true class");
 
 # %% [markdown]
 # ## Accuracy during training

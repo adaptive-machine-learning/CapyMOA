@@ -107,6 +107,9 @@ def plot_confusion_matrix(
     columns of old classes, and one that is biased to recent classes has
     errors in the last columns.
 
+    Each row is normalised to sum to one, so the colour scale is always from 0
+    to 1 (0% to 100%) and plots of different learners are comparable.
+
     :param results: The results of :func:`~capymoa.ocl.evaluate_ocl`.
     :param task: Show the confusion matrix on all classes after training on
         this task, defaults to the last task.
@@ -119,7 +122,10 @@ def plot_confusion_matrix(
     order = results["class_order"]
     cm = results["class_cm"][task][np.ix_(order, order)]
     n_classes = len(order)
-    ax.imshow(cm, interpolation="nearest")
+    # Each row is the fraction of a true class given each prediction.
+    totals = cm.sum(axis=1, keepdims=True)
+    cm = np.divide(cm, totals, out=np.zeros(cm.shape), where=totals > 0)
+    ax.imshow(cm, interpolation="nearest", vmin=0, vmax=1)
     if show_ticks:
         ticks = np.arange(n_classes)
         ax.set_xticks(ticks, ticks + 1)

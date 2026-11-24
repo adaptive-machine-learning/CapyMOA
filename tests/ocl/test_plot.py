@@ -29,8 +29,9 @@ def test_plot_confusion_matrix_stream_order():
         start += len(task)
     ax = plot_confusion_matrix(results)
     shown = ax.images[0].get_array()
-    cm = results["class_cm"][-1]
-    assert np.array_equal(shown, cm[np.ix_(order, order)])
+    cm = results["class_cm"][-1][np.ix_(order, order)]
+    assert np.allclose(shown, cm / cm.sum(axis=1, keepdims=True))
+    assert ax.images[0].get_clim() == (0, 1)
 
 
 @pytest.mark.torch
