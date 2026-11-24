@@ -227,31 +227,7 @@ ax.set_title("SplitMNIST Per-Task Accuracy Over Tasks");
 
 
 # %% [markdown]
-# Here we plot some useful measures of accuracy for a continual learner.
-#
-# * **Acc. (all)**
-#   
-#   This is the accuracy on all tasks including unseen ones after training completes on each task.
-#
-# * **Acc. (seen)**
-#   
-#   This is the accuracy only on seen tasks after completing training on each task.
-#
-# * **Anytime Acc. (all/seen)**
-#
-#   Like "Acc. (all/seen)" but measured periodically during the training of each task.
-#
-# * **Avg. Anytime Acc. (all/seen)**
-#
-#   This is the average of "Anytime Acc. (all/seen)".
-#
-# * **Online Win. Acc.**
-#
-#   This is the usual data stream windowed test-then-train accuracy over the data stream.
-#
-# * **Online Avg. Acc.**
-#
-#   This is the usual cumulative test-then-train accuracy over the data stream.
+# Here we plot some useful measures of accuracy for a continual learner. The [Online continual learning](ocl.ipynb) notebook explains each measure.
 
 # %%
 from capymoa.ocl.plot import plot_accuracy

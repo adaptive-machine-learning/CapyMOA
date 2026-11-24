@@ -154,47 +154,37 @@ strategies = {
 # %% [markdown]
 # ## Evaluation
 #
-# We train each learner on the stream with a batch size of 10 and test on every task after each task. Three seeds give a sense of the spread.
+# We train each learner on the stream with a batch size of 10 and test on every task after each task.
 
 # %%
 import pandas as pd
 
-results = {}
-for name, make in strategies.items():
-    results[name] = [
-        evaluate_ocl(
-            make(seed),
-            scenario.train_loaders(10),
-            scenario.test_loaders(10),
-            continual_evaluations=4,
-        )
-        for seed in (10, 11, 12)
-    ]
+results = {
+    name: evaluate_ocl(
+        make(10),
+        scenario.train_loaders(10),
+        scenario.test_loaders(10),
+        continual_evaluations=4,
+    )
+    for name, make in strategies.items()
+}
 
 summary = pd.DataFrame(
     {
         name: {
-            "Final accuracy": pd.Series([r["accuracy_final"] for r in runs]).mean(),
-            "Std.": pd.Series([r["accuracy_final"] for r in runs]).std(),
-            "Anytime accuracy (seen)": pd.Series(
-                [r["anytime_accuracy_seen_avg"] for r in runs]
-            ).mean(),
+            "Final accuracy": r["accuracy_final"],
+            "Anytime accuracy (seen)": r["anytime_accuracy_seen_avg"],
         }
-        for name, runs in results.items()
+        for name, r in results.items()
     }
 ).T
 summary.round(3)
 
 # %% [markdown]
-# Finetune forgets older tasks. The replay strategies and RanPAC do much better. Each strategy was tuned on the mean of three other seeds, so its score here can be slightly high.
-#
-# The table has these measures:
-#
-# * **Final accuracy** is the accuracy on all tasks after the last task.
-# * **Anytime accuracy (seen)** is the accuracy on the tasks seen so far, measured four times per task and averaged.
+# The table shows the final accuracy on all tasks and the average anytime accuracy on seen tasks (explained below). Finetune forgets older tasks. The replay strategies and RanPAC do much better. Each strategy was tuned on other seeds, and the test set, so its score here can be slightly high.
 
 # %%
-ax = summary["Final accuracy"].plot.bar(yerr=summary["Std."], rot=0, capsize=4)
+ax = summary["Final accuracy"].plot.bar(rot=0)
 ax.set_ylabel("Final accuracy")
 ax.set_title("TinySplitMNIST");
 
@@ -211,14 +201,38 @@ from capymoa.ocl.plot import plot_accuracy_matrix
 fig, axes = plt.subplots(
     1, len(strategies), figsize=(5.5 * len(strategies), 4.5), layout="constrained"
 )
-for ax, (name, runs) in zip(axes, results.items()):
-    plot_accuracy_matrix(runs[0], ax=ax)
+for ax, (name, r) in zip(axes, results.items()):
+    plot_accuracy_matrix(r, ax=ax)
     ax.set_title(name)
 
 # %% [markdown]
 # ## Accuracy during training
 #
-# The accuracy is also measured four times within each task (anytime accuracy).
+# These are useful measures of accuracy for a continual learner.
+#
+# * **Acc. (all)**
+#
+#   This is the accuracy on all tasks including unseen ones after training completes on each task.
+#
+# * **Acc. (seen)**
+#
+#   This is the accuracy only on seen tasks after completing training on each task.
+#
+# * **Anytime Acc. (all/seen)**
+#
+#   Like "Acc. (all/seen)" but measured periodically during the training of each task.
+#
+# * **Avg. Anytime Acc. (all/seen)**
+#
+#   This is the average of "Anytime Acc. (all/seen)".
+#
+# * **Online Win. Acc.**
+#
+#   This is the usual data stream windowed test-then-train accuracy over the data stream.
+#
+# * **Online Avg. Acc.**
+#
+#   This is the usual cumulative test-then-train accuracy over the data stream.
 
 # %%
 from capymoa.ocl.plot import plot_accuracy
@@ -226,8 +240,8 @@ from capymoa.ocl.plot import plot_accuracy
 fig, axes = plt.subplots(
     1, len(strategies), figsize=(5.5 * len(strategies), 4.5), layout="constrained"
 )
-for ax, (name, runs) in zip(axes, results.items()):
-    plot_accuracy(runs[0], ax=ax)
+for ax, (name, r) in zip(axes, results.items()):
+    plot_accuracy(r, ax=ax)
     ax.set_title(name)
 
 # %% [markdown]
