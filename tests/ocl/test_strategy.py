@@ -24,6 +24,7 @@ from capymoa.ocl.strategy import (
     DER,
     DERPP,
     EWC,
+    LPR,
     LWF,
     MAS,
     MIR,
@@ -195,6 +196,7 @@ Use the `partial` function to create a new function with hyperparameters already
 set.
 """
 TEST_CASES: list[Case] = [
+    Case("LPR", new_constructor(LPR, lr=0.1, update_every=10), Result(25.5, 21.6, 9.4)),
     Case("ASER", _new_aser, Result(21.0, 18.8, 23.9)),
     Case("MIR", new_constructor(MIR, lr=0.01), Result(13.5, 14.0, 7.1)),
     # These improved when `MOAClassifier.predict_proba` stopped discarding
