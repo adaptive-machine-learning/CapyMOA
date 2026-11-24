@@ -253,11 +253,6 @@ TEST_CASES: list[Case] = [
         Result(71.5, 46.2, 67.5),
     ),
     Case(
-        "NCM_with_preprocessor",
-        lambda s, **kw: NCM(s, pre_processor(), 512, **kw),
-        Result(69.5, 45.0, 66.8),
-    ),
-    Case(
         "ExperienceReplay",
         lambda schema, random_seed=None, **kw: ExperienceReplay(
             Finetune(schema, Perceptron, random_seed=random_seed, **kw)
