@@ -313,9 +313,6 @@ def _prequential_loop_fast(
                 HookableEvaluationLoop(),
             )
         else:
-            # MOA's regression loop also takes the value to fill in for
-            # abstentions. ``0.0`` is the evaluator default, so the results
-            # match earlier MOA versions.
             moa_results = EfficientEvaluationLoops.prequentialEvaluationRegression(
                 stream.moa_stream,
                 learner.moa_learner,
