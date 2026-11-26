@@ -299,23 +299,36 @@ def _prequential_loop_fast(
     if ssl is None:
         # Only these take a warmup. ``PrequentialEvaluation`` picks one of them
         # by the type of the target, as done here.
-        evaluate = (
-            EfficientEvaluationLoops.prequentialEvaluationClassification
-            if stream.get_schema().is_classification()
-            else EfficientEvaluationLoops.prequentialEvaluationRegression
-        )
-        moa_results = evaluate(
-            stream.moa_stream,
-            learner.moa_learner,
-            cumulative.moa_basic_evaluator,
-            windowed.moa_evaluator,
-            limit,
-            window_size,
-            run.store_y,
-            run.store_predictions,
-            warmup,
-            HookableEvaluationLoop(),
-        )
+        if stream.get_schema().is_classification():
+            moa_results = EfficientEvaluationLoops.prequentialEvaluationClassification(
+                stream.moa_stream,
+                learner.moa_learner,
+                cumulative.moa_basic_evaluator,
+                windowed.moa_evaluator,
+                limit,
+                window_size,
+                run.store_y,
+                run.store_predictions,
+                warmup,
+                HookableEvaluationLoop(),
+            )
+        else:
+            # MOA's regression loop also takes the value to fill in for
+            # abstentions. ``0.0`` is the evaluator default, so the results
+            # match earlier MOA versions.
+            moa_results = EfficientEvaluationLoops.prequentialEvaluationRegression(
+                stream.moa_stream,
+                learner.moa_learner,
+                cumulative.moa_basic_evaluator,
+                windowed.moa_evaluator,
+                limit,
+                window_size,
+                run.store_y,
+                run.store_predictions,
+                warmup,
+                0.0,
+                HookableEvaluationLoop(),
+            )
     else:
         initial_window_size, delay_length, label_probability, random_seed = ssl
         moa_results = EfficientEvaluationLoops.PrequentialSSLEvaluation(
