@@ -908,6 +908,20 @@ def test_recurrent_concept_drift_stream_rejects_base_drift_template():
         )
 
 
+def test_recurrent_concept_drift_stream_accepts_rbf_generator():
+    stream = RecurrentConceptDriftStream(
+        concept_list=[
+            RandomRBFGenerator(model_random_seed=1, instance_random_seed=1),
+            RandomRBFGenerator(model_random_seed=2, instance_random_seed=1),
+        ],
+        max_recurrences_per_concept=2,
+        transition_type_template=GradualDrift(position=100, width=10),
+    )
+
+    assert stream.get_num_drifts() == 3
+    assert len(stream.concept_info) == 4
+
+
 @pytest.mark.parametrize(
     ["stream_factory", "target", "length"],
     [

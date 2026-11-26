@@ -201,8 +201,13 @@ summary.round(3)
 # The table shows the mean final accuracy on all tasks, its standard deviation over seeds, and the mean anytime accuracy on seen tasks (explained below). Finetune forgets older tasks. The replay strategies and RanPAC do much better. Each strategy was tuned on other seeds, and the test set, so its score here can be slightly high.
 
 # %%
-ax = summary["Final accuracy"].plot.bar(yerr=summary["Std."], rot=0, capsize=4)
+from matplotlib import pyplot as plt
+
+fig, ax = plt.subplots(figsize=(7, 4), layout="constrained")
+summary["Final accuracy"].plot.bar(yerr=summary["Std."], rot=0, capsize=4, ax=ax)
 ax.set_ylabel("Final accuracy")
+ax.set_ylim(0, 1)
+ax.grid(axis="y", alpha=0.25)
 ax.set_title("TinySplitMNIST");
 
 # %% [markdown]
@@ -211,11 +216,10 @@ ax.set_title("TinySplitMNIST");
 # This plot shows the accuracy on the tasks seen so far, measured four times per task. Markers are the accuracy at the end of each task. The line is the mean over seeds and the band is one standard deviation.
 
 # %%
-from matplotlib import pyplot as plt
-
 from capymoa.ocl.plot import plot_accuracy_comparison
 
-plot_accuracy_comparison(runs);
+fig, ax = plt.subplots(figsize=(8, 4), layout="constrained")
+plot_accuracy_comparison(runs, ax=ax);
 
 # %% [markdown]
 # ## Per-task accuracy
@@ -226,11 +230,12 @@ plot_accuracy_comparison(runs);
 from capymoa.ocl.plot import plot_accuracy_matrix
 
 fig, axes = plt.subplots(
-    1, len(strategies), figsize=(5.5 * len(strategies), 4.5), layout="constrained"
+    2, 3, figsize=(13.5, 8), layout="constrained", squeeze=False
 )
-for ax, (name, r) in zip(axes, results.items()):
+for ax, (name, r) in zip(axes.flat, results.items(), strict=False):
     plot_accuracy_matrix(r, ax=ax)
     ax.set_title(name)
+axes.flat[-1].set_visible(False)
 
 # %% [markdown]
 # ## Confusion matrix
@@ -241,12 +246,17 @@ for ax, (name, r) in zip(axes, results.items()):
 from capymoa.ocl.plot import plot_confusion_matrix
 
 fig, axes = plt.subplots(
-    1, len(strategies), figsize=(5.5 * len(strategies), 4.5), layout="constrained"
+    2, 3, figsize=(13.5, 8), layout="constrained", squeeze=False
 )
-for ax, (name, r) in zip(axes, results.items()):
+for ax, (name, r) in zip(axes.flat, results.items(), strict=False):
     plot_confusion_matrix(r, ax=ax)
     ax.set_title(name)
-fig.colorbar(ax.images[0], ax=axes, label="Fraction of true class");
+axes.flat[-1].set_visible(False)
+fig.colorbar(
+    axes.flat[4].images[0],
+    ax=axes.ravel()[:5].tolist(),
+    label="Fraction of true class",
+);
 
 # %% [markdown]
 # ## Accuracy during training
@@ -281,17 +291,144 @@ fig.colorbar(ax.images[0], ax=axes, label="Fraction of true class");
 from capymoa.ocl.plot import plot_accuracy
 
 fig, axes = plt.subplots(
-    1, len(strategies), figsize=(5.5 * len(strategies), 4.5), layout="constrained"
+    2, 3, figsize=(13.5, 8.5), layout="constrained", squeeze=False
 )
-for ax, (name, r) in zip(axes, results.items()):
+handles = None
+labels = None
+for ax, (name, r) in zip(axes.flat, results.items(), strict=False):
     plot_accuracy(r, ax=ax)
     ax.set_title(name)
+    if handles is None:
+        handles, labels = ax.get_legend_handles_labels()
+    legend = ax.get_legend()
+    if legend is not None:
+        legend.remove()
+axes.flat[-1].set_visible(False)
+assert handles is not None and labels is not None
+fig.legend(
+    handles,
+    labels,
+    loc="outside lower center",
+    ncol=3,
+    frameon=False,
+)
 
 # %% [markdown]
 # Each result is a dictionary. Besides scalars, it has `per_task` and `anytime` column dictionaries (use `pd.DataFrame(...)` for a table), arrays like `accuracy_matrix`, and `ttt` (test-then-train), the usual online evaluation of a data stream classifier.
 #
+# ## OCL and Recurrent Data Streams
+#
+# CapyMOA's OCL strategies are standard classifiers, so they also work with {func}`~capymoa.classifier.evaluate_classifier` on ordinary data streams. Continual learning helps when concepts return over time and occupy different parts of the input space. (If two concepts give different labels to the same inputs, replaying old examples conflicts with the active concept.)
+#
+# Here we build a {class}`~capymoa.stream.drift.RecurrentConceptDriftStream` from four {class}`~capymoa.stream.generator.RandomRBFGenerator` concepts (see the [concept drift tutorial](../drift/drift_streams.ipynb)). Each concept places 50 radial clusters in its own region of a 20-dimensional space, and each concept appears four times.
+
+# %%
+from typing import cast
+
+from capymoa.classifier import HoeffdingTree, evaluate_classifier
+from capymoa.evaluation.plot import plot_windowed_results
+from capymoa.evaluation.results import RunInfo
+from capymoa.stream import Stream
+from capymoa.stream.drift import GradualDrift, RecurrentConceptDriftStream
+from capymoa.stream.generator import RandomRBFGenerator
+
+concept_list: list[Stream] = [
+    RandomRBFGenerator(
+        model_random_seed=seed,
+        number_of_classes=10,
+        number_of_attributes=20,
+        number_of_centroids=50,
+    )
+    for seed in (1, 2, 3, 4)
+]
+concept_name_list = ["Concept 1", "Concept 2", "Concept 3", "Concept 4"]
+
+concept_length = 40 if is_nb_fast() else 1000
+window_size = 20 if is_nb_fast() else 250
+concept_transition_width = 10 if is_nb_fast() else 50
+max_recurrences_per_concept = 2 if is_nb_fast() else 4
+max_instances = concept_length * len(concept_list) * max_recurrences_per_concept
+
+stream_with_recurrent_concepts = RecurrentConceptDriftStream(
+    concept_list=concept_list,
+    max_recurrences_per_concept=max_recurrences_per_concept,
+    transition_type_template=GradualDrift(
+        position=concept_length, width=concept_transition_width
+    ),
+    concept_name_list=concept_name_list,
+)
+rbf_schema = stream_with_recurrent_concepts.get_schema()
+print(stream_with_recurrent_concepts.describe(max_instances))
+
+# %% [markdown]
+# We compare a {class}`~capymoa.classifier.HoeffdingTree`, `Finetune`, and {class}`~capymoa.ocl.strategy.ExperienceReplay`. All three run in one test-then-train pass with `batch_size=1`, so each learner predicts and takes one update step per example. Using four evaluation windows per concept shows what happens right after each drift.
+
+
+# %%
+class RBFMLP(FeatureModel):
+    def __init__(self):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(rbf_schema.get_num_attributes(), 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+        )
+        self.head = nn.Linear(64, rbf_schema.get_num_classes())
+
+    def features(self, x: Tensor) -> Tensor:
+        return self.encoder(x)
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.head(self.features(x))
+
+
+def make_rbf_finetune(seed: int):
+    torch.manual_seed(seed)
+    model = RBFMLP()
+    optimiser = torch.optim.SGD(model.parameters(), lr=0.05)
+    return Finetune(rbf_schema, model, optimizer=optimiser, random_seed=seed)
+
+
+def make_rbf_er(seed: int):
+    return ExperienceReplay(make_rbf_finetune(seed), buffer_size=800, repeat=1)
+
+
+recurrent_results = evaluate_classifier(
+    stream_with_recurrent_concepts,
+    {
+        "Hoeffding Tree": HoeffdingTree(schema=rbf_schema, random_seed=10),
+        "Finetune": make_rbf_finetune(seed=10),
+        "Experience Replay": make_rbf_er(seed=10),
+    },
+    window_size=window_size,
+    max_instances=max_instances,
+    batch_size=1,
+)
+plot_windowed_results(
+    cast(RunInfo, recurrent_results["Hoeffding Tree"]),
+    cast(RunInfo, recurrent_results["Finetune"]),
+    cast(RunInfo, recurrent_results["Experience Replay"]),
+    metric="accuracy",
+    plot_title="Recurrent RBF concepts",
+    ylabel="Accuracy",
+    save_only=False,
+)
+pd.Series(
+    {
+        name: result["cumulative"]["accuracy"]
+        for name, result in recurrent_results.items()
+    },
+    name="Cumulative accuracy",
+).to_frame().round(1)
+
+# %% [markdown]
+# On the first pass through the four concepts, both neural learners start low on each unseen concept and improve as examples arrive. When the concepts return on later passes, `Finetune` drops sharply at every red drift line because training on newer concepts overwrote the old ones. It has to relearn each concept from scratch. `Experience Replay` keeps past examples from all four concepts in its buffer, so its accuracy stays high across concept switches. The `Hoeffding Tree` does not forget, yet its axis-aligned splits struggle to separate radial clusters across all four concepts.
+#
 # ## References
 #
 # * Buzzega, P., Boschini, M., Porrello, A., Abati, D., & Calderara, S. (2020). Dark Experience for General Continual Learning. NeurIPS.
+# * Gunasekara, N., Pfahringer, B., Gomes, H. M., Bifet, A., & Koh, Y. S. (2024). Recurrent Concept Drifts on Data Streams. IJCAI.
 # * Lin, H., Zhang, B., Feng, S., Li, X., & Ye, Y. (2023). PCR: Proxy-based Contrastive Replay for Online Class-Incremental Continual Learning. CVPR.
 # * McDonnell, M. D., Gong, D., Parveneh, A., Abbasnejad, E., & van den Hengel, A. (2023). RanPAC: Random Projections and Pre-trained Models for Continual Learning. NeurIPS.
+# * Rolnick, D., Ahuja, A., Schwarz, J., Lillicrap, T., & Wayne, G. (2019). Experience Replay for Continual Learning. NeurIPS.

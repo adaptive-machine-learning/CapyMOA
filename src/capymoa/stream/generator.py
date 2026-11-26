@@ -435,6 +435,7 @@ class RandomRBFGenerator(MOAStream):
         :param number_of_attributes: The number of attributes of the generated instances, defaults to 10
         :param number_of_drifting_centroids: The number of drifting attributes, defaults to 2
         """
+        self.__init_args_kwargs__ = copy.copy(locals())
 
         self.model_random_seed = model_random_seed
         self.instance_random_seed = instance_random_seed
@@ -511,6 +512,7 @@ class RandomRBFGeneratorDrift(MOAStream):
         :param noise_percentage: Percentage of noise to add to the data, defaults to 10
         :param sigma_percentage: Percentage of sigma to add to the data, defaults to 10
         """
+        self.__init_args_kwargs__ = copy.copy(locals())
 
         self.model_random_seed = model_random_seed
         self.instance_random_seed = instance_random_seed
@@ -811,6 +813,7 @@ class WaveformGenerator(MOAStream):
         :param instance_random_seed: Seed for random generation of instances, defaults to 1
         :param noise: Adds noise for a total of 40 attributes
         """
+        self.__init_args_kwargs__ = copy.copy(locals())
 
         self.instance_random_seed = instance_random_seed
         self.noise = noise
@@ -871,6 +874,7 @@ class WaveformGeneratorDrift(MOAStream):
         :param noise: Adds noise for a total of 40 attributes
         :param number_of_attributes_with_drift: Number of attributes with drift
         """
+        self.__init_args_kwargs__ = copy.copy(locals())
 
         self.instance_random_seed = instance_random_seed
         self.noise = noise
@@ -934,6 +938,7 @@ class STAGGERGenerator(MOAStream):
         :param classification_function: Classification function used, as defined in the original paper.
         :param balance: Balance the number of instances of each class.
         """
+        self.__init_args_kwargs__ = copy.copy(locals())
 
         self.instance_random_seed = instance_random_seed
         self.classification_function = classification_function
@@ -1003,6 +1008,7 @@ class SineGenerator(MOAStream):
         :param suppress_irrelevant_attributes: Reduce the data to only contain 2 relevant numeric attributes
         :param balance: Balance the number of instances of each class.
         """
+        self.__init_args_kwargs__ = copy.copy(locals())
 
         self.instance_random_seed = instance_random_seed
         self.classification_function = classification_function
