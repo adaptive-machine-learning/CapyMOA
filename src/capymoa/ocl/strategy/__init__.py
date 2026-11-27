@@ -12,6 +12,7 @@ from ._lwf import LWF
 from ._mas import MAS
 from ._mir import MIR
 from ._ncm import NCM
+from ._packnet import PackNet
 from ._pcr import PCR
 from ._rar import RAR
 from ._rwalk import RWalk
@@ -36,6 +37,7 @@ __all__ = [
     "SLDA",
     "ExperienceReplay",
     "GDumb",
+    "PackNet",
     "RWalk",
     "RanPAC",
     "l2p",
