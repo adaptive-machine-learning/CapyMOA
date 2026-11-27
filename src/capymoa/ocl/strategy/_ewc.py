@@ -127,7 +127,7 @@ class _EWCModule(nn.Module):
 
 
 class EWC(TorchMixin[_EWCModule], BatchClassifier, Handler):
-    """Elastic Weight Consolidation learner.
+    """Elastic Weight Consolidation (EWC,2017).
 
     Elastic Weight Consolidation (EWC) is a regularisation-based continual learning
     strategy that mitigates catastrophic forgetting by penalising changes to important

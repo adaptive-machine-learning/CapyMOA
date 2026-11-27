@@ -55,7 +55,7 @@ class _PCRModule(nn.Module):
 
 
 class PCR(TorchMixin[_PCRModule], BatchClassifier):
-    """Proxy-based Contrastive Replay (PCR).
+    """Proxy-based Contrastive Replay (PCR,2023).
 
     PCR [#pcr]_ trains an encoder and one learned proxy per class. Each update uses current
     and reservoir examples, with an original and augmented view of each. The contrastive

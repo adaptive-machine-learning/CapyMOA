@@ -219,7 +219,7 @@ class _L2PModule(nn.Module):
 
 
 class L2P(TorchMixin[_L2PModule], BatchClassifier, Handler):
-    """Learning to Prompt.
+    """Learning to Prompt (L2P,2022).
 
     Learning to Prompt (L2P) [#f1]_ is a continual learning strategy that leverages a
     pool of learnable prompts to adapt a pre-trained vision transformer (ViT) to new

@@ -34,7 +34,7 @@ class _NCMModule(nn.Module):
 
 
 class NCM(TorchMixin[_NCMModule], BatchClassifier):
-    """Nearest Class Mean.
+    """Nearest Class Mean (NCM,2017).
 
     Nearest Class Mean (NCM) [#f0]_ is a prototype based classifier that uses the mean
     of each class as a prototype. It calculates the distance from each input to

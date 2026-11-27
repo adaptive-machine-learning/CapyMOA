@@ -108,7 +108,7 @@ class _MASModule(nn.Module):
 
 
 class MAS(TorchMixin[_MASModule], BatchClassifier, Handler):
-    """Memory Aware Synapses learner.
+    """Memory Aware Synapses (MAS,2018).
 
     Memory Aware Synapses (MAS) is a regularisation-based continual learning strategy
     that estimates per-parameter importance from the sensitivity of the model's output

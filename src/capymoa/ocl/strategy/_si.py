@@ -161,7 +161,7 @@ class _SIModule(nn.Module):
 
 
 class SI(TorchMixin[_SIModule], BatchClassifier, Handler):
-    """Synaptic Intelligence learner.
+    """Synaptic Intelligence (SI,2017).
 
     Synaptic Intelligence (SI) is a regularisation-based continual learning strategy
     that accumulates per-parameter importance online from optimization trajectories,

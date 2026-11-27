@@ -73,7 +73,7 @@ class _SLDAModule(nn.Module):
 
 
 class SLDA(TorchMixin[_SLDAModule], BatchClassifier):
-    r"""Streaming Linear Discriminant Analysis.
+    r"""Streaming Linear Discriminant Analysis (SLDA,2020).
 
     Streaming Linear Discriminant Analysis (SLDA) [#f0]_ is a prototype classifier.
     It keeps a running mean per class and one shared covariance matrix for all
@@ -225,7 +225,7 @@ class SLDA(TorchMixin[_SLDAModule], BatchClassifier):
 
 
 class RanPAC(SLDA):
-    r"""Random Projections and Pre-trained Models (RanPAC).
+    r"""Random Projections and Pre-trained Models (RanPAC,2023).
 
     RanPAC [#f0]_ is a variant of :class:`SLDA`. It maps each input :math:`x \in
     \mathbb{R}^d` to :math:`M` random features, then fits SLDA on them:

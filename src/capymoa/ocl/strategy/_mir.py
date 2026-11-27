@@ -35,7 +35,7 @@ class _MIRModule(nn.Module):
 
 
 class MIR(TorchMixin[_MIRModule], BatchClassifier):
-    """Maximally Interfered Retrieval (MIR).
+    """Maximally Interfered Retrieval (MIR,2019).
 
     MIR [#mir]_ replays stored examples whose cross entropy increases most after
     a virtual update on the incoming batch. Candidates are sampled from the

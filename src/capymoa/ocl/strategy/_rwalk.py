@@ -151,7 +151,7 @@ class _RWalkModule(nn.Module):
 
 
 class RWalk(TorchMixin[_RWalkModule], BatchClassifier, Handler):
-    """Riemannian Walk (RWalk) learner.
+    """Riemannian Walk (RWalk,2018).
 
     RWalk [#f1]_ is a regularisation-based continual learning strategy that, like EWC,
     augments the task loss with a weighted quadratic penalty on parameter changes. The
