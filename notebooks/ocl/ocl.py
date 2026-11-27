@@ -16,13 +16,20 @@
 # %% [markdown]
 # # Online continual learning
 #
-# In online continual learning (OCL), a model learns from a stream of tasks. It sees each example once, must predict at any time, and must not forget old tasks while it learns new ones. Forgetting old tasks is called *catastrophic forgetting*.
+# Continual learning trains a model on a sequence of tasks and asks it to perform well
+# on all tasks seen so far. A task represents a concept or relation to learn. In online
+# continual learning (OCL), the model sees each example once and predicts throughout the
+# stream.
 #
-# This notebook runs some of CapyMOA's built-in OCL strategies on a small dataset that is fast on a CPU. The hyper-parameters were tuned in advance. To add your own learner, see the [custom learner](custom.ipynb) notebook.
+# A typical data-stream learner adapts to changes in the data distribution without
+# needing to retain past knowledge. Continual learning aims to preserve performance on
+# earlier tasks while learning new ones. In deep learning, losing that past performance
+# is called *catastrophic forgetting*; some non-deep models may be less prone to it.
 #
-# *More information about CapyMOA can be found at* https://www.capymoa.org.
-#
-# **last updated on 24/11/2026**
+# This notebook compares some of CapyMOA's [built-in OCL
+# strategies](https://capymoa.org/api/modules/capymoa.ocl.strategy.html) on a small
+# dataset. The hyper-parameters were tuned in advance. To add your own learner, see the
+# [custom learner](https://capymoa.org/notebooks/ocl/custom.html) notebook.
 
 # %% tags=["remove-cell"]
 # This cell is hidden on capymoa.org. See docs/contributing/docs.rst
@@ -34,13 +41,14 @@ if is_nb_fast():
 # %% [markdown]
 # ## Dataset
 #
-# {class}`~capymoa.ocl.datasets.TinySplitMNIST` has 16x16 images of ten digits. It has 100 training and 20 test images per digit. The digits are split into five tasks of two classes each. The learner sees the tasks one after the other, and is tested on all digits (class-incremental setting).
+# {class}`~capymoa.ocl.datasets.TinySplitMNIST` has 16x16 images of ten digits. It has
+# 100 training and 20 test images per digit. The digits are split into five tasks of two
+# classes each. The learner sees the tasks one after the other, and is tested on all
+# digits (class-incremental setting).
 
 # %%
 import torch
-from torch import Tensor, nn
 
-from capymoa.core.torch import FeatureModel
 from capymoa.ocl import evaluate_ocl
 from capymoa.ocl.datasets import TinySplitMNIST
 
@@ -53,25 +61,17 @@ print(scenario.task_schedule)
 # %% [markdown]
 # ## Model
 #
-# All neural strategies share one small multi-layer perceptron. It is a {class}`~capymoa.core.torch.FeatureModel`, since some strategies need the hidden features.
+# In this demo all strategies share the built-in
+# {class}`~capymoa.core.torch.ann.Perceptron`. It exposes hidden features for strategies
+# that need them.
 
 
 # %%
-class MLP(FeatureModel):
-    def __init__(self, hidden_size: int = 128):
-        super().__init__()
-        self.encoder = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(scenario.schema.get_num_attributes(), hidden_size),
-            nn.ReLU(),
-        )
-        self.head = nn.Linear(hidden_size, scenario.schema.get_num_classes())
+from capymoa.core.torch.ann import Perceptron
 
-    def features(self, x: Tensor) -> Tensor:
-        return self.encoder(x)
 
-    def forward(self, x: Tensor) -> Tensor:
-        return self.head(self.features(x))
+def make_model() -> Perceptron:
+    return Perceptron(scenario.schema, hidden_size=128)
 
 
 # %% [markdown]
@@ -79,17 +79,19 @@ class MLP(FeatureModel):
 #
 # We compare the following. All replay strategies keep 200 examples.
 #
-# * **Finetune** trains on each batch and has no defence against forgetting.
-# * **Experience Replay (ER)** mixes a random sample of past examples into each batch.
-# * **DER++** replays past examples with their old logits (Buzzega et al., 2020).
-# * **PCR** trains the model with a contrastive loss on class proxies (Lin et al., 2023).
-# * **RanPAC** uses a fixed random projection, with a classifier fit in closed form (McDonnell et al., 2023).
+# * {class}`~capymoa.classifier.Finetune` trains on each batch and has no defence against forgetting.
+# * {class}`~capymoa.ocl.strategy.ExperienceReplay` mixes past examples into each batch.
+# * {class}`~capymoa.ocl.strategy.DERPP` replays past examples with their old logits (Buzzega et al., 2020).
+# * {class}`~capymoa.ocl.strategy.PCR` trains the model with a contrastive loss on class proxies (Lin et al., 2023).
+# * {class}`~capymoa.ocl.strategy.RanPAC` uses a fixed random projection, with a classifier fit in closed form (McDonnell et al., 2023).
 #
 # Each function builds a fresh learner from a seed.
 
 # %%
+from torch import Tensor
+
 from capymoa.classifier import Finetune
-from capymoa.ocl.strategy import PCR, DERPP, ExperienceReplay, RanPAC
+from capymoa.ocl.strategy import DERPP, PCR, ExperienceReplay, RanPAC
 
 
 def augment(x: Tensor) -> Tensor:
@@ -100,14 +102,14 @@ def augment(x: Tensor) -> Tensor:
 
 def make_finetune(seed: int):
     torch.manual_seed(seed)
-    model = MLP()
+    model = make_model()
     optimiser = torch.optim.Adam(model.parameters(), lr=3.6e-4)
     return Finetune(scenario.schema, model, optimizer=optimiser, random_seed=seed)
 
 
 def make_er(seed: int):
     torch.manual_seed(seed)
-    model = MLP()
+    model = make_model()
     optimiser = torch.optim.Adam(model.parameters(), lr=3.4e-3)
     learner = Finetune(scenario.schema, model, optimizer=optimiser, random_seed=seed)
     return ExperienceReplay(learner, buffer_size=200, repeat=5)
@@ -115,7 +117,7 @@ def make_er(seed: int):
 
 def make_derpp(seed: int):
     torch.manual_seed(seed)
-    model = MLP()
+    model = make_model()
     optimiser = torch.optim.Adam(model.parameters(), lr=4.1e-3)
     return DERPP(
         scenario.schema,
@@ -133,7 +135,7 @@ def make_pcr(seed: int):
     torch.manual_seed(seed)
     return PCR(
         scenario.schema,
-        MLP(),
+        make_model(),
         feature_dim=128,
         augment=augment,
         optimiser_class=torch.optim.Adam,
@@ -161,7 +163,9 @@ strategies = {
 # %% [markdown]
 # ## Evaluation
 #
-# We train each learner on the stream with a batch size of 10 and test on every task after each task. We repeat this with three seeds to see the spread. The plots below show the first seed.
+# We train each learner on the stream with a batch size of 10 and test on every task
+# after each task. We repeat this with three seeds to see the spread. The plots below
+# show the first seed.
 
 # %%
 import pandas as pd
@@ -174,6 +178,7 @@ runs = {
             scenario.train_loaders(10),
             scenario.test_loaders(10),
             continual_evaluations=4,
+            eval_window_size=100,
         )
         for seed in seeds
     ]
@@ -198,7 +203,12 @@ summary = pd.DataFrame(
 summary.round(3)
 
 # %% [markdown]
-# The table shows the mean final accuracy on all tasks, its standard deviation over seeds, and the mean anytime accuracy on seen tasks (explained below). Finetune forgets older tasks. The replay strategies and RanPAC do much better. Each strategy was tuned on other seeds, and the test set, so its score here can be slightly high.
+#
+# The table reports mean final accuracy across tasks and seeds, its standard deviation,
+# and mean anytime accuracy on tasks seen so far. Anytime accuracy is measured four
+# times during each task; the seen-task measure includes only tasks learned by that
+# point. Finetune forgets older tasks, while replay and RanPAC do better. The strategies
+# were tuned on other seeds and the test set, so scores here may be slightly high.
 
 # %%
 from matplotlib import pyplot as plt
@@ -213,7 +223,10 @@ ax.set_title("TinySplitMNIST");
 # %% [markdown]
 # ## Accuracy over tasks
 #
-# This plot shows the accuracy on the tasks seen so far, measured four times per task. Markers are the accuracy at the end of each task. The line is the mean over seeds and the band is one standard deviation.
+# This plot shows the accuracy on the tasks seen so far, measured four times per task.
+# Markers are the accuracy at the end of each task. The line is the mean over seeds and
+# the band is one standard deviation.
+#
 
 # %%
 from capymoa.ocl.plot import plot_accuracy_comparison
@@ -224,7 +237,9 @@ plot_accuracy_comparison(runs, ax=ax);
 # %% [markdown]
 # ## Per-task accuracy
 #
-# Each plot shows the accuracy on each task after training on each task. A learner that forgets has low values in the lower left.
+# Each plot shows the accuracy on each task after training on each task. A learner that
+# forgets has low values in the lower left.
+#
 
 # %%
 from capymoa.ocl.plot import plot_accuracy_matrix
@@ -240,7 +255,10 @@ axes.flat[-1].set_visible(False)
 # %% [markdown]
 # ## Confusion matrix
 #
-# Classes are in the order they appear in the stream. Each row shows how often a true class gets each prediction, from 0% to 100%. Errors in the last columns mean the learner is biased to recent tasks.
+# A confusion matrix compares true classes (rows) with predicted classes (columns).
+# Here, classes are ordered by when they first appear in the stream, and each row is
+# normalized to show the fraction of that true class assigned to each prediction.
+# Errors in the last columns can indicate bias toward recent tasks.
 
 # %%
 from capymoa.ocl.plot import plot_confusion_matrix
@@ -261,31 +279,12 @@ fig.colorbar(
 # %% [markdown]
 # ## Accuracy during training
 #
-# These are useful measures of accuracy for a continual learner.
 #
-# * **Acc. (all)**
-#
-#   This is the accuracy on all tasks including unseen ones after training completes on each task.
-#
-# * **Acc. (seen)**
-#
-#   This is the accuracy only on seen tasks after completing training on each task.
-#
-# * **Anytime Acc. (all/seen)**
-#
-#   Like "Acc. (all/seen)" but measured periodically during the training of each task.
-#
-# * **Avg. Anytime Acc. (all/seen)**
-#
-#   This is the average of "Anytime Acc. (all/seen)".
-#
-# * **Online Win. Acc.**
-#
-#   This is the usual data stream windowed test-then-train accuracy over the data stream.
-#
-# * **Online Avg. Acc.**
-#
-#   This is the usual cumulative test-then-train accuracy over the data stream.
+# The plot combines the task-level and anytime measures above with two standard online
+# stream metrics. **Online window accuracy** is test-then-train accuracy over a moving
+# window. We set `eval_window_size=100` to show several windows over this 1,000-example
+# stream; the default of 1,000 would yield only one completed window. **Online average
+# accuracy** is cumulative test-then-train accuracy over the stream.
 
 # %%
 from capymoa.ocl.plot import plot_accuracy
@@ -314,13 +313,14 @@ fig.legend(
 )
 
 # %% [markdown]
-# Each result is a dictionary. Besides scalars, it has `per_task` and `anytime` column dictionaries (use `pd.DataFrame(...)` for a table), arrays like `accuracy_matrix`, and `ttt` (test-then-train), the usual online evaluation of a data stream classifier.
 #
 # ## OCL and Recurrent Data Streams
 #
-# CapyMOA's OCL strategies are standard classifiers, so they also work with {func}`~capymoa.classifier.evaluate_classifier` on ordinary data streams. Continual learning helps when concepts return over time and occupy different parts of the input space. (If two concepts give different labels to the same inputs, replaying old examples conflicts with the active concept.)
-#
-# Here we build a {class}`~capymoa.stream.drift.RecurrentConceptDriftStream` from four {class}`~capymoa.stream.generator.RandomRBFGenerator` concepts (see the [concept drift tutorial](../drift/drift_streams.ipynb)). Each concept places 50 radial clusters in its own region of a 20-dimensional space, and each concept appears four times.
+# Here we build a {class}`~capymoa.stream.drift.RecurrentConceptDriftStream` from four
+# {class}`~capymoa.stream.generator.RandomRBFGenerator` concepts (see the
+# [concept drift tutorial](../drift/drift_streams.ipynb)). Each concept places 50
+# radial clusters in its own region of a 20-dimensional space, and each concept
+# appears four times.
 
 # %%
 from typing import cast
@@ -365,6 +365,11 @@ print(stream_with_recurrent_concepts.describe(max_instances))
 
 
 # %%
+from torch import nn
+
+from capymoa.core.torch import FeatureModel
+
+
 class RBFMLP(FeatureModel):
     def __init__(self):
         super().__init__()
@@ -423,12 +428,29 @@ pd.Series(
 ).to_frame().round(1)
 
 # %% [markdown]
-# On the first pass through the four concepts, both neural learners start low on each unseen concept and improve as examples arrive. When the concepts return on later passes, `Finetune` drops sharply at every red drift line because training on newer concepts overwrote the old ones. It has to relearn each concept from scratch. `Experience Replay` keeps past examples from all four concepts in its buffer, so its accuracy stays high across concept switches. The `Hoeffding Tree` does not forget, yet its axis-aligned splits struggle to separate radial clusters across all four concepts.
+# On the first pass through the four concepts, both neural learners start with low
+# accuracy on each unseen concept and improve as examples arrive. When the concepts return on
+# later passes, `Finetune` drops sharply at every red drift line because training on
+# newer concepts overwrote the old ones. It has to relearn each concept from scratch.
+# `Experience Replay` keeps past examples from all four concepts in its buffer, so its
+# accuracy stays high across concept switches. The `Hoeffding Tree` does not forget, yet
+# its axis-aligned splits struggle to separate radial clusters across all four concepts.
 #
 # ## References
 #
-# * Buzzega, P., Boschini, M., Porrello, A., Abati, D., & Calderara, S. (2020). Dark Experience for General Continual Learning. NeurIPS.
-# * Gunasekara, N., Pfahringer, B., Gomes, H. M., Bifet, A., & Koh, Y. S. (2024). Recurrent Concept Drifts on Data Streams. IJCAI.
-# * Lin, H., Zhang, B., Feng, S., Li, X., & Ye, Y. (2023). PCR: Proxy-based Contrastive Replay for Online Class-Incremental Continual Learning. CVPR.
-# * McDonnell, M. D., Gong, D., Parveneh, A., Abbasnejad, E., & van den Hengel, A. (2023). RanPAC: Random Projections and Pre-trained Models for Continual Learning. NeurIPS.
-# * Rolnick, D., Ahuja, A., Schwarz, J., Lillicrap, T., & Wayne, G. (2019). Experience Replay for Continual Learning. NeurIPS.
+# * Buzzega, P., Boschini, M., Porrello, A., Abati, D., & Calderara, S. (2020). Dark
+#   Experience for General Continual Learning: A Strong, Simple Baseline. Advances in
+#   Neural Information Processing Systems 33, 15920–30.
+#   https://papers.nips.cc/paper/2020/hash/b704ea2c39778f07c617f6b7ce480e9e-Abstract.html
+# * Gunasekara, N., Pfahringer, B., Gomes, H. M., Bifet, A., & Koh, Y. S. (2024).
+#   Recurrent concept drifts on data streams. International Joint Conferences on
+#   Artificial Intelligence Organization.
+# * Lin, H., Zhang, B., Feng, S., Li, X., & Ye, Y. (2023). PCR: Proxy-Based Contrastive
+#   Replay for Online Class-Incremental Continual Learning. CVPR, 24246–24255.
+#   https://openaccess.thecvf.com/content/CVPR2023/html/Lin_PCR_Proxy-Based_Contrastive_Replay_for_Online_Class-Incremental_Continual_Learning_CVPR_2023_paper.html
+# * McDonnell, M. D., Gong, D., Parvaneh, A., Abbasnejad, E., & van den Hengel, A.
+#   (2023). RanPAC: Random Projections and Pre-trained Models for Continual Learning.
+#   NeurIPS 2023. https://arxiv.org/abs/2307.02251
+# * Rolnick, D., Ahuja, A., Schwarz, J., Lillicrap, T., & Wayne, A. (2019). Experience
+#   replay for continual learning. Advances in neural information processing systems,
+#   32. https://arxiv.org/abs/1811.11682

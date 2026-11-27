@@ -16,21 +16,9 @@
 # %% [markdown]
 # # Add a custom OCL learner
 #
-# In machine learning, continual learning is a problem setting where a model is trained on a sequence of tasks and must perform well on all tasks seen so far. A task is a specific concept or relation the model expects to learn. Online continual learning adds the constraints that the model considers each example exactly once, and the model can perform prediction at any time.
-#
-# In contrast to continual learning, the typical data stream problem setting adapts to changes in data distribution by discarding knowledge of the past. However, in continual learning, the model must retain knowledge of past tasks while learning new tasks.
-#
-# Continual learning is synonymous with overcoming catastrophic forgetting, a phenomenon in deep learning where a model trained on a sequence of tasks forgets how to perform well on the initial tasks. Non-deep learning models can be immune to forgetting.
-#
-# ---
-#
 # This notebook shows how to add your own learner. We implement “Experience Replay” (ER), a classic online continual learning strategy that stores a buffer of past examples. By sampling from the buffer during training, ER avoids catastrophic forgetting.
 #
-# CapyMOA has many built-in strategies. See the [Online continual learning](ocl.ipynb) notebook to use them.
-#
-# *More information about CapyMOA can be found at* https://www.capymoa.org.
-#
-# **last updated on 24/11/2026**
+# CapyMOA has many built-in strategies. See the [Online continual learning](https://capymoa.org/notebooks/ocl/ocl.html) notebook to use them.
 
 # %% tags=["remove-cell"]
 # This cell is hidden on capymoa.org. See docs/contributing/docs.rst
@@ -190,8 +178,8 @@ class SimpleMLP(nn.Module):
 
 
 # %%
-from capymoa.ocl.datasets import SplitMNIST
 from capymoa.ocl import evaluate_ocl
+from capymoa.ocl.datasets import SplitMNIST
 
 stream = SplitMNIST()
 mlp = SimpleMLP(stream.schema, 64)
