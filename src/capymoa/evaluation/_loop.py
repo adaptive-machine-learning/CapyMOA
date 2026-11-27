@@ -4,6 +4,7 @@ Domain ``evaluate_*`` functions build their evaluators, call the loop and turn
 its output into a typed result. Nothing here knows about a domain.
 """
 
+import math
 import sys
 import time
 from collections.abc import Mapping, Sequence, Sized
@@ -17,8 +18,9 @@ from moa.streams import InstanceStream
 from tqdm import tqdm
 
 from capymoa._utils import batched
-from capymoa.base import MOAPredictionIntervalLearner
+from capymoa.base import Classifier, MOAPredictionIntervalLearner
 from capymoa.core import LabeledInstance
+from capymoa.evaluation._abstain import batch_proba_abstains, proba_abstains
 from capymoa.evaluation.results import RunInfo
 from capymoa.stream import Stream
 from capymoa.stream.drift import DriftStream, RecurrentConceptDriftStream
@@ -112,6 +114,28 @@ class _Run:
         self.store_predictions = store_predictions
         self._y_true: list = []
         self._y_pred: list = []
+        #: Whether each prediction of the last batch was an abstention. Empty when
+        #: the learner does not report it.
+        self._abstained: list[bool] = []
+
+    def predict(self, instance) -> Any:
+        """Predict one instance and note if the classifier abstained.
+
+        A classifier abstains when its confidence is equal to or below chance.
+        The note goes in ``self._abstained``.
+        """
+        learner = self.learner
+        if not isinstance(learner, Classifier):
+            return learner.predict(instance)
+        try:
+            proba = learner.predict_proba(instance)
+        except NotImplementedError:  # A pipeline has no probabilities.
+            return learner.predict(instance)
+        n = instance.schema.get_num_classes()
+        self._abstained.append(proba_abstains(proba, n))
+        if type(learner).predict is Classifier.predict:
+            return int(np.argmax(proba))  # What predict would do, without a 2nd call.
+        return learner.predict(instance)
 
     def test_then_train(
         self, batch: Sequence[Any]
@@ -126,6 +150,8 @@ class _Run:
             # Collect a batch of instances and predict them all at once
             import torch  # optional extra; a Batch learner guarantees it
 
+            from capymoa.base import BatchClassifier
+
             np_x = np.stack([instance.x for instance in batch])
             torch_x = torch.from_numpy(np_x).to(
                 device=learner.device, dtype=learner.x_dtype
@@ -133,11 +159,18 @@ class _Run:
             torch_y = torch.tensor(
                 yb_true, dtype=learner.y_dtype, device=learner.device
             )
-            yb_pred = learner.batch_predict(torch_x).tolist()
+            if isinstance(learner, BatchClassifier):
+                proba = learner.batch_predict_proba(torch_x)
+                yb_pred = proba.argmax(1).tolist()
+                self._abstained.extend(
+                    batch_proba_abstains(proba.detach().cpu().numpy()).tolist()
+                )
+            else:
+                yb_pred = learner.batch_predict(torch_x).tolist()
             learner.batch_train(torch_x, torch_y)
         else:
             for instance in batch:
-                yb_pred.append(learner.predict(instance))
+                yb_pred.append(self.predict(instance))
                 learner.train(instance)
         return yb_true, yb_pred
 
@@ -161,17 +194,27 @@ class _Run:
             for instance in batch:
                 learner.train(instance)
 
+    def _scored(self, y_pred: Sequence[Any]) -> Sequence[Any]:
+        """The predictions as scored. A regressor's ``NaN`` is its ``nan_value``."""
+        nan_value = getattr(self.cumulative, "nan_value", None)
+        if nan_value is None:
+            return y_pred
+        return [nan_value if math.isnan(p) else p for p in y_pred]
+
     def step(self, batch: Sequence[Any]) -> None:
         """Test-then-train on a batch, then update the evaluators."""
+        self._abstained = []
         y_true, y_pred = self.test_then_train(batch)
-        for t, p in zip(y_true, y_pred, strict=True):
-            self.cumulative.update(t, p)
+        # Only classifiers report abstentions. A regressor's are its NaN.
+        extra = [{"abstained": a} for a in self._abstained] or [{}] * len(y_true)
+        for t, p, kwargs in zip(y_true, y_pred, extra, strict=True):
+            self.cumulative.update(t, p, **kwargs)
             if self.windowed is not None:
-                self.windowed.update(t, p)
+                self.windowed.update(t, p, **kwargs)
         if self.store_y:
             self._y_true.extend(y_true)
         if self.store_predictions:
-            self._y_pred.extend(y_pred)
+            self._y_pred.extend(self._scored(y_pred))
 
     def output(self, instances: int, wallclock: float, cpu_time: float) -> _LoopOutput:
         """What the loop measured for this learner."""
@@ -274,6 +317,7 @@ def _prequential_loop_fast(
     max_instances: int | None,
     ssl: tuple[int, int, float, int] | None = None,
     warmup: int = 0,
+    nan_value: float | None = 0.0,
 ) -> _LoopOutput:
     """The test-then-train loop of one learner, run by MOA in Java.
 
@@ -285,6 +329,8 @@ def _prequential_loop_fast(
         random_seed)`` for semi-supervised evaluation, else ``None``.
     :param warmup: Number of instances, from the start, to train on without
         testing. They count towards ``max_instances``. Not for ``ssl``.
+    :param nan_value: For regression, the value that replaces a ``NaN``
+        prediction (an abstention). ``None`` keeps the ``NaN``.
     """
     if warmup < 0:
         raise ValueError("warmup must be zero or positive.")
@@ -323,7 +369,7 @@ def _prequential_loop_fast(
                 run.store_y,
                 run.store_predictions,
                 warmup,
-                0.0,
+                float("nan") if nan_value is None else float(nan_value),
                 HookableEvaluationLoop(),
             )
     else:
@@ -403,6 +449,10 @@ def _results_body(
         rows = windowed.result_windows
         table = np.asarray(rows, dtype=float).reshape(len(rows), len(header))
         column = {name: table[:, i] for i, name in enumerate(header)}
+        # The window evaluators count the whole stream in ``abstentions``, and
+        # the current window in ``abstentions_window``.
+        if "abstentions_window" in column:
+            column["abstentions"] = column["abstentions_window"]
         info["window_size"] = windowed.window_size
         info["windowed"] = {
             "instances": column["instances"].astype(int),
@@ -420,5 +470,9 @@ def _results_body(
     keys = [*metrics, *whole_stream_only]
     return {
         **info,
-        "cumulative": {key: float(values[key]) for key in keys if key in values},
+        "cumulative": {
+            key: int(values[key]) if key == "abstentions" else float(values[key])
+            for key in keys
+            if key in values
+        },
     }

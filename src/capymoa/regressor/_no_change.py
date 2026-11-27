@@ -6,7 +6,7 @@ from capymoa.stream import Schema
 class NoChange(Regressor):
     """No Change regressor.
 
-    Predict the previous target value. Outputs 0 prior to seeing any data.
+    Predict the previous target value. Outputs ``NaN`` prior to seeing any data.
 
     .. seealso::
 
@@ -20,7 +20,7 @@ class NoChange(Regressor):
         :param schema: Describes the stream's structure and types.
         """
         super().__init__(None, 0)
-        self.previous_value: TargetValue = TargetValue(0)
+        self.previous_value: TargetValue = TargetValue(float("nan"))
 
     def train(self, instance: RegressionInstance):
         self.previous_value = instance.y_value

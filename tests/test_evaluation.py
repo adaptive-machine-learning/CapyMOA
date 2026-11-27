@@ -18,7 +18,7 @@ from capymoa.classifier.evaluate import (
     ClassificationEvaluator,
     ClassificationWindowedEvaluator,
 )
-from capymoa.datasets import Electricity, ElectricityTiny
+from capymoa.datasets import Electricity, ElectricityTiny, FriedTiny
 from capymoa.evaluation import prequential_evaluation
 from capymoa.evaluation._loop import (
     _prequential_loop_fast,
@@ -26,7 +26,8 @@ from capymoa.evaluation._loop import (
     _use_java_loop,
 )
 from capymoa.exception import StreamTypeError
-from capymoa.regressor import KNNRegressor
+from capymoa.regressor import KNNRegressor, evaluate_regressor
+from capymoa.regressor import NoChange as NoChangeRegressor
 from capymoa.ssl import evaluate_ssl
 from capymoa.stream.generator import (
     SEA,
@@ -410,3 +411,66 @@ def test_fast_loop_refuses_custom_test_then_train():
     )
     with pytest.raises(TypeError, match="custom test_then_train"):
         _prequential_loop_fast(stream, run, max_instances=10)
+
+
+def _evaluate_nochange(**kwargs):
+    stream = FriedTiny()
+    return evaluate_regressor(
+        stream,
+        NoChangeRegressor(stream.get_schema()),  # NaN before the first target
+        window_size=100,
+        **kwargs,
+    )
+
+
+def test_classifier_abstentions_fast_equals_slow():
+    """The Java and Python loops count the same abstentions."""
+    fast, slow = (
+        evaluate_classifier(
+            stream := ElectricityTiny(),
+            HoeffdingTree(stream.get_schema(), random_seed=1),
+            window_size=100,
+            optimise=optimise,
+        )
+        for optimise in (True, False)
+    )
+    assert fast["cumulative"]["abstentions"] > 0
+    assert fast["cumulative"]["abstentions"] == slow["cumulative"]["abstentions"]
+    assert fast["cumulative"]["abstentions"] == fast["windowed"]["abstentions"].sum()
+    assert list(fast["windowed"]["abstentions"]) == list(
+        slow["windowed"]["abstentions"]
+    )
+
+
+@pytest.mark.parametrize("nan_value", [0.0, 5.0, None])
+def test_regressor_nan_is_an_abstention(nan_value):
+    """A NaN prediction is counted, and scored and stored as ``nan_value``."""
+    fast, slow = (
+        _evaluate_nochange(optimise=o, store_predictions=True, nan_value=nan_value)
+        for o in (True, False)
+    )
+    for results in (fast, slow):
+        assert results["cumulative"]["abstentions"] == 1
+        assert list(results["windowed"]["abstentions"][:2]) == [1, 0]
+        first = results["y_pred"][0]
+        assert np.isnan(first) if nan_value is None else first == nan_value
+    np.testing.assert_allclose(fast["cumulative"]["rmse"], slow["cumulative"]["rmse"])
+
+
+def test_regressor_nan_value_changes_score():
+    default = _evaluate_nochange(optimise=False)["cumulative"]["rmse"]
+    assert np.isfinite(default)
+    assert (
+        _evaluate_nochange(optimise=False, nan_value=100.0)["cumulative"]["rmse"]
+        > default
+    )
+
+
+def test_classification_evaluator_abstained():
+    """``abstained`` sends equal votes, which MOA counts."""
+    schema = ElectricityTiny().get_schema()
+    evaluator = ClassificationEvaluator(schema=schema)
+    evaluator.update(1, 1)
+    evaluator.update(1, 1, abstained=True)
+    assert evaluator.metrics_dict()["abstentions"] == 1
+    assert evaluator.metrics_dict()["accuracy"] == 50.0
