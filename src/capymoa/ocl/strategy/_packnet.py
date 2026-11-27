@@ -13,6 +13,122 @@ from capymoa.stream._stream import Schema
 NEG_INF = float("-inf")
 
 
+def get_visible_mask(allocation: Tensor, task_id: int) -> Tensor:
+    """Get a mask of the weights visible to a task.
+
+    Weights from the task and all earlier tasks are visible.
+
+    >>> allocation = torch.tensor([0, 0, 1, 1, 2, 2], dtype=torch.uint8)
+    >>> get_visible_mask(allocation, 0)
+    tensor([ True,  True, False, False, False, False])
+    >>> get_visible_mask(allocation, 1)
+    tensor([ True,  True,  True,  True, False, False])
+
+    :param allocation: The task that owns each weight.
+    :param task_id: The task ID.
+    :return: A boolean mask.
+    """
+    return (allocation <= task_id).bool()
+
+
+def get_task_mask(allocation: Tensor, task_id: int) -> Tensor:
+    """Get a mask of the weights owned by a task.
+
+    >>> allocation = torch.tensor([0, 0, 1, 1], dtype=torch.uint8)
+    >>> get_task_mask(allocation, 0)
+    tensor([ True,  True, False, False])
+    >>> get_task_mask(allocation, 1)
+    tensor([False, False,  True,  True])
+
+    :param allocation: The task that owns each weight.
+    :param task_id: The task ID.
+    :return: A boolean mask.
+    """
+    return (allocation == task_id).bool()
+
+
+def disable_grads(allocation: Tensor, grads: Tensor, task_id: int) -> Tensor:
+    """Zero the gradients of weights that a task does not own.
+
+    >>> allocation = torch.tensor([0, 1], dtype=torch.uint8)
+    >>> disable_grads(allocation, torch.ones(2), 1)
+    tensor([0., 1.])
+
+    :param allocation: The task that owns each weight.
+    :param grads: Gradients with the same number of elements as ``allocation``.
+    :param task_id: The task being trained.
+    :return: Masked gradients, with the shape of ``grads``.
+    """
+    return (grads.view(-1) * get_task_mask(allocation, task_id)).view_as(grads)
+
+
+def update_allocation(
+    allocation: Tensor,
+    src_prune_order: Tensor,
+    target_src_sparsity: float,
+    src_task_id: int,
+    dst_task_id: int,
+) -> Tensor:
+    """Move the least important weights from one task to another.
+
+    >>> allocation = torch.tensor([0, 0, 0, 0, 0, 0, 1, 1], dtype=torch.uint8)
+    >>> update_allocation(allocation.clone(), torch.arange(6), 0.5, 0, 1)
+    tensor([1, 1, 0, 0, 0, 0, 1, 1], dtype=torch.uint8)
+    >>> update_allocation(allocation.clone(), torch.arange(6), 0.75, 0, 1)
+    tensor([1, 1, 1, 1, 0, 0, 1, 1], dtype=torch.uint8)
+
+    :param allocation: The task that owns each weight. Updated in place.
+    :param src_prune_order: Indices into the source task's weights, least important
+        first.
+    :param target_src_sparsity: Fraction of the source and destination weights that
+        should not belong to the source after the move.
+    :param src_task_id: The task that gives weights.
+    :param dst_task_id: The task that receives weights.
+    :return: The updated allocation.
+    """
+    allocation = allocation.view(-1)
+    src_prune_order = src_prune_order.view(-1)
+    assert 0 <= target_src_sparsity <= 1, "The sparsity must be between 0 and 1"
+    if src_prune_order.numel() == 0:
+        return allocation
+
+    src_mask = get_task_mask(allocation, src_task_id)
+    src_count = int(src_mask.sum())
+    dst_count = int(get_task_mask(allocation, dst_task_id).sum())
+    assert len(src_prune_order) == src_count, "Order must cover the source weights"
+
+    # Number of weights the source keeps
+    keep = math.ceil((src_count + dst_count) * (1 - target_src_sparsity))
+    n_move = src_count - keep
+    if n_move <= 0:
+        return allocation
+
+    allocation[src_mask] = allocation[src_mask].index_fill(
+        0, src_prune_order[:n_move], dst_task_id
+    )
+    return allocation
+
+
+def prune_by_abs_magnitude(
+    allocation: Tensor, parameter: Tensor, task_id: int, sparsity: float
+) -> Tensor:
+    """Move the smallest weights of ``task_id`` to ``task_id + 1``.
+
+    >>> allocation = torch.zeros(4, dtype=torch.uint8)
+    >>> prune_by_abs_magnitude(allocation, torch.tensor([3.0, -1, 2, -4]), 0, 0.5)
+    tensor([0, 1, 1, 0], dtype=torch.uint8)
+
+    :param allocation: The task that owns each weight. Updated in place.
+    :param parameter: The weights.
+    :param task_id: The task to prune.
+    :param sparsity: Fraction of the weights to move.
+    :return: The updated allocation.
+    """
+    values = parameter.detach().view(-1)[get_task_mask(allocation, task_id)]
+    order = torch.argsort(values.abs())
+    return update_allocation(allocation, order, sparsity, task_id, task_id + 1)
+
+
 class _PackNetModule(nn.Module):
     """Torch state of PackNet."""
 
@@ -27,7 +143,7 @@ class _PackNetModule(nn.Module):
         for i, name in enumerate(self.names):
             param = model.get_parameter(name)
             self.register_buffer(
-                f"alloc_{i}", torch.zeros_like(param, dtype=torch.uint8)
+                f"alloc_{i}", torch.zeros(param.numel(), dtype=torch.uint8)
             )
 
     def allocations(self) -> list[Tensor]:
@@ -35,10 +151,10 @@ class _PackNetModule(nn.Module):
 
     def forward(self, x: Tensor, task: int) -> Tensor:
         """Run ``model`` using only the weights visible to ``task``."""
-        params = {
-            n: self.model.get_parameter(n) * (a <= task)
-            for n, a in zip(self.names, self.allocations())
-        }
+        params = {}
+        for name, alloc in zip(self.names, self.allocations()):
+            p = self.model.get_parameter(name)
+            params[name] = (p.view(-1) * get_visible_mask(alloc, task)).view_as(p)
         return functional_call(self.model, params, (x,), strict=False)
 
 
@@ -112,15 +228,16 @@ class PackNet(TorchMixin[_PackNetModule], BatchClassifier, Handler):
         module.criterion(logits, y).backward()
 
         params = [module.model.get_parameter(n) for n in module.names]
-        owned = [a == task for a in module.allocations()]
+        allocs = module.allocations()
         saved = [p.detach().clone() for p in params]
-        for p, own in zip(params, owned):
+        for p, alloc in zip(params, allocs):
             if p.grad is not None:
-                p.grad.mul_(own)
+                p.grad = disable_grads(alloc, p.grad, task)
         self._optimiser.step()
         # Weight decay and momentum can move frozen weights, so put them back.
         with torch.no_grad():
-            for p, own, old in zip(params, owned, saved):
+            for p, alloc, old in zip(params, allocs, saved):
+                own = get_task_mask(alloc, task).view_as(p)
                 p.copy_(torch.where(own, p, old))
 
     @torch.no_grad()
@@ -160,24 +277,10 @@ class PackNet(TorchMixin[_PackNetModule], BatchClassifier, Handler):
             sparsity = 1 - 1 / remaining
 
         module = self._module
-        params = [module.model.get_parameter(n) for n in module.names]
-        allocs = module.allocations()
-        owned = [a == task for a in allocs]
-        if not any(o.any() for o in owned):
-            return
-        # Pool weights from all tensors, so pruning is global.
-        values = torch.cat([p.detach().abs()[o] for p, o in zip(params, owned)])
-        n_prune = math.floor(values.numel() * sparsity)
-        if n_prune == 0:
-            return
-        order = torch.argsort(values)[:n_prune]
-        prune = torch.zeros(values.numel(), dtype=torch.bool, device=values.device)
-        prune[order] = True
-        start = 0
-        for a, o in zip(allocs, owned):
-            n = int(o.sum())
-            a[o] = torch.where(prune[start : start + n], task + 1, task).to(a.dtype)
-            start += n
+        for name, alloc in zip(module.names, module.allocations()):
+            prune_by_abs_magnitude(
+                alloc, module.model.get_parameter(name), task, sparsity
+            )
 
     def __str__(self) -> str:
         return f"PackNet(sparsity={self._sparsity})"

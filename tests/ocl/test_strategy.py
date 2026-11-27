@@ -361,7 +361,7 @@ TEST_CASES: list[Case] = [
     Case(
         "PackNet",
         new_constructor(PackNet, lr=0.1),
-        Result(74.0, 67.2, 22.0),
+        Result(80.0, 69.8, 21.8),
         task_mask=True,
     ),
     Case(
