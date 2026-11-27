@@ -61,7 +61,7 @@ class _SCRModule(nn.Module):
 
 
 class SCR(TorchMixin[_SCRModule], BatchClassifier, Handler):
-    """Supervised Contrastive Replay (SCR).
+    """Supervised Contrastive Replay (SCR,2021).
 
     SCR [#scr]_ trains an encoder and projection head on current and replay examples, using
     each example and an augmented view. At inference, normalized encoder features

@@ -50,7 +50,7 @@ class _ASERModule(nn.Module):
 
 
 class ASER(TorchMixin[_ASERModule], BatchClassifier):
-    """Adversarial Shapley Value Experience Replay (ASER).
+    """Adversarial Shapley Value Experience Replay (ASER,2021).
 
     ASER [#aser]_ uses KNN-Shapley values of latent features for both replay
     retrieval and memory replacement. This implementation follows the authors'

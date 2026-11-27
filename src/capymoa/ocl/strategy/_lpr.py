@@ -102,7 +102,7 @@ class _LPRModule(nn.Module):
 
 
 class LPR(TorchMixin[_LPRModule], BatchClassifier):
-    """Layerwise Proximal Replay (LPR).
+    """Layerwise Proximal Replay (LPR,2024).
 
     LPR [#lpr]_ preconditions mean cross-entropy gradients on current and replay
     examples with cached inverses of ``I + omega * Z.T @ Z / n``. ``Z`` holds

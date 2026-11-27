@@ -18,7 +18,7 @@ class _RARModule(nn.Module):
 
 
 class RAR(TorchMixin[_RARModule], BatchClassifier, Handler):
-    """Repeated Augmented Rehearsal.
+    """Repeated Augmented Rehearsal (RAR,2022).
 
     Repeated Augmented Rehearsal (RAR) [#f0]_ is a replay continual learning
     strategy that combines data augmentation with repeated training on each

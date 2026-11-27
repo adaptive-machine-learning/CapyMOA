@@ -12,7 +12,7 @@ from ._der import DER
 
 
 class DERPP(DER):
-    """Dark Experience Replay++ (DER++).
+    """Dark Experience Replay++ (DER++,2020).
 
     DER++ [#derpp]_ extends :class:`DER` with cross entropy on a second, independently sampled
     replay batch. The objective is current-label cross entropy plus ``alpha``

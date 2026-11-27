@@ -16,7 +16,7 @@ class _ERModule(nn.Module):
 
 
 class ExperienceReplay(TorchMixin[_ERModule], BatchClassifier, Handler):
-    """Experience Replay.
+    """Experience Replay (ER,2019).
 
     Experience Replay (ER) [#f0]_ is a replay continual learning strategy.
 

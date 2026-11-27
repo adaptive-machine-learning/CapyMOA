@@ -26,7 +26,7 @@ class _LWFModule(nn.Module):
 
 
 class LWF(TorchMixin[_LWFModule], BatchClassifier, Handler):
-    """Learning Without Forgetting (LwF).
+    """Learning Without Forgetting (LwF,2016).
 
     LwF [#f1]_ is a regularisation-based continual learning strategy that distils
     predictions from a frozen teacher snapshot of the previous task while learning the
