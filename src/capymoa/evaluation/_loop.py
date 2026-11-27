@@ -131,8 +131,7 @@ class _Run:
             proba = learner.predict_proba(instance)
         except NotImplementedError:  # A pipeline has no probabilities.
             return learner.predict(instance)
-        schema = getattr(learner, "schema", None)  # OSNN has none
-        n = np.size(proba) if schema is None else schema.get_num_classes()
+        n = instance.schema.get_num_classes()
         self._abstained.append(proba_abstains(proba, n))
         if type(learner).predict is Classifier.predict:
             return int(np.argmax(proba))  # What predict would do, without a 2nd call.
@@ -160,7 +159,7 @@ class _Run:
             torch_y = torch.tensor(
                 yb_true, dtype=learner.y_dtype, device=learner.device
             )
-            if type(learner).batch_predict is BatchClassifier.batch_predict:
+            if isinstance(learner, BatchClassifier):
                 proba = learner.batch_predict_proba(torch_x)
                 yb_pred = proba.argmax(1).tolist()
                 self._abstained.extend(
