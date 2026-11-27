@@ -119,6 +119,7 @@ class RegressionEvaluator:
         self.moa_basic_evaluator.setFillAbstain(
             float("nan") if nan_value is None else float(nan_value)
         )
+        self.moa_basic_evaluator.setCountAbstentions(True)
 
         _attributeValues = ArrayList()
 

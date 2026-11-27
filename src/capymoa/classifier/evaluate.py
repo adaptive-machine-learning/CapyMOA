@@ -278,6 +278,7 @@ class ClassificationEvaluator:
         self.moa_basic_evaluator.precisionRecallOutputOption.set()
         self.moa_basic_evaluator.f1PerClassOption.set()
         self.moa_basic_evaluator.rocAucOption.set()
+        self.moa_basic_evaluator.abstentionsOption.set()
         self.moa_basic_evaluator.prepareForUse()
 
         _attributeValues = ArrayList()
