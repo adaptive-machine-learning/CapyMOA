@@ -13,6 +13,7 @@ from ._csmote import CSMOTE
 from ._dems import DynamicEnsembleMemberSelection
 from ._dynamic_weighted_majority import DynamicWeightedMajority
 from ._efdt import EFDT
+from ._groch import GroCH
 
 # `_hoeffding_tree` must be imported before `_hoeffding_adaptive_tree`: the
 # latter does `from capymoa.classifier import HoeffdingTree`, which requires
@@ -52,6 +53,7 @@ __all__ = [
     "DynamicEnsembleMemberSelection",
     "DynamicWeightedMajority",
     "Finetune",
+    "GroCH",
     "HoeffdingAdaptiveTree",
     "HoeffdingTree",
     "LeveragingBagging",
