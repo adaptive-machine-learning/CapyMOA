@@ -36,6 +36,7 @@ from capymoa.ocl.strategy import (
     SLDA,
     ExperienceReplay,
     GDumb,
+    PackNet,
     RanPAC,
     RWalk,
 )
@@ -356,6 +357,12 @@ TEST_CASES: list[Case] = [
         "LWF",
         new_constructor(LWF, lr=0.10, alpha=4.66, temperature=1.67),
         Result(36.49, 25.09, 17.59),
+    ),
+    Case(
+        "PackNet",
+        new_constructor(PackNet, lr=0.1),
+        Result(80.0, 69.8, 21.8),
+        task_mask=True,
     ),
     Case(
         "MAS",
