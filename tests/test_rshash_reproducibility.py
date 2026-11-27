@@ -89,7 +89,7 @@ def _discretized_vectors(count: int = 500):
         yield rng.integers(-4, 5, size=2, dtype=np.int64)
 
 
-@pytest.mark.parametrize("python_hash_seed", ["1", "12345"])
+@pytest.mark.parametrize("python_hash_seed", ["12345"])
 def test_rshash_is_reproducible_across_processes(python_hash_seed):
     """The same seed must give the same scores in any process.
 

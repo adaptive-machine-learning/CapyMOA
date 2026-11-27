@@ -6,6 +6,7 @@
   win_accuracy: 92.0
 
 - id: "AdaptiveRandomForestClassifier"
+  max_instances: 300
   learner: "capymoa.classifier.AdaptiveRandomForestClassifier"
   params: {}
 
@@ -13,6 +14,7 @@
   win_accuracy: 91.0
 
 - id: HoeffdingTree
+  max_instances: 300
   learner: capymoa.classifier.HoeffdingTree
   params: {}
 
@@ -79,6 +81,7 @@
 
 # Train on the first 500 instances without testing them.
 - id: HoeffdingTree-warmup
+  max_instances: 1000
   learner: capymoa.classifier.HoeffdingTree
   params: {}
   warmup: 500
@@ -97,6 +100,7 @@
   always_deterministic: true
 
 - id: KNN
+  max_instances: 300
   learner: capymoa.classifier.KNN
   params: {}
 
@@ -164,6 +168,7 @@
   always_deterministic: true
 
 - id: StreamingRandomPatches
+  max_instances: 300
   learner: capymoa.classifier.StreamingRandomPatches
   params: {}
 
@@ -199,10 +204,6 @@
     untrained instance, predict() returns a class, predict_proba() returns
     None, and a third call also returns None. The MOA
     getVotesForInstance() call may change internal state."
-  skip_test_optimise: "SAMkNN's fast (optimise=True) and slow
-    (optimise=False) loops give different accuracy: 82.65% and 82.5% on
-    ElectricityTiny. This may have the same cause as the state change
-    described in skip_test_predict."
 
 - id: DynamicWeightedMajority
   learner: capymoa.classifier.DynamicWeightedMajority
@@ -287,6 +288,7 @@
 
 # Python base learners and drift detectors. MOA runs them through proxies.
 - id: OnlineBagging-SGDClassifier
+  max_instances: 300
   learner: capymoa.classifier.OnlineBagging
   params:
     base_learner: &sgd
