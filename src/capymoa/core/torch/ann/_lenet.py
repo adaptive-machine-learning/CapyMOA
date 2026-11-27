@@ -1,7 +1,9 @@
 from torch import Tensor, nn
 
+from capymoa.core.torch import FeatureModel
 
-class LeNet5(nn.Module):
+
+class LeNet5(FeatureModel):
     """LeNet-5 [Lecun1998]_ convolutional neural network for 28x28 grayscale images.
 
     .. [Lecun1998] Y. Lecun, L. Bottou, Y. Bengio and P. Haffner, "Gradient-based learning
@@ -21,13 +23,16 @@ class LeNet5(nn.Module):
         self.flatten = nn.Flatten()
         self.in_shape = in_shape
 
-    def forward(self, x: Tensor) -> Tensor:
-        """Forward pass of the LeNet-5 model."""
+    def features(self, x: Tensor) -> Tensor:
+        """Return the 84-dimensional representation before the classifier."""
         x = x.view(-1, *self.in_shape)
         x = self.pool(self.act_fn(self.conv1(x)))
         x = self.pool(self.act_fn(self.conv2(x)))
         x = self.flatten(x)
         x = self.act_fn(self.fc1(x))
         x = self.act_fn(self.fc2(x))
-        x = self.fc3(x)
         return x
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Return class logits for the input."""
+        return self.fc3(self.features(x))

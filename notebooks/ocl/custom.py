@@ -1,0 +1,232 @@
+# ---
+# jupyter:
+#   jupytext:
+#     default_lexer: ipython3
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
+#   kernelspec:
+#     display_name: .venv
+#     language: python
+#     name: python3
+# ---
+
+# %% [markdown]
+# # Add a custom OCL learner
+#
+# This notebook shows how to add your own learner. We implement “Experience Replay” (ER), a classic online continual learning strategy that stores a buffer of past examples. By sampling from the buffer during training, ER avoids catastrophic forgetting.
+#
+# CapyMOA has many built-in strategies. See the [Online continual learning](https://capymoa.org/notebooks/ocl/ocl.html) notebook to use them.
+
+# %% tags=["remove-cell"]
+# This cell is hidden on capymoa.org. See docs/contributing/docs.rst
+from capymoa._nbmock import is_nb_fast, mock_datasets
+
+if is_nb_fast():
+    mock_datasets()
+
+# %% [markdown]
+# ## Reservoir sampling
+#
+# Experience Replay uses [reservoir sampling](https://en.wikipedia.org/wiki/Reservoir_sampling) to construct a simple random sample incrementally from a data stream of unknown length. Here, we implement reservoir sampling "Algorithm R" (Vitter, 1985).
+#
+# - Jeffrey S. Vitter. 1985. Random sampling with a reservoir. ACM Trans. Math. Softw. 11, 1 (March 1985), 37–57. https://doi.org/10.1145/3147.3165
+
+# %%
+import torch
+from torch import Tensor
+
+
+class ReservoirSampler:
+    def __init__(self, item_count: int, feature_count: int):
+        self.item_count = item_count
+        self.feature_count = feature_count
+        self.reservoir_x = torch.zeros((item_count, feature_count))
+        self.reservoir_y = torch.zeros((item_count,), dtype=torch.long)
+        self.count = 0
+
+    def update(self, x: Tensor, y: Tensor) -> None:
+        batch_size = x.shape[0]
+        assert x.shape == (
+            batch_size,
+            self.feature_count,
+        )
+        assert y.shape == (batch_size,)
+
+        for i in range(batch_size):
+            if self.count < self.item_count:
+                # Fill the reservoir
+                self.reservoir_x[self.count] = x[i]
+                self.reservoir_y[self.count] = y[i]
+            else:
+                # Reservoir sampling
+                index = torch.randint(0, self.count + 1, (1,))
+                if index < self.item_count:
+                    self.reservoir_x[index] = x[i]
+                    self.reservoir_y[index] = y[i]
+            self.count += 1
+
+    def sample_n(self, n: int) -> tuple[Tensor, Tensor]:
+        indices = torch.randint(0, min(self.count, self.item_count), (n,))
+        return self.reservoir_x[indices], self.reservoir_y[indices]
+
+
+# %% [markdown]
+# Let's check to see if it's samples look uniform.
+
+# %%
+from matplotlib import pyplot as plt
+
+x = torch.arange(0, 1_000).reshape(-1, 1).float()
+y = torch.zeros(1_000, dtype=torch.long)
+sampler = ReservoirSampler(500, 1)
+sampler.update(x, y)
+x = sampler.sample_n(200)
+plt.hist(x[0].numpy(), bins=20)
+plt.show()
+
+# %% [markdown]
+# ## Experience Replay
+#
+# CapyMOA learners that use PyTorch should add {class}`~capymoa.base.TorchMixin`. Put the torch state (here, the model) in an `nn.Module` and assign it to `self._module`. The mixin then provides `learner.module` and `learner.device`, so the learner does not need to inherit from `nn.Module` itself.
+
+# %%
+from torch import nn
+from torch.nn.functional import cross_entropy
+
+from capymoa.base import BatchClassifier, TorchMixin
+from capymoa.stream import Schema
+
+
+class ERModule(nn.Module):
+    """Torch state of the learner."""
+
+    def __init__(self, model: nn.Module):
+        super().__init__()
+        self.model = model
+
+
+class ExperienceReplay(TorchMixin[ERModule], BatchClassifier):
+    def __init__(
+        self,
+        schema: Schema,
+        model: nn.Module,
+        reservoir_size: int,
+        learning_rate: float,
+        device: str = "cpu",
+    ):
+        super().__init__(schema=schema)
+        self.reservoir = ReservoirSampler(reservoir_size, schema.get_num_attributes())
+        self._module = ERModule(model).to(device)
+        self.optimiser = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+    def batch_train(self, x: Tensor, y: Tensor):
+        batch_size = x.shape[0]
+
+        self.reservoir.update(x, y)
+
+        replay_x, replay_y = self.reservoir.sample_n(batch_size)
+        train_x = torch.cat((x, replay_x), dim=0).to(self.device)
+        train_y = torch.cat((y, replay_y), dim=0).to(self.device)
+
+        self.module.train()
+        self.optimiser.zero_grad()
+        y_hat = self.module.model(train_x)
+        loss = cross_entropy(y_hat, train_y)
+        loss.backward()
+        self.optimiser.step()
+
+    @torch.no_grad()
+    def batch_predict_proba(self, x: Tensor) -> Tensor:
+        self.module.eval()
+        y_hat: Tensor = self.module.model(x)
+        return y_hat.softmax(dim=1)
+
+    def __str__(self) -> str:
+        return "ExperienceReplay"
+
+
+# %% [markdown]
+# ## Multi Layer Perceptron
+#
+# We create a simple multi-layer perceptron (MLP) with a single hidden layer to demonstrate continual learning.
+#
+# The output layer of a neural network is often problematic in continual learning because of the extreme and shifting class imbalance between tasks. Lesort et al. (2021) suggest mitigating this by using a variant of weight normalisation that parameterises the weights as a magnitude (set to the unit vector) and a direction. 
+#
+# * Lesort, T., George, T., & Rish, I. (2021). Continual Learning in Deep Networks:
+#  An Analysis of the Last Layer.
+
+# %%
+class SimpleMLP(nn.Module):
+    def __init__(self, schema: Schema, hidden_size: int):
+        super().__init__()
+        num_classes = schema.get_num_classes()
+
+        self.fc1 = nn.Linear(schema.get_num_attributes(), hidden_size)
+        self.fc2 = nn.Linear(hidden_size, num_classes, bias=False)
+        self.fc2 = nn.utils.parametrizations.weight_norm(self.fc2, name="weight")
+        weight_g = self.fc2.parametrizations.weight.original0
+        # Set the magnitude to the unit vector
+        weight_g.requires_grad_(False).fill_(1.0 / (num_classes**0.5))
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = torch.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+
+# %%
+from capymoa.ocl import evaluate_ocl
+from capymoa.ocl.datasets import SplitMNIST
+
+stream = SplitMNIST()
+mlp = SimpleMLP(stream.schema, 64)
+learner = ExperienceReplay(
+    stream.schema,
+    mlp,
+    reservoir_size=200,
+    learning_rate=0.01,
+    device="cpu",
+)
+r = evaluate_ocl(
+    learner,
+    stream.train_loaders(64),
+    stream.test_loaders(64),
+    progress_bar=True,
+    continual_evaluations=4,
+)
+print(f"Forward Transfer  {r['forward_transfer']:.2f}")
+print(f"Backward Transfer {r['backward_transfer']:.2f}")
+print(f"Accuracy          {r['accuracy_final']:.2f}")
+print(f"Prequential Acc.  {r['ttt']['cumulative']['accuracy'] / 100:.2f}")
+
+# %% [markdown]
+# ## Evaluation
+#
+# The plot displays the model's accuracy across tasks. Task zero begins with high accuracy, which decreases as the model forgets. In contrast, tasks one through four start at zero accuracy since the model has not seen the task yet.
+
+# %%
+from capymoa.ocl.plot import plot_accuracy_matrix
+
+ax = plot_accuracy_matrix(r)
+ax.set_title("SplitMNIST Per-Task Accuracy Over Tasks");
+
+
+# %% [markdown]
+# Here we plot some useful measures of accuracy for a continual learner. The [Online continual learning](ocl.ipynb) notebook explains each measure.
+
+# %%
+from capymoa.ocl.plot import plot_accuracy
+
+ax = plot_accuracy(r)
+ax.set_title("SplitMNIST Accuracy Over Tasks");
+
+# %% [markdown]
+# The results are a dictionary. Besides the scalars, it has the column dictionaries `per_task` and `anytime` (accuracy after each task and during training, use `pd.DataFrame(...)` for a table), arrays like `accuracy_matrix`, and `ttt` (short for test-then-train), the usual classifier results of the online evaluation.
+
+# %%
+from capymoa.evaluation.plot import plot_windowed_results
+
+plot_windowed_results(r["ttt"], metric="accuracy")

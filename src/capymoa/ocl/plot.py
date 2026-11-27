@@ -1,5 +1,8 @@
 """Plots for the results of :func:`capymoa.ocl.evaluate_ocl`."""
 
+from collections.abc import Mapping, Sequence
+from typing import Literal
+
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
@@ -91,4 +94,106 @@ def plot_accuracy(results: OCLResults, ax: Axes | None = None) -> Axes:
     ax.set_ylabel("Accuracy")
     ax.set_title("Accuracy Over Tasks")
     ax.set_ylim(-0.1, 1.05)
+    return ax
+
+
+def plot_confusion_matrix(
+    results: OCLResults,
+    task: int = -1,
+    ax: Axes | None = None,
+    show_ticks: bool = True,
+) -> Axes:
+    """Plot the confusion matrix with classes in the order they appear in the stream.
+
+    Classes are sorted by their first appearance in the training stream. Inside
+    a task, they are sorted by index. A learner that forgets has errors in the
+    columns of old classes, and one that is biased to recent classes has
+    errors in the last columns.
+
+    Each row is normalised to sum to one, so the colour scale is always from 0
+    to 1 (0% to 100%) and plots of different learners are comparable.
+
+    :param results: The results of :func:`~capymoa.ocl.evaluate_ocl`.
+    :param task: Show the confusion matrix on all classes after training on
+        this task, defaults to the last task.
+    :param ax: The axes to plot on, defaults to new axes.
+    :param show_ticks: Show a tick for every class, labelled by position in the
+        stream from 1. Otherwise show no ticks, defaults to True.
+    :return: The axes.
+    """
+    ax = ax if ax is not None else plt.subplots(figsize=(5, 5))[1]
+    order = results["class_order"]
+    cm = results["class_cm"][task][np.ix_(order, order)]
+    n_classes = len(order)
+    # Each row is the fraction of a true class given each prediction.
+    totals = cm.sum(axis=1, keepdims=True)
+    cm = np.divide(cm, totals, out=np.zeros(cm.shape), where=totals > 0)
+    ax.imshow(cm, interpolation="nearest", vmin=0, vmax=1)
+    if show_ticks:
+        ticks = np.arange(n_classes)
+        ax.set_xticks(ticks, ticks + 1)
+        ax.set_yticks(ticks, ticks + 1)
+    else:
+        ax.set_xticks([])
+        ax.set_yticks([])
+    ax.set_xlabel("Predicted class")
+    ax.set_ylabel("True class")
+    ax.set_title("Confusion Matrix (Classes by Stream Order)")
+    return ax
+
+
+_MARKERS = "o^s*PvXD"
+
+
+def plot_accuracy_comparison(
+    results: Mapping[str, OCLResults | Sequence[OCLResults]],
+    metric: Literal["accuracy_seen", "accuracy_all"] = "accuracy_seen",
+    ax: Axes | None = None,
+) -> Axes:
+    """Compare learners by their accuracy while training on the tasks.
+
+    Draws one line per learner of the anytime accuracy, measured periodically
+    during each task. Markers show the accuracy at the end of each task. If a learner has results from several runs
+    (for example seeds), the line is the mean and the shaded band is one
+    standard deviation.
+
+    :param results: Results by learner name. Each value is one result or a
+        sequence of results from repeated runs. All must have the same number
+        of tasks.
+    :param metric: ``"accuracy_seen"`` is the accuracy on the tasks seen so far,
+        ``"accuracy_all"`` is the accuracy on all tasks.
+    :param ax: The axes to plot on, defaults to new axes.
+    :return: The axes.
+    """
+    ax = ax if ax is not None else plt.subplots(figsize=(6, 4))[1]
+    n_tasks = None
+    for i, (name, value) in enumerate(results.items()):
+        runs = [value] if isinstance(value, Mapping) else list(value)
+        # Anytime accuracy during training, shape (runs, tasks * evaluations).
+        accuracy = np.array([r["anytime"][metric] for r in runs])
+        if n_tasks is None:
+            n_tasks = runs[0]["n_tasks"]
+        elif runs[0]["n_tasks"] != n_tasks:
+            raise ValueError("All results must have the same number of tasks")
+        evals = runs[0]["n_continual_evaluations"]
+        x = _anytime_x(runs[0])
+        mean = accuracy.mean(axis=0)
+        # Markers are the accuracy at the end of each task.
+        (line,) = ax.plot(
+            x,
+            mean,
+            marker=_MARKERS[i % len(_MARKERS)],
+            markevery=slice(evals - 1, None, evals),
+            label=name,
+        )
+        if len(runs) > 1:
+            std = accuracy.std(axis=0)
+            ax.fill_between(
+                x, mean - std, mean + std, color=line.get_color(), alpha=0.3
+            )
+    if n_tasks is not None:
+        ax.set_xticks(range(n_tasks + 1))
+    ax.set_xlabel("Number of Tasks")
+    ax.set_ylabel("Accuracy")
+    ax.legend()
     return ax

@@ -6,6 +6,7 @@ Learn how to train models continually on streams without forgetting past tasks.
 :maxdepth: 1
 
 ocl
+custom
 ocl_event_system
 ```
 

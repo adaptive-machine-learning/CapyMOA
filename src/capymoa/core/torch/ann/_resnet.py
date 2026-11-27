@@ -56,6 +56,8 @@ import torch.nn.functional as F
 from torch import nn
 from torch.nn import init
 
+from capymoa.core.torch import FeatureModel
+
 
 def _weights_init(m):
     if isinstance(m, (nn.Linear, nn.Conv2d)):
@@ -119,7 +121,7 @@ class _BasicBlock(nn.Module):
         return out
 
 
-class _ResNet(nn.Module):
+class _ResNet(FeatureModel):
     def __init__(self, block, num_blocks, num_classes=10):
         super().__init__()
         self.in_planes = 16
@@ -142,16 +144,17 @@ class _ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def features(self, x: torch.Tensor) -> torch.Tensor:
         x = x.view(x.shape[0], 3, 32, 32)
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
         out = F.avg_pool2d(out, out.size()[3])
-        out = out.view(out.size(0), -1)
-        out = self.linear(out)
-        return out
+        return out.view(out.size(0), -1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.linear(self.features(x))
 
 
 def resnet20_32x32(num_classes: int):
