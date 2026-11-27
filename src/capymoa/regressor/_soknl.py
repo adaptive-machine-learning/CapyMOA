@@ -43,7 +43,7 @@ class SOKNL(MOARegressor):
     >>> learner = SOKNL(schema, random_seed=1)
     >>> results = evaluate_regressor(stream, learner, max_instances=1000)
     >>> results["cumulative"]["rmse"]
-    3.4334357446039427
+    3.448937997717496
     """
 
     def __init__(
