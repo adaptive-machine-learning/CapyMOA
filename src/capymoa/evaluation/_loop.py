@@ -346,31 +346,33 @@ def _prequential_loop_fast(
     if ssl is None:
         # Only these take a warmup. ``PrequentialEvaluation`` picks one of them
         # by the type of the target, as done here.
-        is_classification = stream.get_schema().is_classification()
-        evaluate = (
-            EfficientEvaluationLoops.prequentialEvaluationClassification
-            if is_classification
-            else EfficientEvaluationLoops.prequentialEvaluationRegression
-        )
-        # Only the regression loop takes the value to score an abstention as.
-        abstain = (
-            ()
-            if is_classification
-            else (float("nan") if nan_value is None else float(nan_value),)
-        )
-        moa_results = evaluate(
-            stream.moa_stream,
-            learner.moa_learner,
-            cumulative.moa_basic_evaluator,
-            windowed.moa_evaluator,
-            limit,
-            window_size,
-            run.store_y,
-            run.store_predictions,
-            warmup,
-            *abstain,
-            HookableEvaluationLoop(),
-        )
+        if stream.get_schema().is_classification():
+            moa_results = EfficientEvaluationLoops.prequentialEvaluationClassification(
+                stream.moa_stream,
+                learner.moa_learner,
+                cumulative.moa_basic_evaluator,
+                windowed.moa_evaluator,
+                limit,
+                window_size,
+                run.store_y,
+                run.store_predictions,
+                warmup,
+                HookableEvaluationLoop(),
+            )
+        else:
+            moa_results = EfficientEvaluationLoops.prequentialEvaluationRegression(
+                stream.moa_stream,
+                learner.moa_learner,
+                cumulative.moa_basic_evaluator,
+                windowed.moa_evaluator,
+                limit,
+                window_size,
+                run.store_y,
+                run.store_predictions,
+                warmup,
+                float("nan") if nan_value is None else float(nan_value),
+                HookableEvaluationLoop(),
+            )
     else:
         initial_window_size, delay_length, label_probability, random_seed = ssl
         moa_results = EfficientEvaluationLoops.PrequentialSSLEvaluation(
